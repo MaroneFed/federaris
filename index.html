@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federaris - L'Excellence du Web</title>
+    <link rel="stylesheet" href="/www/src/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+    <!-- Préchargeur Cinématique -->
+    <div id="preloader">
+        <div class="preloader-content">
+            <div class="matrix-text" id="matrixText"></div>
+            <div class="preloader-progress">
+                <div class="progress-bar"></div>
+                <div class="progress-text">INITIALISATION <span id="progressPercent">0</span>%</div>
+            </div>
+            <div class="preloader-message">
+                <span class="typing-text"></span>
+                <span class="cursor">|</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Holographique -->
+    <nav class="holographic-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <div class="logo-pulse">⚡</div>
+                <span class="logo-text">FEDERARIS</span>
+                <div class="logo-sub">WEB EXCELLENCE</div>
+            </div>
+            
+            <div class="nav-links">
+                <a href="#hero" class="nav-link" data-text="ACCUEIL">ACCUEIL</a>
+                <a href="#features" class="nav-link" data-text="FEATURES">FEATURES</a>
+                <a href="#showcase" class="nav-link" data-text="SHOWCASE">SHOWCASE</a>
+                <a href="#process" class="nav-link" data-text="PROCESS">PROCESS</a>
+                <a href="#pricing" class="nav-link" data-text="PRICING">PRICING</a>
+                <a href="#contact" class="nav-link cta-pulse" data-text="CONTACT">CONTACT</a>
+            </div>
+            
+            <div class="nav-hamburger">
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+            </div>
+        </div>
+        
+        <div class="nav-glow"></div>
+    </nav>
+
+    <!-- Hero Section - Cinématique -->
+    <section id="hero" class="hero-section">
+        <div class="hero-bg-grid"></div>
+        <div class="particles-container" id="heroParticles"></div>
+        
+        <div class="hero-content">
+            <div class="hero-badge pulse-glow">
+                <span class="badge-icon">🚀</span>
+                <span class="badge-text">AGENCE WEB ÉLITE</span>
+            </div>
+            
+            <h1 class="hero-title">
+                <span class="title-line">WEBSITES THAT</span>
+                <span class="title-line gradient-text typing-title" id="typingTitle"></span>
+                <span class="title-line">YOUR BUSINESS</span>
+            </h1>
+            
+            <p class="hero-subtitle">
+                Nous créons des expériences digitales qui <span class="highlight">transforment</span> les visiteurs en clients, 
+                qui <span class="highlight">dominent</span> les moteurs de recherche, et qui <span class="highlight">doublent</span> vos revenus.
+            </p>
+            
+            <div class="hero-cta">
+                <button class="cta-btn magnetic-btn" data-strength="20" data-radius="80">
+                    <span class="cta-text">DEMANDER UN AUDIT GRATUIT</span>
+                    <span class="cta-icon">→</span>
+                    <div class="btn-glow"></div>
+                </button>
+                
+                <div class="hero-stats">
+                    <div class="stat-item count-up" data-target="247">0</div>
+                    <div class="stat-label">PROJETS LIVE</div>
+                    <div class="stat-divider">|</div>
+                    <div class="stat-item count-up" data-target="99">0</div>
+                    <div class="stat-label">% SATISFACTION</div>
+                    <div class="stat-divider">|</div>
+                    <div class="stat-item count-up" data-target="42">0</div>
+                    <div class="stat-label">PRIX REMPORTÉS</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="hero-scroll">
+            <div class="scroll-text">EXPLORE</div>
+            <div class="scroll-line">
+                <div class="scroll-dot"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section - Grid Holographique -->
+    <section id="features" class="features-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="title-number">01</span>
+                <span class="title-text">TECHNOLOGIES<br>D'EXCEPTION</span>
+            </h2>
+            <p class="section-subtitle">
+                Nous n'utilisons pas les mêmes outils que les autres. Notre stack technologique 
+                est pensée pour la performance, la sécurité et l'innovation.
+            </p>
+        </div>
+        
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="feature-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+                <div class="feature-icon">
+                    <div class="icon-3d">⚡</div>
+                    <div class="icon-glow"></div>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">PERFORMANCE EXTREME</h3>
+                    <p class="feature-desc">
+                        Pages qui chargent en <strong>0.3 secondes</strong>, optimisées Core Web Vitals 100/100, 
+                        hébergement CDN global.
+                    </p>
+                    <div class="feature-stats">
+                        <div class="stat">+300% SEO</div>
+                        <div class="stat">-70% BOUNCE RATE</div>
+                    </div>
+                </div>
+                <div class="feature-hologram"></div>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="feature-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+                <div class="feature-icon">
+                    <div class="icon-3d">🤖</div>
+                    <div class="icon-glow"></div>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">AI INTÉGRÉE</h3>
+                    <p class="feature-desc">
+                        Chatbots intelligents, génération de contenu automatique, analyse prédictive 
+                        des comportements utilisateurs.
+                    </p>
+                    <div class="feature-stats">
+                        <div class="stat">24/7 SUPPORT</div>
+                        <div class="stat">+45% CONVERSION</div>
+                    </div>
+                </div>
+                <div class="feature-hologram"></div>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="feature-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+                <div class="feature-icon">
+                    <div class="icon-3d">🎮</div>
+                    <div class="icon-glow"></div>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">ANIMATIONS CINÉMATIQUES</h3>
+                    <p class="feature-desc">
+                        Scroll parallaxe avancé, micro-interactions, transitions 3D, 
+                        effets visuels qui captivent l'attention.
+                    </p>
+                    <div class="feature-stats">
+                        <div class="stat">+85% ENGAGEMENT</div>
+                        <div class="stat">3D REACTIVE</div>
+                    </div>
+                </div>
+                <div class="feature-hologram"></div>
+            </div>
+            
+            <!-- Feature 4 -->
+            <div class="feature-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+                <div class="feature-icon">
+                    <div class="icon-3d">🔐</div>
+                    <div class="icon-glow"></div>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">SÉCURITÉ MAXIMALE</h3>
+                    <p class="feature-desc">
+                        Protection DDoS, chiffrement SSL 256-bit, audits de sécurité quotidiens, 
+                        backup automatique sur 3 continents.
+                    </p>
+                    <div class="feature-stats">
+                        <div class="stat">100% UPTIME</div>
+                        <div class="stat">ZERO HACK</div>
+                    </div>
+                </div>
+                <div class="feature-hologram"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Showcase Section - Portfolio Interactif -->
+    <section id="showcase" class="showcase-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="title-number">02</span>
+                <span class="title-text">RÉALISATIONS<br>IMPACTANTES</span>
+            </h2>
+            <p class="section-subtitle">
+                Chaque projet est une œuvre unique qui repousse les limites du possible.
+            </p>
+        </div>
+        
+        <div class="showcase-container">
+            <div class="showcase-controls">
+                <button class="control-btn prev-btn">
+                    <span>←</span>
+                </button>
+                <div class="showcase-categories">
+                    <button class="category-btn active" data-category="all">TOUT</button>
+                    <button class="category-btn" data-category="ecommerce">E-COMMERCE</button>
+                    <button class="category-btn" data-category="corporate">CORPORATE</button>
+                    <button class="category-btn" data-category="tech">TECH</button>
+                    <button class="category-btn" data-category="luxe">LUXE</button>
+                </div>
+                <button class="control-btn next-btn">
+                    <span>→</span>
+                </button>
+            </div>
+            
+            <div class="showcase-grid" id="showcaseGrid">
+                <!-- Les projets seront ajoutés dynamiquement -->
+            </div>
+            
+            <div class="showcase-stats">
+                <div class="showcase-stat">
+                    <div class="stat-value count-up" data-target="5000000">0</div>
+                    <div class="stat-label">€ DE CA GÉNÉRÉ</div>
+                </div>
+                <div class="showcase-stat">
+                    <div class="stat-value count-up" data-target="1500">0</div>
+                    <div class="stat-label">LEADS PAR MOIS</div>
+                </div>
+                <div class="showcase-stat">
+                    <div class="stat-value count-up" data-target="98">0</div>
+                    <div class="stat-label">% ROI</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process Section - Timeline Futuriste -->
+    <section id="process" class="process-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="title-number">03</span>
+                <span class="title-text">PROCESSUS<br>INFAILLIBLE</span>
+            </h2>
+            <p class="section-subtitle">
+                Une méthodologie éprouvée qui garantit l'excellence à chaque étape.
+            </p>
+        </div>
+        
+        <div class="process-timeline">
+            <div class="timeline-line">
+                <div class="timeline-progress"></div>
+            </div>
+            
+            <div class="process-steps">
+                <!-- Step 1 -->
+                <div class="process-step active" data-step="1">
+                    <div class="step-number">
+                        <div class="number-glow">01</div>
+                    </div>
+                    <div class="step-content">
+                        <h3 class="step-title">AUDIT STRATÉGIQUE</h3>
+                        <p class="step-desc">
+                            Analyse approfondie de votre marché, concurrence et positionnement. 
+                            Plan d'action sur-mesure avec projections chiffrées.
+                        </p>
+                        <div class="step-stats">
+                            <span class="stat">+15 JOURS D'ANALYSE</span>
+                            <span class="stat">100% DATA DRIVEN</span>
+                        </div>
+                    </div>
+                    <div class="step-hologram"></div>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="process-step" data-step="2">
+                    <div class="step-number">
+                        <div class="number-glow">02</div>
+                    </div>
+                    <div class="step-content">
+                        <h3 class="step-title">CONCEPTION UX/UI</h3>
+                        <p class="step-desc">
+                            Wireframes interactifs, prototypes animés, design system complet. 
+                            Tests utilisateurs en conditions réelles.
+                        </p>
+                        <div class="step-stats">
+                            <span class="stat">30+ TESTS UTILISATEURS</span>
+                            <span class="stat">OPTIMISATION CONTINUE</span>
+                        </div>
+                    </div>
+                    <div class="step-hologram"></div>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="process-step" data-step="3">
+                    <div class="step-number">
+                        <div class="number-glow">03</div>
+                    </div>
+                    <div class="step-content">
+                        <h3 class="step-title">DÉVELOPPEMENT AVANCÉ</h3>
+                        <p class="step-desc">
+                            Code optimisé pour la performance, intégration des dernières technologies, 
+                            développement modulaire et scalable.
+                        </p>
+                        <div class="step-stats">
+                            <span class="stat">CODE REVIEW QUOTIDIEN</span>
+                            <span class="stat">TESTS AUTOMATISÉS</span>
+                        </div>
+                    </div>
+                    <div class="step-hologram"></div>
+                </div>
+                
+                <!-- Step 4 -->
+                <div class="process-step" data-step="4">
+                    <div class="step-number">
+                        <div class="number-glow">04</div>
+                    </div>
+                    <div class="step-content">
+                        <h3 class="step-title">LANCEMENT & OPTIMISATION</h3>
+                        <p class="step-desc">
+                            Déploiement avec monitoring 24/7, A/B testing, optimisation SEO technique, 
+                            formation complète de votre équipe.
+                        </p>
+                        <div class="step-stats">
+                            <span class="stat">SUPPORT PREMIUM</span>
+                            <span class="stat">ANALYTICS TEMPS RÉEL</span>
+                        </div>
+                    </div>
+                    <div class="step-hologram"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section - Cards Interactives -->
+    <section id="pricing" class="pricing-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="title-number">04</span>
+                <span class="title-text">INVESTISSEMENT<br>INTELLIGENT</span>
+            </h2>
+            <p class="section-subtitle">
+                Des solutions adaptées à chaque ambition, avec un ROI garanti.
+            </p>
+        </div>
+        
+        <div class="pricing-switch">
+            <span class="switch-label">PROJET</span>
+            <label class="switch">
+                <input type="checkbox" id="pricingToggle">
+                <span class="slider"></span>
+            </label>
+            <span class="switch-label">ABONNEMENT</span>
+        </div>
+        
+        <div class="pricing-cards">
+            <!-- Starter -->
+            <div class="pricing-card" data-plan="starter">
+                <div class="card-header">
+                    <h3 class="plan-name">STARTER</h3>
+                    <div class="plan-price">
+                        <span class="currency">€</span>
+                        <span class="amount" data-monthly="4990" data-project="7990">7990</span>
+                    </div>
+                    <div class="plan-period">PROJET COMPLET</div>
+                </div>
+                
+                <div class="card-features">
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Site vitrine 5 pages</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Design responsive</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">SEO de base</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Formation 2h</span>
+                    </div>
+                </div>
+                
+                <button class="plan-btn">CHOISIR CE PLAN</button>
+                
+                <div class="card-badge">POPULAIRE</div>
+            </div>
+            
+            <!-- Pro -->
+            <div class="pricing-card featured" data-plan="pro">
+                <div class="card-header">
+                    <h3 class="plan-name">PRO</h3>
+                    <div class="plan-price">
+                        <span class="currency">€</span>
+                        <span class="amount" data-monthly="12990" data-project="19990">19990</span>
+                    </div>
+                    <div class="plan-period">PROJET COMPLET</div>
+                </div>
+                
+                <div class="card-features">
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Site sur-mesure 10+ pages</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Animations avancées</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">SEO expert</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">E-commerce basique</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Support 6 mois</span>
+                    </div>
+                </div>
+                
+                <button class="plan-btn featured-btn">CHOISIR CE PLAN</button>
+                
+                <div class="card-badge">RECOMMANDÉ</div>
+                <div class="card-glow"></div>
+            </div>
+            
+            <!-- Enterprise -->
+            <div class="pricing-card" data-plan="enterprise">
+                <div class="card-header">
+                    <h3 class="plan-name">ENTERPRISE</h3>
+                    <div class="plan-price">
+                        <span class="currency">€</span>
+                        <span class="amount" data-monthly="29990" data-project="49990">49990</span>
+                    </div>
+                    <div class="plan-period">PROJET COMPLET</div>
+                </div>
+                
+                <div class="card-features">
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Plateforme complète</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">E-commerce avancé</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Application web</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">AI intégrée</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-check">✓</span>
+                        <span class="feature-text">Support 12 mois</span>
+                    </div>
+                </div>
+                
+                <button class="plan-btn">CONTACTER POUR DEVIS</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section - Formulaire Futuriste -->
+    <section id="contact" class="contact-section">
+        <div class="contact-container">
+            <div class="contact-content">
+                <h2 class="contact-title">
+                    PRÊT À <span class="gradient-text">TRANSFORMER</span><br>
+                    VOTRE PRÉSENCE DIGITALE ?
+                </h2>
+                
+                <div class="contact-stats">
+                    <div class="contact-stat">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-info">
+                            <div class="stat-value">24h</div>
+                            <div class="stat-label">RÉPONSE GARANTIE</div>
+                        </div>
+                    </div>
+                    <div class="contact-stat">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-info">
+                            <div class="stat-value">100%</div>
+                            <div class="stat-label">CONFIDENTIALITÉ</div>
+                        </div>
+                    </div>
+                    <div class="contact-stat">
+                        <div class="stat-icon">🤝</div>
+                        <div class="stat-info">
+                            <div class="stat-value">1h</div>
+                            <div class="stat-label">CALL DÉCOUVERTE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="contact-form">
+                <form id="mainContactForm">
+                    <div class="form-group">
+                        <div class="input-container">
+                            <input type="text" id="name" required>
+                            <label for="name">VOTRE NOM *</label>
+                            <div class="input-line"></div>
+                        </div>
+                        
+                        <div class="input-container">
+                            <input type="email" id="email" required>
+                            <label for="email">VOTRE EMAIL *</label>
+                            <div class="input-line"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-container">
+                            <input type="text" id="company">
+                            <label for="company">VOTRE SOCIÉTÉ</label>
+                            <div class="input-line"></div>
+                        </div>
+                        
+                        <div class="input-container">
+                            <input type="tel" id="phone">
+                            <label for="phone">TÉLÉPHONE</label>
+                            <div class="input-line"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <div class="input-container">
+                            <textarea id="message" rows="3" required></textarea>
+                            <label for="message">VOTRE PROJET *</label>
+                            <div class="input-line"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <div class="budget-selector">
+                            <div class="budget-label">BUDGET APPROXIMATIF</div>
+                            <div class="budget-options">
+                                <button type="button" class="budget-option" data-value="5000-10000">5-10K €</button>
+                                <button type="button" class="budget-option" data-value="10000-25000">10-25K €</button>
+                                <button type="button" class="budget-option" data-value="25000-50000">25-50K €</button>
+                                <button type="button" class="budget-option" data-value="50000+">50K+ €</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn magnetic-btn" data-strength="25" data-radius="100">
+                        <span class="submit-text">LANCER MON PROJET</span>
+                        <span class="submit-icon">🚀</span>
+                        <div class="btn-particles"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="contact-glow"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <div class="logo-icon">⚡</div>
+                    <div class="logo-text">FEDERARIS</div>
+                </div>
+                <p class="footer-desc">
+                    Nous repoussons les limites du web pour créer des expériences 
+                    digitales qui transforment les business.
+                </p>
+                <div class="footer-social">
+                    <a href="#" class="social-link" data-tooltip="LinkedIn">LN</a>
+                    <a href="#" class="social-link" data-tooltip="Behance">BE</a>
+                    <a href="#" class="social-link" data-tooltip="Dribbble">DR</a>
+                    <a href="#" class="social-link" data-tooltip="Twitter">TW</a>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h4 class="footer-title">SERVICES</h4>
+                <a href="#" class="footer-link">Développement Web</a>
+                <a href="#" class="footer-link">Design UI/UX</a>
+                <a href="#" class="footer-link">E-commerce</a>
+                <a href="#" class="footer-link">Applications Web</a>
+                <a href="#" class="footer-link">SEO & Marketing</a>
+            </div>
+            
+            <div class="footer-section">
+                <h4 class="footer-title">CONTACT</h4>
+                <div class="footer-contact">
+                    <div class="contact-item">
+                        <div class="contact-icon">📍</div>
+                        <span>Paris • Lyon • Genève</span>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <span>contact@federaris.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📱</div>
+                        <span>+33 1 84 88 88 88</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h4 class="footer-title">NEWSLETTER</h4>
+                <p class="footer-newsletter">
+                    Recevez nos conseils experts et études de cas exclusives.
+                </p>
+                <div class="newsletter-form">
+                    <input type="email" placeholder="Votre email" class="newsletter-input">
+                    <button class="newsletter-btn">→</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="copyright">© 2024 FEDERARIS. Tous droits réservés.</div>
+            <div class="footer-links">
+                <a href="#" class="footer-bottom-link">Mentions légales</a>
+                <a href="#" class="footer-bottom-link">Politique de confidentialité</a>
+                <a href="#" class="footer-bottom-link">Conditions générales</a>
+            </div>
+        </div>
+        
+        <div class="footer-glow"></div>
+    </footer>
+
+    <!-- Cursor Personnalisé -->
+    <div class="custom-cursor"></div>
+    <div class="cursor-trail"></div>
+
+    <!-- Scripts -->
+    <script src="/www/src/main.js"></script>
+</body>
+</html>
