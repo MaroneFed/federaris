@@ -15,9 +15,11 @@
 - **Passer en URP.** Le projet tourne en pipeline Built-in. Tous les matériaux sont
   créés par code dans `MaterialFactory`, qui essaie déjà le shader URP en premier :
   le basculement ne cassera rien. À faire quand on touchera au look.
-- **Remplacer les primitives par des assets Kenney/Synty.** Deux fichiers à modifier,
-  et rien d'autre : `NodeFactory.cs` et `BuildingFactory.cs`.
-- **Sons.** Rien du tout pour l'instant. Une récolte sans « tchok » ne satisfait pas.
+- **Remplacer les primitives par des assets Kenney/Synty.** Trois fichiers à modifier,
+  et rien d'autre : `NodeFactory.cs`, `BuildingFactory.cs` et `Scenery.cs`.
+- **Sons.** Ils existent maintenant, mais ils sont *synthétisés par le code*
+  (`Scripts/Core/Sfx.cs`) : aucun fichier audio. C'est suffisant pour sentir la boucle,
+  pas pour shipper. À remplacer par de vrais sons — l'appel (`Sfx.Harvest(...)`) ne changera pas.
 - **Les statiques de `Game.cs`.** Elles tombent en multijoueur (voir ARCHITECTURE.md).
 
 ## Phase 2 — le conflit (ne pas commencer sans validation de la Porte 1)

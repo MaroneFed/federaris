@@ -48,12 +48,20 @@ namespace Fief
             rng = new System.Random(config.worldSeed);
             worldRoot = new GameObject("=== MONDE ===").transform;
 
-            QualitySettings.shadowDistance = 90f;
+            QualitySettings.shadowDistance = 110f;
+
+            // L'ordre compte : le relief doit exister avant qu'on pose quoi que ce soit
+            // dessus, et les chemins avant qu'on seme le decor (pour ne pas semer sur la route).
+            Ground.Prepare(config);
+            Scenery.Reset();
 
             BuildEnvironment();
+            Scenery.BuildRoads(worldRoot, config);
             BuildMarket();
             BuildFiefs();
+            Scenery.BuildLandmarks(worldRoot, config);
             BuildResourceNodes();
+            Scenery.Scatter(worldRoot, config, rng, occupied, config.decorCount);
 
             PlayerController player = BuildPlayer();
             BuildHud(player);
@@ -80,46 +88,47 @@ namespace Fief
         {
             GameObject sunGo = new GameObject("Soleil");
             sunGo.transform.SetParent(worldRoot, false);
-            sunGo.transform.rotation = Quaternion.Euler(46f, 38f, 0f);
+            sunGo.transform.rotation = Quaternion.Euler(42f, 35f, 0f);
             Light sun = sunGo.AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.color = new Color(1f, 0.96f, 0.87f);
-            sun.intensity = 1.15f;
+            sun.color = new Color(1f, 0.95f, 0.85f);
+            sun.intensity = 1.2f;
             sun.shadows = LightShadows.Soft;
 
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.56f, 0.64f, 0.74f);
-            RenderSettings.ambientEquatorColor = new Color(0.44f, 0.46f, 0.46f);
-            RenderSettings.ambientGroundColor = new Color(0.24f, 0.23f, 0.20f);
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = Palette.Sky;
-            RenderSettings.fogStartDistance = 130f;
-            RenderSettings.fogEndDistance = 430f;
-
-            float size = config.mapSize;
-            Proto.Make(PrimitiveType.Plane, worldRoot, Vector3.zero,
-                       new Vector3(size / 10f, 1f, size / 10f), Palette.Grass, "Sol");
-
-            // Quelques taches d'herbe plus sombre : casse la platitude sans rien couter.
-            for (int i = 0; i < 26; i++)
+            // Un vrai ciel degrade au lieu d'un aplat de couleur.
+            // Le shader "Skybox/Procedural" est fourni avec Unity : aucun asset a importer.
+            Shader skyShader = Shader.Find("Skybox/Procedural");
+            if (skyShader != null)
             {
-                Vector3 p = new Vector3(RandomRange(-size * 0.45f, size * 0.45f), 0f,
-                                        RandomRange(-size * 0.45f, size * 0.45f));
-                Proto.Pad(worldRoot, p, RandomRange(9f, 22f), Palette.GrassDark, "Herbe", 0.02f);
+                Material sky = new Material(skyShader);
+                if (sky.HasProperty("_SunSize")) sky.SetFloat("_SunSize", 0.045f);
+                if (sky.HasProperty("_AtmosphereThickness")) sky.SetFloat("_AtmosphereThickness", 0.85f);
+                if (sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint", new Color(0.55f, 0.68f, 0.86f));
+                if (sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor", new Color(0.42f, 0.42f, 0.38f));
+                if (sky.HasProperty("_Exposure")) sky.SetFloat("_Exposure", 1.25f);
+                RenderSettings.skybox = sky;
+                RenderSettings.sun = sun;
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            }
+            else
+            {
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             }
 
-            // Falaises de bordure : on ne tombe pas de la carte.
-            float half = size * 0.5f;
-            BuildBorder(new Vector3(0f, 3f, half), new Vector3(size + 8f, 6f, 4f));
-            BuildBorder(new Vector3(0f, 3f, -half), new Vector3(size + 8f, 6f, 4f));
-            BuildBorder(new Vector3(half, 3f, 0f), new Vector3(4f, 6f, size + 8f));
-            BuildBorder(new Vector3(-half, 3f, 0f), new Vector3(4f, 6f, size + 8f));
-        }
+            RenderSettings.ambientSkyColor = new Color(0.58f, 0.66f, 0.76f);
+            RenderSettings.ambientEquatorColor = new Color(0.46f, 0.48f, 0.47f);
+            RenderSettings.ambientGroundColor = new Color(0.26f, 0.25f, 0.21f);
+            RenderSettings.ambientIntensity = 1.05f;
 
-        void BuildBorder(Vector3 position, Vector3 scale)
-        {
-            Proto.Cube(worldRoot, position, scale, Palette.Cliff, "Falaise");
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = new Color(0.68f, 0.76f, 0.85f);
+            RenderSettings.fogStartDistance = 150f;
+            RenderSettings.fogEndDistance = 480f;
+
+            // Le terrain en relief. Les bords remontent en cuvette : plus besoin
+            // de murs gris pour dire ou s'arrete le monde.
+            Ground.Build(worldRoot, config);
         }
 
         // ================================================================ marche
@@ -275,6 +284,7 @@ namespace Fief
                 {
                     Vector3 position;
                     if (!FindFreeSpot(zone, out position)) continue;
+                    position = Ground.Place(position, 0f);
                     NodeFactory.Create(zoneRoot.transform, zone.type, position, rng);
                     occupied.Add(position);
                     total++;
@@ -301,6 +311,8 @@ namespace Fief
 
                 if (Mathf.Abs(candidate.x) > limit || Mathf.Abs(candidate.z) > limit) continue;
                 if (candidate.magnitude < config.marketRadius + 14f) continue;
+                if (Scenery.DistanceToRoad(candidate.x, candidate.z) < 6f) continue;
+                if (Ground.Slope(candidate.x, candidate.z) > 0.45f) continue;
 
                 bool clear = true;
                 for (int i = 0; i < occupied.Count; i++)
@@ -333,7 +345,7 @@ namespace Fief
         {
             // On apparait en bord de fief, tourne vers lui : la premiere image du jeu
             // montre ta banniere et tes 6 emplacements de construction.
-            Vector3 spawn = Game.HomeFiefPosition + new Vector3(0f, 1.2f, -24f);
+            Vector3 spawn = Ground.Place(Game.HomeFiefPosition + new Vector3(0f, 0f, -24f), 1.2f);
 
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
@@ -372,7 +384,9 @@ namespace Fief
             // La camera. AudioListener dessus : c'est l'oreille du jeu.
             GameObject camGo = new GameObject("CAMERA");
             Camera cam = camGo.AddComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.clearFlags = RenderSettings.skybox != null
+                ? CameraClearFlags.Skybox
+                : CameraClearFlags.SolidColor;
             cam.backgroundColor = Palette.Sky;
             cam.fieldOfView = 62f;
             cam.nearClipPlane = 0.15f;
@@ -393,6 +407,9 @@ namespace Fief
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;
+
+            // Les sons sont synthetises par le code et joues depuis le joueur.
+            Sfx.Init(go);
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;

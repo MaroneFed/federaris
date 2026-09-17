@@ -46,6 +46,7 @@ namespace Fief
             if (def == null) return false;
             if (IsOccupied)
             {
+                Sfx.Deny();
                 Toasts.Show("Emplacement deja occupe", Palette.Iron);
                 return false;
             }
@@ -57,6 +58,7 @@ namespace Fief
             int cost = fief.CostOf(def);
             if (!wallet.TrySpend(cost))
             {
+                Sfx.Deny();
                 Toasts.Show("Il te manque " + (cost - wallet.Gold) + " or pour " + def.name, Palette.Iron);
                 return false;
             }
@@ -68,6 +70,8 @@ namespace Fief
             BuildingFactory.Spawn(this, def);
             fief.RegisterBuilt(def);
 
+            Sfx.Build();
+            FloatingTexts.Spawn(transform.position + Vector3.up * 2.4f, "-" + cost + " or", Palette.Iron);
             Toasts.Show(def.name + " construit  (-" + cost + " or, +" + def.prestige + " prestige)", Palette.Gold);
             return true;
         }

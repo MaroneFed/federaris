@@ -51,7 +51,7 @@ namespace Fief
                 "Phase 2 : tournera grace a des serviteurs... qu'il faudra payer.",
                 new Color(0.50f, 0.44f, 0.30f)),
 
-            New(BuildingId.Workshop, "Atelier", 400, 18,
+            New(BuildingId.Workshop, "Atelier", 340, 18,
                 "-15% sur le cout de toutes tes constructions suivantes.",
                 "Phase 2 : fabrication d'outils de siege.",
                 new Color(0.62f, 0.50f, 0.38f))

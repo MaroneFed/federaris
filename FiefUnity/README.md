@@ -24,9 +24,9 @@ Ce dossier est le projet Unity. **Tout ce qui suit prend 5 minutes.**
    *Sinon : dans la fenêtre `Project` en bas, double-clique `Assets/_Fief/Scenes/Main.unity`.*
 2. Appuie sur le **bouton ▶ Play** en haut au centre.
 
-**Ce que tu dois voir :** une plaine verte, un marché à bâches au centre, ton fief avec
-6 emplacements de construction, des arbres/rochers/veines de fer répartis sur la carte,
-un HUD en bas à gauche, et ton personnage vu de dos.
+**Ce que tu dois voir :** un paysage vallonné sous un vrai ciel, des chemins de terre qui
+partent du marché central vers les 6 fiefs, ton fief avec 6 emplacements de construction,
+des arbres/rochers/veines de fer, du décor semé partout, un HUD en bas à gauche.
 
 > **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Réparer la scène Main`**,
 > puis re-Play. C'est le filet de sécurité : le monde est entièrement généré par le code,
@@ -37,6 +37,7 @@ un HUD en bas à gauche, et ton personnage vu de dos.
 | Touche | Action |
 |---|---|
 | **ZQSD** / WASD / flèches | Se déplacer |
+| **Maj (Shift)** | Courir — seulement si le sac est léger |
 | **Souris** | Caméra orbitale |
 | **Molette** | Zoom |
 | **Espace** | Sauter |
@@ -59,8 +60,8 @@ Le parcours :
    nettement moins que 2 fois 22 espacés.
 4. Rentre à ton fief, **E** sur un emplacement, construis.
    Commence par le **Coffre** (150 or), puis la **Scierie** (300 or) qui produit toute seule.
-5. Recommence. Objectif : les 5 constructions payées (1180 or au total).
-   **Calibré pour ~19 min et une douzaine de voyages** — c'est exactement la durée de la Porte 1.
+5. Recommence. Objectif : les 5 constructions payées (1120 or au total).
+   **Calibré pour ~18 min et une douzaine de voyages** — c'est exactement la durée de la Porte 1.
 
 **Ce que tu dois me dire après 20 min :** est-ce que c'est *satisfaisant*, ou est-ce que
 ça traîne ? Les chiffres qui se règlent en 10 secondes sont dans `GameConfig`
@@ -92,6 +93,9 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | **La carte** (zones de ressources, positions des fiefs) | `GameConfig.DefaultZones()` |
 | Les 5 constructions (coût, effet, prestige) | `Scripts/Building/BuildingCatalog.cs` |
 | La formule des prix dynamiques | `Scripts/Economy/Market.cs` |
+| Le relief (collines, zones plates, chemins) | `Scripts/World/Ground.cs` |
+| Le décor semé et les grands repères | `Scripts/World/Scenery.cs` |
+| Les sons (synthétisés par le code) | `Scripts/Core/Sfx.cs` |
 | L'apparence des arbres/rochers | `Scripts/World/NodeFactory.cs` |
 | L'apparence des bâtiments | `Scripts/Building/BuildingFactory.cs` |
 | Les couleurs du jeu | `Scripts/Core/Palette.cs` |

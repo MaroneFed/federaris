@@ -87,6 +87,7 @@ namespace Fief
 
             if (inv.SpaceFor(type) <= 0)
             {
+                Sfx.Deny();
                 Toasts.Show("Sac plein (" + Mathf.RoundToInt(inv.Weight) + " kg) - direction le marche", Palette.Iron);
                 return;
             }
@@ -95,9 +96,14 @@ namespace Fief
             int added = inv.TryAdd(type, wanted);
             if (added <= 0)
             {
+                Sfx.Deny();
                 Toasts.Show("Sac plein", Palette.Iron);
                 return;
             }
+
+            Sfx.Harvest(type);
+            FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f,
+                                "+" + added + " " + ResourceInfo.Name(type), ResourceInfo.Tint(type));
 
             remaining -= added;
             if (remaining <= 0)
@@ -107,7 +113,6 @@ namespace Fief
             }
 
             ApplyVisual();
-            Toasts.Show("+" + added + " " + ResourceInfo.Name(type), ResourceInfo.Tint(type));
         }
 
         /// <summary>Le gisement retrecit a mesure qu'on le vide : lisible sans aucune UI.</summary>

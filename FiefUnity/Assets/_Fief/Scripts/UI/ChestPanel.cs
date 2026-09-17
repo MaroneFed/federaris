@@ -56,6 +56,7 @@ namespace Fief
                 {
                     int moved = inv.TryRemove(type, inBag);
                     fief.AddStock(type, moved);
+                    Sfx.Pop();
                     Toasts.Show("Depose " + moved + " " + ResourceInfo.Name(type), ResourceInfo.Tint(type));
                 }
                 GUI.enabled = true;
@@ -68,6 +69,7 @@ namespace Fief
                     int taken = fief.TakeStock(type, takeable);
                     int added = inv.TryAdd(type, taken);
                     if (added < taken) fief.AddStock(type, taken - added);
+                    Sfx.Pop();
                     Toasts.Show("Retire " + added + " " + ResourceInfo.Name(type), ResourceInfo.Tint(type));
                 }
                 GUI.enabled = true;
@@ -90,6 +92,7 @@ namespace Fief
                     fief.AddStock(type, moved);
                     total += moved;
                 }
+                Sfx.Pop();
                 Toasts.Show(total > 0 ? "Sac vide dans le coffre (" + total + " unites)" : "Sac deja vide", Palette.Gold);
             }
 

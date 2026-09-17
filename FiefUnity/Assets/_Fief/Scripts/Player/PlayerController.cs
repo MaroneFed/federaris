@@ -24,6 +24,9 @@ namespace Fief
 
         public float CurrentSpeed { get; private set; }
         public float TargetSpeed { get; private set; }
+        public bool IsSprinting { get; private set; }
+
+        float strideAccumulator;
 
         void Awake()
         {
@@ -58,6 +61,15 @@ namespace Fief
             float load = Game.Inventory != null ? Game.Inventory.Load01 : 0f;
             float t = Mathf.Pow(Mathf.Clamp01(load), Mathf.Max(0.1f, cfg.loadCurve));
             float speed = Mathf.Lerp(cfg.moveSpeedEmpty, cfg.moveSpeedFull, t);
+
+            // La course (Maj) n'est possible que le sac leger. Aller vite a vide,
+            // rentrer lentement charge : c'est la mecanique de poids, en plus lisible.
+            IsSprinting = !InputLocked
+                       && FiefInput.SprintHeld
+                       && load <= cfg.sprintMaxLoad
+                       && wish.sqrMagnitude > 0.01f;
+            if (IsSprinting) speed *= cfg.sprintMultiplier;
+
             TargetSpeed = speed;
             CurrentSpeed = wish.magnitude * speed;
 
@@ -80,7 +92,24 @@ namespace Fief
             Vector3 motion = wish * speed + Vector3.up * verticalVelocity;
             controller.Move(motion * Time.deltaTime);
 
+            Footsteps();
             KeepInsideMap(cfg);
+        }
+
+        /// <summary>Un bruit de pas tous les 2,3 m parcourus au sol.</summary>
+        void Footsteps()
+        {
+            if (!controller.isGrounded) return;
+
+            Vector3 flat = controller.velocity;
+            flat.y = 0f;
+            strideAccumulator += flat.magnitude * Time.deltaTime;
+
+            if (strideAccumulator >= 2.3f)
+            {
+                strideAccumulator = 0f;
+                Sfx.Step();
+            }
         }
 
         /// <summary>Filet de securite : on ne sort pas de la carte, meme si un mur manque.</summary>

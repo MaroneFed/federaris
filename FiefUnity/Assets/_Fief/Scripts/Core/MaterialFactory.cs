@@ -42,6 +42,10 @@ namespace Fief
             if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0f);
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
 
+            // Le decor represente des centaines d'objets : l'instanciation GPU permet
+            // de les dessiner en un seul appel par couleur au lieu d'un par objet.
+            mat.enableInstancing = true;
+
             Cache[color] = mat;
             return mat;
         }

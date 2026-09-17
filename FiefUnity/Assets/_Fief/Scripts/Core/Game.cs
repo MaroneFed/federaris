@@ -44,6 +44,7 @@ namespace Fief
             PlayerTransform = null;
             MarketPosition = Vector3.zero;
             HomeFiefPosition = Vector3.zero;
+            FloatingTexts.Clear();
         }
     }
 }

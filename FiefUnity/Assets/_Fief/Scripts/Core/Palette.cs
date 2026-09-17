@@ -19,6 +19,11 @@ namespace Fief
         public static readonly Color Stone = new Color(0.62f, 0.63f, 0.66f);
         public static readonly Color Iron = new Color(0.72f, 0.45f, 0.36f);
 
+        public static readonly Color Path = new Color(0.60f, 0.50f, 0.36f);
+        public static readonly Color Flower1 = new Color(0.93f, 0.86f, 0.36f);
+        public static readonly Color Flower2 = new Color(0.86f, 0.44f, 0.52f);
+        public static readonly Color Flower3 = new Color(0.62f, 0.55f, 0.88f);
+
         public static readonly Color Plaza = new Color(0.70f, 0.66f, 0.56f);
         public static readonly Color Canvas = new Color(0.85f, 0.79f, 0.66f);
         public static readonly Color Gold = new Color(0.95f, 0.78f, 0.28f);

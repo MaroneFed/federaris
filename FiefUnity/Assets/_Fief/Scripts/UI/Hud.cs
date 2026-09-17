@@ -32,6 +32,7 @@ namespace Fief
         void Update()
         {
             Toasts.Tick(Time.deltaTime);
+            FloatingTexts.Tick(Time.deltaTime);
 
             if (panel != null && !panel.IsStillValid) panel = null;
 
@@ -79,6 +80,7 @@ namespace Fief
             UiStyle.Ensure();
 
             DrawMarkers();
+            FloatingTexts.Draw(viewCamera != null ? viewCamera : Camera.main);
             DrawTopBar();
             DrawInventory();
             DrawPrompt();
@@ -167,7 +169,9 @@ namespace Fief
             int percent = Mathf.RoundToInt((1f - (full <= 0f ? 0f : speed / full)) * 100f);
             GUI.Label(new Rect(box.x + UiStyle.S(12), box.y + h - UiStyle.S(19), box.width, UiStyle.S(16)),
                       "Vitesse " + speed.ToString("0.0") + " m/s"
-                      + (percent > 0 ? "   (-" + percent + "%)" : "   (au maximum)"),
+                      + (Game.Player != null && Game.Player.IsSprinting
+                            ? "   (course)"
+                            : percent > 0 ? "   (-" + percent + "%)" : "   (Maj pour courir)"),
                       UiStyle.Small);
         }
 
@@ -267,7 +271,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(330);
-            float h = UiStyle.S(172);
+            float h = UiStyle.S(192);
             Rect box = new Rect(Screen.width - w - UiStyle.S(14), UiStyle.S(14), w, h);
             UiStyle.Frame(box);
 
@@ -280,6 +284,7 @@ namespace Fief
             string[] lines =
             {
                 "ZQSD / WASD      se deplacer",
+                "Maj (Shift)        courir - sac leger seulement",
                 "Souris                 camera",
                 "Molette              zoom",
                 "Espace                sauter",

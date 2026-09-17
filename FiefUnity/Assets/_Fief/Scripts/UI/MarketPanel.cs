@@ -122,8 +122,22 @@ namespace Fief
 
         static void Apply(TradeResult result)
         {
-            if (result.success) Toasts.Show(result.message, Palette.Gold);
-            else Toasts.Show(result.message, Palette.Iron);
+            if (!result.success)
+            {
+                Sfx.Deny();
+                Toasts.Show(result.message, Palette.Iron);
+                return;
+            }
+
+            Sfx.Coin();
+            Toasts.Show(result.message, Palette.Gold);
+
+            if (Game.PlayerTransform != null)
+            {
+                string label = (result.gold >= 0 ? "+" : "") + result.gold + " or";
+                FloatingTexts.Spawn(Game.PlayerTransform.position + Vector3.up * 2.2f,
+                                    label, result.gold >= 0 ? Palette.Gold : Palette.Iron);
+            }
         }
     }
 }

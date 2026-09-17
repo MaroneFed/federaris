@@ -38,6 +38,8 @@ namespace Fief
         public int fiefCount = 6;
         [Tooltip("Index du fief occupe par le joueur en solo.")]
         public int playerFiefIndex = 0;
+        [Tooltip("Nombre de touffes de decor semees sur la carte (buissons, rochers, fleurs...).")]
+        public int decorCount = 380;
 
         [Header("Deplacement")]
         public float moveSpeedEmpty = 6.2f;
@@ -45,6 +47,10 @@ namespace Fief
         public float moveSpeedFull = 2.1f;
         [Tooltip("Courbure du ralentissement : 1 = lineaire, >1 = on ne sent la charge que tard.")]
         public float loadCurve = 1.35f;
+        [Tooltip("Vitesse x N en courant. La course est reservee au sac leger : c'est ce qui rend le poids penible dans le bon sens.")]
+        public float sprintMultiplier = 1.5f;
+        [Tooltip("Charge maximale (0-1) au-dela de laquelle on ne peut plus courir.")]
+        public float sprintMaxLoad = 0.5f;
         public float turnSpeed = 720f;
         public float jumpSpeed = 5.0f;
         public float gravity = -22f;
