@@ -8,15 +8,29 @@ Ce dossier est le projet Unity. **Tout ce qui suit prend 5 minutes.**
 
 ## 1. Ouvrir le projet (2 min)
 
-1. Ouvre **Unity Hub**.
-2. `Add` ▸ `Add project from disk`.
-3. Sélectionne le dossier **`FiefUnity`** (celui qui contient `Assets/`, `ProjectSettings/`).
-4. Choisis une version **Unity 6** (n'importe quelle `6000.x`). Si le Hub dit que le projet
-   vient d'une autre version, clique **Continue** : c'est normal, il met à jour tout seul.
-5. Le premier import prend 1 à 3 minutes (Unity compile tout). C'est normal, une seule fois.
+Le projet Unity est **à la racine du dépôt** (`Assets/`, `ProjectSettings/`), pour qu'Unity
+Hub le détecte tout seul.
+
+**Méthode A — directement depuis GitHub (la plus simple)**
+
+1. Unity Hub ▸ `Add` ▸ **`Add project from repository`**.
+2. Dépôt : `MaroneFed/federaris` — Branche : `claude/pensive-dijkstra-848h9o`.
+3. Choisis où le télécharger ▸ **`Ajouter un projet`**.
+
+**Méthode B — si tu as déjà cloné le dépôt (GitHub Desktop, ZIP…)**
+
+1. Unity Hub ▸ `Add` ▸ `Add project from disk`.
+2. Sélectionne le dossier **`federaris`** lui-même (celui qui contient `Assets/`).
+
+Dans les deux cas : choisis une version **Unity 6** (n'importe quelle `6000.x`). Si le Hub
+dit que le projet vient d'une autre version, clique **Continue** — il met à jour tout seul.
+Le premier import prend 1 à 3 minutes. Une seule fois.
 
 > **Pas de Unity 6 installé ?** Hub ▸ `Installs` ▸ `Install Editor` ▸ la version LTS 6000.
-> Coche uniquement **Windows Build Support** (ou Mac). Pas besoin du reste pour l'instant.
+> Laisse les cases par défaut.
+
+> **Note :** `index.html` et `src/` à la racine sont les restes d'un ancien site web,
+> sans rapport avec le jeu. Unity les ignore (il ne lit que `Assets/`).
 
 ## 2. Lancer le jeu (30 s)
 
@@ -117,6 +131,8 @@ Assets/_Fief/
 docs/
   ARCHITECTURE.md          <- pourquoi c'est découpé comme ça, et ce que ça change en Phase 3
   v2-ideas.md              <- LA règle anti-dérive : toute idée hors-phase va ici
+
+index.html, src/           <- ancien site web, sans rapport. Unity ne les lit pas.
 ```
 
 ## 8. Ce qui n'est PAS dans cette phase (et c'est voulu)
