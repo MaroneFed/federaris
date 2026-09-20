@@ -37,10 +37,12 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 1. Dans Unity, en haut : menu **`FIEF` ▸ `Ouvrir la scène Main`** (ou `Ctrl+Shift+M`).
    *Sinon : dans la fenêtre `Project` en bas, double-clique `Assets/_Fief/Scenes/Main.unity`.*
 2. Appuie sur le **bouton ▶ Play** en haut au centre.
+3. L'**écran-titre** apparaît, avec la caméra qui tourne autour de ton fief.
+   Clique **COMMENCER LA SAISON**.
 
-**Ce que tu dois voir :** un paysage vallonné sous un vrai ciel, des chemins de terre qui
-partent du marché central vers les 6 fiefs, ton fief avec 6 emplacements de construction,
-des arbres/rochers/veines de fer, du décor semé partout, un HUD en bas à gauche.
+**Ce que tu dois voir :** un monde de **800 × 800 m** (64 hectares), des montagnes à
+l'horizon, des chemins de terre du marché central vers les 6 fiefs, trois essences
+d'arbres, ton personnage articulé qui marche et court avec une épée dans le dos.
 
 > **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Réparer la scène Main`**,
 > puis re-Play. C'est le filet de sécurité : le monde est entièrement généré par le code,
@@ -56,7 +58,7 @@ des arbres/rochers/veines de fer, du décor semé partout, un HUD en bas à gauc
 | **Molette** | Zoom |
 | **Espace** | Sauter |
 | **E** | Récolter (maintenir) / interagir |
-| **Échap** | Fermer un panneau / libérer la souris |
+| **Échap** | Pause / fermer un panneau |
 | **F1** | Afficher les commandes |
 
 ## 4. Ce qu'il faut tester — la Porte 1
@@ -67,15 +69,17 @@ Le parcours :
 
 1. Pars vers un bosquet (repère **MARCHE** et **TON FIEF** sont affichés en permanence
    avec la distance). **Maintiens E** sur un arbre.
-2. Regarde la **jauge de poids** en bas à gauche : elle se remplit, et ta **vitesse baisse**.
-   Bois = 1 kg, Pierre = 2 kg, Fer = 3 kg, pour 45 kg de charge max. Sac plein = tu rampes.
+2. Regarde la **jauge de poids** en bas à gauche. Bois = 1 kg, Pierre = 2 kg, Fer = 3 kg,
+   pour **60 kg** de charge max. Plus tu es chargé, plus **tes gestes deviennent lents**
+   (jusqu'à ×2,4 par coup de hache) — la ligne « Gestes » sous la jauge te le dit.
+   Tu restes mobile (−26 % de vitesse seulement), mais **tu ne peux plus courir**.
 3. Va au marché central, **E**, et vends. **Regarde le prix chuter** pendant que tu écoules
    ta cargaison : le prix se recalcule à chaque unité. Vendre 45 bois d'un coup rapporte
    nettement moins que 2 fois 22 espacés.
 4. Rentre à ton fief, **E** sur un emplacement, construis.
    Commence par le **Coffre** (150 or), puis la **Scierie** (300 or) qui produit toute seule.
 5. Recommence. Objectif : les 5 constructions payées (1120 or au total).
-   **Calibré pour ~18 min et une douzaine de voyages** — c'est exactement la durée de la Porte 1.
+   **Calibré pour ~15 min et 7 voyages** — c'est exactement la durée de la Porte 1.
 
 **Ce que tu dois me dire après 20 min :** est-ce que c'est *satisfaisant*, ou est-ce que
 ça traîne ? Les chiffres qui se règlent en 10 secondes sont dans `GameConfig`
@@ -104,6 +108,9 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | Je veux changer… | Fichier |
 |---|---|
 | Vitesse, poids max, prix, rendements, taille de la carte | `Scripts/Core/GameConfig.cs` |
+| Le personnage et son animation | `Scripts/Player/CharacterRig.cs` |
+| L'écran-titre et le menu pause | `Scripts/UI/Menus.cs` |
+| L'apparence de l'interface (panneaux, boutons) | `Scripts/UI/UiStyle.cs` |
 | **La carte** (zones de ressources, positions des fiefs) | `GameConfig.DefaultZones()` |
 | Les 5 constructions (coût, effet, prestige) | `Scripts/Building/BuildingCatalog.cs` |
 | La formule des prix dynamiques | `Scripts/Economy/Market.cs` |

@@ -38,12 +38,12 @@ namespace Fief
             for (int i = 0; i < cfg.fiefCount; i++)
             {
                 Vector3 fief = cfg.FiefPosition(i);
-                BuildRoad(root.transform, Vector3.zero, fief, 5.5f, "Chemin_Fief" + (i + 1));
+                BuildRoad(root.transform, Vector3.zero, fief, 7f, "Chemin_Fief" + (i + 1));
 
                 Segment s = new Segment();
                 s.a = Vector2.zero;
                 s.b = new Vector2(fief.x, fief.z);
-                s.width = 5.5f;
+                s.width = 7f;
                 roads.Add(s);
             }
         }
@@ -145,7 +145,7 @@ namespace Fief
                 float x = (float)(rng.NextDouble() * 2.0 - 1.0) * half;
                 float z = (float)(rng.NextDouble() * 2.0 - 1.0) * half;
 
-                if (DistanceToRoad(x, z) < 4.5f) continue;
+                if (DistanceToRoad(x, z) < 6f) continue;
 
                 bool clear = true;
                 for (int i = 0; i < occupied.Count; i++)
@@ -275,12 +275,14 @@ namespace Fief
 
             // Positions choisies sur les hauteurs, a l'ecart des chemins et des zones
             // de jeu : un repere sert a se situer, il doit se voir de loin et ne gener personne.
-            StoneCircle(root.transform, new Vector2(64f, 0f));      // sommet, 19 m
-            StoneCircle(root.transform, new Vector2(-32f, -56f));   // sommet, 16 m
-            RuinedArch(root.transform, new Vector2(-32f, 56f));     // sommet, 18 m
-            RuinedArch(root.transform, new Vector2(-44f, 140f));
-            DeadTree(root.transform, new Vector2(44f, -140f));
-            DeadTree(root.transform, new Vector2(20f, 92f));
+            StoneCircle(root.transform, new Vector2(122f, -22f));
+            StoneCircle(root.transform, new Vector2(230f, -250f));
+            RuinedArch(root.transform, new Vector2(-40f, 116f));
+            RuinedArch(root.transform, new Vector2(104f, -322f));
+            RuinedArch(root.transform, new Vector2(-328f, -76f));
+            DeadTree(root.transform, new Vector2(-46f, -124f));
+            DeadTree(root.transform, new Vector2(-328f, 80f));
+            DeadTree(root.transform, new Vector2(92f, 326f));
         }
 
         static void StoneCircle(Transform parent, Vector2 centre)

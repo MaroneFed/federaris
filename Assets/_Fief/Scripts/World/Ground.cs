@@ -44,7 +44,7 @@ namespace Fief
         static readonly List<FlatCorridor> corridors = new List<FlatCorridor>();
 
         static float mapSize = 400f;
-        static float rimHeight = 26f;
+        static float rimHeight = 48f;
         static bool ready;
 
         public static bool Ready { get { return ready; } }
@@ -62,40 +62,48 @@ namespace Fief
             corridors.Clear();
             mapSize = cfg.mapSize;
 
-            // --- Les collines, placees a la main. Deplace-les, change leur taille :
-            //     la carte entiere suit au prochain lancement.
-            AddHill(-58f, 168f, 62f, 21f);
-            AddHill(48f, 178f, 54f, 17f);
-            AddHill(158f, 92f, 58f, 19f);
-            AddHill(172f, -42f, 50f, 16f);
-            AddHill(96f, -168f, 60f, 20f);
-            AddHill(-34f, -178f, 52f, 15f);
-            AddHill(-162f, -104f, 56f, 18f);
-            AddHill(-176f, 44f, 54f, 22f);
+            // --- Les grandes chaines de bordure. Elles ferment l'horizon et donnent
+            //     son echelle au monde : on voit des montagnes loin devant en marchant.
+            AddHill(-116f, 336f, 124f, 46f);
+            AddHill(96f, 356f, 108f, 40f);
+            AddHill(316f, 184f, 116f, 44f);
+            AddHill(344f, -84f, 100f, 38f);
+            AddHill(192f, -336f, 120f, 46f);
+            AddHill(-68f, -356f, 104f, 36f);
+            AddHill(-324f, -208f, 112f, 42f);
+            AddHill(-352f, 88f, 108f, 48f);
 
-            // Collines interieures : c'est ELLES qu'on voit en jouant. Leurs positions
-            // ont ete choisies pour ne jamais mordre sur une zone de jeu aplanie.
-            AddHill(-23f, 58f, 40f, 17.0f);
-            AddHill(61f, -8f, 40f, 17.0f);
-            AddHill(-23f, -56f, 40f, 17.0f);
-            AddHill(-56f, 49f, 40f, 16.3f);
-            AddHill(70f, 25f, 40f, 15.8f);
-            AddHill(-56f, -47f, 40f, 15.6f);
-            AddHill(-2f, -83f, 33f, 12.5f);
-            AddHill(-104f, 118f, 32f, 12.3f);
-            AddHill(73f, -41f, 32f, 12.2f);
-            AddHill(52f, -149f, 32f, 12.2f);
-            AddHill(103f, -119f, 32f, 12.0f);
-            AddHill(-50f, 148f, 32f, 12.0f);
-            AddHill(4f, 85f, 31f, 11.8f);
-            AddHill(-38f, 19f, 31f, 11.7f);
+            // --- Collines interieures : c'est ELLES qu'on voit en jouant. Leurs positions
+            //     ont ete choisies pour ne jamais mordre sur une zone de jeu aplanie.
+            AddHill(-64f, 104f, 72f, 34.0f);
+            AddHill(122f, 14f, 72f, 34.0f);
+            AddHill(-64f, -100f, 72f, 34.0f);
+            AddHill(146f, -46f, 72f, 34.0f);
+            AddHill(104f, -322f, 72f, 34.0f);
+            AddHill(-28f, 158f, 72f, 34.0f);
+            AddHill(230f, -250f, 72f, 34.0f);
+            AddHill(-28f, -154f, 72f, 34.0f);
+            AddHill(-130f, 98f, 72f, 33.5f);
+            AddHill(-130f, -100f, 72f, 33.2f);
+            AddHill(-328f, -76f, 72f, 33.1f);
+            AddHill(-328f, 80f, 72f, 33.0f);
+            AddHill(92f, 326f, 72f, 31.0f);
+            AddHill(236f, 242f, 72f, 30.8f);
+            AddHill(152f, 74f, 72f, 30.0f);
+            AddHill(326f, -94f, 72f, 29.2f);
+            AddHill(80f, -34f, 72f, 28.7f);
+            AddHill(326f, 92f, 72f, 28.4f);
+            AddHill(170f, -292f, 72f, 28.3f);
+            AddHill(-82f, -328f, 72f, 28.3f);
+            AddHill(-244f, -232f, 72f, 28.1f);
+            AddHill(-4f, 86f, 71f, 28.0f);
 
             // --- Zones aplanies : on ne construit pas sur une pente.
-            AddFlat(Vector2.zero, cfg.marketRadius + 12f, 1f);
+            AddFlat(Vector2.zero, cfg.marketRadius + 22f, 1f);
             for (int i = 0; i < cfg.fiefCount; i++)
             {
                 Vector3 p = cfg.FiefPosition(i);
-                AddFlat(new Vector2(p.x, p.z), 34f, 1f);
+                AddFlat(new Vector2(p.x, p.z), 52f, 1f);
             }
 
             // --- Zones de ressources : relief attenue, pas supprime.
@@ -106,7 +114,7 @@ namespace Fief
                 {
                     ResourceZone z = cfg.zones[i];
                     if (z == null) continue;
-                    AddFlat(z.center, z.radius + 4f, 0.45f);
+                    AddFlat(z.center, z.radius + 6f, 0.45f);
                 }
             }
 
@@ -116,7 +124,7 @@ namespace Fief
             for (int i = 0; i < cfg.fiefCount; i++)
             {
                 Vector3 p = cfg.FiefPosition(i);
-                AddCorridor(Vector2.zero, new Vector2(p.x, p.z), 11f, 0.85f);
+                AddCorridor(Vector2.zero, new Vector2(p.x, p.z), 14f, 0.85f);
             }
 
             ready = true;
@@ -178,7 +186,7 @@ namespace Fief
             }
 
             // Ondulation de fond : evite l'effet "collines posees sur une table".
-            h += Mathf.Sin(x * 0.021f) * Mathf.Cos(z * 0.019f) * 1.6f;
+            h += Mathf.Sin(x * 0.013f) * Mathf.Cos(z * 0.011f) * 2.6f;
 
             return h * FlattenFactor(x, z);
         }
@@ -194,9 +202,9 @@ namespace Fief
                 float dz = z - f.center.y;
                 float d = Mathf.Sqrt(dx * dx + dz * dz);
 
-                // 42 m de transition : c'est large, mais c'est ce qui evite la marche
+                // 56 m de transition : c'est large, mais c'est ce qui evite la marche
                 // d'escalier a la sortie d'un fief. Reduis-le et les bords deviennent raides.
-                float local = Mathf.Clamp01((d - f.radius) / 42f);
+                float local = Mathf.Clamp01((d - f.radius) / 56f);
                 local = Mathf.Lerp(1f - f.strength, 1f, local);
                 if (local < factor) factor = local;
             }
@@ -206,7 +214,7 @@ namespace Fief
                 FlatCorridor c = corridors[i];
                 float d = DistanceToSegment(new Vector2(x, z), c.a, c.b);
 
-                float local = Mathf.Clamp01((d - c.radius) / 22f);
+                float local = Mathf.Clamp01((d - c.radius) / 30f);
                 local = Mathf.Lerp(1f - c.strength, 1f, local);
                 if (local < factor) factor = local;
             }
@@ -248,7 +256,7 @@ namespace Fief
         /// <summary>Construit le maillage du terrain et son collider.</summary>
         public static GameObject Build(Transform parent, GameConfig cfg)
         {
-            const float cell = 4f;
+            const float cell = 5f;
             int steps = Mathf.RoundToInt(cfg.mapSize / cell);
             int side = steps + 1;
             float half = cfg.mapSize * 0.5f;
@@ -331,8 +339,8 @@ namespace Fief
             float height = (v0.y + v1.y + v2.y) / 3f;
 
             List<int> target;
-            if (flatness < 0.80f || height > 17f) target = rock;
-            else if (height > 4.5f) target = dark;
+            if (flatness < 0.80f || height > 30f) target = rock;
+            else if (height > 9f) target = dark;
             else target = grass;
 
             target.Add(i0);

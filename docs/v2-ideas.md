@@ -22,6 +22,15 @@
   pas pour shipper. À remplacer par de vrais sons — l'appel (`Sfx.Harvest(...)`) ne changera pas.
 - **Les statiques de `Game.cs`.** Elles tombent en multijoueur (voir ARCHITECTURE.md).
 
+## Demandé par Martin, en attente de la Porte 1
+
+- **Croiser un autre joueur dans la forêt et pouvoir se défendre.** L'épée est déjà
+  **visible dans le dos du personnage** (décor). Le combat lui-même reste Phase 2 :
+  c'est la première chose qu'on fera une fois la Porte 1 franchie.
+- **Vrais assets 3D** (Kenney / Synty) à la place des primitives.
+- **Refonte complète de l'interface** en UI Toolkit (l'actuelle est en IMGUI, soignée
+  mais pas définitive).
+
 ## Phase 2 — le conflit (ne pas commencer sans validation de la Porte 1)
 
 - Combat mêlée + arc, PV, drop à la mort.

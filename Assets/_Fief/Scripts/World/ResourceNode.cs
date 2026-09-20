@@ -68,13 +68,21 @@ namespace Fief
             }
         }
 
+        /// <summary>
+        /// LA mecanique de poids, nouvelle version : plus le sac est lourd, plus le geste
+        /// est lent. On reste mobile (on peut fuir, esquiver, se battre en Phase 2),
+        /// mais on devient lent a l'ouvrage. Le sac plein coute du TEMPS, pas de la liberte.
+        /// </summary>
         public float HoldDuration
         {
             get
             {
                 // Sac plein : pas de maintien, on veut un retour immediat plutot qu'une attente inutile.
-                if (Game.Inventory != null && Game.Inventory.SpaceFor(type) <= 0) return 0f;
-                return harvestDuration;
+                if (Game.Inventory == null) return harvestDuration;
+                if (Game.Inventory.SpaceFor(type) <= 0) return 0f;
+
+                float penalty = Game.Config != null ? Game.Config.actionPenaltyFull : 2.4f;
+                return harvestDuration * Mathf.Lerp(1f, penalty, Game.Inventory.Load01);
             }
         }
 

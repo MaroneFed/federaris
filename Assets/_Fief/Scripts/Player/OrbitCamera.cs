@@ -16,11 +16,17 @@ namespace Fief
 
         public float yaw;
         public float pitch = 22f;
+
+        /// <summary>Rotation automatique, en degres par seconde. Utilise par l'ecran-titre.</summary>
+        public float autoOrbitSpeed;
         public float minPitch = -8f;
         public float maxPitch = 72f;
 
         float distance = 8f;
         float currentDistance = 8f;
+
+        bool cinematic;
+        float cineDistance, cinePitch;
 
         readonly RaycastHit[] hits = new RaycastHit[8];
 
@@ -32,6 +38,22 @@ namespace Fief
             if (target != null) yaw = target.eulerAngles.y;
         }
 
+        /// <summary>Cadrage large pour l'ecran-titre : on recule et on prend de la hauteur.</summary>
+        public void SetCinematic(float distanceOut, float pitchOut)
+        {
+            cinematic = true;
+            cineDistance = distanceOut;
+            cinePitch = pitchOut;
+        }
+
+        public void ReleaseCinematic()
+        {
+            cinematic = false;
+            GameConfig cfg = Game.Config;
+            if (cfg != null) distance = cfg.cameraDistance;
+            pitch = 20f;
+        }
+
         void LateUpdate()
         {
             if (target == null) return;
@@ -40,12 +62,23 @@ namespace Fief
             float minD = cfg != null ? cfg.cameraMinDistance : 3f;
             float maxD = cfg != null ? cfg.cameraMaxDistance : 16f;
 
+            // Temps NON mis a l'echelle : la camera continue de vivre quand le jeu est en pause.
+            float dt = Time.unscaledDeltaTime;
+
             if (!InputLocked)
             {
                 Vector2 look = FiefInput.Look;
                 yaw += look.x * sensitivity;
                 pitch = Mathf.Clamp(pitch - look.y * sensitivity, minPitch, maxPitch);
-                distance = Mathf.Clamp(distance - FiefInput.ZoomNotches * 1.4f, minD, maxD);
+                distance = Mathf.Clamp(distance - FiefInput.ZoomNotches * 1.6f, minD, maxD);
+            }
+
+            if (autoOrbitSpeed != 0f) yaw += autoOrbitSpeed * dt;
+
+            if (cinematic)
+            {
+                distance = Mathf.Lerp(distance, cineDistance, 1f - Mathf.Exp(-2.2f * dt));
+                pitch = Mathf.Lerp(pitch, cinePitch, 1f - Mathf.Exp(-2.2f * dt));
             }
 
             Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
@@ -57,7 +90,7 @@ namespace Fief
             float blocked = SweepDistance(pivot, direction, distance);
             if (blocked < wanted) wanted = blocked;
 
-            currentDistance = Mathf.Lerp(currentDistance, wanted, 1f - Mathf.Exp(-14f * Time.deltaTime));
+            currentDistance = Mathf.Lerp(currentDistance, wanted, 1f - Mathf.Exp(-14f * dt));
 
             transform.position = pivot + direction * currentDistance;
             transform.rotation = rotation;

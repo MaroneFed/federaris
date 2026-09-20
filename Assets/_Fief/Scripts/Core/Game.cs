@@ -22,6 +22,7 @@ namespace Fief
         public static FiefState Fief;
         public static Hud Hud;
         public static PlayerController Player;
+        public static CharacterRig Rig;
         public static Transform PlayerTransform;
 
         public static Vector3 MarketPosition;
@@ -41,6 +42,7 @@ namespace Fief
             Fief = null;
             Hud = null;
             Player = null;
+            Rig = null;
             PlayerTransform = null;
             MarketPosition = Vector3.zero;
             HomeFiefPosition = Vector3.zero;

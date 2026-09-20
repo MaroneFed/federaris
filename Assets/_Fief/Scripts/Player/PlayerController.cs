@@ -15,6 +15,7 @@ namespace Fief
     public class PlayerController : MonoBehaviour
     {
         public Transform cameraTransform;
+        public CharacterRig rig;
 
         /// <summary>Mis a vrai quand un panneau d'interface est ouvert : le joueur ne bouge plus.</summary>
         public bool InputLocked;
@@ -93,7 +94,19 @@ namespace Fief
             controller.Move(motion * Time.deltaTime);
 
             Footsteps();
+            DriveRig(cfg);
             KeepInsideMap(cfg);
+        }
+
+        /// <summary>Transmet la vitesse reelle au squelette : c'est elle qui cadence la marche.</summary>
+        void DriveRig(GameConfig cfg)
+        {
+            if (rig == null) return;
+            Vector3 flat = controller.velocity;
+            flat.y = 0f;
+            rig.Speed = flat.magnitude;
+            rig.Grounded = controller.isGrounded;
+            rig.RunSpeed = cfg.moveSpeedEmpty * cfg.sprintMultiplier;
         }
 
         /// <summary>Un bruit de pas tous les 2,3 m parcourus au sol.</summary>
@@ -105,7 +118,7 @@ namespace Fief
             flat.y = 0f;
             strideAccumulator += flat.magnitude * Time.deltaTime;
 
-            if (strideAccumulator >= 2.3f)
+            if (strideAccumulator >= 1.9f)
             {
                 strideAccumulator = 0f;
                 Sfx.Step();

@@ -29,52 +29,59 @@ namespace Fief
     {
         [Header("Monde")]
         [Tooltip("Cote de la carte en metres. Le brief dit 400x400.")]
-        public float mapSize = 400f;
+        public float mapSize = 800f;
         [Tooltip("Graine du generateur aleatoire : meme graine = meme map.")]
         public int worldSeed = 1337;
         [Tooltip("Distance entre le marche central et chaque fief.")]
-        public float fiefRingRadius = 135f;
+        public float fiefRingRadius = 270f;
         [Tooltip("Nombre d'emplacements de fief disposes en etoile (cible du brief : 6).")]
         public int fiefCount = 6;
         [Tooltip("Index du fief occupe par le joueur en solo.")]
         public int playerFiefIndex = 0;
         [Tooltip("Nombre de touffes de decor semees sur la carte (buissons, rochers, fleurs...).")]
-        public int decorCount = 380;
+        public int decorCount = 620;
 
         [Header("Deplacement")]
-        public float moveSpeedEmpty = 6.2f;
-        [Tooltip("Vitesse quand on est charge a 100%. C'est LA mecanique de poids du brief.")]
-        public float moveSpeedFull = 2.1f;
+        public float moveSpeedEmpty = 7.6f;
+        [Tooltip("Vitesse a 100% de charge. Volontairement PROCHE de la vitesse a vide : "
+               + "etre charge doit couter, pas enliser. Le vrai cout est sur les gestes (voir plus bas).")]
+        public float moveSpeedFull = 5.6f;
         [Tooltip("Courbure du ralentissement : 1 = lineaire, >1 = on ne sent la charge que tard.")]
-        public float loadCurve = 1.35f;
-        [Tooltip("Vitesse x N en courant. La course est reservee au sac leger : c'est ce qui rend le poids penible dans le bon sens.")]
-        public float sprintMultiplier = 1.5f;
-        [Tooltip("Charge maximale (0-1) au-dela de laquelle on ne peut plus courir.")]
-        public float sprintMaxLoad = 0.5f;
+        public float loadCurve = 1.15f;
+        [Tooltip("Vitesse x N en courant.")]
+        public float sprintMultiplier = 1.55f;
+        [Tooltip("Charge (0-1) au-dela de laquelle on ne peut plus courir. Un joueur tres charge "
+               + "reste donc rattrapable : c'est ce qui le rend vulnerable en Phase 2.")]
+        public float sprintMaxLoad = 0.75f;
         public float turnSpeed = 720f;
         public float jumpSpeed = 5.0f;
         public float gravity = -22f;
 
         [Header("Camera")]
-        public float cameraDistance = 8f;
-        public float cameraMinDistance = 3f;
-        public float cameraMaxDistance = 16f;
+        public float cameraDistance = 9f;
+        public float cameraMinDistance = 3.5f;
+        public float cameraMaxDistance = 24f;
         public float mouseSensitivity = 0.13f;
 
         [Header("Inventaire")]
         [Tooltip("Charge maximale en kg. Bois = 1 kg/u, Pierre = 2, Fer = 3.")]
-        public float maxWeight = 45f;
-        public int startingGold = 120;
+        public float maxWeight = 60f;
+        public int startingGold = 140;
 
         [Header("Recolte")]
-        public float interactRadius = 3.4f;
-        public float harvestDuration = 1.6f;
+        public float interactRadius = 3.6f;
+        [Tooltip("Duree d'un coup, sac VIDE.")]
+        public float harvestDuration = 1.15f;
+        [Tooltip("Multiplicateur de duree quand le sac est PLEIN. C'est la nouvelle mecanique de "
+               + "poids : plus tu es charge, plus tes gestes sont lourds et lents. "
+               + "Tu restes mobile, mais tu deviens lent a l'ouvrage.")]
+        public float actionPenaltyFull = 2.4f;
         public int harvestYield = 2;
-        public int nodeCapacity = 24;
-        public float nodeRespawnDelay = 45f;
+        public int nodeCapacity = 30;
+        public float nodeRespawnDelay = 55f;
 
         [Header("Marche")]
-        public float marketRadius = 14f;
+        public float marketRadius = 20f;
         [Tooltip("Marge du marchand : tu achetes plus cher que tu ne vends.")]
         public float buySpread = 1.18f;
         [Tooltip("Vitesse a laquelle les stocks du marche reviennent a l'equilibre (unites/seconde).")]
@@ -93,17 +100,20 @@ namespace Fief
         {
             List<ResourceZone> list = new List<ResourceZone>();
 
-            list.Add(NewZone("Futaie du Nord-Est", ResourceType.Wood, new Vector2(64f, 111f), 30f, 10));
-            list.Add(NewZone("Carriere du Levant", ResourceType.Stone, new Vector2(126f, 0f), 25f, 8));
-            list.Add(NewZone("Mine du Sud-Est", ResourceType.Iron, new Vector2(62f, -107f), 22f, 6));
+            list.Add(NewZone("Futaie du Nord-Est", ResourceType.Wood, new Vector2(128f, 222f), 52f, 16));
+            list.Add(NewZone("Carriere du Levant", ResourceType.Stone, new Vector2(252f, 0f), 44f, 13));
+            list.Add(NewZone("Mine du Sud-Est", ResourceType.Iron, new Vector2(124f, -215f), 38f, 10));
+            list.Add(NewZone("Bois du Sud-Ouest", ResourceType.Wood, new Vector2(-128f, -222f), 52f, 16));
+            list.Add(NewZone("Eboulis du Couchant", ResourceType.Stone, new Vector2(-252f, -0f), 44f, 13));
+            list.Add(NewZone("Veine du Nord-Ouest", ResourceType.Iron, new Vector2(-124f, 215f), 38f, 10));
 
-            list.Add(NewZone("Bois du Sud-Ouest", ResourceType.Wood, new Vector2(-64f, -111f), 30f, 10));
-            list.Add(NewZone("Eboulis du Couchant", ResourceType.Stone, new Vector2(-126f, 0f), 25f, 8));
-            list.Add(NewZone("Veine du Nord-Ouest", ResourceType.Iron, new Vector2(-62f, 107f), 22f, 6));
+            list.Add(NewZone("Bosquet du Levant", ResourceType.Wood, new Vector2(72f, 125f), 34f, 10));
+            list.Add(NewZone("Bosquet du Midi", ResourceType.Wood, new Vector2(72f, -125f), 34f, 10));
+            list.Add(NewZone("Bosquet du Ponant", ResourceType.Wood, new Vector2(-144f, -0f), 34f, 10));
 
-            list.Add(NewZone("Bosquet du Levant", ResourceType.Wood, new Vector2(36f, 62f), 19f, 6));
-            list.Add(NewZone("Bosquet du Midi", ResourceType.Wood, new Vector2(36f, -62f), 19f, 6));
-            list.Add(NewZone("Bosquet du Ponant", ResourceType.Wood, new Vector2(-72f, 0f), 19f, 6));
+            list.Add(NewZone("Grande Mine du Nord", ResourceType.Iron, new Vector2(330f, 0f), 40f, 11));
+            list.Add(NewZone("Falaises du Sud", ResourceType.Stone, new Vector2(-169f, -293f), 42f, 12));
+            list.Add(NewZone("Sylve Profonde", ResourceType.Wood, new Vector2(-169f, 293f), 50f, 15));
 
             return list;
         }

@@ -18,7 +18,7 @@ namespace Fief
             GameObject visual = new GameObject("Visuel");
             visual.transform.SetParent(root.transform, false);
 
-            float variation = 0.85f + (float)rng.NextDouble() * 0.35f;
+            float variation = 0.95f + (float)rng.NextDouble() * 0.55f;
 
             switch (type)
             {
@@ -32,8 +32,8 @@ namespace Fief
             Proto.StripCollidersRecursive(visual);
 
             CapsuleCollider body = root.AddComponent<CapsuleCollider>();
-            body.height = 3.2f * variation;
-            body.radius = 0.75f * variation;
+            body.height = 3.6f * variation;
+            body.radius = 0.85f * variation;
             body.center = new Vector3(0f, body.height * 0.5f, 0f);
 
             ResourceNode node = root.AddComponent<ResourceNode>();
@@ -53,17 +53,64 @@ namespace Fief
             return node;
         }
 
+        /// <summary>
+        /// Trois especes d'arbres au lieu d'une seule. Une foret ou tous les arbres sont
+        /// identiques se lit comme un decor de carton-pate ; trois silhouettes suffisent
+        /// a donner l'impression d'un bois.
+        /// </summary>
         static void BuildTree(Transform parent, float variation, System.Random rng)
         {
-            float height = 2.2f * variation;
-            Proto.Cylinder(parent, new Vector3(0f, height * 0.5f, 0f),
-                           new Vector3(0.28f, height * 0.5f, 0.28f), Palette.Trunk, "Tronc");
+            Color bark = Palette.Shade(Palette.Trunk, 0.85f + (float)rng.NextDouble() * 0.35f);
+            Color leaf = Palette.Shade(Palette.Wood, 0.82f + (float)rng.NextDouble() * 0.4f);
+            int species = rng.Next(3);
 
-            Color leaf = Palette.Shade(Palette.Wood, 0.9f + (float)rng.NextDouble() * 0.25f);
-            Proto.Sphere(parent, new Vector3(0f, height + 0.55f, 0f),
-                         new Vector3(2.1f * variation, 1.7f * variation, 2.1f * variation), leaf, "Feuillage");
-            Proto.Sphere(parent, new Vector3(0.25f, height + 1.45f, -0.15f),
-                         new Vector3(1.35f * variation, 1.2f * variation, 1.35f * variation), leaf, "Feuillage2");
+            if (species == 0)
+            {
+                // Chene : tronc court, houppier large et touffu.
+                float height = 2.4f * variation;
+                Proto.Cylinder(parent, new Vector3(0f, height * 0.5f, 0f),
+                               new Vector3(0.34f, height * 0.5f, 0.34f), bark, "Tronc");
+                Proto.Sphere(parent, new Vector3(0f, height + 0.7f, 0f),
+                             new Vector3(2.9f * variation, 2.1f * variation, 2.9f * variation), leaf, "Houppier");
+                Proto.Sphere(parent, new Vector3(0.7f * variation, height + 1.5f, -0.3f),
+                             new Vector3(1.7f * variation, 1.4f * variation, 1.7f * variation), leaf, "Houppier2");
+                Proto.Sphere(parent, new Vector3(-0.6f * variation, height + 1.2f, 0.4f),
+                             new Vector3(1.5f * variation, 1.3f * variation, 1.5f * variation),
+                             Palette.Shade(leaf, 0.88f), "Houppier3");
+            }
+            else if (species == 1)
+            {
+                // Sapin : haut, etage, silhouette pointue. C'est lui qui donne l'echelle.
+                float height = 1.9f * variation;
+                Proto.Cylinder(parent, new Vector3(0f, height * 0.5f, 0f),
+                               new Vector3(0.26f, height * 0.5f, 0.26f), bark, "Tronc");
+                Color needle = Palette.Shade(leaf, 0.78f);
+                for (int i = 0; i < 4; i++)
+                {
+                    float t = i / 3f;
+                    float w = Mathf.Lerp(2.7f, 0.8f, t) * variation;
+                    GameObject tier = Proto.Cube(parent,
+                        new Vector3(0f, height + 0.5f + i * 1.15f * variation, 0f),
+                        new Vector3(w, 1.0f * variation, w),
+                        Palette.Shade(needle, 1f - i * 0.05f), "Etage" + i);
+                    tier.transform.localRotation = Quaternion.Euler(0f, 45f + i * 12f, 0f);
+                }
+            }
+            else
+            {
+                // Bouleau : elance, feuillage leger, un peu penche.
+                float height = 3.4f * variation;
+                GameObject trunk = Proto.Cylinder(parent, new Vector3(0f, height * 0.5f, 0f),
+                                                  new Vector3(0.2f, height * 0.5f, 0.2f),
+                                                  Palette.Shade(bark, 1.5f), "Tronc");
+                trunk.transform.localRotation = Quaternion.Euler(((float)rng.NextDouble() - 0.5f) * 8f, 0f,
+                                                                 ((float)rng.NextDouble() - 0.5f) * 8f);
+                Color pale = Palette.Shade(leaf, 1.12f);
+                Proto.Sphere(parent, new Vector3(0f, height + 0.6f, 0f),
+                             new Vector3(1.9f * variation, 2.3f * variation, 1.9f * variation), pale, "Feuillage");
+                Proto.Sphere(parent, new Vector3(0.35f, height + 1.7f, 0.2f),
+                             new Vector3(1.2f * variation, 1.3f * variation, 1.2f * variation), pale, "Feuillage2");
+            }
         }
 
         static void BuildRocks(Transform parent, float variation, System.Random rng)

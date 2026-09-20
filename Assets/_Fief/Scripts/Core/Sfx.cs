@@ -77,6 +77,17 @@ namespace Fief
             }
         }
 
+        /// <summary>Coup leger, joue en boucle pendant qu'on frappe l'arbre ou le rocher.</summary>
+        public static void HarvestTap(ResourceType type)
+        {
+            switch (type)
+            {
+                case ResourceType.Wood: Play(Pick(chop), 0.38f); break;
+                case ResourceType.Stone: Play(Pick(pick), 0.32f); break;
+                case ResourceType.Iron: Play(Pick(clang), 0.26f); break;
+            }
+        }
+
         public static void Coin() { Play(Pick(coin), 0.55f); }
         public static void Build() { Play(hammer, 0.85f); }
         public static void Deny() { Play(deny, 0.45f); }

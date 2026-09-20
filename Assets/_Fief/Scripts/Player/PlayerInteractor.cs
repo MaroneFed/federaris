@@ -14,6 +14,7 @@ namespace Fief
 
         IInteractable current;
         float holdTimer;
+        float swingTimer;
 
         public IInteractable Current { get { return current; } }
         public float HoldDuration { get; private set; }
@@ -51,7 +52,14 @@ namespace Fief
 
             if (FiefInput.InteractHeld)
             {
+                // Pendant le maintien, le personnage frappe vraiment : un coup toutes les
+                // 0,55 s, bras anime et son a chaque impact. Sans ca, maintenir E est une
+                // barre de chargement ; avec ca, c'est un geste.
+                if (holdTimer <= 0f) Swing();
                 holdTimer += Time.deltaTime;
+                swingTimer -= Time.deltaTime;
+                if (swingTimer <= 0f) Swing();
+
                 if (holdTimer >= HoldDuration)
                 {
                     holdTimer = 0f;
@@ -61,7 +69,17 @@ namespace Fief
             else
             {
                 holdTimer = 0f;
+                swingTimer = 0f;
             }
+        }
+
+        void Swing()
+        {
+            swingTimer = 0.55f;
+            if (Game.Rig != null) Game.Rig.PlaySwing();
+
+            ResourceNode node = current as ResourceNode;
+            if (node != null) Sfx.HarvestTap(node.type);
         }
 
         /// <summary>

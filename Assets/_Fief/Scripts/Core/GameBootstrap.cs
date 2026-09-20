@@ -48,7 +48,7 @@ namespace Fief
             rng = new System.Random(config.worldSeed);
             worldRoot = new GameObject("=== MONDE ===").transform;
 
-            QualitySettings.shadowDistance = 110f;
+            QualitySettings.shadowDistance = 160f;
 
             // L'ordre compte : le relief doit exister avant qu'on pose quoi que ce soit
             // dessus, et les chemins avant qu'on seme le decor (pour ne pas semer sur la route).
@@ -123,8 +123,8 @@ namespace Fief
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = new Color(0.68f, 0.76f, 0.85f);
-            RenderSettings.fogStartDistance = 150f;
-            RenderSettings.fogEndDistance = 480f;
+            RenderSettings.fogStartDistance = 260f;
+            RenderSettings.fogEndDistance = 1050f;
 
             // Le terrain en relief. Les bords remontent en cuvette : plus besoin
             // de murs gris pour dire ou s'arrete le monde.
@@ -212,8 +212,8 @@ namespace Fief
                 root.transform.SetParent(worldRoot, false);
                 root.transform.position = center;
 
-                Proto.Pad(root.transform, Vector3.zero, 30f, Palette.Dirt, "Terrasse", 0.05f);
-                Proto.Banner(root.transform, new Vector3(0f, 0f, -12f), Palette.Banner(i), 7f, "Banniere");
+                Proto.Pad(root.transform, Vector3.zero, 44f, Palette.Dirt, "Terrasse", 0.05f);
+                Proto.Banner(root.transform, new Vector3(0f, 0f, -17f), Palette.Banner(i), 9f, "Banniere");
 
                 if (isPlayer)
                 {
@@ -237,8 +237,8 @@ namespace Fief
 
             for (int i = 0; i < 6; i++)
             {
-                float x = ((i % 3) - 1) * 8.6f;
-                float z = ((i / 3) - 0.5f) * 9.2f + 3f;
+                float x = ((i % 3) - 1) * 9.4f;
+                float z = ((i / 3) - 0.5f) * 10.4f + 4f;
                 BuildingFactory.CreatePlot(plotsRoot.transform, parent.position + new Vector3(x, 0f, z), i);
             }
         }
@@ -310,14 +310,14 @@ namespace Fief
                                                 zone.center.y + Mathf.Sin(angle) * radius);
 
                 if (Mathf.Abs(candidate.x) > limit || Mathf.Abs(candidate.z) > limit) continue;
-                if (candidate.magnitude < config.marketRadius + 14f) continue;
+                if (candidate.magnitude < config.marketRadius + 26f) continue;
                 if (Scenery.DistanceToRoad(candidate.x, candidate.z) < 6f) continue;
                 if (Ground.Slope(candidate.x, candidate.z) > 0.45f) continue;
 
                 bool clear = true;
                 for (int i = 0; i < occupied.Count; i++)
                 {
-                    float minDistance = (i <= config.fiefCount) ? 34f : 5.5f;
+                    float minDistance = (i <= config.fiefCount) ? 52f : 6.5f;
                     if ((occupied[i] - candidate).sqrMagnitude < minDistance * minDistance)
                     {
                         clear = false;
@@ -345,7 +345,7 @@ namespace Fief
         {
             // On apparait en bord de fief, tourne vers lui : la premiere image du jeu
             // montre ta banniere et tes 6 emplacements de construction.
-            Vector3 spawn = Ground.Place(Game.HomeFiefPosition + new Vector3(0f, 0f, -24f), 1.2f);
+            Vector3 spawn = Ground.Place(Game.HomeFiefPosition + new Vector3(0f, 0f, -30f), 1.2f);
 
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
@@ -360,26 +360,10 @@ namespace Fief
             controller.stepOffset = 0.42f;
             controller.skinWidth = 0.03f;
 
-            // Apparence : un petit bonhomme lisible, sans aucun asset.
-            GameObject visual = new GameObject("Visuel");
-            visual.transform.SetParent(go.transform, false);
+            // Le personnage : squelette articule, anime par le code (voir CharacterRig.cs).
             Color tunic = Palette.Banner(config.playerFiefIndex);
-
-            Proto.Make(PrimitiveType.Capsule, visual.transform, new Vector3(0f, 0.92f, 0f),
-                       new Vector3(0.78f, 0.6f, 0.78f), tunic, "Torse");
-            Proto.Sphere(visual.transform, new Vector3(0f, 1.66f, 0f),
-                         new Vector3(0.48f, 0.5f, 0.48f), new Color(0.88f, 0.75f, 0.62f), "Tete");
-            Proto.Cube(visual.transform, new Vector3(0f, 1.78f, 0.06f),
-                       new Vector3(0.52f, 0.2f, 0.54f), Palette.Shade(tunic, 0.7f), "Chapeau");
-            Proto.Cube(visual.transform, new Vector3(0f, 1.62f, 0.24f),
-                       new Vector3(0.2f, 0.12f, 0.12f), new Color(0.25f, 0.2f, 0.18f), "Regard");
-            Proto.Cube(visual.transform, new Vector3(0f, 0.95f, -0.32f),
-                       new Vector3(0.6f, 0.9f, 0.12f), Palette.Shade(tunic, 0.75f), "Cape");
-            Proto.Cube(visual.transform, new Vector3(0.42f, 0.9f, 0f),
-                       new Vector3(0.18f, 0.6f, 0.18f), tunic, "BrasD");
-            Proto.Cube(visual.transform, new Vector3(-0.42f, 0.9f, 0f),
-                       new Vector3(0.18f, 0.6f, 0.18f), tunic, "BrasG");
-            Proto.StripCollidersRecursive(visual);
+            CharacterRig rig = CharacterRig.Build(go.transform, tunic, Palette.Shade(tunic, 0.62f));
+            Game.Rig = rig;
 
             // La camera. AudioListener dessus : c'est l'oreille du jeu.
             GameObject camGo = new GameObject("CAMERA");
@@ -390,7 +374,7 @@ namespace Fief
             cam.backgroundColor = Palette.Sky;
             cam.fieldOfView = 62f;
             cam.nearClipPlane = 0.15f;
-            cam.farClipPlane = 800f;
+            cam.farClipPlane = 1600f;
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
 
@@ -403,6 +387,7 @@ namespace Fief
 
             PlayerController player = go.AddComponent<PlayerController>();
             player.cameraTransform = camGo.transform;
+            player.rig = rig;
             go.AddComponent<PlayerInteractor>();
 
             Game.Player = player;
@@ -419,12 +404,17 @@ namespace Fief
 
         void BuildHud(PlayerController player)
         {
-            GameObject go = new GameObject("HUD");
+            GameObject go = new GameObject("INTERFACE");
             Hud hud = go.AddComponent<Hud>();
             hud.orbitCamera = orbitCamera;
             hud.interactor = player.GetComponent<PlayerInteractor>();
             hud.viewCamera = viewCamera;
             Game.Hud = hud;
+
+            // L'ecran-titre. Il met le jeu en pause (Time.timeScale = 0) jusqu'a ce que
+            // le joueur clique sur "Commencer la Saison".
+            Menus menus = go.AddComponent<Menus>();
+            hud.menus = menus;
         }
     }
 }
