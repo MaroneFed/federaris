@@ -40,9 +40,10 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 3. L'**écran-titre** apparaît, avec la caméra qui tourne autour de ton fief.
    Clique **COMMENCER LA SAISON**.
 
-**Ce que tu dois voir :** un monde de **800 × 800 m** (64 hectares), des montagnes à
-l'horizon, des chemins de terre du marché central vers les 6 fiefs, trois essences
-d'arbres, ton personnage articulé qui marche et court avec une épée dans le dos.
+**Ce que tu dois voir :** un monde de **800 × 800 m** (64 hectares) en low-poly à
+facettes, des sommets enneigés à l'horizon, des forêts en bosquets, trois lacs, des
+nuages qui dérivent, un bourg autour du marché (maisons à colombages, étals, torches),
+et ton fief avec sa porterie, ses tours et ses bannières.
 
 > **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Réparer la scène Main`**,
 > puis re-Play. C'est le filet de sécurité : le monde est entièrement généré par le code,
@@ -114,8 +115,9 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | **La carte** (zones de ressources, positions des fiefs) | `GameConfig.DefaultZones()` |
 | Les 5 constructions (coût, effet, prestige) | `Scripts/Building/BuildingCatalog.cs` |
 | La formule des prix dynamiques | `Scripts/Economy/Market.cs` |
-| Le relief (collines, zones plates, chemins) | `Scripts/World/Ground.cs` |
-| Le décor semé et les grands repères | `Scripts/World/Scenery.cs` |
+| Le relief, les lacs, les teintes du terrain | `Scripts/World/Ground.cs` |
+| Les forêts, le décor, les nuages, les repères | `Scripts/World/Scenery.cs` |
+| Le bourg du marché et ton fief | `Scripts/Core/GameBootstrap.cs` |
 | Les sons (synthétisés par le code) | `Scripts/Core/Sfx.cs` |
 | L'apparence des arbres/rochers | `Scripts/World/NodeFactory.cs` |
 | L'apparence des bâtiments | `Scripts/Building/BuildingFactory.cs` |

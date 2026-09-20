@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
@@ -10,10 +11,49 @@ namespace Fief
     /// </summary>
     public static class Proto
     {
+        /// <summary>
+        /// Quand c'est faux, les primitives sont creees SANS collider.
+        ///
+        /// Pourquoi : GameObject.CreatePrimitive ajoute toujours un collider, qu'il
+        /// faut ensuite detruire. Pour le decor (des milliers d'objets : arbres,
+        /// buissons, nuages, membres du personnage), c'est des milliers de colliders
+        /// crees puis jetes au lancement. On passe donc par un maillage mis en cache.
+        /// </summary>
+        public static bool CollidersEnabled = true;
+
+        static readonly Dictionary<PrimitiveType, Mesh> PrimitiveMeshes =
+            new Dictionary<PrimitiveType, Mesh>();
+
+        static Mesh SharedMesh(PrimitiveType type)
+        {
+            Mesh mesh;
+            if (PrimitiveMeshes.TryGetValue(type, out mesh) && mesh != null) return mesh;
+
+            GameObject temp = GameObject.CreatePrimitive(type);
+            MeshFilter filter = temp.GetComponent<MeshFilter>();
+            mesh = filter != null ? filter.sharedMesh : null;
+            Object.Destroy(temp);
+
+            PrimitiveMeshes[type] = mesh;
+            return mesh;
+        }
+
         public static GameObject Make(PrimitiveType type, Transform parent, Vector3 localPos,
                                       Vector3 localScale, Color color, string name)
         {
-            GameObject go = GameObject.CreatePrimitive(type);
+            GameObject go;
+
+            if (CollidersEnabled)
+            {
+                go = GameObject.CreatePrimitive(type);
+            }
+            else
+            {
+                go = new GameObject();
+                go.AddComponent<MeshFilter>().sharedMesh = SharedMesh(type);
+                go.AddComponent<MeshRenderer>();
+            }
+
             go.name = name;
             if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
@@ -23,6 +63,10 @@ namespace Fief
             if (r != null) r.sharedMaterial = MaterialFactory.Get(color);
             return go;
         }
+
+        /// <summary>Execute une construction de decor sans creer le moindre collider.</summary>
+        public static void BeginVisualOnly() { CollidersEnabled = false; }
+        public static void EndVisualOnly() { CollidersEnabled = true; }
 
         public static GameObject Cube(Transform parent, Vector3 pos, Vector3 scale, Color color, string name = "Cube")
         {

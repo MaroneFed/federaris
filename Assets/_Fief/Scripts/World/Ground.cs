@@ -31,6 +31,13 @@ namespace Fief
             public float strength;   // 1 = aplani a fond, 0.35 = relief attenue
         }
 
+        struct Basin
+        {
+            public Vector2 center;
+            public float radius;
+            public float depth;
+        }
+
         struct FlatCorridor
         {
             public Vector2 a;
@@ -42,6 +49,7 @@ namespace Fief
         static readonly List<Hill> hills = new List<Hill>();
         static readonly List<FlatArea> flats = new List<FlatArea>();
         static readonly List<FlatCorridor> corridors = new List<FlatCorridor>();
+        static readonly List<Basin> basins = new List<Basin>();
 
         static float mapSize = 400f;
         static float rimHeight = 48f;
@@ -60,6 +68,7 @@ namespace Fief
             hills.Clear();
             flats.Clear();
             corridors.Clear();
+            basins.Clear();
             mapSize = cfg.mapSize;
 
             // --- Les grandes chaines de bordure. Elles ferment l'horizon et donnent
@@ -127,8 +136,34 @@ namespace Fief
                 AddCorridor(Vector2.zero, new Vector2(p.x, p.z), 14f, 0.85f);
             }
 
+            // --- Les lacs. Un bassin force le terrain a descendre a plat sous le niveau
+            //     de l'eau : on obtient une cuvette propre et donc une rive nette.
+            AddBasin(180f, -60f, 30f, 11f);
+            AddBasin(-45f, 190f, 29f, 11f);
+            AddBasin(90f, -290f, 28f, 11f);
+
             ready = true;
         }
+
+        static void AddBasin(float x, float z, float radius, float depth)
+        {
+            Basin b = new Basin();
+            b.center = new Vector2(x, z);
+            b.radius = radius;
+            b.depth = depth;
+            basins.Add(b);
+        }
+
+        /// <summary>Niveau de la surface de l'eau d'un lac (les 3 lacs sont a la meme profondeur).</summary>
+        public static float WaterLevel(int index)
+        {
+            if (index < 0 || index >= basins.Count) return 0f;
+            return -basins[index].depth * 0.80f;
+        }
+
+        public static int LakeCount { get { return basins.Count; } }
+        public static Vector2 LakeCenter(int index) { return basins[index].center; }
+        public static float LakeRadius(int index) { return basins[index].radius; }
 
         static void AddCorridor(Vector2 a, Vector2 b, float radius, float strength)
         {
@@ -188,7 +223,23 @@ namespace Fief
             // Ondulation de fond : evite l'effet "collines posees sur une table".
             h += Mathf.Sin(x * 0.013f) * Mathf.Cos(z * 0.011f) * 2.6f;
 
-            return h * FlattenFactor(x, z);
+            h *= FlattenFactor(x, z);
+
+            // Les cuvettes des lacs, creusees en dernier.
+            for (int i = 0; i < basins.Count; i++)
+            {
+                Basin b = basins[i];
+                float dx = x - b.center.x;
+                float dz = z - b.center.y;
+                float d = Mathf.Sqrt(dx * dx + dz * dz);
+                if (d > b.radius + 30f) continue;
+
+                float k = 1f - Mathf.Clamp01((d - b.radius) / 30f);
+                k = k * k * (3f - 2f * k);          // adoucit la rive
+                h = Mathf.Lerp(h, -b.depth, k);
+            }
+
+            return h;
         }
 
         /// <summary>0 = totalement aplani, 1 = relief complet. Transitions larges et douces.</summary>
@@ -253,7 +304,18 @@ namespace Fief
 
         // ------------------------------------------------------------------ maillage
 
-        /// <summary>Construit le maillage du terrain et son collider.</summary>
+        /// <summary>
+        /// Construit le terrain.
+        ///
+        /// Deux maillages sont produits :
+        ///  - un maillage LISSE pour le collider (sommets partages, leger) ;
+        ///  - un maillage A FACETTES pour l'affichage, ou chaque triangle possede ses
+        ///    propres sommets. C'est ce qui donne le look low-poly : chaque face capte
+        ///    la lumiere a plat, sans degrade, comme du papier plie.
+        ///
+        /// Chaque triangle est range dans l'une des 9 teintes selon son altitude, sa
+        /// pente et un bruit : rivage, quatre verts, eboulis, deux roches, neige.
+        /// </summary>
         public static GameObject Build(Transform parent, GameConfig cfg)
         {
             const float cell = 5f;
@@ -261,25 +323,46 @@ namespace Fief
             int side = steps + 1;
             float half = cfg.mapSize * 0.5f;
 
-            Vector3[] vertices = new Vector3[side * side];
-            Vector2[] uv = new Vector2[side * side];
-
+            // --- grille de hauteurs
+            Vector3[] grid = new Vector3[side * side];
             for (int iz = 0; iz < side; iz++)
             {
                 for (int ix = 0; ix < side; ix++)
                 {
                     float x = -half + ix * cell;
                     float z = -half + iz * cell;
-                    int index = iz * side + ix;
-                    vertices[index] = new Vector3(x, Height(x, z), z);
-                    uv[index] = new Vector2((float)ix / steps, (float)iz / steps);
+                    grid[iz * side + ix] = new Vector3(x, Height(x, z), z);
                 }
             }
 
-            // 3 sous-maillages = 3 materiaux : herbe, herbe sombre, roche.
-            List<int> grass = new List<int>();
-            List<int> dark = new List<int>();
-            List<int> rock = new List<int>();
+            // --- maillage du collider (sommets partages)
+            int[] smoothTris = new int[steps * steps * 6];
+            int t = 0;
+            for (int iz = 0; iz < steps; iz++)
+            {
+                for (int ix = 0; ix < steps; ix++)
+                {
+                    int a = iz * side + ix;
+                    int b = a + 1;
+                    int c = a + side;
+                    int d = c + 1;
+                    smoothTris[t++] = a; smoothTris[t++] = c; smoothTris[t++] = b;
+                    smoothTris[t++] = b; smoothTris[t++] = c; smoothTris[t++] = d;
+                }
+            }
+
+            Mesh collisionMesh = new Mesh();
+            collisionMesh.name = "TerrainCollision";
+            collisionMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            collisionMesh.vertices = grid;
+            collisionMesh.triangles = smoothTris;
+            collisionMesh.RecalculateBounds();
+
+            // --- maillage affiche, a facettes
+            const int Bands = 9;
+            List<Vector3> vertices = new List<Vector3>(steps * steps * 6);
+            List<int>[] bands = new List<int>[Bands];
+            for (int i = 0; i < Bands; i++) bands[i] = new List<int>();
 
             for (int iz = 0; iz < steps; iz++)
             {
@@ -289,63 +372,92 @@ namespace Fief
                     int b = a + 1;
                     int c = a + side;
                     int d = c + 1;
-                    AddTriangle(vertices, grass, dark, rock, a, c, b);
-                    AddTriangle(vertices, grass, dark, rock, b, c, d);
+                    EmitFacet(vertices, bands, grid[a], grid[c], grid[b]);
+                    EmitFacet(vertices, bands, grid[b], grid[c], grid[d]);
                 }
             }
 
             Mesh mesh = new Mesh();
-            mesh.name = "TerrainFief";
+            mesh.name = "Terrain";
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            mesh.vertices = vertices;
-            mesh.uv = uv;
-            mesh.subMeshCount = 3;
-            mesh.SetTriangles(grass, 0);
-            mesh.SetTriangles(dark, 1);
-            mesh.SetTriangles(rock, 2);
+            mesh.SetVertices(vertices);
+            mesh.subMeshCount = Bands;
+            for (int i = 0; i < Bands; i++) mesh.SetTriangles(bands[i], i);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
             GameObject go = new GameObject("Terrain");
             go.transform.SetParent(parent, false);
-
-            MeshFilter filter = go.AddComponent<MeshFilter>();
-            filter.sharedMesh = mesh;
-
-            MeshRenderer renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterials = new Material[]
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterials = new Material[]
             {
-                MaterialFactory.Get(Palette.Grass),
-                MaterialFactory.Get(Palette.GrassDark),
-                MaterialFactory.Get(Palette.Cliff)
+                MaterialFactory.Get(Palette.Sand),
+                MaterialFactory.Get(Palette.Grass1),
+                MaterialFactory.Get(Palette.Grass2),
+                MaterialFactory.Get(Palette.Grass3),
+                MaterialFactory.Get(Palette.Grass4),
+                MaterialFactory.Get(Palette.Scree),
+                MaterialFactory.Get(Palette.Rock1),
+                MaterialFactory.Get(Palette.Rock2),
+                MaterialFactory.Get(Palette.Snow)
             };
 
-            MeshCollider collider = go.AddComponent<MeshCollider>();
-            collider.sharedMesh = mesh;
-
+            go.AddComponent<MeshCollider>().sharedMesh = collisionMesh;
             return go;
         }
 
-        /// <summary>Range un triangle dans le bon materiau selon sa hauteur et sa pente.</summary>
-        static void AddTriangle(Vector3[] vertices, List<int> grass, List<int> dark, List<int> rock,
-                                int i0, int i1, int i2)
+        /// <summary>Ajoute un triangle avec ses propres sommets, dans la teinte qui lui convient.</summary>
+        static void EmitFacet(List<Vector3> vertices, List<int>[] bands, Vector3 v0, Vector3 v1, Vector3 v2)
         {
-            Vector3 v0 = vertices[i0];
-            Vector3 v1 = vertices[i1];
-            Vector3 v2 = vertices[i2];
+            Vector3 normal = Vector3.Cross(v1 - v0, v2 - v0);
+            float length = normal.magnitude;
+            float flatness = length > 0.0001f ? Mathf.Abs(normal.y / length) : 1f;
 
-            Vector3 normal = Vector3.Cross(v1 - v0, v2 - v0).normalized;
-            float flatness = Mathf.Abs(normal.y);
             float height = (v0.y + v1.y + v2.y) / 3f;
+            float cx = (v0.x + v1.x + v2.x) / 3f;
+            float cz = (v0.z + v1.z + v2.z) / 3f;
+            float n = Noise(cx, cz);
 
-            List<int> target;
-            if (flatness < 0.80f || height > 30f) target = rock;
-            else if (height > 9f) target = dark;
-            else target = grass;
+            int band;
+            if (flatness < 0.62f)
+            {
+                band = n < 0.5f ? 6 : 7;                      // falaise
+            }
+            else if (height > 54f + n * 12f)
+            {
+                band = 8;                                      // neige des sommets
+            }
+            else if (height > 32f + n * 14f)
+            {
+                band = n < 0.45f ? 6 : 5;                      // roche et eboulis
+            }
+            else if (height < -2.2f + n * 1.4f)
+            {
+                band = 0;                                      // rivage des lacs
+            }
+            else
+            {
+                float g = Mathf.Clamp01(height / 34f) + n * 0.34f;
+                if (g < 0.22f) band = 1;
+                else if (g < 0.48f) band = 2;
+                else if (g < 0.76f) band = 3;
+                else band = 4;
+            }
 
-            target.Add(i0);
-            target.Add(i1);
-            target.Add(i2);
+            int index = vertices.Count;
+            vertices.Add(v0);
+            vertices.Add(v1);
+            vertices.Add(v2);
+            bands[band].Add(index);
+            bands[band].Add(index + 1);
+            bands[band].Add(index + 2);
+        }
+
+        /// <summary>Bruit bon marche et reproductible, entre 0 et 1.</summary>
+        static float Noise(float x, float z)
+        {
+            float v = Mathf.Sin(x * 12.9898f + z * 78.233f) * 43758.5453f;
+            return v - Mathf.Floor(v);
         }
     }
 }

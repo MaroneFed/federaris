@@ -20,12 +20,16 @@ namespace Fief
 
             float variation = 0.95f + (float)rng.NextDouble() * 0.55f;
 
+            Proto.BeginVisualOnly();
+
             switch (type)
             {
                 case ResourceType.Wood: BuildTree(visual.transform, variation, rng); break;
                 case ResourceType.Stone: BuildRocks(visual.transform, variation, rng); break;
                 case ResourceType.Iron: BuildIronVein(visual.transform, variation, rng); break;
             }
+
+            Proto.EndVisualOnly();
 
             // Un seul collider, sur la racine : c'est lui que le joueur "voit" pour interagir.
             // Les colliders des primitives decoratives sont retires pour ne pas polluer la detection.
@@ -58,6 +62,21 @@ namespace Fief
         /// identiques se lit comme un decor de carton-pate ; trois silhouettes suffisent
         /// a donner l'impression d'un bois.
         /// </summary>
+        /// <summary>
+        /// Un arbre purement decoratif : meme silhouette qu'un gisement, mais sans
+        /// collider ni composant. C'est lui qui remplit les forets entre les zones.
+        /// </summary>
+        public static GameObject DecorTree(Transform parent, Vector3 position, System.Random rng)
+        {
+            GameObject go = new GameObject("Arbre");
+            go.transform.SetParent(parent, false);
+            go.transform.position = position;
+            go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+
+            BuildTree(go.transform, 0.8f + (float)rng.NextDouble() * 0.75f, rng);
+            return go;
+        }
+
         static void BuildTree(Transform parent, float variation, System.Random rng)
         {
             Color bark = Palette.Shade(Palette.Trunk, 0.85f + (float)rng.NextDouble() * 0.35f);

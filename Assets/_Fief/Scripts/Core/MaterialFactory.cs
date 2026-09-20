@@ -50,6 +50,35 @@ namespace Fief
             return mat;
         }
 
+        /// <summary>
+        /// Un materiau TRANSPARENT (pour l'eau). Le shader Standard doit etre bascule
+        /// en mode transparent a la main : c'est la recette officielle d'Unity.
+        /// </summary>
+        public static Material GetTransparent(Color color)
+        {
+            Material mat = new Material(LitShader);
+            mat.name = "FiefTransparent_" + ColorUtility.ToHtmlStringRGB(color);
+            mat.color = color;
+
+            if (mat.HasProperty("_Mode")) mat.SetFloat("_Mode", 3f);
+            if (mat.HasProperty("_SrcBlend")) mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (mat.HasProperty("_DstBlend")) mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            if (mat.HasProperty("_ZWrite")) mat.SetInt("_ZWrite", 0);
+            if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1f);   // URP
+            if (mat.HasProperty("_Blend")) mat.SetFloat("_Blend", 0f);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+
+            mat.DisableKeyword("_ALPHATEST_ON");
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.renderQueue = 3000;
+
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.72f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.72f);
+            return mat;
+        }
+
         public static void Clear()
         {
             Cache.Clear();

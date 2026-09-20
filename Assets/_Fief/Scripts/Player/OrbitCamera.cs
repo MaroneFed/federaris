@@ -19,6 +19,13 @@ namespace Fief
 
         /// <summary>Rotation automatique, en degres par seconde. Utilise par l'ecran-titre.</summary>
         public float autoOrbitSpeed;
+
+        /// <summary>La camera elle-meme : sert a elargir le champ de vision en courant.</summary>
+        public Camera view;
+        public float baseFieldOfView = 62f;
+        public float sprintFieldOfView = 7.5f;
+
+        float shake;
         public float minPitch = -8f;
         public float maxPitch = 72f;
 
@@ -44,6 +51,12 @@ namespace Fief
             cinematic = true;
             cineDistance = distanceOut;
             cinePitch = pitchOut;
+        }
+
+        /// <summary>Secousse breve (atterrissage). L'amplitude est en metres.</summary>
+        public void Shake(float amount)
+        {
+            if (amount > shake) shake = Mathf.Min(0.5f, amount);
         }
 
         public void ReleaseCinematic()
@@ -92,7 +105,23 @@ namespace Fief
 
             currentDistance = Mathf.Lerp(currentDistance, wanted, 1f - Mathf.Exp(-14f * dt));
 
-            transform.position = pivot + direction * currentDistance;
+            // --- champ de vision : il s'ouvre quand on court, ca donne la sensation de vitesse
+            if (view != null)
+            {
+                bool sprinting = Game.Player != null && Game.Player.IsSprinting && !cinematic;
+                float wantedFov = baseFieldOfView + (sprinting ? sprintFieldOfView : 0f);
+                view.fieldOfView = Mathf.Lerp(view.fieldOfView, wantedFov, 1f - Mathf.Exp(-5f * dt));
+            }
+
+            // --- secousse
+            Vector3 jolt = Vector3.zero;
+            if (shake > 0.001f)
+            {
+                shake = Mathf.MoveTowards(shake, 0f, dt * 1.6f);
+                jolt = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * shake;
+            }
+
+            transform.position = pivot + direction * currentDistance + jolt;
             transform.rotation = rotation;
         }
 

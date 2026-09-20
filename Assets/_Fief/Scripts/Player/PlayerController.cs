@@ -22,6 +22,8 @@ namespace Fief
 
         CharacterController controller;
         float verticalVelocity;
+        bool wasGrounded = true;
+        public OrbitCamera orbitCamera;
 
         public float CurrentSpeed { get; private set; }
         public float TargetSpeed { get; private set; }
@@ -81,6 +83,14 @@ namespace Fief
                 transform.rotation = Quaternion.RotateTowards(
                     transform.rotation, target, cfg.turnSpeed * Time.deltaTime);
             }
+
+            // Atterrissage : une petite secousse de camera. C'est du "juice" :
+            // ca ne change rien au jeu, mais le saut cesse d'etre mou.
+            if (controller.isGrounded && !wasGrounded && orbitCamera != null)
+            {
+                orbitCamera.Shake(Mathf.Clamp01(-verticalVelocity / 24f) * 0.22f);
+            }
+            wasGrounded = controller.isGrounded;
 
             // Gravite + saut.
             if (controller.isGrounded)

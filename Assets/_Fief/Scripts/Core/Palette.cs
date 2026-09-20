@@ -14,6 +14,19 @@ namespace Fief
         public static readonly Color Dirt = new Color(0.52f, 0.43f, 0.31f);
         public static readonly Color Cliff = new Color(0.36f, 0.36f, 0.38f);
 
+        // --- les 9 teintes du terrain a facettes, du rivage au sommet enneige
+        public static readonly Color Sand = new Color(0.79f, 0.71f, 0.54f);
+        public static readonly Color Grass1 = new Color(0.50f, 0.66f, 0.31f);
+        public static readonly Color Grass2 = new Color(0.43f, 0.59f, 0.28f);
+        public static readonly Color Grass3 = new Color(0.36f, 0.51f, 0.25f);
+        public static readonly Color Grass4 = new Color(0.29f, 0.43f, 0.22f);
+        public static readonly Color Scree = new Color(0.54f, 0.48f, 0.36f);
+        public static readonly Color Rock1 = new Color(0.48f, 0.48f, 0.51f);
+        public static readonly Color Rock2 = new Color(0.37f, 0.37f, 0.41f);
+        public static readonly Color Snow = new Color(0.91f, 0.93f, 0.96f);
+        public static readonly Color Water = new Color(0.20f, 0.44f, 0.56f, 0.80f);
+        public static readonly Color WaterDeep = new Color(0.12f, 0.29f, 0.42f, 0.88f);
+
         public static readonly Color Wood = new Color(0.45f, 0.67f, 0.35f);
         public static readonly Color Trunk = new Color(0.40f, 0.29f, 0.19f);
         public static readonly Color Stone = new Color(0.62f, 0.63f, 0.66f);

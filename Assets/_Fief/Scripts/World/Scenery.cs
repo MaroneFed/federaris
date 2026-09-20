@@ -131,6 +131,7 @@ namespace Fief
         public static void Scatter(Transform parent, GameConfig cfg, System.Random rng,
                                    List<Vector3> occupied, int count)
         {
+            Proto.BeginVisualOnly();
             GameObject root = new GameObject("Decor");
             root.transform.SetParent(parent, false);
 
@@ -157,11 +158,14 @@ namespace Fief
                 if (!clear) continue;
 
                 Vector3 position = Ground.Place(x, z, 0f);
+                if (position.y < -1.5f) continue;          // rien a planter dans un lac
                 float slope = Ground.Slope(x, z);
 
                 CreateProp(root.transform, position, slope, rng);
                 placed++;
             }
+
+            Proto.EndVisualOnly();
         }
 
         static void CreateProp(Transform parent, Vector3 position, float slope, System.Random rng)
@@ -260,6 +264,119 @@ namespace Fief
             Proto.Cylinder(parent, new Vector3(0f, h, 0f),
                            new Vector3(0.58f, 0.03f, 0.58f),
                            Palette.Shade(Palette.Trunk, 1.35f), "Coupe");
+        }
+
+        // ------------------------------------------------------------------ forets
+
+        /// <summary>
+        /// Seme des arbres decoratifs partout sur la carte, en paquets.
+        ///
+        /// C'est le changement qui compte le plus visuellement : avant, il n'y avait
+        /// d'arbres que dans les zones de recolte, et le reste du monde etait une
+        /// prairie nue. Des bosquets partout, ca devient un pays.
+        /// </summary>
+        public static void PlantForests(Transform parent, GameConfig cfg, System.Random rng,
+                                        List<Vector3> occupied, int count)
+        {
+            Proto.BeginVisualOnly();
+            GameObject root = new GameObject("Forets");
+            root.transform.SetParent(parent, false);
+
+            float half = cfg.mapSize * 0.5f - 18f;
+            int planted = 0;
+            int guard = 0;
+
+            while (planted < count && guard < count * 10)
+            {
+                guard++;
+
+                // On plante par bosquets de 4 a 9 arbres : une foret n'est pas
+                // une distribution uniforme, c'est des paquets et des clairieres.
+                float gx = (float)(rng.NextDouble() * 2.0 - 1.0) * half;
+                float gz = (float)(rng.NextDouble() * 2.0 - 1.0) * half;
+                if (!SpotIsFree(gx, gz, occupied, 14f)) continue;
+
+                int clump = 4 + rng.Next(6);
+                float spread = 7f + (float)rng.NextDouble() * 12f;
+
+                for (int i = 0; i < clump && planted < count; i++)
+                {
+                    float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                    float d = spread * Mathf.Sqrt((float)rng.NextDouble());
+                    float x = gx + Mathf.Cos(a) * d;
+                    float z = gz + Mathf.Sin(a) * d;
+
+                    if (Mathf.Abs(x) > half || Mathf.Abs(z) > half) continue;
+                    if (!SpotIsFree(x, z, occupied, 6f)) continue;
+                    if (Ground.Slope(x, z) > 0.5f) continue;
+
+                    float y = Ground.Height(x, z);
+                    if (y < -1.5f) continue;          // pas d'arbre dans un lac
+                    if (y > 46f) continue;            // ni au-dessus de la limite des arbres
+
+                    NodeFactory.DecorTree(root.transform, new Vector3(x, y, z), rng);
+                    planted++;
+                }
+            }
+
+            Proto.EndVisualOnly();
+        }
+
+        static bool SpotIsFree(float x, float z, List<Vector3> occupied, float clearance)
+        {
+            if (DistanceToRoad(x, z) < clearance + 2f) return false;
+            float sq = clearance * clearance;
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                float dx = occupied[i].x - x;
+                float dz = occupied[i].z - z;
+                if (dx * dx + dz * dz < sq) return false;
+            }
+            return true;
+        }
+
+        // ------------------------------------------------------------------ ciel
+
+        /// <summary>Des nuages plats et lents, tres haut. Ils donnent son echelle au ciel.</summary>
+        public static void BuildClouds(Transform parent, GameConfig cfg, System.Random rng)
+        {
+            Proto.BeginVisualOnly();
+            GameObject root = new GameObject("Nuages");
+            root.transform.SetParent(parent, false);
+
+            Color white = new Color(0.97f, 0.97f, 0.99f);
+            float span = cfg.mapSize * 0.75f;
+
+            for (int i = 0; i < 26; i++)
+            {
+                GameObject cloud = new GameObject("Nuage");
+                cloud.transform.SetParent(root.transform, false);
+                cloud.transform.position = new Vector3(
+                    (float)(rng.NextDouble() * 2.0 - 1.0) * span,
+                    150f + (float)rng.NextDouble() * 90f,
+                    (float)(rng.NextDouble() * 2.0 - 1.0) * span);
+
+                int puffs = 3 + rng.Next(4);
+                float scale = 22f + (float)rng.NextDouble() * 34f;
+                for (int p = 0; p < puffs; p++)
+                {
+                    Proto.Sphere(cloud.transform,
+                        new Vector3(((float)rng.NextDouble() - 0.5f) * scale * 1.7f,
+                                    ((float)rng.NextDouble() - 0.5f) * scale * 0.22f,
+                                    ((float)rng.NextDouble() - 0.5f) * scale * 1.1f),
+                        new Vector3(scale * (0.6f + (float)rng.NextDouble() * 0.6f),
+                                    scale * 0.32f,
+                                    scale * (0.6f + (float)rng.NextDouble() * 0.5f)),
+                        white, "Masse");
+                }
+
+                Proto.StripCollidersRecursive(cloud);
+                Drift drift = cloud.AddComponent<Drift>();
+                drift.velocity = new Vector3(1.4f + (float)rng.NextDouble() * 1.6f, 0f, 0.35f);
+                drift.wrapDistance = span * 1.35f;
+            }
+
+            Proto.EndVisualOnly();
         }
 
         // ------------------------------------------------------------------ grands reperes

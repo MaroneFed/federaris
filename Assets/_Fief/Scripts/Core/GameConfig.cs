@@ -39,7 +39,11 @@ namespace Fief
         [Tooltip("Index du fief occupe par le joueur en solo.")]
         public int playerFiefIndex = 0;
         [Tooltip("Nombre de touffes de decor semees sur la carte (buissons, rochers, fleurs...).")]
-        public int decorCount = 620;
+        public int decorCount = 480;
+        [Tooltip("Arbres decoratifs semes en bosquets sur toute la carte.")]
+        public int forestCount = 560;
+        [Tooltip("Afficher les 6 fiefs rivaux. En solo ils ne servent a rien : laisse decoche.")]
+        public bool showRivalFiefs = false;
 
         [Header("Deplacement")]
         public float moveSpeedEmpty = 7.6f;

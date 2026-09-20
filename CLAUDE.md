@@ -30,7 +30,7 @@ de 16 ans pour les assets et la map (débutant complet).
 |---|---|
 | Joueurs | 4 min, **6 cible** — l'architecture vise 6 dès le départ |
 | Vue | 3e personne, caméra orbitale, ZQSD/WASD + souris |
-| Map | **~800×800 m** (agrandie le 20/09/2026), **dessinée à la main**, marché au centre, 6 fiefs en étoile |
+| Map | **~800×800 m** (agrandie le 20/09/2026), **dessinée à la main**, marché au centre, 6 fiefs en étoile. **En solo, seuls le marché et le fief du joueur sont construits** (`showRivalFiefs = false`) : les 5 autres emplacements restent aplanis mais vides, la Phase 3 n'aura qu'à y poser les fiefs des autres joueurs. |
 | Ressources | 3 en v1 : Bois, Pierre, Fer. Positions pseudo-aléatoires **dans des zones fixes** |
 | Poids | Mécanique centrale. **Révisée le 20/09/2026 par Martin** : la charge ralentit surtout les **gestes** (récolte, actions), et seulement un peu la marche (−26 % à pleine charge). Un joueur chargé reste mobile mais ne peut plus courir : il demeure rattrapable, donc vulnérable en Phase 2. Ne pas revenir à l'ancienne version (vitesse divisée par 3), elle rendait le jeu pénible. |
 | Construction | Sur **emplacements définis**, payée en or |

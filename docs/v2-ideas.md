@@ -27,7 +27,12 @@
 - **Croiser un autre joueur dans la forêt et pouvoir se défendre.** L'épée est déjà
   **visible dans le dos du personnage** (décor). Le combat lui-même reste Phase 2 :
   c'est la première chose qu'on fera une fois la Porte 1 franchie.
-- **Vrais assets 3D** (Kenney / Synty) à la place des primitives.
+- **Vrais assets 3D** (Kenney / Synty) à la place des primitives. Trois fichiers à
+  échanger, rien d'autre : `NodeFactory.cs`, `BuildingFactory.cs`, `Scenery.cs`.
+- **Les 5 fiefs rivaux**, masqués en solo depuis le 20/09/2026 (`showRivalFiefs`).
+  Ils reviennent en Phase 3, occupés par de vrais joueurs.
+- **Nager / sortir de l'eau proprement** : les lacs existent, mais le joueur les
+  traverse à pied. Ça suffit pour l'instant.
 - **Refonte complète de l'interface** en UI Toolkit (l'actuelle est en IMGUI, soignée
   mais pas définitive).
 

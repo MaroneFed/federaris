@@ -49,8 +49,11 @@ namespace Fief
             rigGo.transform.SetParent(parent, false);
 
             CharacterRig rig = rigGo.AddComponent<CharacterRig>();
+
+            Proto.BeginVisualOnly();
             rig.Assemble(tunic, accent);
-            Proto.StripCollidersRecursive(rigGo);
+            Proto.EndVisualOnly();
+
             return rig;
         }
 
