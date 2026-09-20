@@ -358,6 +358,24 @@ namespace Fief
         }
 
         /// <summary>
+        /// Les 6 emplacements de construction, en deux rangees de trois dans la cour,
+        /// derriere la porterie. Decision verrouillee du brief : on ne construit pas
+        /// librement, on construit sur des emplacements definis.
+        /// </summary>
+        void BuildPlots(Transform parent)
+        {
+            GameObject plotsRoot = new GameObject("Emplacements");
+            plotsRoot.transform.SetParent(parent, false);
+
+            for (int i = 0; i < 6; i++)
+            {
+                float x = ((i % 3) - 1) * 9.4f;
+                float z = ((i / 3) - 0.5f) * 10.4f + 4f;
+                BuildingFactory.CreatePlot(plotsRoot.transform, parent.position + new Vector3(x, 0f, z), i);
+            }
+        }
+
+        /// <summary>
         /// Le coeur du fief : une porte, deux tours, des bannieres, des torches.
         /// Rien de tout cela n'est jouable en Phase 1 : c'est ce qui fait que l'endroit
         /// ressemble a CHEZ TOI plutot qu'a six dalles posees sur l'herbe.
