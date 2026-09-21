@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
@@ -5,46 +6,52 @@ namespace Fief
     /// <summary>
     /// Le poncho : un vrai tissu, simule sommet par sommet.
     ///
-    /// C'est un cone ouvert (20 pans sur 7 etages) qui part des epaules et tombe
-    /// jusqu'au sol. A chaque image, on recalcule la position de chaque sommet :
+    /// Un cone ouvert qui part des epaules et tombe jusqu'au sol. A chaque image,
+    /// chaque sommet est recalcule :
+    ///   - le bas TRAINE derriere le mouvement, d'autant plus qu'on descend ;
+    ///   - il s'ecarte dans les virages, par inertie ;
+    ///   - une vague permanente en fait le tour ;
+    ///   - l'ourlet se souleve a la course et ne traverse jamais le sol.
     ///
-    ///   - le bas TRAINE derriere le mouvement (plus on descend, plus le retard
-    ///     est grand : c'est ce qui fait qu'un tissu "suit" au lieu d'etre rigide) ;
-    ///   - il part vers l'exterieur dans les virages, par inertie ;
-    ///   - il ondule en permanence, avec une vague qui fait le tour du corps ;
-    ///   - l'ourlet se souleve quand on court.
+    /// DEUX PIEGES, tous deux rencontres :
     ///
-    /// Tout est en espace LOCAL du personnage : avant = +Z, droite = +X. Le tissu
-    /// n'a donc pas besoin de savoir ou on regarde, seulement a quelle vitesse on va.
+    /// 1. Les faces sont doublees pour que le tissu se voie aussi de l'interieur.
+    ///    Du coup RecalculateNormals faisait la moyenne entre une normale et son
+    ///    opposee, donc ZERO : l'eclairage s'effondrait et le poncho devenait une
+    ///    masse noire. Les normales sont donc calculees a la main, a partir des
+    ///    seules faces exterieures.
+    ///
+    /// 2. En premiere personne, l'encolure est a 20 cm de l'oeil : deux triangles
+    ///    geants remplissaient l'ecran. Les deux premiers etages sont donc ranges
+    ///    dans leur propre sous-maillage, qu'on vide quand on regarde par ses yeux.
     /// </summary>
     public class Poncho : MonoBehaviour
     {
-        const int Segments = 20;
+        const int Segments = 28;
         const int Rings = 9;
 
-        /// <summary>
-        /// Le profil du vetement, de l'encolure a l'ourlet.
-        ///
-        /// Les deux premiers anneaux sont l'ENCOLURE et les EPAULES : le tissu part
-        /// d'un petit trou juste sous le menton et s'evase a plat sur les epaules.
-        /// Sans eux, le poncho etait un cone dont le haut faisait 30 cm de rayon :
-        /// en baissant les yeux on regardait par le trou et on voyait ses jambes
-        /// au lieu de son vetement.
-        /// </summary>
+        /// <summary>Profil du vetement, de l'encolure a l'ourlet.</summary>
         static readonly float[] RingY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
         static readonly float[] RingR = { 0.135f, 0.36f, 0.47f, 0.58f, 0.66f, 0.71f, 0.74f, 0.75f, 0.76f };
 
         [Header("Tissu")]
-        public float trail = 0.085f;        // recul du bas quand on avance
-        public float turnSway = 0.075f;     // ecart dans les virages
-        public float flutter = 0.030f;      // ondulation permanente
-        public float hemLift = 0.055f;      // l'ourlet se souleve a la course
+        public float trail = 0.085f;
+        public float turnSway = 0.075f;
+        public float flutter = 0.024f;
+        public float hemLift = 0.055f;
 
         Mesh mesh;
         Vector3[] rest;
         Vector3[] vertices;
+        Vector3[] normals;
         float[] ringT;
         float[] segAngle;
+
+        int[] outward;          // une seule orientation : sert au calcul des normales
+        int[] collarTriangles;  // encolure et epaules, masquees en premiere personne
+        static readonly int[] Nothing = new int[0];
+
+        bool topVisible = true;
 
         float speed;
         float turnRate;
@@ -58,6 +65,18 @@ namespace Fief
             previousYaw = yawDegrees;
             float dt = Mathf.Max(0.0001f, Time.deltaTime);
             turnRate = Mathf.Lerp(turnRate, Mathf.Clamp(delta / dt, -260f, 260f), 1f - Mathf.Exp(-9f * dt));
+        }
+
+        /// <summary>
+        /// En premiere personne on retire l'encolure et les epaules : elles sont trop
+        /// pres de l'oeil et couvriraient tout l'ecran. On garde tout le reste, donc
+        /// on voit bien son poncho en baissant les yeux.
+        /// </summary>
+        public void SetTopVisible(bool value)
+        {
+            if (topVisible == value || mesh == null) return;
+            topVisible = value;
+            mesh.SetTriangles(value ? collarTriangles : Nothing, 3);
         }
 
         public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
@@ -75,6 +94,7 @@ namespace Fief
             int count = Rings * Segments;
             rest = new Vector3[count];
             vertices = new Vector3[count];
+            normals = new Vector3[count];
             ringT = new float[count];
             segAngle = new float[count];
 
@@ -89,15 +109,12 @@ namespace Fief
                     float angle = (s / (float)Segments) * Mathf.PI * 2f;
                     int i = r * Segments + s;
 
-                    // OURLET DECHIRE : sur les deux derniers etages, chaque pan
-                    // descend d'une hauteur differente. C'est ce qui separe un
-                    // vetement taille net d'une loque de mendiant.
+                    // OURLET DECHIRE : sur les deux derniers etages, chaque pan descend
+                    // d'une hauteur differente. C'est ce qui separe un vetement taille
+                    // net d'une loque de mendiant.
                     float ragged = 0f;
-                    if (r >= Rings - 2)
-                    {
-                        float tear = Hash(s * 7 + r * 31);
-                        ragged = tear * (r == Rings - 1 ? 0.30f : 0.12f);
-                    }
+                    if (r >= Rings - 2) ragged = Hash(s * 7 + r * 31) * (r == Rings - 1 ? 0.30f : 0.12f);
+
                     // l'encolure reste nette : c'est le bas qui est mange par l'usure
                     float wobble = r < 2 ? 0f : (Hash(s * 13 + r * 5) - 0.5f) * 0.05f;
 
@@ -109,43 +126,53 @@ namespace Fief
                 }
             }
 
-            // Trois sous-maillages : la laine, une bande usee, et des PIECES
-            // RAPIECEES semees au hasard sur le tissu. Une loque, c'est d'abord
-            // un vetement qui a ete repare trop de fois.
-            int quadsPerRing = Segments;
-            var main = new System.Collections.Generic.List<int>();
-            var stripe = new System.Collections.Generic.List<int>();
-            var patches = new System.Collections.Generic.List<int>();
+            // Quatre sous-maillages : la laine, une bande usee, des pieces rapiecees,
+            // et l'encolure a part pour pouvoir la retirer en premiere personne.
+            List<int> main = new List<int>();
+            List<int> stripe = new List<int>();
+            List<int> patches = new List<int>();
+            List<int> collar = new List<int>();
+            List<int> single = new List<int>();
 
             for (int r = 0; r < Rings - 1; r++)
             {
-                for (int s = 0; s < quadsPerRing; s++)
+                for (int s = 0; s < Segments; s++)
                 {
-                    var target = main;
-                    if (r == Rings - 3) target = stripe;
+                    List<int> target;
+                    if (r < 2) target = collar;
+                    else if (r == Rings - 3) target = stripe;
                     else if (Hash(s * 17 + r * 101) < 0.11f) target = patches;
+                    else target = main;
 
                     int a = r * Segments + s;
                     int b = r * Segments + (s + 1) % Segments;
                     int c = (r + 1) * Segments + s;
                     int d = (r + 1) * Segments + (s + 1) % Segments;
 
+                    // faces exterieures : ce sont elles qui donnent l'eclairage
+                    single.Add(a); single.Add(c); single.Add(b);
+                    single.Add(b); single.Add(c); single.Add(d);
+
                     target.Add(a); target.Add(c); target.Add(b);
                     target.Add(b); target.Add(c); target.Add(d);
-                    // face interieure : un tissu se voit des deux cotes
+                    // faces interieures : un tissu se voit des deux cotes
                     target.Add(b); target.Add(c); target.Add(a);
                     target.Add(d); target.Add(c); target.Add(b);
                 }
             }
 
+            outward = single.ToArray();
+            collarTriangles = collar.ToArray();
+
             mesh = new Mesh();
             mesh.name = "Poncho";
             mesh.vertices = vertices;
-            mesh.subMeshCount = 3;
+            mesh.subMeshCount = 4;
             mesh.SetTriangles(main, 0);
             mesh.SetTriangles(stripe, 1);
             mesh.SetTriangles(patches, 2);
-            mesh.RecalculateNormals();
+            mesh.SetTriangles(collar, 3);
+            RebuildNormals();
             mesh.RecalculateBounds();
 
             gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -154,11 +181,41 @@ namespace Fief
             {
                 MaterialFactory.Get(cloth),
                 MaterialFactory.Get(band),
-                MaterialFactory.Get(patch)
+                MaterialFactory.Get(patch),
+                MaterialFactory.Get(cloth)
             };
         }
 
-        /// <summary>Bruit reproductible entre 0 et 1 : les dechirures sont toujours les memes.</summary>
+        /// <summary>
+        /// Normales calculees a la main sur les seules faces exterieures.
+        /// RecalculateNormals ne peut pas le faire : avec les faces doublees, il
+        /// moyennerait chaque normale avec son opposee et obtiendrait zero.
+        /// </summary>
+        void RebuildNormals()
+        {
+            for (int i = 0; i < normals.Length; i++) normals[i] = Vector3.zero;
+
+            for (int i = 0; i < outward.Length; i += 3)
+            {
+                int a = outward[i];
+                int b = outward[i + 1];
+                int c = outward[i + 2];
+                Vector3 face = Vector3.Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]);
+                normals[a] += face;
+                normals[b] += face;
+                normals[c] += face;
+            }
+
+            for (int i = 0; i < normals.Length; i++)
+            {
+                normals[i] = normals[i].sqrMagnitude > 0.0000001f
+                    ? normals[i].normalized
+                    : Vector3.up;
+            }
+
+            mesh.normals = normals;
+        }
+
         static float Hash(int n)
         {
             float v = Mathf.Sin(n * 12.9898f) * 43758.5453f;
@@ -182,24 +239,23 @@ namespace Fief
                 // Le bas traine, les epaules ne bougent pas : l'encolure est cousue au corps.
                 float lag = Mathf.Max(0f, t - 0.14f);
                 lag = lag * lag * 1.35f;
+
                 Vector3 p = rest[i];
 
-                // vague qui fait le tour du corps et descend le long du tissu
                 float phase = time * (4.5f + fast * 5f) + segAngle[i] * 2f + t * 3.4f;
-                float wave = Mathf.Sin(phase) * (flutter + fast * 0.035f) * lag;
+                float wave = Mathf.Sin(phase) * (flutter + fast * 0.03f) * lag;
 
                 p.z += back * lag + wave * 0.55f;
                 p.x += side * lag + Mathf.Cos(phase * 0.8f) * wave;
                 p.y += lag * fast * hemLift + wave * 0.35f;
 
-                // l'ourlet ne traverse jamais le sol
                 if (p.y < 0.01f) p.y = 0.01f;
 
                 vertices[i] = p;
             }
 
             mesh.vertices = vertices;
-            mesh.RecalculateNormals();
+            RebuildNormals();
             mesh.RecalculateBounds();
         }
     }

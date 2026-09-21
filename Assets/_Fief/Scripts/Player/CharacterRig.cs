@@ -51,6 +51,10 @@ namespace Fief
             {
                 if (headParts[i] != null) headParts[i].enabled = !value;
             }
+
+            // L'encolure est a 20 cm de l'oeil : de si pres, deux triangles couvrent
+            // tout l'ecran. On la retire, on garde tout le tissu en dessous.
+            if (poncho != null) poncho.SetTopVisible(!value);
         }
 
         public void PlaySwing()
@@ -79,9 +83,9 @@ namespace Fief
             // Laine sale, delavee, presque grise. La couleur du joueur ne survit qu'a
             // 22 % : assez pour se reconnaitre en multijoueur, pas assez pour avoir
             // l'air d'un seigneur. C'est un gueux sur les routes, pas un herault.
-            Color cloth = Color.Lerp(tunic, new Color(0.30f, 0.27f, 0.24f), 0.78f);
-            Color band = Color.Lerp(tunic, new Color(0.44f, 0.40f, 0.34f), 0.72f);
-            Color patch = Color.Lerp(tunic, new Color(0.38f, 0.32f, 0.25f), 0.60f);
+            Color cloth = Color.Lerp(tunic, new Color(0.47f, 0.43f, 0.37f), 0.74f);
+            Color band = Color.Lerp(tunic, new Color(0.64f, 0.59f, 0.50f), 0.70f);
+            Color patch = Color.Lerp(tunic, new Color(0.55f, 0.47f, 0.37f), 0.58f);
             Color skin = new Color(0.72f, 0.58f, 0.46f);
             Color underCloth = new Color(0.22f, 0.19f, 0.17f);
             Color leather = new Color(0.18f, 0.14f, 0.11f);
