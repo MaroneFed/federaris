@@ -19,6 +19,9 @@ namespace Fief
         public float harvestDuration = 1.1f;
         public float respawnDelay = 45f;
 
+        public Transform marker;
+        public Transform groundRing;
+
         int remaining;
         float respawnTimer;
         Transform visual;
@@ -128,7 +131,11 @@ namespace Fief
         {
             if (visual == null) return;
 
-            if (remaining <= 0)
+            bool alive = remaining > 0;
+            if (marker != null && marker.gameObject.activeSelf != alive) marker.gameObject.SetActive(alive);
+            if (groundRing != null && groundRing.gameObject.activeSelf != alive) groundRing.gameObject.SetActive(alive);
+
+            if (!alive)
             {
                 if (visual.gameObject.activeSelf) visual.gameObject.SetActive(false);
                 return;

@@ -9,6 +9,10 @@ namespace Fief
     /// </summary>
     public static class BuildingFactory
     {
+        /// <summary>Les batiments sont agrandis pour tenir l'echelle de la cour du chateau.</summary>
+        public const float BuildingScale = 1.7f;
+
+
         /// <summary>Cree un emplacement libre : une dalle + 4 piquets + un halo au sol.</summary>
         public static BuildPlot CreatePlot(Transform parent, Vector3 position, int index)
         {
@@ -17,25 +21,25 @@ namespace Fief
             root.transform.position = position;
 
             GameObject slab = Proto.Cube(root.transform, new Vector3(0f, 0.06f, 0f),
-                                         new Vector3(5.2f, 0.12f, 5.2f), Palette.PlotFree, "Dalle");
+                                         new Vector3(9f, 0.14f, 9f), Palette.PlotFree, "Dalle");
             Proto.StripCollider(slab);
 
             GameObject marker = new GameObject("MarqueurLibre");
             marker.transform.SetParent(root.transform, false);
             for (int i = 0; i < 4; i++)
             {
-                float x = (i % 2 == 0) ? -2.3f : 2.3f;
-                float z = (i < 2) ? -2.3f : 2.3f;
+                float x = (i % 2 == 0) ? -4f : 4f;
+                float z = (i < 2) ? -4f : 4f;
                 GameObject post = Proto.Cube(marker.transform, new Vector3(x, 0.5f, z),
-                                             new Vector3(0.18f, 1.0f, 0.18f), Palette.Trunk, "Piquet");
+                                             new Vector3(0.26f, 1.5f, 0.26f), Palette.Trunk, "Piquet");
                 Proto.StripCollider(post);
             }
 
             // Zone de detection : un trigger, il ne bloque pas le deplacement.
             BoxCollider trigger = root.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
-            trigger.size = new Vector3(5.4f, 3.5f, 5.4f);
-            trigger.center = new Vector3(0f, 1.6f, 0f);
+            trigger.size = new Vector3(9.4f, 5f, 9.4f);
+            trigger.center = new Vector3(0f, 2.3f, 0f);
 
             BuildPlot plot = root.AddComponent<BuildPlot>();
             plot.Initialise(index, marker);
@@ -47,6 +51,7 @@ namespace Fief
             GameObject root = new GameObject(def.name);
             root.transform.SetParent(plot.transform, false);
             root.transform.localPosition = Vector3.zero;
+            root.transform.localScale = Vector3.one * BuildingScale;
 
             switch (def.id)
             {

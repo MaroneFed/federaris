@@ -52,7 +52,7 @@ namespace Fief
         static readonly List<Basin> basins = new List<Basin>();
 
         static float mapSize = 400f;
-        static float rimHeight = 48f;
+        static float rimHeight = 40f;
         static bool ready;
 
         public static bool Ready { get { return ready; } }
@@ -71,48 +71,52 @@ namespace Fief
             basins.Clear();
             mapSize = cfg.mapSize;
 
-            // --- Les grandes chaines de bordure. Elles ferment l'horizon et donnent
-            //     son echelle au monde : on voit des montagnes loin devant en marchant.
-            AddHill(-116f, 336f, 124f, 46f);
-            AddHill(96f, 356f, 108f, 40f);
-            AddHill(316f, 184f, 116f, 44f);
-            AddHill(344f, -84f, 100f, 38f);
-            AddHill(192f, -336f, 120f, 46f);
-            AddHill(-68f, -356f, 104f, 36f);
-            AddHill(-324f, -208f, 112f, 42f);
-            AddHill(-352f, 88f, 108f, 48f);
-
-            // --- Collines interieures : c'est ELLES qu'on voit en jouant. Leurs positions
-            //     ont ete choisies pour ne jamais mordre sur une zone de jeu aplanie.
-            AddHill(-64f, 104f, 72f, 34.0f);
-            AddHill(122f, 14f, 72f, 34.0f);
-            AddHill(-64f, -100f, 72f, 34.0f);
-            AddHill(146f, -46f, 72f, 34.0f);
-            AddHill(104f, -322f, 72f, 34.0f);
-            AddHill(-28f, 158f, 72f, 34.0f);
-            AddHill(230f, -250f, 72f, 34.0f);
-            AddHill(-28f, -154f, 72f, 34.0f);
-            AddHill(-130f, 98f, 72f, 33.5f);
-            AddHill(-130f, -100f, 72f, 33.2f);
-            AddHill(-328f, -76f, 72f, 33.1f);
-            AddHill(-328f, 80f, 72f, 33.0f);
-            AddHill(92f, 326f, 72f, 31.0f);
-            AddHill(236f, 242f, 72f, 30.8f);
-            AddHill(152f, 74f, 72f, 30.0f);
-            AddHill(326f, -94f, 72f, 29.2f);
-            AddHill(80f, -34f, 72f, 28.7f);
-            AddHill(326f, 92f, 72f, 28.4f);
-            AddHill(170f, -292f, 72f, 28.3f);
-            AddHill(-82f, -328f, 72f, 28.3f);
-            AddHill(-244f, -232f, 72f, 28.1f);
-            AddHill(-4f, 86f, 71f, 28.0f);
+            // --- Les collines. Six d'entre elles sont des BARRIERES posees entre deux
+            //     fiefs voisins : c'est elles qui empechent de voir un chateau depuis
+            //     un autre. Dix massifs ferment l'horizon, vingt collines meublent le reste.
+            AddHill(175f, 649f, 116f, 74f);
+            AddHill(474f, 476f, 116f, 74f);
+            AddHill(650f, 173f, 127f, 74f);
+            AddHill(650f, -172f, 127f, 74f);
+            AddHill(474f, -476f, 135f, 74f);
+            AddHill(175f, -649f, 135f, 74f);
+            AddHill(-175f, -649f, 116f, 74f);
+            AddHill(-474f, -476f, 116f, 74f);
+            AddHill(-650f, -173f, 127f, 74f);
+            AddHill(-650f, 172f, 127f, 74f);
+            AddHill(-474f, 476f, 135f, 74f);
+            AddHill(-175f, 649f, 135f, 74f);
+            AddHill(309f, 951f, 230f, 105f);
+            AddHill(809f, 588f, 230f, 105f);
+            AddHill(1000f, 0f, 230f, 105f);
+            AddHill(809f, -588f, 230f, 105f);
+            AddHill(309f, -951f, 230f, 105f);
+            AddHill(-309f, -951f, 230f, 105f);
+            AddHill(-809f, -588f, 230f, 105f);
+            AddHill(-1000f, 0f, 230f, 105f);
+            AddHill(-809f, 588f, 230f, 105f);
+            AddHill(-309f, 951f, 230f, 105f);
+            AddHill(-140f, 300f, 120f, 48f);
+            AddHill(-140f, -300f, 120f, 48f);
+            AddHill(340f, 40f, 120f, 48f);
+            AddHill(400f, -120f, 120f, 45f);
+            AddHill(-320f, 280f, 120f, 45f);
+            AddHill(-320f, -280f, 120f, 45f);
+            AddHill(-80f, 460f, 120f, 43f);
+            AddHill(-80f, -460f, 120f, 42f);
+            AddHill(600f, -660f, 120f, 41f);
+            AddHill(460f, 180f, 120f, 39f);
+            AddHill(-860f, 200f, 120f, 38f);
+            AddHill(-860f, -200f, 120f, 38f);
+            AddHill(620f, 640f, 120f, 38f);
+            AddHill(860f, 240f, 120f, 36f);
 
             // --- Zones aplanies : on ne construit pas sur une pente.
-            AddFlat(Vector2.zero, cfg.marketRadius + 22f, 1f);
+            AddFlat(Vector2.zero, cfg.marketRadius + 46f, 1f);
             for (int i = 0; i < cfg.fiefCount; i++)
             {
                 Vector3 p = cfg.FiefPosition(i);
-                AddFlat(new Vector2(p.x, p.z), 52f, 1f);
+                AddFlat(new Vector2(p.x, p.z), 96f, 1f);
             }
 
             // --- Zones de ressources : relief attenue, pas supprime.
@@ -123,7 +127,7 @@ namespace Fief
                 {
                     ResourceZone z = cfg.zones[i];
                     if (z == null) continue;
-                    AddFlat(z.center, z.radius + 6f, 0.45f);
+                    AddFlat(z.center, z.radius + 12f, 0.45f);
                 }
             }
 
@@ -133,14 +137,16 @@ namespace Fief
             for (int i = 0; i < cfg.fiefCount; i++)
             {
                 Vector3 p = cfg.FiefPosition(i);
-                AddCorridor(Vector2.zero, new Vector2(p.x, p.z), 14f, 0.85f);
+                AddCorridor(Vector2.zero, new Vector2(p.x, p.z), 26f, 0.95f);
             }
 
             // --- Les lacs. Un bassin force le terrain a descendre a plat sous le niveau
             //     de l'eau : on obtient une cuvette propre et donc une rive nette.
-            AddBasin(180f, -60f, 30f, 11f);
-            AddBasin(-45f, 190f, 29f, 11f);
-            AddBasin(90f, -290f, 28f, 11f);
+            AddBasin(-250f, -25f, 48f, 16f);
+            AddBasin(155f, 200f, 41f, 16f);
+            AddBasin(365f, -325f, 44f, 16f);
+            AddBasin(-250f, 455f, 58f, 16f);
+            AddBasin(-250f, -445f, 61f, 16f);
 
             ready = true;
         }
@@ -214,14 +220,14 @@ namespace Fief
             // Bord de carte : le terrain remonte en cuvette. Plus joli qu'un mur gris,
             // et ca dit au joueur ou s'arrete le monde.
             float edge = Mathf.Max(Mathf.Abs(x), Mathf.Abs(z)) / (mapSize * 0.5f);
-            if (edge > 0.70f)
+            if (edge > 0.80f)
             {
-                float t = Mathf.Clamp01((edge - 0.70f) / 0.30f);
+                float t = Mathf.Clamp01((edge - 0.80f) / 0.20f);
                 h += rimHeight * t * t;
             }
 
             // Ondulation de fond : evite l'effet "collines posees sur une table".
-            h += Mathf.Sin(x * 0.013f) * Mathf.Cos(z * 0.011f) * 2.6f;
+            h += Mathf.Sin(x * 0.0065f) * Mathf.Cos(z * 0.0055f) * 4.5f;
 
             h *= FlattenFactor(x, z);
 
@@ -255,7 +261,7 @@ namespace Fief
 
                 // 56 m de transition : c'est large, mais c'est ce qui evite la marche
                 // d'escalier a la sortie d'un fief. Reduis-le et les bords deviennent raides.
-                float local = Mathf.Clamp01((d - f.radius) / 56f);
+                float local = Mathf.Clamp01((d - f.radius) / 90f);
                 local = Mathf.Lerp(1f - f.strength, 1f, local);
                 if (local < factor) factor = local;
             }
@@ -265,7 +271,7 @@ namespace Fief
                 FlatCorridor c = corridors[i];
                 float d = DistanceToSegment(new Vector2(x, z), c.a, c.b);
 
-                float local = Mathf.Clamp01((d - c.radius) / 30f);
+                float local = Mathf.Clamp01((d - c.radius) / 58f);
                 local = Mathf.Lerp(1f - c.strength, 1f, local);
                 if (local < factor) factor = local;
             }
@@ -318,7 +324,7 @@ namespace Fief
         /// </summary>
         public static GameObject Build(Transform parent, GameConfig cfg)
         {
-            const float cell = 5f;
+            const float cell = 9f;
             int steps = Mathf.RoundToInt(cfg.mapSize / cell);
             int side = steps + 1;
             float half = cfg.mapSize * 0.5f;
@@ -423,11 +429,11 @@ namespace Fief
             {
                 band = n < 0.5f ? 6 : 7;                      // falaise
             }
-            else if (height > 54f + n * 12f)
+            else if (height > 88f + n * 16f)
             {
                 band = 8;                                      // neige des sommets
             }
-            else if (height > 32f + n * 14f)
+            else if (height > 54f + n * 20f)
             {
                 band = n < 0.45f ? 6 : 5;                      // roche et eboulis
             }
@@ -437,7 +443,7 @@ namespace Fief
             }
             else
             {
-                float g = Mathf.Clamp01(height / 34f) + n * 0.34f;
+                float g = Mathf.Clamp01(height / 54f) + n * 0.34f;
                 if (g < 0.22f) band = 1;
                 else if (g < 0.48f) band = 2;
                 else if (g < 0.76f) band = 3;

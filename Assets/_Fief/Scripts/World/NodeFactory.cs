@@ -40,7 +40,28 @@ namespace Fief
             body.radius = 0.85f * variation;
             body.center = new Vector3(0f, body.height * 0.5f, 0f);
 
+            // --- LISIBILITE : un losange flottant a la couleur de la ressource, plus un
+            //     anneau au sol. Combine au feuillage ROND (le decor, lui, est anguleux),
+            //     on repere un gisement d'un coup d'oeil, meme au milieu d'une foret.
+            Proto.BeginVisualOnly();
+            GameObject marker = new GameObject("Marqueur");
+            marker.transform.SetParent(root.transform, false);
+            marker.transform.localPosition = new Vector3(0f, 4.6f * variation, 0f);
+            GameObject gem = Proto.Cube(marker.transform, Vector3.zero, new Vector3(0.62f, 0.62f, 0.62f),
+                                        ResourceInfo.Tint(type), "Losange");
+            gem.transform.localRotation = Quaternion.Euler(45f, 0f, 45f);
+            Proto.Cube(marker.transform, new Vector3(0f, -0.52f, 0f), new Vector3(0.3f, 0.3f, 0.3f),
+                       Palette.Shade(ResourceInfo.Tint(type), 1.35f), "Pointe");
+            marker.AddComponent<Bobber>();
+
+            GameObject ring = Proto.Cylinder(root.transform, new Vector3(0f, 0.06f, 0f),
+                                             new Vector3(3.4f * variation, 0.03f, 3.4f * variation),
+                                             Palette.Shade(ResourceInfo.Tint(type), 0.75f), "Anneau");
+            Proto.EndVisualOnly();
+
             ResourceNode node = root.AddComponent<ResourceNode>();
+            node.marker = marker.transform;
+            node.groundRing = ring.transform;
             GameConfig cfg = Game.Config;
             if (cfg != null)
             {

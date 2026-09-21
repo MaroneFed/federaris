@@ -31,27 +31,27 @@ namespace Fief
     {
         public static readonly BuildingDef[] All =
         {
-            New(BuildingId.Chest, "Coffre", 150, 5,
+            New(BuildingId.Chest, "Coffre", 240, 5,
                 "Stocke tes ressources hors du sac : tu repars leger.",
                 "Phase 2 : c'est lui que les rivaux viendront voler.",
                 new Color(0.55f, 0.40f, 0.25f)),
 
-            New(BuildingId.Wall, "Mur", 80, 3,
+            New(BuildingId.Wall, "Mur", 180, 3,
                 "Delimite ton fief. Bon marche, rapporte du Prestige.",
                 "Phase 2 : bois -> hache/feu, pierre -> belier. Destruction a regles.",
                 Palette.Structure),
 
-            New(BuildingId.Watchtower, "Tour de guet", 250, 12,
+            New(BuildingId.Watchtower, "Tour de guet", 550, 12,
                 "Revele tous les gisements de la carte sur ton ecran.",
                 "Phase 2 : detectera les intrus, de nuit comme de jour.",
                 new Color(0.66f, 0.62f, 0.55f)),
 
-            New(BuildingId.Sawmill, "Scierie", 300, 10,
+            New(BuildingId.Sawmill, "Scierie", 660, 10,
                 "Produit 2 Bois toutes les 8 s, directement dans la reserve du fief.",
                 "Phase 2 : tournera grace a des serviteurs... qu'il faudra payer.",
                 new Color(0.50f, 0.44f, 0.30f)),
 
-            New(BuildingId.Workshop, "Atelier", 340, 18,
+            New(BuildingId.Workshop, "Atelier", 750, 18,
                 "-15% sur le cout de toutes tes constructions suivantes.",
                 "Phase 2 : fabrication d'outils de siege.",
                 new Color(0.62f, 0.50f, 0.38f))

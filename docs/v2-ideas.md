@@ -22,7 +22,32 @@
   pas pour shipper. À remplacer par de vrais sons — l'appel (`Sfx.Harvest(...)`) ne changera pas.
 - **Les statiques de `Game.cs`.** Elles tombent en multijoueur (voir ARCHITECTURE.md).
 
-## Demandé par Martin, en attente de la Porte 1
+## Demandé par Martin le 21/09/2026 — HORS PHASE, en attente
+
+> Ces quatre idées sont bonnes, mais aucune n'est de la Phase 1. La règle anti-dérive
+> du projet (fin de `CLAUDE.md`) dit qu'elles restent ici jusqu'à ce que la Porte 1
+> soit franchie. C'est sa propre règle, et c'est elle qui empêche le projet de mourir.
+
+- **Cycle jour / nuit.** C'est explicitement de la **Phase 2** dans le brief. Tout est
+  prêt pour l'accueillir (lumière directionnelle unique, torches déjà posées partout,
+  matériaux créés par code), mais ça n'arrive qu'après la Porte 1.
+- **Vue première personne la nuit.** Nouveau mode de caméra, alors que la décision
+  verrouillée dit « 3e personne, caméra orbitale ». Faisable en une demi-journée
+  (`OrbitCamera` gagne un mode), mais c'est un changement de décision verrouillée :
+  à trancher explicitement, pas à glisser.
+- **« La nuit on s'occupe du château, la journée ça bosse ».** Excellente idée de
+  structure : elle donne un rythme à la Saison et une raison d'exister au château.
+  Elle dépend du cycle jour/nuit, donc Phase 2, et elle se conçoit **avec** le
+  sabotage par les salaires (c'est la nuit qu'un serviteur soudoyé ouvre la porte).
+- **Bourse, paris et contrats.** C'est une **mécanique entièrement nouvelle**, absente
+  du brief. Elle est séduisante et colle au pilier économique — mais c'est aussi
+  exactement le genre d'ajout qui dilue le différenciateur. À discuter **en Phase 4**,
+  quand la Saison sera complète, et seulement si elle sert le sabotage plutôt que de
+  lui voler la vedette.
+
+## Reporté depuis la Phase 1
+
+
 
 - **Croiser un autre joueur dans la forêt et pouvoir se défendre.** L'épée est déjà
   **visible dans le dos du personnage** (décor). Le combat lui-même reste Phase 2 :

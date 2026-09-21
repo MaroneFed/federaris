@@ -29,21 +29,27 @@ namespace Fief
     {
         [Header("Monde")]
         [Tooltip("Cote de la carte en metres. Le brief dit 400x400.")]
-        public float mapSize = 800f;
+        public float mapSize = 2200f;
         [Tooltip("Graine du generateur aleatoire : meme graine = meme map.")]
         public int worldSeed = 1337;
         [Tooltip("Distance entre le marche central et chaque fief.")]
-        public float fiefRingRadius = 270f;
+        public float fiefRingRadius = 750f;
         [Tooltip("Nombre d'emplacements de fief disposes en etoile (cible du brief : 6).")]
         public int fiefCount = 6;
         [Tooltip("Index du fief occupe par le joueur en solo.")]
         public int playerFiefIndex = 0;
         [Tooltip("Nombre de touffes de decor semees sur la carte (buissons, rochers, fleurs...).")]
-        public int decorCount = 480;
+        public int decorCount = 3600;
         [Tooltip("Arbres decoratifs semes en bosquets sur toute la carte.")]
-        public int forestCount = 560;
+        public int forestCount = 5200;
         [Tooltip("Afficher les 6 fiefs rivaux. En solo ils ne servent a rien : laisse decoche.")]
         public bool showRivalFiefs = false;
+        [Tooltip("Lieux a decouvrir : moulins, chapelles, camps, mines effondrees, fermes en ruine, postes de guet.")]
+        public int placeCount = 22;
+        [Tooltip("Caisses a fouiller semees loin de tout.")]
+        public int lootCount = 110;
+        [Tooltip("Troupeaux de cerfs et de moutons.")]
+        public int herdCount = 26;
 
         [Header("Deplacement")]
         public float moveSpeedEmpty = 7.6f;
@@ -62,15 +68,15 @@ namespace Fief
         public float gravity = -22f;
 
         [Header("Camera")]
-        public float cameraDistance = 9f;
+        public float cameraDistance = 10f;
         public float cameraMinDistance = 3.5f;
-        public float cameraMaxDistance = 24f;
+        public float cameraMaxDistance = 32f;
         public float mouseSensitivity = 0.13f;
 
         [Header("Inventaire")]
         [Tooltip("Charge maximale en kg. Bois = 1 kg/u, Pierre = 2, Fer = 3.")]
         public float maxWeight = 60f;
-        public int startingGold = 140;
+        public int startingGold = 200;
 
         [Header("Recolte")]
         public float interactRadius = 3.6f;
@@ -85,7 +91,7 @@ namespace Fief
         public float nodeRespawnDelay = 55f;
 
         [Header("Marche")]
-        public float marketRadius = 20f;
+        public float marketRadius = 30f;
         [Tooltip("Marge du marchand : tu achetes plus cher que tu ne vends.")]
         public float buySpread = 1.18f;
         [Tooltip("Vitesse a laquelle les stocks du marche reviennent a l'equilibre (unites/seconde).")]
@@ -104,20 +110,20 @@ namespace Fief
         {
             List<ResourceZone> list = new List<ResourceZone>();
 
-            list.Add(NewZone("Futaie du Nord-Est", ResourceType.Wood, new Vector2(128f, 222f), 52f, 16));
-            list.Add(NewZone("Carriere du Levant", ResourceType.Stone, new Vector2(252f, 0f), 44f, 13));
-            list.Add(NewZone("Mine du Sud-Est", ResourceType.Iron, new Vector2(124f, -215f), 38f, 10));
-            list.Add(NewZone("Bois du Sud-Ouest", ResourceType.Wood, new Vector2(-128f, -222f), 52f, 16));
-            list.Add(NewZone("Eboulis du Couchant", ResourceType.Stone, new Vector2(-252f, -0f), 44f, 13));
-            list.Add(NewZone("Veine du Nord-Ouest", ResourceType.Iron, new Vector2(-124f, 215f), 38f, 10));
+            list.Add(NewZone("Futaie du Nord-Est", ResourceType.Wood, new Vector2(350f, 606f), 92f, 26));
+            list.Add(NewZone("Carriere du Levant", ResourceType.Stone, new Vector2(690f, 0f), 78f, 20));
+            list.Add(NewZone("Mine du Sud-Est", ResourceType.Iron, new Vector2(340f, -589f), 66f, 16));
+            list.Add(NewZone("Bois du Sud-Ouest", ResourceType.Wood, new Vector2(-350f, -606f), 92f, 26));
+            list.Add(NewZone("Eboulis du Couchant", ResourceType.Stone, new Vector2(-690f, -0f), 78f, 20));
+            list.Add(NewZone("Veine du Nord-Ouest", ResourceType.Iron, new Vector2(-340f, 589f), 66f, 16));
 
-            list.Add(NewZone("Bosquet du Levant", ResourceType.Wood, new Vector2(72f, 125f), 34f, 10));
-            list.Add(NewZone("Bosquet du Midi", ResourceType.Wood, new Vector2(72f, -125f), 34f, 10));
-            list.Add(NewZone("Bosquet du Ponant", ResourceType.Wood, new Vector2(-144f, -0f), 34f, 10));
+            list.Add(NewZone("Bosquet du Levant", ResourceType.Wood, new Vector2(200f, 346f), 60f, 16));
+            list.Add(NewZone("Bosquet du Midi", ResourceType.Wood, new Vector2(200f, -346f), 60f, 16));
+            list.Add(NewZone("Bosquet du Ponant", ResourceType.Wood, new Vector2(-400f, -0f), 60f, 16));
 
-            list.Add(NewZone("Grande Mine du Nord", ResourceType.Iron, new Vector2(330f, 0f), 40f, 11));
-            list.Add(NewZone("Falaises du Sud", ResourceType.Stone, new Vector2(-169f, -293f), 42f, 12));
-            list.Add(NewZone("Sylve Profonde", ResourceType.Wood, new Vector2(-169f, 293f), 50f, 15));
+            list.Add(NewZone("Grande Mine du Nord", ResourceType.Iron, new Vector2(950f, 0f), 72f, 18));
+            list.Add(NewZone("Falaises du Sud", ResourceType.Stone, new Vector2(-480f, -831f), 76f, 20));
+            list.Add(NewZone("Sylve Profonde", ResourceType.Wood, new Vector2(-480f, 831f), 88f, 24));
 
             return list;
         }

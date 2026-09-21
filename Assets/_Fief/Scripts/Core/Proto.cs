@@ -24,7 +24,7 @@ namespace Fief
         static readonly Dictionary<PrimitiveType, Mesh> PrimitiveMeshes =
             new Dictionary<PrimitiveType, Mesh>();
 
-        static Mesh SharedMesh(PrimitiveType type)
+        public static Mesh SharedMesh(PrimitiveType type)
         {
             Mesh mesh;
             if (PrimitiveMeshes.TryGetValue(type, out mesh) && mesh != null) return mesh;

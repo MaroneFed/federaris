@@ -48,20 +48,25 @@ namespace Fief
             rng = new System.Random(config.worldSeed);
             worldRoot = new GameObject("=== MONDE ===").transform;
 
-            QualitySettings.shadowDistance = 160f;
+            QualitySettings.shadowDistance = 230f;
 
             // L'ordre compte : le relief doit exister avant qu'on pose quoi que ce soit
             // dessus, et les chemins avant qu'on seme le decor (pour ne pas semer sur la route).
             Ground.Prepare(config);
             Scenery.Reset();
 
+            // L'ordre compte. Les gisements remplissent la liste des endroits occupes ;
+            // tout ce qui vient apres s'en sert pour ne rien poser par-dessus.
             BuildEnvironment();
             Scenery.BuildRoads(worldRoot, config);
             BuildMarket();
             BuildFiefs();
             BuildLakes();
-            Scenery.BuildLandmarks(worldRoot, config);
             BuildResourceNodes();
+            Scenery.BuildLandmarks(worldRoot, config, occupied);
+            Places.Build(worldRoot, config, rng, occupied, config.placeCount);
+            Places.ScatterLoot(worldRoot, config, rng, occupied, config.lootCount);
+            Wildlife.Populate(worldRoot, config, rng, occupied, config.herdCount);
             Scenery.PlantForests(worldRoot, config, rng, occupied, config.forestCount);
             Scenery.Scatter(worldRoot, config, rng, occupied, config.decorCount);
             Scenery.BuildClouds(worldRoot, config, rng);
@@ -138,8 +143,8 @@ namespace Fief
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = new Color(0.68f, 0.76f, 0.85f);
-            RenderSettings.fogStartDistance = 260f;
-            RenderSettings.fogEndDistance = 1050f;
+            RenderSettings.fogStartDistance = 520f;
+            RenderSettings.fogEndDistance = 2400f;
 
             // Le terrain en relief. Les bords remontent en cuvette : plus besoin
             // de murs gris pour dire ou s'arrete le monde.
@@ -344,14 +349,14 @@ namespace Fief
                 root.transform.SetParent(worldRoot, false);
                 root.transform.position = center;
 
-                Proto.Pad(root.transform, Vector3.zero, 40f, Palette.Dirt, "Terrasse", 0.05f);
-                Proto.Pad(root.transform, Vector3.zero, 26f, Palette.Shade(Palette.Dirt, 1.1f), "Cour", 0.07f);
+                Proto.Pad(root.transform, Vector3.zero, 86f, Palette.Dirt, "Terrasse", 0.05f);
+                Proto.Pad(root.transform, Vector3.zero, 40f, Palette.Shade(Palette.Dirt, 1.1f), "Cour", 0.07f);
 
                 if (isPlayer)
                 {
                     Game.HomeFiefPosition = center;
                     Game.Fief.center = center;
-                    BuildKeep(root.transform, Palette.Banner(i));
+                    BuildCastle(root.transform, Palette.Banner(i));
                     BuildPlots(root.transform);
                 }
             }
@@ -369,78 +374,206 @@ namespace Fief
 
             for (int i = 0; i < 6; i++)
             {
-                float x = ((i % 3) - 1) * 9.4f;
-                float z = ((i / 3) - 0.5f) * 10.4f + 4f;
+                float x = ((i % 3) - 1) * 23f;
+                float z = ((i / 3) == 0) ? -26f : -9f;
                 BuildingFactory.CreatePlot(plotsRoot.transform, parent.position + new Vector3(x, 0f, z), i);
             }
         }
 
         /// <summary>
-        /// Le coeur du fief : une porte, deux tours, des bannieres, des torches.
-        /// Rien de tout cela n'est jouable en Phase 1 : c'est ce qui fait que l'endroit
-        /// ressemble a CHEZ TOI plutot qu'a six dalles posees sur l'herbe.
+        /// LE CHATEAU. Une vraie forteresse : une enceinte carree de 76 m de cote,
+        /// quatre tours d'angle, une porterie avec son arche, un chemin de ronde
+        /// crenele, et un donjon de 28 m au milieu de la cour.
+        ///
+        /// Repere : le joueur mesure 1,8 m. Les courtines font 9 m, les tours 19 m,
+        /// le donjon 28 m. On passe la porte en se sentant petit, ce qui est le but.
         /// </summary>
-        void BuildKeep(Transform parent, Color banner)
+        void BuildCastle(Transform parent, Color banner)
         {
             Color stone = Palette.Structure;
+            Color darkStone = Palette.Shade(stone, 0.86f);
 
-            // --- porterie, face au marche (le marche est vers -Z depuis le fief 0)
+            const float half = 38f;        // demi-cote de l'enceinte
+            const float wallHeight = 9f;
+            const float wallThickness = 3.2f;
+            const float gateGap = 11f;     // ouverture de la porte, au sud
+
+            GameObject castle = new GameObject("Chateau");
+            castle.transform.SetParent(parent, false);
+
+            // ---------- les quatre courtines
+            // Le sud est perce : c'est par la qu'on entre, face au marche.
+            BuildWall(castle.transform, new Vector3(0f, 0f, half), half * 2f, wallHeight, wallThickness, true, stone);
+            BuildWall(castle.transform, new Vector3(-half, 0f, 0f), half * 2f, wallHeight, wallThickness, false, stone);
+            BuildWall(castle.transform, new Vector3(half, 0f, 0f), half * 2f, wallHeight, wallThickness, false, stone);
+
+            float sideLength = half - gateGap * 0.5f;
+            float sideCentre = gateGap * 0.5f + sideLength * 0.5f;
+            BuildWall(castle.transform, new Vector3(-sideCentre, 0f, -half), sideLength, wallHeight, wallThickness, true, stone);
+            BuildWall(castle.transform, new Vector3(sideCentre, 0f, -half), sideLength, wallHeight, wallThickness, true, stone);
+
+            // ---------- les quatre tours d'angle
+            for (int i = 0; i < 4; i++)
+            {
+                float tx = (i % 2 == 0) ? -half : half;
+                float tz = (i < 2) ? -half : half;
+                BuildTower(castle.transform, new Vector3(tx, 0f, tz), 5.4f, 19f, stone, banner, i == 0 || i == 1);
+            }
+
+            // ---------- la porterie
             GameObject gate = new GameObject("Porterie");
-            gate.transform.SetParent(parent, false);
-            gate.transform.localPosition = new Vector3(0f, 0f, -22f);
+            gate.transform.SetParent(castle.transform, false);
+            gate.transform.localPosition = new Vector3(0f, 0f, -half);
 
             for (int side = -1; side <= 1; side += 2)
             {
-                Proto.Cylinder(gate.transform, new Vector3(side * 6.0f, 3.6f, 0f),
-                               new Vector3(3.2f, 3.6f, 3.2f), stone, "Tour");
-                GameObject crown = Proto.Cylinder(gate.transform, new Vector3(side * 6.0f, 7.5f, 0f),
-                                                  new Vector3(3.6f, 0.4f, 3.6f), Palette.Shade(stone, 0.85f), "Couronne");
-                Proto.StripCollider(crown);
-                for (int m = 0; m < 6; m++)
-                {
-                    float a = (360f / 6f) * m * Mathf.Deg2Rad;
-                    GameObject merlon = Proto.Cube(gate.transform,
-                        new Vector3(side * 6.0f + Mathf.Sin(a) * 1.55f, 8.1f, Mathf.Cos(a) * 1.55f),
-                        new Vector3(0.6f, 0.9f, 0.6f), stone, "Creneau");
-                    merlon.transform.localRotation = Quaternion.Euler(0f, -Mathf.Rad2Deg * a, 0f);
-                    Proto.StripCollider(merlon);
-                }
-                Proto.Banner(gate.transform, new Vector3(side * 6.0f, 8.2f, 0f), banner, 3.6f, "Etendard");
+                BuildTower(gate.transform, new Vector3(side * (gateGap * 0.5f + 3.4f), 0f, 0f),
+                           4.2f, 23f, darkStone, banner, true);
             }
 
-            GameObject lintel = Proto.Cube(gate.transform, new Vector3(0f, 6.2f, 0f),
-                                           new Vector3(13.6f, 1.6f, 2.6f), stone, "Linteau");
-            Proto.StripCollider(lintel);
-            GameObject arch = Proto.Cube(gate.transform, new Vector3(0f, 5.1f, 0f),
-                                         new Vector3(9.4f, 0.7f, 2.8f), Palette.Shade(stone, 0.78f), "Arc");
-            Proto.StripCollider(arch);
-
-            // --- murets de part et d'autre, pour fermer la cour sans l'enfermer
-            for (int side = -1; side <= 1; side += 2)
+            GameObject lintel = Proto.Cube(gate.transform, new Vector3(0f, 10.5f, 0f),
+                                           new Vector3(gateGap + 8f, 3f, wallThickness + 1.2f), stone, "Linteau");
+            Proto.BeginVisualOnly();
+            Proto.Cube(gate.transform, new Vector3(0f, 8.4f, 0f),
+                       new Vector3(gateGap - 0.6f, 1.2f, wallThickness + 1.6f), darkStone, "Arc");
+            // la herse, remontee
+            for (int i = 0; i < 6; i++)
             {
-                for (int i = 0; i < 3; i++)
+                Proto.Cube(gate.transform, new Vector3(-gateGap * 0.4f + i * (gateGap * 0.16f), 9.6f, 0f),
+                           new Vector3(0.28f, 2.4f, 0.28f), new Color(0.32f, 0.33f, 0.36f), "Herse");
+            }
+            for (int i = 0; i < 9; i++)
+            {
+                Proto.Cube(gate.transform, new Vector3(-(gateGap * 0.5f + 5.5f) + i * 1.45f, 12.6f, 0f),
+                           new Vector3(0.85f, 1.3f, wallThickness + 1.4f), stone, "Creneau");
+            }
+            Proto.EndVisualOnly();
+
+            // le pont, poursuivant le chemin jusqu'a la porte
+            GameObject bridge = Proto.Cube(castle.transform, new Vector3(0f, 0.16f, -half - 7f),
+                                           new Vector3(gateGap - 1f, 0.3f, 15f),
+                                           Palette.Shade(Palette.Trunk, 1.05f), "Pont");
+            Proto.StripCollider(bridge);
+
+            BuildTorch(gate.transform, new Vector3(-(gateGap * 0.5f + 1.4f), 0f, -2.6f));
+            BuildTorch(gate.transform, new Vector3(gateGap * 0.5f + 1.4f, 0f, -2.6f));
+
+            // ---------- le donjon
+            GameObject keep = new GameObject("Donjon");
+            keep.transform.SetParent(castle.transform, false);
+            keep.transform.localPosition = new Vector3(0f, 0f, 16f);
+
+            Proto.Cube(keep.transform, new Vector3(0f, 14f, 0f), new Vector3(21f, 28f, 21f), stone, "Corps");
+            Proto.BeginVisualOnly();
+            Proto.Cube(keep.transform, new Vector3(0f, 28.6f, 0f), new Vector3(23.5f, 1.4f, 23.5f), darkStone, "Corniche");
+            for (int i = 0; i < 24; i++)
+            {
+                float t = i / 6f;
+                int edge = i / 6;
+                float along = (t - edge) * 2f - 1f;
+                float ex = edge == 0 ? along * 10.5f : (edge == 1 ? 10.5f : (edge == 2 ? -along * 10.5f : -10.5f));
+                float ez = edge == 0 ? -10.5f : (edge == 1 ? along * 10.5f : (edge == 2 ? 10.5f : -along * 10.5f));
+                Proto.Cube(keep.transform, new Vector3(ex, 30.2f, ez), new Vector3(2.2f, 2.2f, 2.2f), stone, "Creneau");
+            }
+            // quatre echauguettes aux angles du donjon
+            for (int i = 0; i < 4; i++)
+            {
+                float ex = (i % 2 == 0) ? -10.5f : 10.5f;
+                float ez = (i < 2) ? -10.5f : 10.5f;
+                Proto.Cylinder(keep.transform, new Vector3(ex, 30f, ez), new Vector3(4.4f, 3f, 4.4f), darkStone, "Echauguette");
+                GameObject cone = Proto.Cube(keep.transform, new Vector3(ex, 35.4f, ez),
+                                             new Vector3(3.6f, 3.6f, 3.6f), Palette.Roof, "Toiture");
+                cone.transform.localRotation = Quaternion.Euler(0f, 45f, 35f);
+            }
+            // fenetres
+            for (int i = 0; i < 3; i++)
+            {
+                for (int side = -1; side <= 1; side += 2)
                 {
-                    GameObject wall = Proto.Cube(gate.transform,
-                        new Vector3(side * (9.8f + i * 5.4f), 1.6f, 1.6f + i * 3.4f),
-                        new Vector3(5.2f, 3.2f, 1.1f), Palette.Shade(stone, 0.94f), "Muret");
-                    wall.transform.localRotation = Quaternion.Euler(0f, side * (12f + i * 14f), 0f);
+                    Proto.Cube(keep.transform, new Vector3(side * 5.5f, 9f + i * 7f, -10.6f),
+                               new Vector3(1.3f, 3f, 0.4f), new Color(0.08f, 0.07f, 0.09f), "Fenetre");
                 }
             }
+            Proto.EndVisualOnly();
 
-            BuildTorch(gate.transform, new Vector3(-9.2f, 0f, 1.2f));
-            BuildTorch(gate.transform, new Vector3(9.2f, 0f, 1.2f));
+            Proto.Banner(keep.transform, new Vector3(0f, 30f, -8f), banner, 9f, "GrandEtendard");
 
-            // --- panneau de bienvenue
-            GameObject sign = new GameObject("Poteau");
-            sign.transform.SetParent(parent, false);
-            sign.transform.localPosition = new Vector3(-9f, 0f, -14f);
-            GameObject mast = Proto.Cylinder(sign.transform, new Vector3(0f, 1.4f, 0f),
-                                             new Vector3(0.2f, 1.4f, 0.2f), Palette.Trunk, "Mat");
-            Proto.StripCollider(mast);
-            GameObject plank = Proto.Cube(sign.transform, new Vector3(0.5f, 2.5f, 0f),
-                                          new Vector3(2.2f, 0.7f, 0.12f), Palette.Shade(Palette.Trunk, 1.35f), "Planche");
-            plank.transform.localRotation = Quaternion.Euler(0f, 0f, -5f);
-            Proto.StripCollider(plank);
+            // ---------- la cour : puits, charrette, tas de bois
+            Proto.BeginVisualOnly();
+            Proto.Cylinder(castle.transform, new Vector3(-24f, 0.9f, -6f), new Vector3(3.4f, 0.9f, 3.4f),
+                           Palette.Shade(Palette.Rock1, 0.9f), "Puits");
+            Proto.Cube(castle.transform, new Vector3(24f, 0.8f, -4f), new Vector3(4.4f, 1.6f, 2.6f),
+                       Palette.Shade(Palette.Trunk, 0.9f), "Charrette");
+            for (int i = 0; i < 5; i++)
+            {
+                GameObject log = Proto.Cylinder(castle.transform, new Vector3(26f + (i % 2) * 0.9f, 0.5f + i * 0.85f, 4f),
+                                                new Vector3(0.85f, 2.4f, 0.85f),
+                                                Palette.Shade(Palette.Trunk, 0.8f), "Rondin");
+                log.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            }
+            Proto.EndVisualOnly();
+
+            // torches le long des courtines
+            for (int i = 0; i < 6; i++)
+            {
+                float a = (360f / 6f) * i * Mathf.Deg2Rad;
+                BuildTorch(castle.transform, new Vector3(Mathf.Sin(a) * 30f, 0f, Mathf.Cos(a) * 30f));
+            }
+        }
+
+        /// <summary>Une courtine : le mur plein, son chemin de ronde et ses creneaux.</summary>
+        void BuildWall(Transform parent, Vector3 centre, float length, float height, float thickness,
+                       bool alongX, Color stone)
+        {
+            Vector3 size = alongX ? new Vector3(length, height, thickness)
+                                  : new Vector3(thickness, height, length);
+            Proto.Cube(parent, centre + new Vector3(0f, height * 0.5f, 0f), size, stone, "Courtine");
+
+            Proto.BeginVisualOnly();
+            Vector3 walkSize = alongX ? new Vector3(length, 0.5f, thickness + 1.6f)
+                                      : new Vector3(thickness + 1.6f, 0.5f, length);
+            Proto.Cube(parent, centre + new Vector3(0f, height + 0.25f, 0f), walkSize,
+                       Palette.Shade(stone, 0.88f), "CheminDeRonde");
+
+            int merlons = Mathf.Max(3, Mathf.RoundToInt(length / 4.2f));
+            for (int i = 0; i < merlons; i++)
+            {
+                float t = (i + 0.5f) / merlons - 0.5f;
+                Vector3 offset = alongX ? new Vector3(t * length, 0f, 0f) : new Vector3(0f, 0f, t * length);
+                Proto.Cube(parent, centre + offset + new Vector3(0f, height + 1.4f, 0f),
+                           new Vector3(2f, 2f, 2f), stone, "Creneau");
+            }
+            Proto.EndVisualOnly();
+        }
+
+        /// <summary>Une tour ronde, crenelee, coiffee, avec son etendard.</summary>
+        void BuildTower(Transform parent, Vector3 at, float radius, float height, Color stone,
+                        Color banner, bool withBanner)
+        {
+            Proto.Cylinder(parent, at + new Vector3(0f, height * 0.5f, 0f),
+                           new Vector3(radius * 2f, height * 0.5f, radius * 2f), stone, "Tour");
+
+            Proto.BeginVisualOnly();
+            Proto.Cylinder(parent, at + new Vector3(0f, height + 0.3f, 0f),
+                           new Vector3(radius * 2.4f, 0.4f, radius * 2.4f), Palette.Shade(stone, 0.85f), "Corniche");
+
+            int merlons = 8;
+            for (int i = 0; i < merlons; i++)
+            {
+                float a = (360f / merlons) * i * Mathf.Deg2Rad;
+                GameObject merlon = Proto.Cube(parent,
+                    at + new Vector3(Mathf.Sin(a) * radius * 1.05f, height + 1.6f, Mathf.Cos(a) * radius * 1.05f),
+                    new Vector3(1.7f, 2.2f, 1.7f), stone, "Creneau");
+                merlon.transform.localRotation = Quaternion.Euler(0f, -Mathf.Rad2Deg * a, 0f);
+            }
+
+            GameObject roof = Proto.Cube(parent, at + new Vector3(0f, height + 4.6f, 0f),
+                                         new Vector3(radius * 1.9f, radius * 1.9f, radius * 1.9f),
+                                         Palette.Roof, "Toiture");
+            roof.transform.localRotation = Quaternion.Euler(0f, 45f, 38f);
+            Proto.EndVisualOnly();
+
+            if (withBanner) Proto.Banner(parent, at + new Vector3(0f, height + 2f, 0f), banner, 5.5f, "Etendard");
         }
 
         // ================================================================ lacs
@@ -512,15 +645,15 @@ namespace Fief
                                                 zone.center.y + Mathf.Sin(angle) * radius);
 
                 if (Mathf.Abs(candidate.x) > limit || Mathf.Abs(candidate.z) > limit) continue;
-                if (candidate.magnitude < config.marketRadius + 26f) continue;
-                if (Scenery.DistanceToRoad(candidate.x, candidate.z) < 6f) continue;
+                if (candidate.magnitude < config.marketRadius + 70f) continue;
+                if (Scenery.DistanceToRoad(candidate.x, candidate.z) < 14f) continue;
                 if (Ground.Slope(candidate.x, candidate.z) > 0.45f) continue;
                 if (Ground.Height(candidate.x, candidate.z) < -1.5f) continue;
 
                 bool clear = true;
                 for (int i = 0; i < occupied.Count; i++)
                 {
-                    float minDistance = (i <= config.fiefCount) ? 52f : 6.5f;
+                    float minDistance = (i <= config.fiefCount) ? 115f : 9f;
                     if ((occupied[i] - candidate).sqrMagnitude < minDistance * minDistance)
                     {
                         clear = false;
@@ -548,7 +681,7 @@ namespace Fief
         {
             // On apparait en bord de fief, tourne vers lui : la premiere image du jeu
             // montre ta banniere et tes 6 emplacements de construction.
-            Vector3 spawn = Ground.Place(Game.HomeFiefPosition + new Vector3(0f, 0f, -30f), 1.2f);
+            Vector3 spawn = Ground.Place(Game.HomeFiefPosition + new Vector3(0f, 0f, -62f), 1.2f);
 
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
@@ -577,7 +710,7 @@ namespace Fief
             cam.backgroundColor = Palette.Sky;
             cam.fieldOfView = 62f;
             cam.nearClipPlane = 0.15f;
-            cam.farClipPlane = 1600f;
+            cam.farClipPlane = 3400f;
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
 

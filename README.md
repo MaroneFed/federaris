@@ -40,10 +40,13 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 3. L'**écran-titre** apparaît, avec la caméra qui tourne autour de ton fief.
    Clique **COMMENCER LA SAISON**.
 
-**Ce que tu dois voir :** un monde de **800 × 800 m** (64 hectares) en low-poly à
-facettes, des sommets enneigés à l'horizon, des forêts en bosquets, trois lacs, des
-nuages qui dérivent, un bourg autour du marché (maisons à colombages, étals, torches),
-et ton fief avec sa porterie, ses tours et ses bannières.
+**Ce que tu dois voir :** un monde de **2200 × 2200 m — 484 hectares** en low-poly à
+facettes. Ton **château fort** (enceinte de 76 m, quatre tours, donjon de 28 m), des
+forêts épaisses, cinq lacs, des cerfs qui détalent, des moulins et des chapelles à
+découvrir, des caisses à fouiller, et des montagnes enneigées qui ferment l'horizon.
+
+**Les autres châteaux sont invisibles depuis le tien** : des collines-barrières sont
+posées sur les lignes de vue. Il faut ~2 min de marche pour rejoindre un voisin.
 
 > **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Réparer la scène Main`**,
 > puis re-Play. C'est le filet de sécurité : le monde est entièrement généré par le code,
@@ -79,8 +82,8 @@ Le parcours :
    nettement moins que 2 fois 22 espacés.
 4. Rentre à ton fief, **E** sur un emplacement, construis.
    Commence par le **Coffre** (150 or), puis la **Scierie** (300 or) qui produit toute seule.
-5. Recommence. Objectif : les 5 constructions payées (1120 or au total).
-   **Calibré pour ~15 min et 7 voyages** — c'est exactement la durée de la Porte 1.
+5. Recommence. Objectif : les 5 constructions payées (2380 or au total).
+   **Calibré pour ~27 min et 6 voyages** — c'est exactement la durée de la Porte 1.
 
 **Ce que tu dois me dire après 20 min :** est-ce que c'est *satisfaisant*, ou est-ce que
 ça traîne ? Les chiffres qui se règlent en 10 secondes sont dans `GameConfig`

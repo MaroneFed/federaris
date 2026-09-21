@@ -62,11 +62,11 @@ namespace Fief
             }
 
             // Prix de base cales sur la Porte 1 : ~20 min pour financer les 5 constructions
-            // (1120 or) en une douzaine de voyages. Valeur par kilo croissante :
-            // Bois 2.40 or/kg, Pierre 2.70, Fer 3.00 -> le lourd paie mieux, mais ralentit plus.
-            lines[(int)ResourceType.Wood] = NewLine(2.4f, 130f);
-            lines[(int)ResourceType.Stone] = NewLine(5.4f, 95f);
-            lines[(int)ResourceType.Iron] = NewLine(9.0f, 60f);
+            // (2380 or) sur un monde de 484 hectares. Valeur par kilo croissante :
+            // Bois 6.2 or/kg, Pierre 7.0, Fer 7.8 -> le lourd paie mieux, mais ralentit plus.
+            lines[(int)ResourceType.Wood] = NewLine(6.2f, 130f);
+            lines[(int)ResourceType.Stone] = NewLine(14.0f, 95f);
+            lines[(int)ResourceType.Iron] = NewLine(23.4f, 60f);
         }
 
         static Line NewLine(float basePrice, float equilibrium)
