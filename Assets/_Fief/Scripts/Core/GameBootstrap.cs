@@ -713,8 +713,8 @@ namespace Fief
                 : CameraClearFlags.SolidColor;
             cam.backgroundColor = Palette.Sky;
             cam.fieldOfView = 62f;
-            cam.nearClipPlane = 0.15f;
-            cam.farClipPlane = 3400f;
+            cam.nearClipPlane = 0.10f;
+            cam.farClipPlane = 3000f;
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
 

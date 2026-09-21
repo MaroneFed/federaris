@@ -71,9 +71,10 @@ namespace Fief
         [Tooltip("Demarrer en vue a la premiere personne. V bascule en jeu.")]
         public bool firstPerson = true;
         [Tooltip("Hauteur des yeux, en metres.")]
-        public float eyeHeight = 1.74f;
-        [Tooltip("Avancee des yeux par rapport a l'axe du corps : evite de voir ses propres epaules.")]
-        public float eyeForward = 0.14f;
+        public float eyeHeight = 1.78f;
+        [Tooltip("Avancee des yeux. Doit rester sous le rayon de l'encolure du poncho (0,145) "
+               + "pour qu'on voie le tissu autour de soi en baissant les yeux.")]
+        public float eyeForward = 0.04f;
         [Tooltip("Amplitude du balancement de tete a la marche.")]
         public float headBob = 0.045f;
         public float cameraDistance = 10f;

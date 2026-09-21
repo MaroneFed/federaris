@@ -20,13 +20,19 @@ namespace Fief
     public class Poncho : MonoBehaviour
     {
         const int Segments = 20;
-        const int Rings = 7;
+        const int Rings = 9;
 
-        [Header("Silhouette")]
-        public float topY = 1.42f;
-        public float bottomY = 0.08f;
-        public float topRadius = 0.30f;
-        public float bottomRadius = 0.72f;
+        /// <summary>
+        /// Le profil du vetement, de l'encolure a l'ourlet.
+        ///
+        /// Les deux premiers anneaux sont l'ENCOLURE et les EPAULES : le tissu part
+        /// d'un petit trou juste sous le menton et s'evase a plat sur les epaules.
+        /// Sans eux, le poncho etait un cone dont le haut faisait 30 cm de rayon :
+        /// en baissant les yeux on regardait par le trou et on voyait ses jambes
+        /// au lieu de son vetement.
+        /// </summary>
+        static readonly float[] RingY = { 1.55f, 1.49f, 1.40f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
+        static readonly float[] RingR = { 0.115f, 0.34f, 0.46f, 0.58f, 0.66f, 0.71f, 0.74f, 0.75f, 0.76f };
 
         [Header("Tissu")]
         public float trail = 0.085f;        // recul du bas quand on avance
@@ -75,9 +81,8 @@ namespace Fief
             for (int r = 0; r < Rings; r++)
             {
                 float t = r / (float)(Rings - 1);
-                // Le tissu s'evase vite en haut puis tombe droit : silhouette de cape.
-                float radius = Mathf.Lerp(topRadius, bottomRadius, Mathf.Pow(t, 0.62f));
-                float y = Mathf.Lerp(topY, bottomY, t);
+                float radius = RingR[r];
+                float y = RingY[r];
 
                 for (int s = 0; s < Segments; s++)
                 {
@@ -93,7 +98,8 @@ namespace Fief
                         float tear = Hash(s * 7 + r * 31);
                         ragged = tear * (r == Rings - 1 ? 0.30f : 0.12f);
                     }
-                    float wobble = (Hash(s * 13 + r * 5) - 0.5f) * 0.05f;
+                    // l'encolure reste nette : c'est le bas qui est mange par l'usure
+                    float wobble = r < 2 ? 0f : (Hash(s * 13 + r * 5) - 0.5f) * 0.05f;
 
                     rest[i] = new Vector3(Mathf.Sin(angle) * (radius + wobble), y + ragged,
                                           Mathf.Cos(angle) * (radius + wobble));
@@ -173,7 +179,9 @@ namespace Fief
             for (int i = 0; i < rest.Length; i++)
             {
                 float t = ringT[i];
-                float lag = t * t;                       // le bas traine, le haut suit l'epaule
+                // Le bas traine, les epaules ne bougent pas : l'encolure est cousue au corps.
+                float lag = Mathf.Max(0f, t - 0.14f);
+                lag = lag * lag * 1.35f;
                 Vector3 p = rest[i];
 
                 // vague qui fait le tour du corps et descend le long du tissu
