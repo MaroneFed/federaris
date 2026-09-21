@@ -68,6 +68,14 @@ namespace Fief
         public float gravity = -22f;
 
         [Header("Camera")]
+        [Tooltip("Demarrer en vue a la premiere personne. V bascule en jeu.")]
+        public bool firstPerson = true;
+        [Tooltip("Hauteur des yeux, en metres.")]
+        public float eyeHeight = 1.74f;
+        [Tooltip("Avancee des yeux par rapport a l'axe du corps : evite de voir ses propres epaules.")]
+        public float eyeForward = 0.14f;
+        [Tooltip("Amplitude du balancement de tete a la marche.")]
+        public float headBob = 0.045f;
         public float cameraDistance = 10f;
         public float cameraMinDistance = 3.5f;
         public float cameraMaxDistance = 32f;

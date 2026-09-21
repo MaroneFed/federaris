@@ -84,10 +84,8 @@ emplacements de construction.
 - **Cycle jour / nuit.** C'est explicitement de la **Phase 2** dans le brief. Tout est
   prêt pour l'accueillir (lumière directionnelle unique, torches déjà posées partout,
   matériaux créés par code), mais ça n'arrive qu'après la Porte 1.
-- **Vue première personne la nuit.** Nouveau mode de caméra, alors que la décision
-  verrouillée dit « 3e personne, caméra orbitale ». Faisable en une demi-journée
-  (`OrbitCamera` gagne un mode), mais c'est un changement de décision verrouillée :
-  à trancher explicitement, pas à glisser.
+- ~~**Vue première personne.**~~ **FAIT le 21/09/2026** : c'est désormais la vue par
+  défaut, `V` bascule en 3e personne. Voir `CLAUDE.md`.
 - **« La nuit on s'occupe du château, la journée ça bosse ».** Excellente idée de
   structure : elle donne un rythme à la Saison et une raison d'exister au château.
   Elle dépend du cycle jour/nuit, donc Phase 2, et elle se conçoit **avec** le

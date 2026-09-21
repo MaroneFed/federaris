@@ -22,10 +22,16 @@ namespace Fief
 
         /// <summary>La camera elle-meme : sert a elargir le champ de vision en courant.</summary>
         public Camera view;
+        public CharacterRig rig;
+
+        /// <summary>Vrai = on regarde par les yeux du personnage.</summary>
+        public bool firstPerson;
         public float baseFieldOfView = 62f;
         public float sprintFieldOfView = 7.5f;
 
         float shake;
+        float bobPhase;
+        float bobOffset;
         public float minPitch = -8f;
         public float maxPitch = 72f;
 
@@ -59,6 +65,13 @@ namespace Fief
             if (amount > shake) shake = Mathf.Min(0.5f, amount);
         }
 
+        /// <summary>Bascule entre les deux vues. La tete du personnage se cache ou reapparait.</summary>
+        public void SetFirstPerson(bool value)
+        {
+            firstPerson = value;
+            if (value) pitch = Mathf.Clamp(pitch, -82f, 82f);
+        }
+
         public void ReleaseCinematic()
         {
             cinematic = false;
@@ -78,11 +91,19 @@ namespace Fief
             // Temps NON mis a l'echelle : la camera continue de vivre quand le jeu est en pause.
             float dt = Time.unscaledDeltaTime;
 
+            // La tete ne se cache que quand on regarde VRAIMENT par ses yeux.
+            // Pendant l'ecran-titre la camera tourne autour du personnage : on ne
+            // veut pas d'un mendiant sans tete sur l'image d'accueil.
+            bool throughEyes = firstPerson && !cinematic;
+            if (rig != null) rig.SetFirstPerson(throughEyes);
+
             if (!InputLocked)
             {
                 Vector2 look = FiefInput.Look;
                 yaw += look.x * sensitivity;
-                pitch = Mathf.Clamp(pitch - look.y * sensitivity, minPitch, maxPitch);
+                float lowLimit = firstPerson ? -82f : minPitch;
+                float highLimit = firstPerson ? 82f : maxPitch;
+                pitch = Mathf.Clamp(pitch - look.y * sensitivity, lowLimit, highLimit);
                 distance = Mathf.Clamp(distance - FiefInput.ZoomNotches * 1.6f, minD, maxD);
             }
 
@@ -95,6 +116,50 @@ namespace Fief
             }
 
             Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
+
+            // ---------------------------------------------------------- premiere personne
+            if (throughEyes)
+            {
+                GameConfig config = Game.Config;
+                float eye = config != null ? config.eyeHeight : 1.74f;
+                float ahead = config != null ? config.eyeForward : 0.14f;
+                float bobAmount = config != null ? config.headBob : 0.045f;
+
+                float walk = Game.Player != null ? Game.Player.CurrentSpeed : 0f;
+
+                // Le balancement suit la foulee : deux appuis par enjambee, comme les jambes.
+                bobPhase += walk * (Mathf.PI / 1.9f) * dt;
+                float moving = Mathf.Clamp01(walk / 1.2f);
+                float vertical = Mathf.Abs(Mathf.Sin(bobPhase)) * bobAmount * moving;
+                float lateral = Mathf.Sin(bobPhase * 0.5f) * bobAmount * 0.75f * moving;
+                bobOffset = Mathf.Lerp(bobOffset, vertical, 1f - Mathf.Exp(-16f * dt));
+
+                Vector3 forward = target.forward;
+                Vector3 right = target.right;
+                Vector3 head = target.position
+                             + Vector3.up * (eye + bobOffset)
+                             + forward * ahead
+                             + right * lateral;
+
+                if (view != null)
+                {
+                    bool running = Game.Player != null && Game.Player.IsSprinting;
+                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f);
+                    view.fieldOfView = Mathf.Lerp(view.fieldOfView, wantedFov, 1f - Mathf.Exp(-5f * dt));
+                }
+
+                Vector3 jolt1 = Vector3.zero;
+                if (shake > 0.001f)
+                {
+                    shake = Mathf.MoveTowards(shake, 0f, dt * 1.6f);
+                    jolt1 = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * shake * 0.5f;
+                }
+
+                transform.position = head + jolt1;
+                transform.rotation = Quaternion.Euler(pitch, yaw, lateral * 40f);
+                return;
+            }
+
             Vector3 pivot = target.position + pivotOffset;
             Vector3 direction = rotation * Vector3.back;
 

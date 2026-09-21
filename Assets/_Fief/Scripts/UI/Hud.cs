@@ -31,6 +31,13 @@ namespace Fief
 
             if (panel != null && !panel.IsStillValid) panel = null;
 
+            if (FiefInput.ToggleViewPressed && orbitCamera != null)
+            {
+                orbitCamera.SetFirstPerson(!orbitCamera.firstPerson);
+                Toasts.Show(orbitCamera.firstPerson ? "Vue a la premiere personne" : "Vue a la troisieme personne",
+                            Palette.Gold);
+            }
+
             if (FiefInput.HelpPressed)
             {
                 showHelp = !showHelp;
@@ -287,7 +294,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(300);
-            float h = UiStyle.S(172);
+            float h = UiStyle.S(193);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -312,6 +319,7 @@ namespace Fief
                 { "Maj", "courir" },
                 { "Souris", "camera" },
                 { "E", "recolter, interagir" },
+                { "V", "changer de vue" },
                 { "Echap", "pause" }
             };
 

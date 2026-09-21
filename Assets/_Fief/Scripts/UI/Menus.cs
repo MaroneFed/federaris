@@ -234,7 +234,7 @@ namespace Fief
         void DrawControls()
         {
             float w = UiStyle.S(520);
-            float h = UiStyle.S(400);
+            float h = UiStyle.S(428);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             UiStyle.Frame(box);
 
@@ -253,6 +253,7 @@ namespace Fief
                 { "Maj", "Courir (sac pas trop lourd)" },
                 { "Espace", "Sauter" },
                 { "Souris", "Orienter la camera" },
+                { "V", "Premiere / troisieme personne" },
                 { "Molette", "Zoom" },
                 { "E (maintenu)", "Recolter" },
                 { "E", "Marche, coffre, construction" },

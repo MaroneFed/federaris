@@ -57,6 +57,7 @@ posées sur les lignes de vue. Il faut ~2 min de marche pour rejoindre un voisin
 | Touche | Action |
 |---|---|
 | **ZQSD** / WASD / flèches | Se déplacer |
+| **V** | Première / troisième personne |
 | **Maj (Shift)** | Courir — seulement si le sac est léger |
 | **Souris** | Caméra orbitale |
 | **Molette** | Zoom |

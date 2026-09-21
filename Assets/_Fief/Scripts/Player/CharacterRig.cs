@@ -31,6 +31,18 @@ namespace Fief
         public bool Grounded = true;
         public float RunSpeed = 11f;
 
+        /// <summary>
+        /// En premiere personne on masque la tete et la capuche : sinon on regarde
+        /// l'interieur de son propre crane. Tout le reste reste visible -- le poncho,
+        /// les mains, le baton, les pieds. C'est ce qui fait qu'on se sent DANS le
+        /// personnage plutot que derriere une camera qui flotte.
+        /// </summary>
+        public void SetFirstPerson(bool value)
+        {
+            if (head != null && head.gameObject.activeSelf == value)
+                head.gameObject.SetActive(!value);
+        }
+
         public void PlaySwing()
         {
             swingTimer = 0.42f;

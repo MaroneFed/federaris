@@ -76,8 +76,14 @@ namespace Fief
             TargetSpeed = speed;
             CurrentSpeed = wish.magnitude * speed;
 
-            // Orientation du personnage vers la direction de marche.
-            if (wish.sqrMagnitude > 0.0001f)
+            // Orientation du personnage.
+            // En premiere personne, le corps DOIT suivre le regard : sinon on
+            // avancerait de cote pendant que la camera regarde ailleurs.
+            if (orbitCamera != null && orbitCamera.firstPerson)
+            {
+                transform.rotation = Quaternion.Euler(0f, orbitCamera.yaw, 0f);
+            }
+            else if (wish.sqrMagnitude > 0.0001f)
             {
                 Quaternion target = Quaternion.LookRotation(wish, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(

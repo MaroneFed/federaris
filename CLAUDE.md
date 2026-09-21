@@ -29,7 +29,7 @@ de 16 ans pour les assets et la map (débutant complet).
 | Sujet | Décision |
 |---|---|
 | Joueurs | 4 min, **6 cible** — l'architecture vise 6 dès le départ |
-| Vue | 3e personne, caméra orbitale, ZQSD/WASD + souris |
+| Vue | **Première personne par défaut** (révisé le 21/09/2026 par Martin). La 3e personne orbitale existe toujours et se récupère avec **V** — utile pour regarder son personnage, et c'est elle qui tourne sur l'écran-titre. En 1re personne le corps suit le regard, la tête est masquée, mais **le poncho, les mains, le bâton et les pieds restent visibles** : on est dans le personnage, pas derrière une caméra qui flotte. ZQSD/WASD + souris. |
 | Map | **~2200×2200 m — 484 hectares** (agrandie le 21/09/2026), **dessinée à la main**, marché au centre, 6 fiefs en étoile à 750 m. **Les châteaux sont cachés les uns des autres** par des collines-barrières posées sur les lignes de vue : 12 collines dont la crête dépasse de 57 à 67 m la ligne œil→tour. **En solo, seuls le marché et le château du joueur sont construits** (`showRivalFiefs = false`). |
 | Ressources | 3 en v1 : Bois, Pierre, Fer. Positions pseudo-aléatoires **dans des zones fixes** |
 | Poids | Mécanique centrale. **Révisée le 20/09/2026 par Martin** : la charge ralentit surtout les **gestes** (récolte, actions), et seulement un peu la marche (−26 % à pleine charge). Un joueur chargé reste mobile mais ne peut plus courir : il demeure rattrapable, donc vulnérable en Phase 2. Ne pas revenir à l'ancienne version (vitesse divisée par 3), elle rendait le jeu pénible. |
