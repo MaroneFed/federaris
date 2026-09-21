@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Fief
 {
@@ -384,7 +385,10 @@ namespace Fief
 
                     for (int i = 0; i < parts.Length; i++)
                     {
+                        // ShadowsOnly = la piece porte encore son ombre mais n'est
+                        // plus dessinee : elle ne peut donc plus boucher la vue.
                         if (parts[i] == null || !parts[i].enabled) continue;
+                        if (parts[i].shadowCastingMode == ShadowCastingMode.ShadowsOnly) continue;
 
                         if (inside == "rien" && parts[i].bounds.Contains(c))
                             inside = parts[i].gameObject.name + " (ton personnage)";
