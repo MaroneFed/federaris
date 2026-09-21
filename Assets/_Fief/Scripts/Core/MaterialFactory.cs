@@ -29,6 +29,11 @@ namespace Fief
 
         public static Material Get(Color color)
         {
+            // Filet de securite : les teintes proches partagent un materiau.
+            // Sans ca, du code qui tire des couleurs au hasard cree des milliers
+            // de materiaux et le lancement s'effondre.
+            color = Palette.Quantize(color, 24);
+
             Material mat;
             if (Cache.TryGetValue(color, out mat) && mat != null) return mat;
 

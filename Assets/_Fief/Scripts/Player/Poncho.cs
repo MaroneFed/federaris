@@ -54,17 +54,17 @@ namespace Fief
             turnRate = Mathf.Lerp(turnRate, Mathf.Clamp(delta / dt, -260f, 260f), 1f - Mathf.Exp(-9f * dt));
         }
 
-        public static Poncho Build(Transform parent, Color cloth, Color band)
+        public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
         {
             GameObject go = new GameObject("Poncho");
             go.transform.SetParent(parent, false);
 
             Poncho poncho = go.AddComponent<Poncho>();
-            poncho.Create(cloth, band);
+            poncho.Create(cloth, band, patch);
             return poncho;
         }
 
-        void Create(Color cloth, Color band)
+        void Create(Color cloth, Color band, Color patch)
         {
             int count = Rings * Segments;
             rest = new Vector3[count];
@@ -83,23 +83,42 @@ namespace Fief
                 {
                     float angle = (s / (float)Segments) * Mathf.PI * 2f;
                     int i = r * Segments + s;
-                    rest[i] = new Vector3(Mathf.Sin(angle) * radius, y, Mathf.Cos(angle) * radius);
+
+                    // OURLET DECHIRE : sur les deux derniers etages, chaque pan
+                    // descend d'une hauteur differente. C'est ce qui separe un
+                    // vetement taille net d'une loque de mendiant.
+                    float ragged = 0f;
+                    if (r >= Rings - 2)
+                    {
+                        float tear = Hash(s * 7 + r * 31);
+                        ragged = tear * (r == Rings - 1 ? 0.30f : 0.12f);
+                    }
+                    float wobble = (Hash(s * 13 + r * 5) - 0.5f) * 0.05f;
+
+                    rest[i] = new Vector3(Mathf.Sin(angle) * (radius + wobble), y + ragged,
+                                          Mathf.Cos(angle) * (radius + wobble));
                     vertices[i] = rest[i];
                     ringT[i] = t;
                     segAngle[i] = angle;
                 }
             }
 
-            // Deux sous-maillages : le tissu, et une bande claire vers le bas.
+            // Trois sous-maillages : la laine, une bande usee, et des PIECES
+            // RAPIECEES semees au hasard sur le tissu. Une loque, c'est d'abord
+            // un vetement qui a ete repare trop de fois.
             int quadsPerRing = Segments;
             var main = new System.Collections.Generic.List<int>();
             var stripe = new System.Collections.Generic.List<int>();
+            var patches = new System.Collections.Generic.List<int>();
 
             for (int r = 0; r < Rings - 1; r++)
             {
-                var target = (r == Rings - 3) ? stripe : main;
                 for (int s = 0; s < quadsPerRing; s++)
                 {
+                    var target = main;
+                    if (r == Rings - 3) target = stripe;
+                    else if (Hash(s * 17 + r * 101) < 0.11f) target = patches;
+
                     int a = r * Segments + s;
                     int b = r * Segments + (s + 1) % Segments;
                     int c = (r + 1) * Segments + s;
@@ -116,9 +135,10 @@ namespace Fief
             mesh = new Mesh();
             mesh.name = "Poncho";
             mesh.vertices = vertices;
-            mesh.subMeshCount = 2;
+            mesh.subMeshCount = 3;
             mesh.SetTriangles(main, 0);
             mesh.SetTriangles(stripe, 1);
+            mesh.SetTriangles(patches, 2);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
@@ -127,8 +147,16 @@ namespace Fief
             renderer.sharedMaterials = new Material[]
             {
                 MaterialFactory.Get(cloth),
-                MaterialFactory.Get(band)
+                MaterialFactory.Get(band),
+                MaterialFactory.Get(patch)
             };
+        }
+
+        /// <summary>Bruit reproductible entre 0 et 1 : les dechirures sont toujours les memes.</summary>
+        static float Hash(int n)
+        {
+            float v = Mathf.Sin(n * 12.9898f) * 43758.5453f;
+            return v - Mathf.Floor(v);
         }
 
         void LateUpdate()
@@ -157,7 +185,7 @@ namespace Fief
                 p.y += lag * fast * hemLift + wave * 0.35f;
 
                 // l'ourlet ne traverse jamais le sol
-                if (p.y < 0.015f) p.y = 0.015f;
+                if (p.y < 0.01f) p.y = 0.01f;
 
                 vertices[i] = p;
             }

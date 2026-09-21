@@ -82,7 +82,7 @@ namespace Fief
             float limit = cfg != null ? cfg.mapSize * 0.5f - 30f : 380f;
             position.x = Mathf.Clamp(position.x, -limit, limit);
             position.z = Mathf.Clamp(position.z, -limit, limit);
-            position.y = Ground.Height(position.x, position.z);
+            position.y = Ground.Sample(position.x, position.z);
             transform.position = position;
 
             // petit balancement : ca suffit a donner l'illusion de la marche
@@ -115,7 +115,7 @@ namespace Fief
                 float x = (float)(rng.NextDouble() * 2.0 - 1.0) * half;
                 float z = (float)(rng.NextDouble() * 2.0 - 1.0) * half;
 
-                if (Ground.Height(x, z) < 0.5f) continue;
+                if (Ground.Sample(x, z) < 0.5f) continue;
                 if (Ground.Slope(x, z) > 0.3f) continue;
                 if (!Scenery.IsFree(x, z, occupied, 40f, 20f)) continue;
 
@@ -126,7 +126,7 @@ namespace Fief
                 {
                     float ox = x + ((float)rng.NextDouble() - 0.5f) * 22f;
                     float oz = z + ((float)rng.NextDouble() - 0.5f) * 22f;
-                    Spawn(root.transform, new Vector3(ox, Ground.Height(ox, oz), oz), deer, rng);
+                    Spawn(root.transform, new Vector3(ox, Ground.Sample(ox, oz), oz), deer, rng);
                 }
                 built++;
             }

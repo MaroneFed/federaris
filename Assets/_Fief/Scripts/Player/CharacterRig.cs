@@ -54,13 +54,18 @@ namespace Fief
 
         void Assemble(Color tunic, Color accent)
         {
-            // Laine terreuse plutot que couleur vive : c'est un voyageur, pas un herault.
-            Color cloth = Color.Lerp(tunic, new Color(0.34f, 0.30f, 0.26f), 0.52f);
-            Color band = Color.Lerp(tunic, new Color(0.82f, 0.78f, 0.68f), 0.55f);
-            Color skin = new Color(0.82f, 0.67f, 0.54f);
-            Color underCloth = new Color(0.26f, 0.22f, 0.19f);
-            Color leather = new Color(0.20f, 0.15f, 0.12f);
-            Color wood = new Color(0.33f, 0.24f, 0.16f);
+            // Laine sale, delavee, presque grise. La couleur du joueur ne survit qu'a
+            // 22 % : assez pour se reconnaitre en multijoueur, pas assez pour avoir
+            // l'air d'un seigneur. C'est un gueux sur les routes, pas un herault.
+            Color cloth = Color.Lerp(tunic, new Color(0.30f, 0.27f, 0.24f), 0.78f);
+            Color band = Color.Lerp(tunic, new Color(0.44f, 0.40f, 0.34f), 0.72f);
+            Color patch = Color.Lerp(tunic, new Color(0.38f, 0.32f, 0.25f), 0.60f);
+            Color skin = new Color(0.72f, 0.58f, 0.46f);
+            Color underCloth = new Color(0.22f, 0.19f, 0.17f);
+            Color leather = new Color(0.18f, 0.14f, 0.11f);
+            Color rag = new Color(0.46f, 0.41f, 0.34f);
+            Color rope = new Color(0.52f, 0.45f, 0.32f);
+            Color wood = new Color(0.30f, 0.23f, 0.16f);
 
             hips = Node(transform, new Vector3(0f, 1.02f, 0f), "Bassin");
             baseHipsY = hips.localPosition.y;
@@ -70,17 +75,21 @@ namespace Fief
             //     la cadence et trahissent la foulee. C'est ce qui rend la marche credible.
             legL = Node(hips, new Vector3(-0.13f, -0.02f, 0f), "JambeG");
             legR = Node(hips, new Vector3(0.13f, -0.02f, 0f), "JambeD");
-            kneeL = BuildLeg(legL, underCloth, leather);
-            kneeR = BuildLeg(legR, underCloth, leather);
+            kneeL = BuildLeg(legL, underCloth, leather, rag);
+            kneeR = BuildLeg(legR, underCloth, leather, rag);
 
             // --- torse, largement cache par le poncho
             torso = Node(hips, new Vector3(0f, 0.12f, 0f), "Torse");
             Proto.Cube(torso, new Vector3(0f, 0.26f, 0f), new Vector3(0.44f, 0.52f, 0.28f), underCloth, "Buste");
             Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.50f, 0.14f, 0.30f), underCloth, "Epaules");
+            Proto.Cube(torso, new Vector3(0f, 0.30f, 0.15f), new Vector3(0.26f, 0.20f, 0.04f),
+                       Palette.Shade(rag, 0.85f), "Piece");
 
             // --- tete et CAPUCHE profonde : le visage reste dans l'ombre
             head = Node(torso, new Vector3(0f, 0.60f, 0f), "Tete");
             Proto.Cube(head, new Vector3(0f, 0.09f, 0f), new Vector3(0.25f, 0.28f, 0.25f), skin, "Crane");
+            Proto.Cube(head, new Vector3(0f, -0.02f, 0.06f), new Vector3(0.20f, 0.12f, 0.16f),
+                       Palette.Shade(skin, 0.72f), "Barbe");
             Proto.Cube(head, new Vector3(0f, 0.06f, 0.12f), new Vector3(0.17f, 0.10f, 0.05f),
                        new Color(0.09f, 0.08f, 0.08f), "Ombre");
 
@@ -98,26 +107,63 @@ namespace Fief
             elbowL = BuildArm(armL, underCloth, skin);
             elbowR = BuildArm(armR, underCloth, skin);
 
-            // --- le baton de marche, tenu dans la main droite
+            // --- corde a la taille, nouee. Un mendiant n'a pas de ceinturon.
+            for (int i = 0; i < 8; i++)
+            {
+                float a = (360f / 8f) * i * Mathf.Deg2Rad;
+                GameObject strand = Proto.Cube(torso, new Vector3(Mathf.Sin(a) * 0.23f, 0.03f, Mathf.Cos(a) * 0.19f),
+                                               new Vector3(0.10f, 0.05f, 0.05f), rope, "Corde");
+                strand.transform.localRotation = Quaternion.Euler(0f, -Mathf.Rad2Deg * a, 6f);
+            }
+            Proto.Cube(torso, new Vector3(0.05f, -0.03f, 0.19f), new Vector3(0.07f, 0.22f, 0.05f),
+                       Palette.Shade(rope, 0.9f), "NoeudPendant");
+
+            // --- un baluchon dans le dos : tout ce qu'il possede
+            GameObject bundle = Proto.Cube(torso, new Vector3(-0.04f, 0.22f, -0.26f),
+                                           new Vector3(0.36f, 0.34f, 0.24f), rag, "Baluchon");
+            bundle.transform.localRotation = Quaternion.Euler(9f, 12f, -7f);
+            Proto.Cube(torso, new Vector3(-0.04f, 0.40f, -0.26f), new Vector3(0.10f, 0.12f, 0.08f),
+                       rope, "NoeudBaluchon");
+            GameObject strap = Proto.Cube(torso, new Vector3(0.10f, 0.28f, 0f), new Vector3(0.06f, 0.52f, 0.30f),
+                                          rope, "Bretelle");
+            strap.transform.localRotation = Quaternion.Euler(0f, 0f, 21f);
+
+            // --- le baton : une branche tordue ramassee en chemin, pas une canne
             staffPivot = Node(elbowR, new Vector3(0f, -0.36f, 0.04f), "Baton");
-            Proto.Cube(staffPivot, new Vector3(0f, 0.34f, 0f), new Vector3(0.065f, 1.25f, 0.065f), wood, "Hampe");
-            Proto.Cube(staffPivot, new Vector3(0f, 1.52f, 0f), new Vector3(0.11f, 0.16f, 0.11f),
-                       Palette.Shade(wood, 1.35f), "Pommeau");
-            Proto.Cube(staffPivot, new Vector3(0f, 1.34f, 0f), new Vector3(0.13f, 0.05f, 0.13f),
-                       new Color(0.55f, 0.5f, 0.42f), "Ligature");
+            GameObject shaft = Proto.Cube(staffPivot, new Vector3(0f, 0.30f, 0f),
+                                          new Vector3(0.062f, 1.05f, 0.062f), wood, "Hampe");
+            shaft.transform.localRotation = Quaternion.Euler(2f, 0f, -3f);
+            GameObject upper = Proto.Cube(staffPivot, new Vector3(0.05f, 0.95f, 0.02f),
+                                          new Vector3(0.055f, 0.55f, 0.055f),
+                                          Palette.Shade(wood, 1.12f), "Bout");
+            upper.transform.localRotation = Quaternion.Euler(-4f, 0f, 9f);
+            Proto.Cube(staffPivot, new Vector3(0.09f, 1.21f, 0.03f), new Vector3(0.08f, 0.09f, 0.08f),
+                       Palette.Shade(wood, 0.8f), "Noeud");
+            Proto.Cube(staffPivot, new Vector3(0f, 0.62f, 0f), new Vector3(0.09f, 0.06f, 0.09f),
+                       rope, "Ligature");
 
             // --- LE PONCHO. Attache a la racine, pas au torse : il reste vertical
             //     pendant que le buste se penche, exactement comme un vrai tissu.
-            poncho = Poncho.Build(transform, cloth, band);
+            poncho = Poncho.Build(transform, cloth, band, patch);
         }
 
-        Transform BuildLeg(Transform pivot, Color cloth, Color boot)
+        Transform BuildLeg(Transform pivot, Color cloth, Color boot, Color rag)
         {
             Proto.Cube(pivot, new Vector3(0f, -0.23f, 0f), new Vector3(0.17f, 0.46f, 0.17f), cloth, "Cuisse");
             Transform knee = Node(pivot, new Vector3(0f, -0.46f, 0f), "Genou");
             Proto.Cube(knee, new Vector3(0f, -0.21f, 0f), new Vector3(0.16f, 0.42f, 0.16f),
                        Palette.Shade(cloth, 0.9f), "Tibia");
-            Proto.Cube(knee, new Vector3(0f, -0.44f, 0.04f), new Vector3(0.20f, 0.14f, 0.30f), boot, "Botte");
+
+            // Pas de bottes : des bandes de chiffon enroulees autour du mollet,
+            // decalees les unes des autres. C'est ce qu'on voit sous l'ourlet.
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject wrap = Proto.Cube(knee, new Vector3(0f, -0.14f - i * 0.11f, 0f),
+                                             new Vector3(0.19f - i * 0.01f, 0.09f, 0.19f - i * 0.01f),
+                                             i % 2 == 0 ? rag : Palette.Shade(rag, 0.82f), "Bande");
+                wrap.transform.localRotation = Quaternion.Euler(0f, i * 19f, (i % 2 == 0 ? 4f : -4f));
+            }
+            Proto.Cube(knee, new Vector3(0f, -0.45f, 0.04f), new Vector3(0.19f, 0.12f, 0.29f), boot, "Pied");
             return knee;
         }
 

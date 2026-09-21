@@ -137,7 +137,7 @@ namespace Fief
 
         static bool Plantable(float x, float z, float maxSlope, float maxHeight)
         {
-            float y = Ground.Height(x, z);
+            float y = Ground.Sample(x, z);
             if (y < -1.5f) return false;
             if (y > maxHeight) return false;
             return Ground.Slope(x, z) <= maxSlope;
@@ -183,7 +183,7 @@ namespace Fief
                     if (!Plantable(x, z, 0.55f, 62f)) continue;
                     if (!IsFree(x, z, occupied, 7f, 8f)) continue;
 
-                    AddTree(batcher, new Vector3(x, Ground.Height(x, z), z), rng);
+                    AddTree(batcher, new Vector3(x, Ground.Sample(x, z), z), rng);
                     planted++;
                 }
             }
@@ -195,13 +195,13 @@ namespace Fief
         {
             float s = 0.85f + (float)rng.NextDouble() * 0.9f;
             float spin = (float)rng.NextDouble() * 360f;
-            Color bark = Palette.Shade(Palette.Trunk, 0.8f + (float)rng.NextDouble() * 0.4f);
+            Color bark = Palette.Pick(Palette.Barks, rng);
             int species = rng.Next(3);
 
             if (species == 0)
             {
                 // sapin : quatre etages qui retrecissent
-                Color needle = Palette.Shade(Palette.Wood, 0.52f + (float)rng.NextDouble() * 0.18f);
+                Color needle = Palette.Pick(Palette.Needles, rng);
                 float trunk = 2.2f * s;
                 b.Add(PrimitiveType.Cylinder, at + new Vector3(0f, trunk * 0.5f, 0f),
                       new Vector3(0.3f * s, trunk * 0.5f, 0.3f * s), bark);
@@ -212,13 +212,13 @@ namespace Fief
                     b.Add(PrimitiveType.Cube, at + new Vector3(0f, trunk + 0.6f + i * 1.45f * s, 0f),
                           new Vector3(w, 1.3f * s, w),
                           Quaternion.Euler(0f, spin + i * 22f, 0f),
-                          Palette.Shade(needle, 1f - i * 0.06f));
+                          needle);
                 }
             }
             else if (species == 1)
             {
                 // chene : houppier large en trois blocs inclines
-                Color leaf = Palette.Shade(Palette.Wood, 0.72f + (float)rng.NextDouble() * 0.3f);
+                Color leaf = Palette.Pick(Palette.Leaves, rng);
                 float trunk = 2.8f * s;
                 b.Add(PrimitiveType.Cylinder, at + new Vector3(0f, trunk * 0.5f, 0f),
                       new Vector3(0.44f * s, trunk * 0.5f, 0.44f * s), bark);
@@ -227,25 +227,25 @@ namespace Fief
                       Quaternion.Euler(9f, spin, 7f), leaf);
                 b.Add(PrimitiveType.Cube, at + new Vector3(1.1f * s, trunk + 3.0f * s, -0.5f * s),
                       new Vector3(2.8f * s, 2.2f * s, 2.8f * s),
-                      Quaternion.Euler(-8f, spin + 40f, 12f), Palette.Shade(leaf, 1.1f));
+                      Quaternion.Euler(-8f, spin + 40f, 12f), Palette.Pick(Palette.Leaves, rng));
                 b.Add(PrimitiveType.Cube, at + new Vector3(-1.0f * s, trunk + 2.4f * s, 0.7f * s),
                       new Vector3(2.4f * s, 1.9f * s, 2.4f * s),
-                      Quaternion.Euler(11f, spin - 30f, -9f), Palette.Shade(leaf, 0.88f));
+                      Quaternion.Euler(11f, spin - 30f, -9f), Palette.Pick(Palette.Leaves, rng));
             }
             else
             {
                 // bouleau : elance et clair
-                Color pale = Palette.Shade(Palette.Wood, 0.95f + (float)rng.NextDouble() * 0.25f);
+                Color pale = Palette.Pick(Palette.PaleLeaves, rng);
                 float trunk = 4.4f * s;
                 b.Add(PrimitiveType.Cylinder, at + new Vector3(0f, trunk * 0.5f, 0f),
                       new Vector3(0.26f * s, trunk * 0.5f, 0.26f * s),
-                      Quaternion.Euler(3f, 0f, 2f), Palette.Shade(bark, 1.7f));
+                      Quaternion.Euler(3f, 0f, 2f), Palette.Pick(Palette.PaleLeaves, rng));
                 b.Add(PrimitiveType.Cube, at + new Vector3(0f, trunk + 1.2f * s, 0f),
                       new Vector3(2.6f * s, 3.4f * s, 2.6f * s),
                       Quaternion.Euler(6f, spin, 5f), pale);
                 b.Add(PrimitiveType.Cube, at + new Vector3(0.4f * s, trunk + 3.2f * s, 0.2f * s),
                       new Vector3(1.8f * s, 1.9f * s, 1.8f * s),
-                      Quaternion.Euler(-7f, spin + 55f, 8f), Palette.Shade(pale, 1.12f));
+                      Quaternion.Euler(-7f, spin + 55f, 8f), pale);
             }
         }
 
@@ -278,7 +278,7 @@ namespace Fief
                     if (DistanceToRoad(x, z) < 5f) continue;
                     if (!Plantable(x, z, 0.75f, 72f)) continue;
 
-                    AddUndergrowth(batcher, new Vector3(x, Ground.Height(x, z), z),
+                    AddUndergrowth(batcher, new Vector3(x, Ground.Sample(x, z), z),
                                    Ground.Slope(x, z), rng);
                     placed++;
                 }
@@ -309,7 +309,7 @@ namespace Fief
 
         static void AddBush(Batcher b, Vector3 at, System.Random rng, float spin)
         {
-            Color leaf = Palette.Shade(Palette.Wood, 0.6f + (float)rng.NextDouble() * 0.3f);
+            Color leaf = Palette.Pick(Palette.BushLeaves, rng);
             int blobs = 2 + rng.Next(3);
             for (int i = 0; i < blobs; i++)
             {
@@ -324,7 +324,7 @@ namespace Fief
 
         static void AddFern(Batcher b, Vector3 at, System.Random rng)
         {
-            Color frond = Palette.Shade(Palette.Wood, 0.66f + (float)rng.NextDouble() * 0.2f);
+            Color frond = Palette.Pick(Palette.Fronds, rng);
             int count = 4 + rng.Next(4);
             for (int i = 0; i < count; i++)
             {
@@ -339,7 +339,7 @@ namespace Fief
 
         static void AddTallGrass(Batcher b, Vector3 at, System.Random rng)
         {
-            Color tone = Palette.Shade(Palette.Grass1, 1.0f + (float)rng.NextDouble() * 0.25f);
+            Color tone = Palette.Pick(Palette.GrassTones, rng);
             int blades = 5 + rng.Next(6);
             for (int i = 0; i < blades; i++)
             {
@@ -363,7 +363,7 @@ namespace Fief
                 Vector3 p = at + new Vector3(((float)rng.NextDouble() - 0.5f) * 3f, 0f,
                                              ((float)rng.NextDouble() - 0.5f) * 3f);
                 b.Add(PrimitiveType.Cube, p + new Vector3(0f, 0.26f, 0f),
-                      new Vector3(0.05f, 0.5f, 0.05f), Palette.Shade(Palette.Wood, 0.8f));
+                      new Vector3(0.05f, 0.5f, 0.05f), Palette.Fronds[0]);
                 b.Add(PrimitiveType.Cube, p + new Vector3(0f, 0.55f, 0f),
                       new Vector3(0.22f, 0.12f, 0.22f),
                       Quaternion.Euler(0f, (float)rng.NextDouble() * 90f, 0f),
@@ -383,7 +383,7 @@ namespace Fief
                       new Vector3(s, s * 0.7f, s * 0.9f),
                       Quaternion.Euler((float)rng.NextDouble() * 34f, (float)rng.NextDouble() * 360f,
                                        (float)rng.NextDouble() * 34f),
-                      Palette.Shade(Palette.Rock1, 0.75f + (float)rng.NextDouble() * 0.45f));
+                      Palette.Pick(Palette.Rocks, rng));
             }
         }
 
@@ -391,9 +391,9 @@ namespace Fief
         {
             float h = 0.45f + (float)rng.NextDouble() * 0.4f;
             b.Add(PrimitiveType.Cylinder, at + new Vector3(0f, h * 0.5f, 0f),
-                  new Vector3(0.8f, h * 0.5f, 0.8f), Palette.Trunk);
+                  new Vector3(0.8f, h * 0.5f, 0.8f), Palette.Pick(Palette.DeadWood, rng));
             b.Add(PrimitiveType.Cylinder, at + new Vector3(0f, h, 0f),
-                  new Vector3(0.74f, 0.03f, 0.74f), Palette.Shade(Palette.Trunk, 1.4f));
+                  new Vector3(0.74f, 0.03f, 0.74f), Palette.Barks[3]);
         }
 
         static void AddFallenLog(Batcher b, Vector3 at, System.Random rng, float spin)
@@ -401,10 +401,10 @@ namespace Fief
             float length = 2.4f + (float)rng.NextDouble() * 2.6f;
             b.Add(PrimitiveType.Cylinder, at + new Vector3(0f, 0.42f, 0f),
                   new Vector3(0.8f, length * 0.5f, 0.8f),
-                  Quaternion.Euler(90f, spin, 0f), Palette.Shade(Palette.Trunk, 0.85f));
+                  Quaternion.Euler(90f, spin, 0f), Palette.Pick(Palette.DeadWood, rng));
             b.Add(PrimitiveType.Cube, at + new Vector3(0.4f, 0.8f, 0.3f),
                   new Vector3(0.7f, 0.25f, 0.7f),
-                  Quaternion.Euler(0f, spin + 20f, 0f), Palette.Shade(Palette.Wood, 0.55f));
+                  Quaternion.Euler(0f, spin + 20f, 0f), Palette.Pick(Palette.BushLeaves, rng));
         }
 
         // ================================================================ ciel

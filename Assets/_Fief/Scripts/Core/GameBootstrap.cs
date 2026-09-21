@@ -45,6 +45,8 @@ namespace Fief
             Game.Market = new Market(config);
             Game.Fief = new FiefState();
 
+            System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
+
             rng = new System.Random(config.worldSeed);
             worldRoot = new GameObject("=== MONDE ===").transform;
 
@@ -73,6 +75,8 @@ namespace Fief
 
             PlayerController player = BuildPlayer();
             BuildHud(player);
+
+            Debug.Log("[FIEF] Monde construit en " + chrono.ElapsedMilliseconds + " ms.");
 
             Toasts.Show("Recolte, vends au marche, construis ton fief.", Palette.Gold);
             Toasts.Show("F1 pour les commandes.", UiStyle.Ink);
@@ -648,7 +652,7 @@ namespace Fief
                 if (candidate.magnitude < config.marketRadius + 70f) continue;
                 if (Scenery.DistanceToRoad(candidate.x, candidate.z) < 14f) continue;
                 if (Ground.Slope(candidate.x, candidate.z) > 0.45f) continue;
-                if (Ground.Height(candidate.x, candidate.z) < -1.5f) continue;
+                if (Ground.Sample(candidate.x, candidate.z) < -1.5f) continue;
 
                 bool clear = true;
                 for (int i = 0; i < occupied.Count; i++)

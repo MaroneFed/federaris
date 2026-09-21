@@ -50,9 +50,30 @@ injouable (on ne peut plus se repérer ni viser une direction). 15 à 25 m de
 visibilité avec un sous-bois épais donne la même sensation d'aveuglement tout en
 restant jouable.
 
-**Statut : en attente d'une décision explicite de Martin.** Rien n'a été codé
-dans ce sens. Le personnage en poncho, lui, a été fait : il sert dans les deux
-versions du jeu.
+**DÉCISION (21/09/2026) :** Martin a répondu « fais comme tu le penses ».
+→ **On part sur l'option B**, décrite ci-dessous. Elle lui donne tout ce qu'il a
+demandé sans sacrifier le différenciateur.
+
+### Option B — le château central, la planque, et le sabotage conservé
+
+- **Un seul château au centre**, à la place du marché. Il n'appartient à personne :
+  c'est la cible commune. On y entre pour **voler des artefacts**.
+- **Chaque joueur a une planque**, pas un château : une tente à planter, cachée,
+  qu'on améliore en cabane. C'est là qu'on ramène le butin.
+- **Le sabotage par les salaires survit, et devient même plus clair** : les
+  serviteurs sont ceux **du château central**. On les soudoie pour qu'ils laissent
+  une porte ouverte, détournent le regard, ou éteignent une torche. La trahison
+  s'achète toujours — c'est juste la garde du château qu'on retourne, au lieu de
+  celle d'un rival.
+- **Forêt dense partout**, visibilité réduite, on se cache. Viser 15-25 m de
+  visibilité réelle : 1-2 m est injouable.
+- **Rien à construire au sens de la Phase 1** : les lieux existent déjà, on les
+  explore. On garde les caisses à fouiller, les lieux à découvrir, la faune.
+
+Ce qui est déjà en place et resservira tel quel : le terrain, les forêts, le
+fusionneur de maillages, le décor, les lieux, le butin, la faune, le personnage,
+les menus, l'audio. Ce qui saute : le marché à prix dynamiques et les six
+emplacements de construction.
 
 ## Demandé par Martin le 21/09/2026 — HORS PHASE, en attente
 

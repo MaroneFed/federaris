@@ -64,6 +64,92 @@ namespace Fief
             return Banners[i];
         }
 
+        // ------------------------------------------------------------------
+        //  NUANCIERS FIXES
+        //
+        //  Le decor est fusionne par couleur (voir Batcher.cs) : une couleur =
+        //  un maillage + un materiau. Tirer une teinte continue au hasard pour
+        //  chaque arbre creait donc un maillage PAR ARBRE - 17 600 au lieu de
+        //  quelques centaines, et le jeu bloquait au lancement.
+        //
+        //  On pioche desormais dans des nuanciers de 3 a 5 teintes. La foret
+        //  reste variee a l'oeil, et tout se regroupe proprement.
+        // ------------------------------------------------------------------
+
+        public static readonly Color[] Barks =
+        {
+            new Color(0.34f, 0.25f, 0.17f), new Color(0.40f, 0.29f, 0.19f),
+            new Color(0.29f, 0.21f, 0.15f), new Color(0.45f, 0.34f, 0.23f)
+        };
+
+        public static readonly Color[] Needles =
+        {
+            new Color(0.20f, 0.33f, 0.18f), new Color(0.24f, 0.38f, 0.20f),
+            new Color(0.17f, 0.28f, 0.16f), new Color(0.27f, 0.42f, 0.22f)
+        };
+
+        public static readonly Color[] Leaves =
+        {
+            new Color(0.33f, 0.48f, 0.24f), new Color(0.38f, 0.54f, 0.27f),
+            new Color(0.29f, 0.43f, 0.22f), new Color(0.43f, 0.58f, 0.30f),
+            new Color(0.35f, 0.50f, 0.20f)
+        };
+
+        public static readonly Color[] PaleLeaves =
+        {
+            new Color(0.50f, 0.65f, 0.34f), new Color(0.56f, 0.70f, 0.38f),
+            new Color(0.46f, 0.60f, 0.31f), new Color(0.61f, 0.73f, 0.42f)
+        };
+
+        public static readonly Color[] BushLeaves =
+        {
+            new Color(0.26f, 0.40f, 0.20f), new Color(0.31f, 0.45f, 0.23f),
+            new Color(0.22f, 0.35f, 0.18f), new Color(0.36f, 0.50f, 0.26f)
+        };
+
+        public static readonly Color[] Fronds =
+        {
+            new Color(0.29f, 0.44f, 0.22f), new Color(0.34f, 0.50f, 0.25f),
+            new Color(0.25f, 0.39f, 0.20f)
+        };
+
+        public static readonly Color[] GrassTones =
+        {
+            new Color(0.50f, 0.66f, 0.31f), new Color(0.56f, 0.71f, 0.35f),
+            new Color(0.45f, 0.60f, 0.28f), new Color(0.61f, 0.75f, 0.39f)
+        };
+
+        public static readonly Color[] Rocks =
+        {
+            new Color(0.40f, 0.40f, 0.43f), new Color(0.48f, 0.48f, 0.51f),
+            new Color(0.34f, 0.34f, 0.38f), new Color(0.54f, 0.54f, 0.57f),
+            new Color(0.44f, 0.43f, 0.40f)
+        };
+
+        public static readonly Color[] DeadWood =
+        {
+            new Color(0.31f, 0.24f, 0.18f), new Color(0.37f, 0.29f, 0.21f),
+            new Color(0.26f, 0.20f, 0.15f)
+        };
+
+        public static Color Pick(Color[] set, System.Random rng)
+        {
+            if (set == null || set.Length == 0) return Color.white;
+            return set[rng.Next(set.Length)];
+        }
+
+        /// <summary>
+        /// Ramene une couleur sur une grille. Filet de securite : meme si du code
+        /// futur fabrique des teintes continues, elles se regroupent quand meme.
+        /// </summary>
+        public static Color Quantize(Color c, int steps)
+        {
+            float s = Mathf.Max(2, steps);
+            return new Color(Mathf.Round(c.r * s) / s,
+                             Mathf.Round(c.g * s) / s,
+                             Mathf.Round(c.b * s) / s, c.a);
+        }
+
         public static Color Shade(Color c, float factor)
         {
             return new Color(c.r * factor, c.g * factor, c.b * factor, c.a);

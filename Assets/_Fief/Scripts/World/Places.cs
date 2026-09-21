@@ -32,7 +32,7 @@ namespace Fief
                 if (Mathf.Sqrt(x * x + z * z) < cfg.marketRadius + 90f) continue;
                 if (!Scenery.IsFree(x, z, occupied, 90f, 28f)) continue;
                 if (Ground.Slope(x, z) > 0.3f) continue;
-                if (Ground.Height(x, z) < 0f) continue;
+                if (Ground.Sample(x, z) < 0f) continue;
 
                 Vector3 at = Ground.Place(x, z, 0f);
                 GameObject place = new GameObject("Lieu");
@@ -83,7 +83,7 @@ namespace Fief
 
                 if (!Scenery.IsFree(x, z, occupied, 30f, 14f)) continue;
                 if (Ground.Slope(x, z) > 0.34f) continue;
-                if (Ground.Height(x, z) < 0f) continue;
+                if (Ground.Sample(x, z) < 0f) continue;
 
                 Crate(root.transform, Ground.Place(x, z, 0f), rng);
                 placed++;

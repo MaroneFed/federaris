@@ -45,6 +45,10 @@ namespace Fief
             Mesh source = Proto.SharedMesh(type);
             if (source == null) return;
 
+            // Meme filet, plus grossier : le decor n'a pas besoin de 16 millions
+            // de nuances, et chaque nuance supplementaire coute un maillage entier.
+            color = Palette.Quantize(color, 12);
+
             Bucket bucket = BucketFor(position, color);
             Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, scale);
 

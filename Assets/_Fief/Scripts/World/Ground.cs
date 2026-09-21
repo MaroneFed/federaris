@@ -51,6 +51,17 @@ namespace Fief
         static readonly List<FlatCorridor> corridors = new List<FlatCorridor>();
         static readonly List<Basin> basins = new List<Basin>();
 
+        // Grille des hauteurs, remplie pendant Build. Deux raisons de s'en servir :
+        //  - c'est ~60x plus rapide que de recalculer 36 collines par appel, et on
+        //    place des milliers d'arbres ;
+        //  - c'est EXACTEMENT la surface affichee. Le maillage interpole lineairement
+        //    entre les coins de chaque cellule de 9 m : un objet pose avec la formule
+        //    exacte flotterait ou s'enfoncerait jusqu'a un metre sur une pente.
+        static float[] grid;
+        static int gridSide;
+        static float gridCell;
+        static float gridHalf;
+
         static float mapSize = 400f;
         static float rimHeight = 40f;
         static bool ready;
@@ -65,6 +76,7 @@ namespace Fief
         /// </summary>
         public static void Prepare(GameConfig cfg)
         {
+            grid = null;
             hills.Clear();
             flats.Clear();
             corridors.Clear();
@@ -288,10 +300,31 @@ namespace Fief
             return Vector2.Distance(p, a + ab * t);
         }
 
+        /// <summary>Hauteur lue dans la grille, interpolee : rapide et calee sur le maillage.</summary>
+        public static float Sample(float x, float z)
+        {
+            if (grid == null) return Height(x, z);
+
+            float fx = (x + gridHalf) / gridCell;
+            float fz = (z + gridHalf) / gridCell;
+
+            int ix = Mathf.Clamp(Mathf.FloorToInt(fx), 0, gridSide - 2);
+            int iz = Mathf.Clamp(Mathf.FloorToInt(fz), 0, gridSide - 2);
+            float tx = Mathf.Clamp01(fx - ix);
+            float tz = Mathf.Clamp01(fz - iz);
+
+            float h00 = grid[iz * gridSide + ix];
+            float h10 = grid[iz * gridSide + ix + 1];
+            float h01 = grid[(iz + 1) * gridSide + ix];
+            float h11 = grid[(iz + 1) * gridSide + ix + 1];
+
+            return Mathf.Lerp(Mathf.Lerp(h00, h10, tx), Mathf.Lerp(h01, h11, tx), tz);
+        }
+
         /// <summary>Pose un point sur le sol. yOffset pour surelever legerement.</summary>
         public static Vector3 Place(float x, float z, float yOffset)
         {
-            return new Vector3(x, Height(x, z) + yOffset, z);
+            return new Vector3(x, Sample(x, z) + yOffset, z);
         }
 
         public static Vector3 Place(Vector3 position, float yOffset)
@@ -302,9 +335,9 @@ namespace Fief
         /// <summary>Inclinaison du sol, de 0 (plat) a 1 (falaise). Sert a semer le decor.</summary>
         public static float Slope(float x, float z)
         {
-            const float step = 2f;
-            float hx = Height(x + step, z) - Height(x - step, z);
-            float hz = Height(x, z + step) - Height(x, z - step);
+            float step = grid != null ? gridCell : 2f;
+            float hx = Sample(x + step, z) - Sample(x - step, z);
+            float hz = Sample(x, z + step) - Sample(x, z - step);
             return Mathf.Clamp01(Mathf.Sqrt(hx * hx + hz * hz) / (2f * step));
         }
 
@@ -329,15 +362,22 @@ namespace Fief
             int side = steps + 1;
             float half = cfg.mapSize * 0.5f;
 
-            // --- grille de hauteurs
-            Vector3[] grid = new Vector3[side * side];
+            // --- grille de hauteurs (et on la garde pour Sample)
+            Vector3[] points = new Vector3[side * side];
+            grid = new float[side * side];
+            gridSide = side;
+            gridCell = cell;
+            gridHalf = half;
+
             for (int iz = 0; iz < side; iz++)
             {
                 for (int ix = 0; ix < side; ix++)
                 {
                     float x = -half + ix * cell;
                     float z = -half + iz * cell;
-                    grid[iz * side + ix] = new Vector3(x, Height(x, z), z);
+                    float y = Height(x, z);
+                    points[iz * side + ix] = new Vector3(x, y, z);
+                    grid[iz * side + ix] = y;
                 }
             }
 
@@ -360,7 +400,7 @@ namespace Fief
             Mesh collisionMesh = new Mesh();
             collisionMesh.name = "TerrainCollision";
             collisionMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            collisionMesh.vertices = grid;
+            collisionMesh.vertices = points;
             collisionMesh.triangles = smoothTris;
             collisionMesh.RecalculateBounds();
 
@@ -378,8 +418,8 @@ namespace Fief
                     int b = a + 1;
                     int c = a + side;
                     int d = c + 1;
-                    EmitFacet(vertices, bands, grid[a], grid[c], grid[b]);
-                    EmitFacet(vertices, bands, grid[b], grid[c], grid[d]);
+                    EmitFacet(vertices, bands, points[a], points[c], points[b]);
+                    EmitFacet(vertices, bands, points[b], points[c], points[d]);
                 }
             }
 
