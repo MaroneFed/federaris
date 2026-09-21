@@ -21,9 +21,10 @@ namespace Fief
     ///    masse noire. Les normales sont donc calculees a la main, a partir des
     ///    seules faces exterieures.
     ///
-    /// 2. En premiere personne, l'encolure est a 20 cm de l'oeil : deux triangles
-    ///    geants remplissaient l'ecran. Les deux premiers etages sont donc ranges
-    ///    dans leur propre sous-maillage, qu'on vide quand on regarde par ses yeux.
+    /// 2. En premiere personne, tout ce qui est au-dessus de la taille est a moins
+    ///    d'un metre de l'oeil et remplissait l'ecran d'une masse sombre. Les quatre
+    ///    premiers etages sont donc ranges dans leur propre sous-maillage, qu'on
+    ///    vide quand on regarde par ses yeux.
     /// </summary>
     public class Poncho : MonoBehaviour
     {
@@ -32,13 +33,13 @@ namespace Fief
 
         /// <summary>Profil du vetement, de l'encolure a l'ourlet.</summary>
         static readonly float[] RingY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
-        static readonly float[] RingR = { 0.135f, 0.36f, 0.47f, 0.58f, 0.66f, 0.71f, 0.74f, 0.75f, 0.76f };
+        static readonly float[] RingR = { 0.135f, 0.34f, 0.42f, 0.50f, 0.55f, 0.58f, 0.60f, 0.61f, 0.62f };
 
         [Header("Tissu")]
         public float trail = 0.085f;
         public float turnSway = 0.075f;
         public float flutter = 0.024f;
-        public float hemLift = 0.055f;
+        public float hemLift = 0.075f;
 
         Mesh mesh;
         Vector3[] rest;
@@ -47,8 +48,17 @@ namespace Fief
         float[] ringT;
         float[] segAngle;
 
+        /// <summary>
+        /// Etages caches en premiere personne. Tout ce qui est au-dessus de la taille
+        /// est retire : de l'interieur, ces pans-la sont a moins d'un metre de l'oeil,
+        /// ils bouchent l'ecran, et on n'en voit que la face INTERNE -- qui est par
+        /// definition toujours a l'ombre. C'est ce que font tous les jeux en vue
+        /// subjective : on ne montre que le bas du vetement, les jambes et les mains.
+        /// </summary>
+        const int HiddenRowsInFirstPerson = 4;
+
         int[] outward;          // une seule orientation : sert au calcul des normales
-        int[] collarTriangles;  // encolure et epaules, masquees en premiere personne
+        int[] upperTriangles;   // le haut du vetement, masque en premiere personne
         static readonly int[] Nothing = new int[0];
 
         bool topVisible = true;
@@ -76,7 +86,7 @@ namespace Fief
         {
             if (topVisible == value || mesh == null) return;
             topVisible = value;
-            mesh.SetTriangles(value ? collarTriangles : Nothing, 3);
+            mesh.SetTriangles(value ? upperTriangles : Nothing, 3);
         }
 
         public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
@@ -131,7 +141,7 @@ namespace Fief
             List<int> main = new List<int>();
             List<int> stripe = new List<int>();
             List<int> patches = new List<int>();
-            List<int> collar = new List<int>();
+            List<int> upper = new List<int>();
             List<int> single = new List<int>();
 
             for (int r = 0; r < Rings - 1; r++)
@@ -139,7 +149,7 @@ namespace Fief
                 for (int s = 0; s < Segments; s++)
                 {
                     List<int> target;
-                    if (r < 2) target = collar;
+                    if (r < HiddenRowsInFirstPerson) target = upper;
                     else if (r == Rings - 3) target = stripe;
                     else if (Hash(s * 17 + r * 101) < 0.11f) target = patches;
                     else target = main;
@@ -162,7 +172,7 @@ namespace Fief
             }
 
             outward = single.ToArray();
-            collarTriangles = collar.ToArray();
+            upperTriangles = upper.ToArray();
 
             mesh = new Mesh();
             mesh.name = "Poncho";
@@ -171,7 +181,7 @@ namespace Fief
             mesh.SetTriangles(main, 0);
             mesh.SetTriangles(stripe, 1);
             mesh.SetTriangles(patches, 2);
-            mesh.SetTriangles(collar, 3);
+            mesh.SetTriangles(upper, 3);
             RebuildNormals();
             mesh.RecalculateBounds();
 

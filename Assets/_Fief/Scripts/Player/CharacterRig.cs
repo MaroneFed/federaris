@@ -83,8 +83,8 @@ namespace Fief
             // Laine sale, delavee, presque grise. La couleur du joueur ne survit qu'a
             // 22 % : assez pour se reconnaitre en multijoueur, pas assez pour avoir
             // l'air d'un seigneur. C'est un gueux sur les routes, pas un herault.
-            Color cloth = Color.Lerp(tunic, new Color(0.47f, 0.43f, 0.37f), 0.74f);
-            Color band = Color.Lerp(tunic, new Color(0.64f, 0.59f, 0.50f), 0.70f);
+            Color cloth = Color.Lerp(tunic, new Color(0.58f, 0.53f, 0.45f), 0.72f);
+            Color band = Color.Lerp(tunic, new Color(0.74f, 0.68f, 0.57f), 0.68f);
             Color patch = Color.Lerp(tunic, new Color(0.55f, 0.47f, 0.37f), 0.58f);
             Color skin = new Color(0.72f, 0.58f, 0.46f);
             Color underCloth = new Color(0.22f, 0.19f, 0.17f);
