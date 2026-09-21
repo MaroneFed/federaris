@@ -89,6 +89,17 @@ namespace Fief
             mesh.SetTriangles(value ? upperTriangles : Nothing, 3);
         }
 
+        /// <summary>
+        /// Efface completement le vetement (touche F4). C'est un outil de diagnostic :
+        /// si la masse qui bouche l'ecran disparait, c'est le poncho ; sinon c'est
+        /// autre chose, et on cherche ailleurs. Une reponse en un appui.
+        /// </summary>
+        public void ToggleVisible()
+        {
+            MeshRenderer r = GetComponent<MeshRenderer>();
+            if (r != null) r.enabled = !r.enabled;
+        }
+
         public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
         {
             GameObject go = new GameObject("Poncho");

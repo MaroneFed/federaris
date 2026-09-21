@@ -88,6 +88,9 @@ namespace Fief
         public static bool HelpPressed { get { return KeyPressed(KeyCode.F1); } }
         public static bool ToggleViewPressed { get { return KeyPressed(KeyCode.V); } }
         public static bool DiagnosticPressed { get { return KeyPressed(KeyCode.F3); } }
+        /// <summary>F4 : efface le poncho. Sert a repondre en un appui a la question
+        /// "la masse devant moi, c'est le vetement ou autre chose ?"</summary>
+        public static bool ToggleClothPressed { get { return KeyPressed(KeyCode.F4); } }
         public static bool SprintHeld { get { return KeyHeld(KeyCode.LeftShift); } }
 
         static bool KeyHeld(KeyCode code)
@@ -123,6 +126,7 @@ namespace Fief
                 case KeyCode.F1: return k.f1Key;
                 case KeyCode.V: return k.vKey;
                 case KeyCode.F3: return k.f3Key;
+                case KeyCode.F4: return k.f4Key;
                 case KeyCode.LeftShift: return k.leftShiftKey;
             }
             return null;

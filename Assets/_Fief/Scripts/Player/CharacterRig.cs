@@ -57,6 +57,13 @@ namespace Fief
             if (poncho != null) poncho.SetTopVisible(!value);
         }
 
+        /// <summary>Relaye la touche F4 : efface le vetement pour savoir si c'est lui
+        /// qui bouche l'ecran.</summary>
+        public void ToggleCloth()
+        {
+            if (poncho != null) poncho.ToggleVisible();
+        }
+
         public void PlaySwing()
         {
             swingTimer = 0.42f;

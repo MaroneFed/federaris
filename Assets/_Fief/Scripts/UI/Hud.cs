@@ -41,6 +41,9 @@ namespace Fief
 
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
 
+            // F4 : on efface le vetement. Si l'ecran se degage, le coupable est trouve.
+            if (FiefInput.ToggleClothPressed && Game.Rig != null) Game.Rig.ToggleCloth();
+
             if (FiefInput.HelpPressed)
             {
                 showHelp = !showHelp;
@@ -331,8 +334,8 @@ namespace Fief
         {
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
 
-            float w = UiStyle.S(430);
-            float h = UiStyle.S(300);
+            float w = UiStyle.S(500);
+            float h = UiStyle.S(334);
             Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(90), w, h);
             UiStyle.Frame(box);
 
@@ -364,20 +367,49 @@ namespace Fief
                          c.x.ToString("0.0") + " / " + c.y.ToString("0.0") + " / " + c.z.ToString("0.0"));
 
                 // --- DANS QUOI SOMMES-NOUS ?
+                //
+                // "Contains" ne repondait qu'a moitie : un objet peut remplir l'ecran
+                // sans contenir l'oeil -- c'est le cas d'un vetement, dont l'oeil sort
+                // par le col. On mesure donc aussi la DISTANCE a chaque morceau du
+                // corps, et on nomme les deux plus proches. C'est cette ligne-la qui
+                // dit en un mot ce qui bouche la vue.
                 string inside = "rien";
+                string nearest = "rien";
                 if (Game.Rig != null)
                 {
                     Renderer[] parts = Game.Rig.GetComponentsInChildren<Renderer>(false);
+
+                    string firstName = null, secondName = null;
+                    float firstDist = 99f, secondDist = 99f;
+
                     for (int i = 0; i < parts.Length; i++)
                     {
-                        if (parts[i] != null && parts[i].bounds.Contains(c))
-                        {
+                        if (parts[i] == null || !parts[i].enabled) continue;
+
+                        if (inside == "rien" && parts[i].bounds.Contains(c))
                             inside = parts[i].gameObject.name + " (ton personnage)";
-                            break;
+
+                        float d = Vector3.Distance(parts[i].bounds.ClosestPoint(c), c);
+                        if (d < firstDist)
+                        {
+                            secondDist = firstDist; secondName = firstName;
+                            firstDist = d; firstName = parts[i].gameObject.name;
                         }
+                        else if (d < secondDist)
+                        {
+                            secondDist = d; secondName = parts[i].gameObject.name;
+                        }
+                    }
+
+                    if (firstName != null)
+                    {
+                        nearest = firstName + " a " + Mathf.RoundToInt(firstDist * 100f) + " cm";
+                        if (secondName != null)
+                            nearest += ",  " + secondName + " a " + Mathf.RoundToInt(secondDist * 100f) + " cm";
                     }
                 }
                 y = Line(x, y, inner, "Camera a l'interieur de", inside);
+                y = Line(x, y, inner, "Colle a l'oeil", nearest);
 
                 Collider[] touching = Physics.OverlapSphere(c, 0.25f, ~0, QueryTriggerInteraction.Ignore);
                 y = Line(x, y, inner, "Solides autour de l'oeil",
@@ -393,7 +425,8 @@ namespace Fief
 
             y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, inner, UiStyle.S(34)),
-                      "Lis-moi la ligne \"Camera a l'interieur de\".", UiStyle.Tiny);
+                      "Lis-moi \"Colle a l'oeil\".   F4 efface le poncho : si la masse\n"
+                      + "disparait c'est le vetement, sinon c'est autre chose.", UiStyle.Tiny);
         }
 
         float Line(float x, float y, float width, string label, string value)
@@ -411,7 +444,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(300);
-            float h = UiStyle.S(214);
+            float h = UiStyle.S(235);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -438,6 +471,7 @@ namespace Fief
                 { "E", "recolter, interagir" },
                 { "V", "changer de vue" },
                 { "F3", "diagnostic" },
+                { "F4", "masquer le poncho" },
                 { "Echap", "pause" }
             };
 
