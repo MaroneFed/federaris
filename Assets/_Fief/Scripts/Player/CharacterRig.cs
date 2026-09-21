@@ -3,39 +3,34 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// Le personnage : un vrai bonhomme articule, assemble en primitives et anime
-    /// entierement par le code. Jambes, genoux, bras, coudes, cape, capuche, ceinture,
-    /// et une epee dans le dos.
+    /// L'ERRANT. Un personnage articule en poncho, anime entierement par le code.
     ///
-    /// Pourquoi par le code plutot qu'avec une animation importee : une animation Unity
-    /// demande un modele riggue, un Animator et des fichiers .anim. Ici, trois lignes de
-    /// trigonometrie donnent une marche, une course et un coup de hache credibles, et
-    /// ca marchera encore quand on remplacera les cubes par de vrais modeles.
+    /// La silhouette d'abord : une capuche profonde, un poncho qui tombe jusqu'au sol
+    /// et le balaye en marchant, un baton de marche, et juste ce qu'il faut de bottes
+    /// qui apparaissent sous l'ourlet a chaque foulee.
     ///
-    /// Concept Unity : chaque membre est un GameObject enfant. Faire tourner le parent
-    /// fait tourner tout ce qui est dessous : c'est exactement un squelette.
+    /// Le squelette (bassin, jambes, genoux, torse, bras, coudes, tete) existe toujours
+    /// dessous : c'est lui qui cadence la marche. Le poncho, lui, est un vrai tissu
+    /// simule (voir Poncho.cs) : il traine derriere le mouvement, s'ecarte dans les
+    /// virages et ondule en permanence.
     /// </summary>
     public class CharacterRig : MonoBehaviour
     {
-        // --- articulations
-        Transform root, hips, torso, head, hood;
+        Transform hips, torso, head, hood;
         Transform legL, legR, kneeL, kneeR;
         Transform armL, armR, elbowL, elbowR;
-        Transform cape, capeLower, scabbard;
+        Transform staffPivot;
+        Poncho poncho;
 
-        // --- etat d'animation
         float cycle;
         float speedSmoothed;
         float swingTimer;
         float baseHipsY;
 
-        /// <summary>Vitesse horizontale en m/s, fournie par le controleur.</summary>
         public float Speed;
         public bool Grounded = true;
-
         public float RunSpeed = 11f;
 
-        /// <summary>Declenche un coup de bras (recolte). Le bras droit part devant puis revient.</summary>
         public void PlaySwing()
         {
             swingTimer = 0.42f;
@@ -45,7 +40,7 @@ namespace Fief
 
         public static CharacterRig Build(Transform parent, Color tunic, Color accent)
         {
-            GameObject rigGo = new GameObject("Personnage");
+            GameObject rigGo = new GameObject("Errant");
             rigGo.transform.SetParent(parent, false);
 
             CharacterRig rig = rigGo.AddComponent<CharacterRig>();
@@ -59,76 +54,80 @@ namespace Fief
 
         void Assemble(Color tunic, Color accent)
         {
-            Color skin = new Color(0.86f, 0.71f, 0.57f);
-            Color cloth = Palette.Shade(tunic, 0.72f);
-            Color leather = new Color(0.34f, 0.24f, 0.17f);
-            Color darkLeather = new Color(0.22f, 0.16f, 0.12f);
-            Color steel = new Color(0.72f, 0.74f, 0.78f);
+            // Laine terreuse plutot que couleur vive : c'est un voyageur, pas un herault.
+            Color cloth = Color.Lerp(tunic, new Color(0.34f, 0.30f, 0.26f), 0.52f);
+            Color band = Color.Lerp(tunic, new Color(0.82f, 0.78f, 0.68f), 0.55f);
+            Color skin = new Color(0.82f, 0.67f, 0.54f);
+            Color underCloth = new Color(0.26f, 0.22f, 0.19f);
+            Color leather = new Color(0.20f, 0.15f, 0.12f);
+            Color wood = new Color(0.33f, 0.24f, 0.16f);
 
-            root = transform;
-
-            hips = Node(root, new Vector3(0f, 1.02f, 0f), "Bassin");
+            hips = Node(transform, new Vector3(0f, 1.02f, 0f), "Bassin");
             baseHipsY = hips.localPosition.y;
-            Proto.Cube(hips, new Vector3(0f, 0.04f, 0f), new Vector3(0.40f, 0.20f, 0.26f), cloth, "Hanches");
+            Proto.Cube(hips, new Vector3(0f, 0.04f, 0f), new Vector3(0.36f, 0.20f, 0.24f), underCloth, "Hanches");
 
-            // --- jambes
+            // --- jambes : on ne verra que les bottes sous l'ourlet, mais elles donnent
+            //     la cadence et trahissent la foulee. C'est ce qui rend la marche credible.
             legL = Node(hips, new Vector3(-0.13f, -0.02f, 0f), "JambeG");
             legR = Node(hips, new Vector3(0.13f, -0.02f, 0f), "JambeD");
-            kneeL = BuildLeg(legL, leather, darkLeather);
-            kneeR = BuildLeg(legR, leather, darkLeather);
+            kneeL = BuildLeg(legL, underCloth, leather);
+            kneeR = BuildLeg(legR, underCloth, leather);
 
-            // --- torse
+            // --- torse, largement cache par le poncho
             torso = Node(hips, new Vector3(0f, 0.12f, 0f), "Torse");
-            Proto.Cube(torso, new Vector3(0f, 0.26f, 0f), new Vector3(0.50f, 0.52f, 0.30f), tunic, "Buste");
-            Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.54f, 0.16f, 0.33f), Palette.Shade(tunic, 1.12f), "Epaules");
-            Proto.Cube(torso, new Vector3(0f, 0.02f, 0f), new Vector3(0.52f, 0.09f, 0.32f), darkLeather, "Ceinture");
-            Proto.Cube(torso, new Vector3(0f, 0.02f, 0.17f), new Vector3(0.10f, 0.11f, 0.04f), Palette.Gold, "Boucle");
-            Proto.Cube(torso, new Vector3(0.20f, -0.04f, 0.13f), new Vector3(0.13f, 0.16f, 0.09f), leather, "Bourse");
+            Proto.Cube(torso, new Vector3(0f, 0.26f, 0f), new Vector3(0.44f, 0.52f, 0.28f), underCloth, "Buste");
+            Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.50f, 0.14f, 0.30f), underCloth, "Epaules");
 
-            // --- tete
+            // --- tete et CAPUCHE profonde : le visage reste dans l'ombre
             head = Node(torso, new Vector3(0f, 0.60f, 0f), "Tete");
-            Proto.Cube(head, new Vector3(0f, 0.10f, 0f), new Vector3(0.28f, 0.30f, 0.27f), skin, "Crane");
-            Proto.Cube(head, new Vector3(0f, 0.05f, 0.14f), new Vector3(0.14f, 0.05f, 0.03f), new Color(0.24f, 0.19f, 0.16f), "Regard");
-            hood = Node(head, new Vector3(0f, 0.12f, -0.02f), "Capuche");
-            Proto.Cube(hood, new Vector3(0f, 0.09f, 0f), new Vector3(0.33f, 0.20f, 0.33f), accent, "Coiffe");
-            Proto.Cube(hood, new Vector3(0f, -0.02f, -0.14f), new Vector3(0.30f, 0.24f, 0.10f), Palette.Shade(accent, 0.8f), "Nuque");
+            Proto.Cube(head, new Vector3(0f, 0.09f, 0f), new Vector3(0.25f, 0.28f, 0.25f), skin, "Crane");
+            Proto.Cube(head, new Vector3(0f, 0.06f, 0.12f), new Vector3(0.17f, 0.10f, 0.05f),
+                       new Color(0.09f, 0.08f, 0.08f), "Ombre");
 
-            // --- bras
-            armL = Node(torso, new Vector3(-0.32f, 0.44f, 0f), "BrasG");
-            armR = Node(torso, new Vector3(0.32f, 0.44f, 0f), "BrasD");
-            elbowL = BuildArm(armL, tunic, skin);
-            elbowR = BuildArm(armR, tunic, skin);
+            hood = Node(head, new Vector3(0f, 0.10f, -0.02f), "Capuche");
+            Proto.Cube(hood, new Vector3(0f, 0.11f, -0.02f), new Vector3(0.34f, 0.24f, 0.36f), cloth, "Coiffe");
+            GameObject peak = Proto.Cube(hood, new Vector3(0f, 0.16f, 0.13f), new Vector3(0.30f, 0.16f, 0.22f), cloth, "Visiere");
+            peak.transform.localRotation = Quaternion.Euler(24f, 0f, 0f);
+            GameObject nape = Proto.Cube(hood, new Vector3(0f, -0.04f, -0.20f), new Vector3(0.30f, 0.30f, 0.16f),
+                                         Palette.Shade(cloth, 0.84f), "Nuque");
+            nape.transform.localRotation = Quaternion.Euler(-16f, 0f, 0f);
 
-            // --- cape
-            cape = Node(torso, new Vector3(0f, 0.46f, -0.16f), "Cape");
-            Proto.Cube(cape, new Vector3(0f, -0.20f, 0f), new Vector3(0.48f, 0.42f, 0.05f), accent, "CapeHaut");
-            capeLower = Node(cape, new Vector3(0f, -0.41f, 0f), "CapeBas");
-            Proto.Cube(capeLower, new Vector3(0f, -0.18f, 0f), new Vector3(0.44f, 0.38f, 0.05f), Palette.Shade(accent, 0.86f), "CapePan");
+            // --- bras : les mains sortent du poncho
+            armL = Node(torso, new Vector3(-0.28f, 0.44f, 0f), "BrasG");
+            armR = Node(torso, new Vector3(0.28f, 0.44f, 0f), "BrasD");
+            elbowL = BuildArm(armL, underCloth, skin);
+            elbowR = BuildArm(armR, underCloth, skin);
 
-            // --- epee dans le dos (decor : le combat arrive en Phase 2)
-            scabbard = Node(torso, new Vector3(-0.06f, 0.30f, -0.20f), "Epee");
-            scabbard.localRotation = Quaternion.Euler(0f, 0f, 32f);
-            Proto.Cube(scabbard, new Vector3(0f, 0f, 0f), new Vector3(0.09f, 0.62f, 0.05f), darkLeather, "Fourreau");
-            Proto.Cube(scabbard, new Vector3(0f, 0.36f, 0f), new Vector3(0.07f, 0.16f, 0.05f), leather, "Poignee");
-            Proto.Cube(scabbard, new Vector3(0f, 0.28f, 0f), new Vector3(0.22f, 0.05f, 0.06f), steel, "Garde");
-            Proto.Cube(scabbard, new Vector3(0f, 0.46f, 0f), new Vector3(0.09f, 0.08f, 0.07f), Palette.Gold, "Pommeau");
+            // --- le baton de marche, tenu dans la main droite
+            staffPivot = Node(elbowR, new Vector3(0f, -0.36f, 0.04f), "Baton");
+            Proto.Cube(staffPivot, new Vector3(0f, 0.34f, 0f), new Vector3(0.065f, 1.25f, 0.065f), wood, "Hampe");
+            Proto.Cube(staffPivot, new Vector3(0f, 1.52f, 0f), new Vector3(0.11f, 0.16f, 0.11f),
+                       Palette.Shade(wood, 1.35f), "Pommeau");
+            Proto.Cube(staffPivot, new Vector3(0f, 1.34f, 0f), new Vector3(0.13f, 0.05f, 0.13f),
+                       new Color(0.55f, 0.5f, 0.42f), "Ligature");
+
+            // --- LE PONCHO. Attache a la racine, pas au torse : il reste vertical
+            //     pendant que le buste se penche, exactement comme un vrai tissu.
+            poncho = Poncho.Build(transform, cloth, band);
         }
 
-        Transform BuildLeg(Transform pivot, Color leather, Color boot)
+        Transform BuildLeg(Transform pivot, Color cloth, Color boot)
         {
-            Proto.Cube(pivot, new Vector3(0f, -0.23f, 0f), new Vector3(0.19f, 0.46f, 0.19f), leather, "Cuisse");
+            Proto.Cube(pivot, new Vector3(0f, -0.23f, 0f), new Vector3(0.17f, 0.46f, 0.17f), cloth, "Cuisse");
             Transform knee = Node(pivot, new Vector3(0f, -0.46f, 0f), "Genou");
-            Proto.Cube(knee, new Vector3(0f, -0.21f, 0f), new Vector3(0.17f, 0.42f, 0.17f), Palette.Shade(leather, 0.88f), "Tibia");
-            Proto.Cube(knee, new Vector3(0f, -0.45f, 0.04f), new Vector3(0.20f, 0.12f, 0.28f), boot, "Botte");
+            Proto.Cube(knee, new Vector3(0f, -0.21f, 0f), new Vector3(0.16f, 0.42f, 0.16f),
+                       Palette.Shade(cloth, 0.9f), "Tibia");
+            Proto.Cube(knee, new Vector3(0f, -0.44f, 0.04f), new Vector3(0.20f, 0.14f, 0.30f), boot, "Botte");
             return knee;
         }
 
         Transform BuildArm(Transform pivot, Color sleeve, Color skin)
         {
-            Proto.Cube(pivot, new Vector3(0f, -0.19f, 0f), new Vector3(0.15f, 0.38f, 0.15f), sleeve, "Bras");
-            Transform elbow = Node(pivot, new Vector3(0f, -0.38f, 0f), "Coude");
-            Proto.Cube(elbow, new Vector3(0f, -0.17f, 0f), new Vector3(0.13f, 0.34f, 0.13f), Palette.Shade(sleeve, 0.85f), "AvantBras");
-            Proto.Cube(elbow, new Vector3(0f, -0.37f, 0f), new Vector3(0.15f, 0.13f, 0.16f), skin, "Main");
+            Proto.Cube(pivot, new Vector3(0f, -0.18f, 0f), new Vector3(0.14f, 0.36f, 0.14f), sleeve, "Bras");
+            Transform elbow = Node(pivot, new Vector3(0f, -0.36f, 0f), "Coude");
+            Proto.Cube(elbow, new Vector3(0f, -0.16f, 0f), new Vector3(0.12f, 0.32f, 0.12f),
+                       Palette.Shade(sleeve, 0.88f), "AvantBras");
+            Proto.Cube(elbow, new Vector3(0f, -0.35f, 0f), new Vector3(0.14f, 0.13f, 0.15f), skin, "Main");
             return elbow;
         }
 
@@ -151,57 +150,57 @@ namespace Fief
             float moving = Mathf.Clamp01(speedSmoothed / 1.2f);
             float effort = Mathf.Clamp01(speedSmoothed / Mathf.Max(1f, RunSpeed));
 
-            // Une foulee par ~1,9 m parcouru : le pas reste cale sur le sol,
-            // quelle que soit la vitesse. C'est ce qui evite l'effet "patinage".
             cycle += speedSmoothed * (Mathf.PI / 1.9f) * dt;
             if (cycle > Mathf.PI * 200f) cycle -= Mathf.PI * 200f;
 
             float s = Mathf.Sin(cycle);
             float c = Mathf.Cos(cycle);
 
-            // --- jambes : balancier, genou qui plie sur la phase arriere
-            float swing = Mathf.Lerp(16f, 42f, effort) * moving;
+            // --- jambes
+            float swing = Mathf.Lerp(15f, 40f, effort) * moving;
             legL.localRotation = Quaternion.Euler(s * swing, 0f, 0f);
             legR.localRotation = Quaternion.Euler(-s * swing, 0f, 0f);
-            kneeL.localRotation = Quaternion.Euler(-Mathf.Max(0f, -s) * Mathf.Lerp(20f, 58f, effort) * moving, 0f, 0f);
-            kneeR.localRotation = Quaternion.Euler(-Mathf.Max(0f, s) * Mathf.Lerp(20f, 58f, effort) * moving, 0f, 0f);
+            kneeL.localRotation = Quaternion.Euler(-Mathf.Max(0f, -s) * Mathf.Lerp(20f, 56f, effort) * moving, 0f, 0f);
+            kneeR.localRotation = Quaternion.Euler(-Mathf.Max(0f, s) * Mathf.Lerp(20f, 56f, effort) * moving, 0f, 0f);
 
-            // --- bras : contre-balancier, sauf pendant un coup de hache
-            float armSwing = Mathf.Lerp(12f, 36f, effort) * moving;
-            float idle = (1f - moving) * Mathf.Sin(Time.time * 1.7f) * 2.2f;
+            // --- bras. Le gauche balance, le droit tient le baton et le plante
+            //     a chaque foulee : c'est ce petit appui qui donne l'air "errant".
+            float armSwing = Mathf.Lerp(9f, 26f, effort) * moving;
+            float idle = (1f - moving) * Mathf.Sin(Time.time * 1.6f) * 2f;
 
-            armL.localRotation = Quaternion.Euler(-s * armSwing + idle, 0f, -6f - moving * 3f);
-            elbowL.localRotation = Quaternion.Euler(-Mathf.Abs(s) * armSwing * 0.5f - 8f, 0f, 0f);
+            armL.localRotation = Quaternion.Euler(-s * armSwing + idle, 0f, -7f - moving * 3f);
+            elbowL.localRotation = Quaternion.Euler(-Mathf.Abs(s) * armSwing * 0.5f - 10f, 0f, 0f);
 
             if (swingTimer > 0f)
             {
                 swingTimer -= dt;
-                // 0 -> 1 -> 0 : le bras part en arriere, frappe, revient.
                 float t = 1f - Mathf.Clamp01(swingTimer / 0.42f);
                 float blow = Mathf.Sin(t * Mathf.PI);
-                armR.localRotation = Quaternion.Euler(Mathf.Lerp(40f, -125f, Mathf.SmoothStep(0f, 1f, t)), 0f, 8f);
-                elbowR.localRotation = Quaternion.Euler(-70f * (1f - blow) - 10f, 0f, 0f);
+                armR.localRotation = Quaternion.Euler(Mathf.Lerp(38f, -118f, Mathf.SmoothStep(0f, 1f, t)), 0f, 8f);
+                elbowR.localRotation = Quaternion.Euler(-66f * (1f - blow) - 10f, 0f, 0f);
+                if (staffPivot != null) staffPivot.localRotation = Quaternion.Euler(0f, 0f, 20f);
             }
             else
             {
-                armR.localRotation = Quaternion.Euler(s * armSwing - idle, 0f, 6f + moving * 3f);
-                elbowR.localRotation = Quaternion.Euler(-Mathf.Abs(s) * armSwing * 0.5f - 8f, 0f, 0f);
+                float plant = Mathf.Max(0f, s);
+                armR.localRotation = Quaternion.Euler(-18f - plant * 16f * moving + idle, 0f, 9f);
+                elbowR.localRotation = Quaternion.Euler(-28f - plant * 10f * moving, 0f, 0f);
+                if (staffPivot != null)
+                    staffPivot.localRotation = Quaternion.Euler(12f + plant * 9f * moving, 0f, -9f);
             }
 
-            // --- corps : rebond a chaque appui, buste penche en avant a la course
-            float bob = Mathf.Abs(c) * Mathf.Lerp(0.015f, 0.055f, effort) * moving;
-            float breathe = (1f - moving) * Mathf.Sin(Time.time * 1.9f) * 0.008f;
+            // --- corps
+            float bob = Mathf.Abs(c) * Mathf.Lerp(0.015f, 0.05f, effort) * moving;
+            float breathe = (1f - moving) * Mathf.Sin(Time.time * 1.8f) * 0.008f;
             hips.localPosition = new Vector3(0f, baseHipsY + bob + breathe - (Grounded ? 0f : 0.06f), 0f);
-            hips.localRotation = Quaternion.Euler(0f, 0f, s * 2.2f * moving);
+            hips.localRotation = Quaternion.Euler(0f, 0f, s * 2f * moving);
 
-            torso.localRotation = Quaternion.Euler(Mathf.Lerp(0f, 13f, effort), -s * 5f * moving, 0f);
-            head.localRotation = Quaternion.Euler(Mathf.Lerp(0f, -9f, effort) + breathe * 40f, s * 4f * moving, 0f);
+            torso.localRotation = Quaternion.Euler(Mathf.Lerp(2f, 14f, effort), -s * 4f * moving, 0f);
+            head.localRotation = Quaternion.Euler(Mathf.Lerp(-2f, -11f, effort) + breathe * 40f, s * 3f * moving, 0f);
+            if (hood != null) hood.localRotation = Quaternion.Euler(-s * 2.5f * moving, 0f, s * 2f * moving);
 
-            // --- cape : elle traine derriere, d'autant plus qu'on va vite
-            float flow = Mathf.Lerp(4f, 34f, effort);
-            float flutter = Mathf.Sin(Time.time * (3f + effort * 7f)) * (1.5f + effort * 6f);
-            cape.localRotation = Quaternion.Euler(flow + flutter * 0.4f, s * 3f * moving, 0f);
-            capeLower.localRotation = Quaternion.Euler(flow * 0.55f + flutter, 0f, 0f);
+            // --- le tissu n'a besoin que de la vitesse et du cap
+            if (poncho != null) poncho.SetMotion(speedSmoothed, transform.eulerAngles.y);
         }
     }
 }

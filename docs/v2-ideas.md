@@ -22,6 +22,38 @@
   pas pour shipper. À remplacer par de vrais sons — l'appel (`Sfx.Harvest(...)`) ne changera pas.
 - **Les statiques de `Game.cs`.** Elles tombent en multijoueur (voir ARCHITECTURE.md).
 
+## PROPOSITION DE PIVOT — Martin, 21/09/2026 (non tranchée)
+
+Martin propose de **changer de jeu**, pas d'ajuster celui-ci. Résumé fidèle de ce
+qu'il a dit, pour que la décision se prenne sur une base écrite :
+
+- **Plus de fief par joueur** (« si chacun a son château, c'est mort »).
+- **Un seul énorme château au centre**, tenu par l'adversité, pas par un joueur.
+- On y **vole des artefacts** et on les rapporte à **une petite base cachée** :
+  on arrive avec **une tente à planter**, dissimulée.
+- **Forêt partout, très dense** : on ne voit qu'un mètre ou deux devant soi.
+  Le jeu devient de l'infiltration — on se cache.
+- **Toutes les constructions sont déjà là.** On ne bâtit pas, on explore.
+  Au plus, on se fait des cabanes.
+
+**Ce que ce pivot supprime :** le marché à prix dynamiques, la boucle
+récolter→vendre→construire, les fiefs — et donc **le sabotage par les salaires**,
+puisqu'il n'y a plus ni fief à tenir ni serviteurs à sous-payer. C'est-à-dire le
+différenciateur que le brief demande de protéger avant tout le reste.
+
+**Ce que ce pivot est :** un jeu d'infiltration et d'extraction (la forme de
+*Hunt: Showdown* ou *Tarkov*, en médiéval). C'est un vrai genre, qui peut être
+excellent — mais c'est un autre projet, avec une autre Porte 1.
+
+**Point technique à trancher si le pivot est retenu :** voir à 1-2 m est
+injouable (on ne peut plus se repérer ni viser une direction). 15 à 25 m de
+visibilité avec un sous-bois épais donne la même sensation d'aveuglement tout en
+restant jouable.
+
+**Statut : en attente d'une décision explicite de Martin.** Rien n'a été codé
+dans ce sens. Le personnage en poncho, lui, a été fait : il sert dans les deux
+versions du jeu.
+
 ## Demandé par Martin le 21/09/2026 — HORS PHASE, en attente
 
 > Ces quatre idées sont bonnes, mais aucune n'est de la Phase 1. La règle anti-dérive
