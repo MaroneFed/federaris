@@ -17,6 +17,7 @@ namespace Fief
 
         IPanel panel;
         bool showHelp = true;
+        bool showDiagnostic;
         float helpTimer = 22f;
 
         public bool PanelOpen { get { return panel != null; } }
@@ -37,6 +38,8 @@ namespace Fief
                 Toasts.Show(orbitCamera.firstPerson ? "Vue a la premiere personne" : "Vue a la troisieme personne",
                             Palette.Gold);
             }
+
+            if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
 
             if (FiefInput.HelpPressed)
             {
@@ -64,6 +67,8 @@ namespace Fief
             DrawPrompt();
             Toasts.Draw();
             DrawHelp();
+            DrawBuildError();
+            if (showDiagnostic) DrawDiagnostic();
 
             if (panel != null) panel.Draw();
         }
@@ -287,6 +292,118 @@ namespace Fief
                          new Color(color.r, color.g, color.b, 0.8f));
         }
 
+        // ---------------------------------------------------------------- diagnostic
+
+        /// <summary>
+        /// Une panne pendant la construction du monde s'affiche en grand, en rouge.
+        /// Plus besoin d'aller chercher dans la Console : le jeu dit ce qui a casse.
+        /// </summary>
+        void DrawBuildError()
+        {
+            if (string.IsNullOrEmpty(Game.BuildError)) return;
+
+            float w = Mathf.Min(Screen.width - UiStyle.S(40), UiStyle.S(760));
+            float h = UiStyle.S(150);
+            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(120), w, h);
+
+            UiStyle.DropShadow(box, UiStyle.S(18));
+            UiStyle.Fill(box, new Color(0.22f, 0.05f, 0.05f, 0.96f));
+            UiStyle.Fill(new Rect(box.x, box.y, box.width, 3f), new Color(0.90f, 0.25f, 0.20f));
+
+            float x = box.x + UiStyle.S(16);
+            UiStyle.Tinted(new Rect(x, box.y + UiStyle.S(10), w, UiStyle.S(26)),
+                           "LA CONSTRUCTION DU MONDE A ECHOUE", UiStyle.Head, new Color(1f, 0.55f, 0.45f));
+
+            GUIStyle wrapped = UiStyle.Small;
+            bool previousWrap = wrapped.wordWrap;
+            wrapped.wordWrap = true;
+            GUI.Label(new Rect(x, box.y + UiStyle.S(38), w - UiStyle.S(32), h - UiStyle.S(48)),
+                      Game.BuildError, wrapped);
+            wrapped.wordWrap = previousWrap;
+        }
+
+        /// <summary>
+        /// Panneau F3. Il repond a la question "je suis dans quoi ?" : il liste ce
+        /// dont la boite englobante contient la camera, et ce que touche un rayon
+        /// tire vers l'avant. C'est ce qui remplace les allers-retours a l'aveugle.
+        /// </summary>
+        void DrawDiagnostic()
+        {
+            Camera cam = viewCamera != null ? viewCamera : Camera.main;
+
+            float w = UiStyle.S(430);
+            float h = UiStyle.S(300);
+            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(90), w, h);
+            UiStyle.Frame(box);
+
+            float x = box.x + UiStyle.S(16);
+            float y = box.y + UiStyle.S(12);
+            float inner = w - UiStyle.S(32);
+
+            GUI.Label(new Rect(x, y, inner, UiStyle.S(24)), "DIAGNOSTIC  (F3)", UiStyle.Head);
+            y += UiStyle.S(26);
+            UiStyle.Rule(new Rect(x, y, inner, 1f));
+            y += UiStyle.S(8);
+
+            y = Line(x, y, inner, "Monde construit en", Game.BuildMilliseconds + " ms");
+            y = Line(x, y, inner, "Vue",
+                     orbitCamera != null && orbitCamera.firstPerson ? "premiere personne" : "troisieme personne");
+
+            if (Game.PlayerTransform != null)
+            {
+                Vector3 p = Game.PlayerTransform.position;
+                y = Line(x, y, inner, "Joueur",
+                         p.x.ToString("0") + " / " + p.y.ToString("0.0") + " / " + p.z.ToString("0"));
+                y = Line(x, y, inner, "Sol sous les pieds", Ground.Sample(p.x, p.z).ToString("0.0") + " m");
+            }
+
+            if (cam != null)
+            {
+                Vector3 c = cam.transform.position;
+                y = Line(x, y, inner, "Oeil",
+                         c.x.ToString("0.0") + " / " + c.y.ToString("0.0") + " / " + c.z.ToString("0.0"));
+
+                // --- DANS QUOI SOMMES-NOUS ?
+                string inside = "rien";
+                if (Game.Rig != null)
+                {
+                    Renderer[] parts = Game.Rig.GetComponentsInChildren<Renderer>(false);
+                    for (int i = 0; i < parts.Length; i++)
+                    {
+                        if (parts[i] != null && parts[i].bounds.Contains(c))
+                        {
+                            inside = parts[i].gameObject.name + " (ton personnage)";
+                            break;
+                        }
+                    }
+                }
+                y = Line(x, y, inner, "Camera a l'interieur de", inside);
+
+                Collider[] touching = Physics.OverlapSphere(c, 0.25f, ~0, QueryTriggerInteraction.Ignore);
+                y = Line(x, y, inner, "Solides autour de l'oeil",
+                         touching.Length == 0 ? "aucun" : touching[0].gameObject.name
+                             + (touching.Length > 1 ? " +" + (touching.Length - 1) : ""));
+
+                RaycastHit hit;
+                string ahead = "rien a moins de 40 m";
+                if (Physics.Raycast(c, cam.transform.forward, out hit, 40f, ~0, QueryTriggerInteraction.Ignore))
+                    ahead = hit.collider.gameObject.name + " a " + hit.distance.ToString("0.0") + " m";
+                y = Line(x, y, inner, "Devant toi", ahead);
+            }
+
+            y += UiStyle.S(6);
+            GUI.Label(new Rect(x, y, inner, UiStyle.S(34)),
+                      "Lis-moi la ligne \"Camera a l'interieur de\".", UiStyle.Tiny);
+        }
+
+        float Line(float x, float y, float width, string label, string value)
+        {
+            GUI.Label(new Rect(x, y, width * 0.52f, UiStyle.S(20)), label, UiStyle.Small);
+            UiStyle.Tinted(new Rect(x + width * 0.52f, y, width * 0.48f, UiStyle.S(20)), value,
+                           UiStyle.Small, Palette.Gold);
+            return y + UiStyle.S(21);
+        }
+
         // ---------------------------------------------------------------- aide
 
         void DrawHelp()
@@ -294,7 +411,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(300);
-            float h = UiStyle.S(193);
+            float h = UiStyle.S(214);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -320,6 +437,7 @@ namespace Fief
                 { "Souris", "camera" },
                 { "E", "recolter, interagir" },
                 { "V", "changer de vue" },
+                { "F3", "diagnostic" },
                 { "Echap", "pause" }
             };
 

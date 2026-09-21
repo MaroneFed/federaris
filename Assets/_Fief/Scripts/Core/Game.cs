@@ -25,6 +25,10 @@ namespace Fief
         public static CharacterRig Rig;
         public static Transform PlayerTransform;
 
+        /// <summary>Renseigne si la construction du monde a echoue : affiche en rouge a l'ecran.</summary>
+        public static string BuildError;
+        public static long BuildMilliseconds;
+
         public static Vector3 MarketPosition;
         public static Vector3 HomeFiefPosition;
 
@@ -44,6 +48,7 @@ namespace Fief
             Player = null;
             Rig = null;
             PlayerTransform = null;
+            BuildError = null;
             MarketPosition = Vector3.zero;
             HomeFiefPosition = Vector3.zero;
             FloatingTexts.Clear();

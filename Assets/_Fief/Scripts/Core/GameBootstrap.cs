@@ -59,6 +59,8 @@ namespace Fief
 
             // L'ordre compte. Les gisements remplissent la liste des endroits occupes ;
             // tout ce qui vient apres s'en sert pour ne rien poser par-dessus.
+            try
+            {
             BuildEnvironment();
             Scenery.BuildRoads(worldRoot, config);
             BuildMarket();
@@ -73,9 +75,19 @@ namespace Fief
             Scenery.Scatter(worldRoot, config, rng, occupied, config.decorCount);
             Scenery.BuildClouds(worldRoot, config, rng);
 
+            }
+            catch (System.Exception error)
+            {
+                // Une panne pendant la construction laissait un monde a moitie fait,
+                // sans le moindre message. Elle s'affiche desormais en rouge a l'ecran.
+                Game.BuildError = error.GetType().Name + " dans " + error.StackTrace;
+                Debug.LogError("[FIEF] Construction interrompue : " + error);
+            }
+
             PlayerController player = BuildPlayer();
             BuildHud(player);
 
+            Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] Monde construit en " + chrono.ElapsedMilliseconds + " ms.");
 
             Toasts.Show("Recolte, vends au marche, construis ton fief.", Palette.Gold);

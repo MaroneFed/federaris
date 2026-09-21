@@ -74,7 +74,7 @@ namespace Fief
         public float eyeHeight = 1.78f;
         [Tooltip("Avancee des yeux. Doit rester sous le rayon de l'encolure du poncho (0,145) "
                + "pour qu'on voie le tissu autour de soi en baissant les yeux.")]
-        public float eyeForward = 0.04f;
+        public float eyeForward = 0.13f;
         [Tooltip("Amplitude du balancement de tete a la marche.")]
         public float headBob = 0.045f;
         public float cameraDistance = 10f;

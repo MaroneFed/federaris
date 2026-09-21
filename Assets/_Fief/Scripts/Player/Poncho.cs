@@ -31,8 +31,8 @@ namespace Fief
         /// en baissant les yeux on regardait par le trou et on voyait ses jambes
         /// au lieu de son vetement.
         /// </summary>
-        static readonly float[] RingY = { 1.55f, 1.49f, 1.40f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
-        static readonly float[] RingR = { 0.115f, 0.34f, 0.46f, 0.58f, 0.66f, 0.71f, 0.74f, 0.75f, 0.76f };
+        static readonly float[] RingY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
+        static readonly float[] RingR = { 0.135f, 0.36f, 0.47f, 0.58f, 0.66f, 0.71f, 0.74f, 0.75f, 0.76f };
 
         [Header("Tissu")]
         public float trail = 0.085f;        // recul du bas quand on avance

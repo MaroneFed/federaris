@@ -26,6 +26,7 @@ namespace Fief
         float speedSmoothed;
         float swingTimer;
         float baseHipsY;
+        Renderer[] headParts;
 
         public float Speed;
         public bool Grounded = true;
@@ -39,8 +40,17 @@ namespace Fief
         /// </summary>
         public void SetFirstPerson(bool value)
         {
-            if (head != null && head.gameObject.activeSelf == value)
-                head.gameObject.SetActive(!value);
+            if (head == null) return;
+
+            if (head.gameObject.activeSelf == value) head.gameObject.SetActive(!value);
+
+            // Ceinture ET bretelles : on coupe aussi les Renderer un par un. Si un jour
+            // quelque chose reactive l'objet, la tete ne reapparaitra pas devant l'oeil.
+            if (headParts == null) headParts = head.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < headParts.Length; i++)
+            {
+                if (headParts[i] != null) headParts[i].enabled = !value;
+            }
         }
 
         public void PlaySwing()
@@ -99,7 +109,10 @@ namespace Fief
 
             // --- tete et CAPUCHE profonde : le visage reste dans l'ombre
             head = Node(torso, new Vector3(0f, 0.60f, 0f), "Tete");
-            Proto.Cube(head, new Vector3(0f, 0.09f, 0f), new Vector3(0.25f, 0.28f, 0.25f), skin, "Crane");
+            // Crane volontairement etroit en profondeur (0,20) : en premiere personne
+            // l'oeil est pose a 13 cm devant l'axe, il doit rester DEHORS meme quand
+            // la tete bouge. Une tete trop profonde et on se retrouve dedans.
+            Proto.Cube(head, new Vector3(0f, 0.09f, 0f), new Vector3(0.24f, 0.28f, 0.20f), skin, "Crane");
             Proto.Cube(head, new Vector3(0f, -0.02f, 0.06f), new Vector3(0.20f, 0.12f, 0.16f),
                        Palette.Shade(skin, 0.72f), "Barbe");
             Proto.Cube(head, new Vector3(0f, 0.06f, 0.12f), new Vector3(0.17f, 0.10f, 0.05f),
