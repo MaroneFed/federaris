@@ -36,19 +36,22 @@ namespace Fief
         public float RunSpeed = 11f;
 
         /// <summary>
-        /// Bascule vue subjective / vue exterieure.
+        /// Bascule vue subjective / ecran-titre.
         ///
-        /// En premiere personne ce corps-ci disparait EN ENTIER, et FirstPersonBody
-        /// prend le relais. On a longtemps fait l'inverse -- garder ce squelette et
-        /// masquer ses pieces une par une, tete, epaules, bretelle, haut des bras --
-        /// et il en restait toujours une qu'on avait oubliee : le panneau F3 a fini
-        /// par nommer les coupables, "Bretelle a 10 cm, Epaules a 10 cm". Un corps
-        /// concu pour etre vu de dehors ne peut pas etre rafistole pour etre vu de
-        /// dedans. On en construit donc deux, et on n'en montre qu'un.
+        /// En premiere personne ce corps disparait EN ENTIER. On ne montre RIEN de
+        /// soi, et c'est voulu.
         ///
-        /// ShadowsOnly plutot que enabled = false : le personnage n'est plus dessine
-        /// mais porte toujours son ombre entiere. Sinon on marche au soleil avec une
-        /// ombre a trous, et ca se voit.
+        /// On a essaye trois formes, dans cet ordre : masquer ce corps-ci piece par
+        /// piece (il en restait toujours une devant l'oeil -- "Bretelle a 10 cm"),
+        /// puis un corps subjectif avec poncho et baton (le poncho formait un anneau
+        /// qui encerclait l'image), puis le meme reduit a quatre membres (des boites
+        /// qui flottent, noircies par l'ombre de ce corps-ci reste sur place en
+        /// ShadowsOnly -- on etait en permanence dans sa propre ombre).
+        ///
+        /// Un corps subjectif credible est un vrai travail d'animation, pas un
+        /// reglage. En attendant, l'ombre suffit : ce corps reste en ShadowsOnly, donc
+        /// la silhouette complete du mendiant -- poncho, capuche, baton -- se projette
+        /// au sol a cote de toi. C'est elle qui dit qu'on a un corps.
         /// </summary>
         public void SetFirstPerson(bool value)
         {

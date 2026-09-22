@@ -77,7 +77,6 @@ namespace Fief
         {
             swingTimer = 0.55f;
             if (Game.Rig != null) Game.Rig.PlaySwing();
-            if (Game.Body != null) Game.Body.PlaySwing();
 
             ResourceNode node = current as ResourceNode;
             if (node != null) Sfx.HarvestTap(node.type);

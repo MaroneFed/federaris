@@ -23,8 +23,6 @@ namespace Fief
         public static Hud Hud;
         public static PlayerController Player;
         public static CharacterRig Rig;
-        /// <summary>Le corps qu'on voit par ses propres yeux (voir FirstPersonBody).</summary>
-        public static FirstPersonBody Body;
         public static Transform PlayerTransform;
 
         /// <summary>Renseigne si la construction du monde a echoue : affiche en rouge a l'ecran.</summary>

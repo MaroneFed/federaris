@@ -35,10 +35,6 @@ namespace Fief
 
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
 
-            // F4 : on efface le corps subjectif. Si l'ecran se degage, le coupable est
-            // chez nous ; sinon il faut chercher dans le decor.
-            if (FiefInput.ToggleClothPressed && Game.Body != null) Game.Body.Toggle();
-
             if (FiefInput.HelpPressed)
             {
                 showHelp = !showHelp;
@@ -370,11 +366,9 @@ namespace Fief
                 // dit en un mot ce qui bouche la vue.
                 string inside = "rien";
                 string nearest = "rien";
-                MonoBehaviour worn = Game.Body != null && orbitCamera != null && orbitCamera.ThroughEyes
-                                   ? (MonoBehaviour)Game.Body : Game.Rig;
-                if (worn != null)
+                if (Game.Rig != null)
                 {
-                    Renderer[] parts = worn.GetComponentsInChildren<Renderer>(false);
+                    Renderer[] parts = Game.Rig.GetComponentsInChildren<Renderer>(false);
 
                     string firstName = null, secondName = null;
                     float firstDist = 99f, secondDist = 99f;
@@ -425,8 +419,7 @@ namespace Fief
 
             y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, inner, UiStyle.S(34)),
-                      "Lis-moi \"Colle a l'oeil\".   F4 efface ton corps : si la masse\n"
-                      + "disparait elle vient de toi, sinon elle vient du decor.", UiStyle.Tiny);
+                      "Lis-moi \"Colle a l'oeil\" : c'est ce qui est devant la camera.", UiStyle.Tiny);
         }
 
         float Line(float x, float y, float width, string label, string value)
@@ -470,7 +463,6 @@ namespace Fief
                 { "Souris", "camera" },
                 { "E", "recolter, interagir" },
                 { "F3", "diagnostic" },
-                { "F4", "masquer son corps" },
                 { "Echap", "pause" }
             };
 
