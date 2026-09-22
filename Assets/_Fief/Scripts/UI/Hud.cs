@@ -42,8 +42,9 @@ namespace Fief
 
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
 
-            // F4 : on efface le vetement. Si l'ecran se degage, le coupable est trouve.
-            if (FiefInput.ToggleClothPressed && Game.Rig != null) Game.Rig.ToggleCloth();
+            // F4 : on efface le corps subjectif. Si l'ecran se degage, le coupable est
+            // chez nous ; sinon il faut chercher dans le decor.
+            if (FiefInput.ToggleClothPressed && Game.Body != null) Game.Body.Toggle();
 
             if (FiefInput.HelpPressed)
             {
@@ -376,9 +377,11 @@ namespace Fief
                 // dit en un mot ce qui bouche la vue.
                 string inside = "rien";
                 string nearest = "rien";
-                if (Game.Rig != null)
+                MonoBehaviour worn = Game.Body != null && orbitCamera != null && orbitCamera.firstPerson
+                                   ? (MonoBehaviour)Game.Body : Game.Rig;
+                if (worn != null)
                 {
-                    Renderer[] parts = Game.Rig.GetComponentsInChildren<Renderer>(false);
+                    Renderer[] parts = worn.GetComponentsInChildren<Renderer>(false);
 
                     string firstName = null, secondName = null;
                     float firstDist = 99f, secondDist = 99f;
@@ -429,8 +432,8 @@ namespace Fief
 
             y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, inner, UiStyle.S(34)),
-                      "Lis-moi \"Colle a l'oeil\".   F4 efface le poncho : si la masse\n"
-                      + "disparait c'est le vetement, sinon c'est autre chose.", UiStyle.Tiny);
+                      "Lis-moi \"Colle a l'oeil\".   F4 efface ton corps : si la masse\n"
+                      + "disparait elle vient de toi, sinon elle vient du decor.", UiStyle.Tiny);
         }
 
         float Line(float x, float y, float width, string label, string value)
@@ -475,7 +478,7 @@ namespace Fief
                 { "E", "recolter, interagir" },
                 { "V", "changer de vue" },
                 { "F3", "diagnostic" },
-                { "F4", "masquer le poncho" },
+                { "F4", "masquer son corps" },
                 { "Echap", "pause" }
             };
 

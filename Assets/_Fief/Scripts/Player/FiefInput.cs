@@ -88,8 +88,8 @@ namespace Fief
         public static bool HelpPressed { get { return KeyPressed(KeyCode.F1); } }
         public static bool ToggleViewPressed { get { return KeyPressed(KeyCode.V); } }
         public static bool DiagnosticPressed { get { return KeyPressed(KeyCode.F3); } }
-        /// <summary>F4 : efface le poncho. Sert a repondre en un appui a la question
-        /// "la masse devant moi, c'est le vetement ou autre chose ?"</summary>
+        /// <summary>F4 : efface le corps subjectif. Sert a repondre en un appui a la
+        /// question "la masse devant moi, c'est moi ou c'est le decor ?"</summary>
         public static bool ToggleClothPressed { get { return KeyPressed(KeyCode.F4); } }
         public static bool SprintHeld { get { return KeyHeld(KeyCode.LeftShift); } }
 

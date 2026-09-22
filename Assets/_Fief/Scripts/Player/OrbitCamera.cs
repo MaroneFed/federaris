@@ -23,6 +23,7 @@ namespace Fief
         /// <summary>La camera elle-meme : sert a elargir le champ de vision en courant.</summary>
         public Camera view;
         public CharacterRig rig;
+        public FirstPersonBody body;
 
         /// <summary>Vrai = on regarde par les yeux du personnage.</summary>
         public bool firstPerson;
@@ -96,6 +97,7 @@ namespace Fief
             // veut pas d'un mendiant sans tete sur l'image d'accueil.
             bool throughEyes = firstPerson && !cinematic;
             if (rig != null) rig.SetFirstPerson(throughEyes);
+            if (body != null) body.SetVisible(throughEyes);
 
             if (!InputLocked)
             {

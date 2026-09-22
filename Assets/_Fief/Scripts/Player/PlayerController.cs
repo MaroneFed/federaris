@@ -123,6 +123,14 @@ namespace Fief
             rig.Speed = flat.magnitude;
             rig.Grounded = controller.isGrounded;
             rig.RunSpeed = cfg.moveSpeedEmpty * cfg.sprintMultiplier;
+
+            // Le corps subjectif suit exactement la meme cadence : une enjambee tous
+            // les 1,9 m. Les deux corps marchent du meme pied.
+            if (Game.Body != null)
+            {
+                Game.Body.Speed = flat.magnitude;
+                Game.Body.RunSpeed = rig.RunSpeed;
+            }
         }
 
         /// <summary>Un bruit de pas tous les 2,3 m parcourus au sol.</summary>

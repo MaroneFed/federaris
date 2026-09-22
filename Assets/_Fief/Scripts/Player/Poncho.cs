@@ -6,40 +6,62 @@ namespace Fief
     /// <summary>
     /// Le poncho : un vrai tissu, simule sommet par sommet.
     ///
-    /// Un cone ouvert qui part des epaules et tombe jusqu'au sol. A chaque image,
-    /// chaque sommet est recalcule :
-    ///   - le bas TRAINE derriere le mouvement, d'autant plus qu'on descend ;
-    ///   - il s'ecarte dans les virages, par inertie ;
-    ///   - une vague permanente en fait le tour ;
-    ///   - l'ourlet se souleve a la course et ne traverse jamais le sol.
+    /// Un cone ouvert qui tombe jusqu'au sol. A chaque image, chaque sommet est
+    /// recalcule : le bas TRAINE derriere le mouvement, s'ecarte dans les virages,
+    /// une vague permanente en fait le tour, et l'ourlet se souleve a la course
+    /// sans jamais traverser le sol.
     ///
-    /// DEUX PIEGES, tous deux rencontres :
+    /// DEUX PROFILS. Le vetement n'a pas la meme forme selon qui le regarde :
     ///
-    /// 1. Les faces sont doublees pour que le tissu se voie aussi de l'interieur.
-    ///    Du coup RecalculateNormals faisait la moyenne entre une normale et son
-    ///    opposee, donc ZERO : l'eclairage s'effondrait et le poncho devenait une
-    ///    masse noire. Les normales sont donc calculees a la main, a partir des
-    ///    seules faces exterieures.
+    ///   - DEHORS, il part de l'encolure : c'est la silhouette du mendiant, celle
+    ///     qu'on voit sur l'ecran-titre et que verront les autres joueurs.
+    ///   - PAR SES PROPRES YEUX, il part sous la poitrine. Le haut n'existe tout
+    ///     simplement pas : a 20 cm de l'oeil il ne serait qu'une masse, et on n'en
+    ///     verrait que la face interne. C'est le principe du "viewmodel" : le corps
+    ///     qu'on voit de l'interieur n'est pas le meme objet que celui qu'on voit
+    ///     de l'exterieur.
     ///
-    /// 2. En premiere personne, tout ce qui est au-dessus de la taille est a moins
-    ///    d'un metre de l'oeil et remplissait l'ecran d'une masse sombre. Les quatre
-    ///    premiers etages sont donc ranges dans leur propre sous-maillage, qu'on
-    ///    vide quand on regarde par ses yeux.
+    /// TROIS PIEGES, tous rencontres en chemin :
+    ///
+    /// 1. Les faces sont doublees pour que le tissu se voie des deux cotes. Du coup
+    ///    RecalculateNormals moyennait chaque normale avec son opposee, donc ZERO :
+    ///    l'eclairage s'effondrait et le poncho devenait une masse noire. Les
+    ///    normales sont calculees a la main sur les seules faces exterieures.
+    ///
+    /// 2. Le tissu etait le seul objet LISSE du jeu : ses quads partageaient leurs
+    ///    sommets, les normales se moyennaient, on obtenait un degrade continu au
+    ///    milieu d'un monde facette. Chaque quad a donc ses quatre sommets a lui.
+    ///
+    /// 3. Dupliquer des sommets sur un tissu simule, c'est risquer une fente a la
+    ///    couture. La position au repos est donc une fonction PURE de (etage, pan) :
+    ///    deux copies d'un meme point bougent forcement ensemble.
     /// </summary>
     public class Poncho : MonoBehaviour
     {
         const int Segments = 28;
-        const int Rings = 9;
 
-        /// <summary>Profil du vetement, de l'encolure a l'ourlet.</summary>
-        static readonly float[] RingY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
-        static readonly float[] RingR = { 0.135f, 0.34f, 0.42f, 0.50f, 0.55f, 0.58f, 0.60f, 0.61f, 0.62f };
+        /// <summary>Profil vu de dehors : depuis l'encolure.</summary>
+        static readonly float[] OutsideY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
+        static readonly float[] OutsideR = { 0.135f, 0.34f, 0.42f, 0.50f, 0.55f, 0.58f, 0.60f, 0.61f, 0.62f };
+
+        /// <summary>
+        /// Profil vu par ses propres yeux : commence a 1,20 m, soit 58 cm sous l'oeil.
+        /// Le premier etage est a 66 cm de la lentille et apparait des qu'on baisse
+        /// les yeux de 31 degres -- assez tot pour se sentir habille, assez loin pour
+        /// ne jamais faire mur.
+        /// </summary>
+        static readonly float[] InsideY = { 1.20f, 1.06f, 0.88f, 0.68f, 0.47f, 0.26f, 0.06f };
+        static readonly float[] InsideR = { 0.44f, 0.52f, 0.58f, 0.62f, 0.64f, 0.65f, 0.65f };
 
         [Header("Tissu")]
         public float trail = 0.085f;
         public float turnSway = 0.075f;
         public float flutter = 0.024f;
         public float hemLift = 0.075f;
+
+        float[] ringY;
+        float[] ringR;
+        int rings;
 
         Mesh mesh;
         Vector3[] rest;
@@ -48,20 +70,7 @@ namespace Fief
         float[] ringT;
         float[] segAngle;
 
-        /// <summary>
-        /// Etages caches en premiere personne. Tout ce qui est au-dessus de la taille
-        /// est retire : de l'interieur, ces pans-la sont a moins d'un metre de l'oeil,
-        /// ils bouchent l'ecran, et on n'en voit que la face INTERNE -- qui est par
-        /// definition toujours a l'ombre. C'est ce que font tous les jeux en vue
-        /// subjective : on ne montre que le bas du vetement, les jambes et les mains.
-        /// </summary>
-        const int HiddenRowsInFirstPerson = 4;
-
         int[] outward;          // une seule orientation : sert au calcul des normales
-        int[] upperTriangles;   // le haut du vetement, masque en premiere personne
-        static readonly int[] Nothing = new int[0];
-
-        bool topVisible = true;
 
         float speed;
         float turnRate;
@@ -78,21 +87,8 @@ namespace Fief
         }
 
         /// <summary>
-        /// En premiere personne on retire l'encolure et les epaules : elles sont trop
-        /// pres de l'oeil et couvriraient tout l'ecran. On garde tout le reste, donc
-        /// on voit bien son poncho en baissant les yeux.
-        /// </summary>
-        public void SetTopVisible(bool value)
-        {
-            if (topVisible == value || mesh == null) return;
-            topVisible = value;
-            mesh.SetTriangles(value ? upperTriangles : Nothing, 3);
-        }
-
-        /// <summary>
-        /// Efface completement le vetement (touche F4). C'est un outil de diagnostic :
-        /// si la masse qui bouche l'ecran disparait, c'est le poncho ; sinon c'est
-        /// autre chose, et on cherche ailleurs. Une reponse en un appui.
+        /// Efface le vetement (touche F4). Outil de diagnostic : si la masse qui
+        /// bouche l'ecran disparait, c'est le poncho ; sinon c'est autre chose.
         /// </summary>
         public void ToggleVisible()
         {
@@ -100,12 +96,25 @@ namespace Fief
             if (r != null) r.enabled = !r.enabled;
         }
 
+        /// <summary>Le poncho tel qu'on le voit de l'exterieur.</summary>
         public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
         {
-            GameObject go = new GameObject("Poncho");
+            return Build(parent, cloth, band, patch, false);
+        }
+
+        /// <summary>
+        /// <paramref name="throughOwnEyes"/> choisit le profil : le vetement complet
+        /// vu de dehors, ou seulement sa partie basse quand on le porte.
+        /// </summary>
+        public static Poncho Build(Transform parent, Color cloth, Color band, Color patch, bool throughOwnEyes)
+        {
+            GameObject go = new GameObject(throughOwnEyes ? "PonchoSubjectif" : "Poncho");
             go.transform.SetParent(parent, false);
 
             Poncho poncho = go.AddComponent<Poncho>();
+            poncho.ringY = throughOwnEyes ? InsideY : OutsideY;
+            poncho.ringR = throughOwnEyes ? InsideR : OutsideR;
+            poncho.rings = poncho.ringY.Length;
             poncho.Create(cloth, band, patch);
             return poncho;
         }
@@ -115,7 +124,7 @@ namespace Fief
         /// c'est ce qui permet de dupliquer les sommets sans jamais ouvrir de fente,
         /// puisque deux copies du meme point donnent toujours le meme resultat.
         /// </summary>
-        static Vector3 RestPosition(int r, int s)
+        Vector3 RestPosition(int r, int s)
         {
             float angle = (s % Segments / (float)Segments) * Mathf.PI * 2f;
 
@@ -123,33 +132,21 @@ namespace Fief
             // hauteur differente. C'est ce qui separe un vetement taille net d'une
             // loque de mendiant.
             float ragged = 0f;
-            if (r >= Rings - 2) ragged = Hash((s % Segments) * 7 + r * 31) * (r == Rings - 1 ? 0.30f : 0.12f);
+            if (r >= rings - 2) ragged = Hash((s % Segments) * 7 + r * 31) * (r == rings - 1 ? 0.30f : 0.12f);
 
-            // l'encolure reste nette : c'est le bas qui est mange par l'usure
+            // le haut reste net : c'est le bas qui est mange par l'usure
             float wobble = r < 2 ? 0f : (Hash((s % Segments) * 13 + r * 5) - 0.5f) * 0.05f;
 
-            float radius = RingR[r] + wobble;
-            return new Vector3(Mathf.Sin(angle) * radius, RingY[r] + ragged, Mathf.Cos(angle) * radius);
+            float radius = ringR[r] + wobble;
+            return new Vector3(Mathf.Sin(angle) * radius, ringY[r] + ragged, Mathf.Cos(angle) * radius);
         }
 
         void Create(Color cloth, Color band, Color patch)
         {
-            // FACETTES, PAS DE LISSAGE.
-            //
-            // Le reste du jeu est en low-poly facette : chaque face a sa propre
-            // normale, donc son propre ton. Le poncho, lui, partageait ses sommets
-            // entre faces voisines -- les normales se moyennaient et le tissu
-            // devenait un degrade lisse. De pres, en vue subjective, ca ne
-            // ressemblait plus a du tissu mais a une masse organique.
-            //
-            // On donne donc a chaque quad ses quatre sommets a lui. Deux quads
-            // voisins ne partagent plus rien, chacun garde sa normale, et le
-            // vetement retrouve le langage visuel du jeu : des plis nets.
-            //
-            // Les sommets dupliques ne peuvent pas se separer : leur position est
-            // recalculee a chaque image par une fonction pure de (etage, pan), donc
-            // deux copies du meme point bougent toujours ensemble.
-            int quads = (Rings - 1) * Segments;
+            // FACETTES, PAS DE LISSAGE : chaque quad recoit ses quatre sommets a lui,
+            // garde sa propre normale, et le vetement parle la meme langue visuelle
+            // que le reste du jeu -- des plis nets, pas un degrade.
+            int quads = (rings - 1) * Segments;
             int count = quads * 4;
 
             rest = new Vector3[count];
@@ -161,11 +158,10 @@ namespace Fief
             List<int> main = new List<int>();
             List<int> stripe = new List<int>();
             List<int> patches = new List<int>();
-            List<int> upper = new List<int>();
             List<int> single = new List<int>();
 
             int v = 0;
-            for (int r = 0; r < Rings - 1; r++)
+            for (int r = 0; r < rings - 1; r++)
             {
                 for (int s = 0; s < Segments; s++)
                 {
@@ -179,8 +175,7 @@ namespace Fief
                     v += 4;
 
                     List<int> target;
-                    if (r < HiddenRowsInFirstPerson) target = upper;
-                    else if (r == Rings - 3) target = stripe;
+                    if (r == rings - 3) target = stripe;
                     else if (Hash(s * 17 + r * 101) < 0.11f) target = patches;
                     else target = main;
 
@@ -197,16 +192,14 @@ namespace Fief
             }
 
             outward = single.ToArray();
-            upperTriangles = upper.ToArray();
 
             mesh = new Mesh();
             mesh.name = "Poncho";
             mesh.vertices = vertices;
-            mesh.subMeshCount = 4;
+            mesh.subMeshCount = 3;
             mesh.SetTriangles(main, 0);
             mesh.SetTriangles(stripe, 1);
             mesh.SetTriangles(patches, 2);
-            mesh.SetTriangles(upper, 3);
             RebuildNormals();
             mesh.RecalculateBounds();
 
@@ -216,8 +209,7 @@ namespace Fief
             {
                 MaterialFactory.Get(cloth),
                 MaterialFactory.Get(band),
-                MaterialFactory.Get(patch),
-                MaterialFactory.Get(cloth)
+                MaterialFactory.Get(patch)
             };
         }
 
@@ -226,7 +218,7 @@ namespace Fief
         {
             rest[index] = RestPosition(r, s);
             vertices[index] = rest[index];
-            ringT[index] = r / (float)(Rings - 1);
+            ringT[index] = r / (float)(rings - 1);
             segAngle[index] = (s % Segments / (float)Segments) * Mathf.PI * 2f;
         }
 

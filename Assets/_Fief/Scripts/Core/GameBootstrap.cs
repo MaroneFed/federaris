@@ -717,6 +717,15 @@ namespace Fief
             CharacterRig rig = CharacterRig.Build(go.transform, tunic, Palette.Shade(tunic, 0.62f));
             Game.Rig = rig;
 
+            // Et le corps qu'on voit par ses propres yeux : un objet SEPARE, construit
+            // depuis l'oeil. Les deux ne sont jamais visibles en meme temps.
+            Color cloth = Color.Lerp(tunic, new Color(0.47f, 0.48f, 0.43f), 0.88f);
+            Color band = Color.Lerp(tunic, new Color(0.62f, 0.58f, 0.50f), 0.70f);
+            Color patch = Color.Lerp(tunic, new Color(0.44f, 0.38f, 0.31f), 0.62f);
+            FirstPersonBody body = FirstPersonBody.Build(go.transform, cloth, band, patch);
+            body.SetVisible(false);
+            Game.Body = body;
+
             // La camera. AudioListener dessus : c'est l'oreille du jeu.
             GameObject camGo = new GameObject("CAMERA");
             Camera cam = camGo.AddComponent<Camera>();
@@ -737,6 +746,7 @@ namespace Fief
             orbit.yaw = go.transform.eulerAngles.y;
             orbit.view = cam;
             orbit.rig = rig;
+            orbit.body = body;
             orbit.baseFieldOfView = cam.fieldOfView;
             orbit.SetFirstPerson(config.firstPerson);
             orbitCamera = orbit;

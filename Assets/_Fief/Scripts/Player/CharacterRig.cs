@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -28,8 +27,7 @@ namespace Fief
         float speedSmoothed;
         float swingTimer;
         float baseHipsY;
-        Renderer[] headParts;
-        readonly List<Renderer> bustParts = new List<Renderer>();
+        Renderer[] parts;
         bool firstPerson;
         bool viewApplied;
 
@@ -38,72 +36,35 @@ namespace Fief
         public float RunSpeed = 11f;
 
         /// <summary>
-        /// Bascule vue subjective / vue a la troisieme personne.
+        /// Bascule vue subjective / vue exterieure.
         ///
-        /// En premiere personne, l'oeil est pose a 1,78 m de haut et 13 cm devant
-        /// l'axe du corps. A cette hauteur-la, le HAUT DU BUSTE est litteralement
-        /// colle a la lentille -- mesure dans le jeu par le panneau F3 :
+        /// En premiere personne ce corps-ci disparait EN ENTIER, et FirstPersonBody
+        /// prend le relais. On a longtemps fait l'inverse -- garder ce squelette et
+        /// masquer ses pieces une par une, tete, epaules, bretelle, haut des bras --
+        /// et il en restait toujours une qu'on avait oubliee : le panneau F3 a fini
+        /// par nommer les coupables, "Bretelle a 10 cm, Epaules a 10 cm". Un corps
+        /// concu pour etre vu de dehors ne peut pas etre rafistole pour etre vu de
+        /// dedans. On en construit donc deux, et on n'en montre qu'un.
         ///
-        ///     Bretelle  10 cm      Epaules  11 cm      Buste  12 cm
-        ///     Baluchon  31 cm      Bras     30 cm
-        ///
-        /// Un cube de 50 cm de large vu a 11 cm couvre presque quatre fois la
-        /// hauteur de l'ecran. Ce n'etait donc pas un bug d'affichage : c'etait
-        /// le torse du personnage, vu de l'interieur.
-        ///
-        /// On retire donc tout ce qui est au-dessus des coudes : tete, capuche,
-        /// buste, epaules, bretelle, baluchon, haut des bras. Il reste ce qu'on
-        /// doit voir de soi -- le poncho, les avant-bras, les mains, le baton,
-        /// la corde a la taille et les pieds.
-        ///
-        /// ShadowsOnly plutot que enabled = false : la piece n'est plus dessinee
-        /// mais continue de porter son ombre. Sinon on marche au soleil avec une
-        /// ombre sans tete ni epaules, et ca se voit.
+        /// ShadowsOnly plutot que enabled = false : le personnage n'est plus dessine
+        /// mais porte toujours son ombre entiere. Sinon on marche au soleil avec une
+        /// ombre a trous, et ca se voit.
         /// </summary>
         public void SetFirstPerson(bool value)
         {
-            if (head == null) return;
-
-            // La camera appelle ceci a chaque image : on ne touche aux Renderer que
-            // lorsque la vue change reellement.
             if (viewApplied && firstPerson == value) return;
             firstPerson = value;
             viewApplied = true;
 
-            if (headParts == null) headParts = head.GetComponentsInChildren<Renderer>(true);
-            Conceal(headParts, value);
-            Conceal(bustParts, value);
+            if (parts == null) parts = GetComponentsInChildren<Renderer>(true);
 
-            // Le haut du vetement est a 20 cm de l'oeil : on le retire aussi, mais
-            // c'est un sous-maillage, donc le poncho s'en charge lui-meme.
-            if (poncho != null) poncho.SetTopVisible(!value);
-        }
-
-        /// <summary>Invisible mais toujours porteur d'ombre.</summary>
-        static void Conceal(IList<Renderer> parts, bool hidden)
-        {
-            ShadowCastingMode mode = hidden ? ShadowCastingMode.ShadowsOnly : ShadowCastingMode.On;
-            for (int i = 0; i < parts.Count; i++)
+            ShadowCastingMode mode = value ? ShadowCastingMode.ShadowsOnly : ShadowCastingMode.On;
+            for (int i = 0; i < parts.Length; i++)
             {
                 if (parts[i] == null) continue;
                 parts[i].enabled = true;
                 parts[i].shadowCastingMode = mode;
             }
-        }
-
-        /// <summary>Marque une piece comme faisant partie du haut du buste.</summary>
-        void AboveElbows(GameObject part)
-        {
-            if (part == null) return;
-            Renderer r = part.GetComponent<Renderer>();
-            if (r != null) bustParts.Add(r);
-        }
-
-        /// <summary>Relaye la touche F4 : efface le vetement pour savoir si c'est lui
-        /// qui bouche l'ecran.</summary>
-        public void ToggleCloth()
-        {
-            if (poncho != null) poncho.ToggleVisible();
         }
 
         public void PlaySwing()
@@ -162,14 +123,10 @@ namespace Fief
 
             // --- torse, largement cache par le poncho
             torso = Node(hips, new Vector3(0f, 0.12f, 0f), "Torse");
-            // AboveElbows : ces trois pieces sont a moins de 13 cm de l'oeil en vue
-            // subjective. C'est le fameux "cube gris" qui bouchait tout l'ecran.
-            AboveElbows(Proto.Cube(torso, new Vector3(0f, 0.26f, 0f), new Vector3(0.44f, 0.52f, 0.28f),
-                                   underCloth, "Buste"));
-            AboveElbows(Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.50f, 0.14f, 0.30f),
-                                   underCloth, "Epaules"));
-            AboveElbows(Proto.Cube(torso, new Vector3(0f, 0.30f, 0.15f), new Vector3(0.26f, 0.20f, 0.04f),
-                                   Palette.Shade(rag, 0.85f), "Piece"));
+            Proto.Cube(torso, new Vector3(0f, 0.26f, 0f), new Vector3(0.44f, 0.52f, 0.28f), underCloth, "Buste");
+            Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.50f, 0.14f, 0.30f), underCloth, "Epaules");
+            Proto.Cube(torso, new Vector3(0f, 0.30f, 0.15f), new Vector3(0.26f, 0.20f, 0.04f),
+                       Palette.Shade(rag, 0.85f), "Piece");
 
             // --- tete et CAPUCHE profonde : le visage reste dans l'ombre
             head = Node(torso, new Vector3(0f, 0.60f, 0f), "Tete");
@@ -211,13 +168,11 @@ namespace Fief
             GameObject bundle = Proto.Cube(torso, new Vector3(-0.04f, 0.22f, -0.26f),
                                            new Vector3(0.36f, 0.34f, 0.24f), rag, "Baluchon");
             bundle.transform.localRotation = Quaternion.Euler(9f, 12f, -7f);
-            AboveElbows(bundle);
-            AboveElbows(Proto.Cube(torso, new Vector3(-0.04f, 0.40f, -0.26f), new Vector3(0.10f, 0.12f, 0.08f),
-                                   rope, "NoeudBaluchon"));
+            Proto.Cube(torso, new Vector3(-0.04f, 0.40f, -0.26f), new Vector3(0.10f, 0.12f, 0.08f),
+                       rope, "NoeudBaluchon");
             GameObject strap = Proto.Cube(torso, new Vector3(0.10f, 0.28f, 0f), new Vector3(0.06f, 0.52f, 0.30f),
                                           rope, "Bretelle");
             strap.transform.localRotation = Quaternion.Euler(0f, 0f, 21f);
-            AboveElbows(strap);   // 10 cm de l'oeil : la piece la plus proche de toutes
 
             // --- le baton : une branche tordue ramassee en chemin, pas une canne
             staffPivot = Node(elbowR, new Vector3(0f, -0.36f, 0.04f), "Baton");
@@ -260,11 +215,7 @@ namespace Fief
 
         Transform BuildArm(Transform pivot, Color sleeve, Color skin)
         {
-            // Le haut du bras part de l'epaule : en vue subjective il serait a 30 cm
-            // de l'oeil. On ne garde que l'avant-bras et la main, comme tout jeu a la
-            // premiere personne.
-            AboveElbows(Proto.Cube(pivot, new Vector3(0f, -0.18f, 0f), new Vector3(0.14f, 0.36f, 0.14f),
-                                   sleeve, "Bras"));
+            Proto.Cube(pivot, new Vector3(0f, -0.18f, 0f), new Vector3(0.14f, 0.36f, 0.14f), sleeve, "Bras");
             Transform elbow = Node(pivot, new Vector3(0f, -0.36f, 0f), "Coude");
             Proto.Cube(elbow, new Vector3(0f, -0.16f, 0f), new Vector3(0.12f, 0.32f, 0.12f),
                        Palette.Shade(sleeve, 0.88f), "AvantBras");
