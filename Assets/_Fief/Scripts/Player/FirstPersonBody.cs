@@ -5,40 +5,29 @@ namespace Fief
     /// <summary>
     /// LE CORPS VU DE L'INTERIEUR.
     ///
-    /// Ce n'est PAS le meme objet que CharacterRig. Tous les jeux a la premiere
-    /// personne ont deux modeles : celui que les autres voient, et un corps
-    /// subjectif construit pour la camera. On a longtemps essaye de masquer le
-    /// premier morceau par morceau pour en faire le second -- torse, epaules,
-    /// bretelle, haut des bras -- et il en restait toujours un qu'on avait oublie.
+    /// Ce n'est PAS le meme objet que CharacterRig. Le personnage qu'on voit de
+    /// dehors et celui qu'on voit de dedans sont deux modeles separes : c'est ce
+    /// que fait tout jeu a la premiere personne, et c'est ce qui evite de masquer
+    /// un corps exterieur piece par piece en en oubliant toujours une.
     ///
-    /// Ici on prend le probleme a l'envers : on part de l'oeil et on ne pose que
-    /// ce qui se voit bien depuis lui. Deux regles, verifiees par le calcul :
+    /// CE QU'IL CONTIENT, ET RIEN DE PLUS : deux avant-bras, deux mains, deux
+    /// jambes, deux pieds.
     ///
-    ///     DEGAGEMENT : rien a moins de 40 cm de l'oeil.
-    ///     ENCOMBREMENT : aucune piece ne couvre plus de 60 % de la hauteur d'ecran.
+    /// Le poncho et le baton en ont ete RETIRES, et c'est une decision, pas un
+    /// oubli. Un poncho porte est un cone dont on occupe le centre : en baissant
+    /// les yeux on n'en voit pas un vetement mais un ANNEAU qui encercle l'image.
+    /// Il couvrait 39 % de l'ecran -- pas enorme en surface, illisible en forme,
+    /// parce qu'un anneau enferme le regard meme quand son centre est libre.
+    /// Aucune mesure de surface ne rattrape ca ; il fallait l'enlever.
     ///
-    /// Un cube de 50 cm vu a 11 cm couvre quatre fois la hauteur de l'ecran -- c'est
-    /// exactement ce que faisaient les epaules. Un baton de 6 cm vu a 43 cm n'en
-    /// couvre que 12 %, et il peut donc monter aussi haut qu'il veut. Ces deux
-    /// regles ne sont pas des precautions : ce sont les seules qui empechent le
-    /// corps de faire mur, et le jeu les verifie tout seul au demarrage.
+    /// Les deux gardent toute leur place sur CharacterRig : la silhouette du
+    /// mendiant existe toujours, on la voit sur l'ecran-titre, et les autres
+    /// joueurs la verront en multijoueur. On ne la porte simplement pas devant
+    /// ses propres yeux.
     ///
-    /// Ce qu'on voit de soi, mesure par projection dans la camera (62 deg, 16:9).
-    /// Part de l'ecran occupee par le corps, et par quoi :
-    ///
-    ///     droit devant     12 %   baton 9, mains 3
-    ///     25 deg plus bas  15 %   baton 10, mains 5
-    ///     40 deg plus bas  20 %   baton 9, mains 6, poncho 5
-    ///     60 deg plus bas  28 %   poncho 14, mains 11, baton 3
-    ///     a fond vers bas  39 %   poncho 28, jambes 6, mains 5
-    ///
-    /// Le centre de l'ecran n'est JAMAIS couvert, a aucun angle : le corps vit sur
-    /// les bords. La piece la plus proche de l'oeil est la hampe, a 48 cm.
-    ///
-    /// Le baton est la piece importante : c'est la seule qui reste dans le cadre en
-    /// marchant. C'est elle qui fait qu'on est DANS le mendiant, et pas derriere une
-    /// camera qui flotte.
-    ///
+    /// LA REGLE, verifiee par le jeu lui-meme au montage puis a chaque image :
+    /// aucune piece a moins de 40 cm de l'oeil, aucune couvrant plus de 60 % de
+    /// la hauteur d'ecran. Elle a deja rattrape deux erreurs de ma main.
     /// </summary>
     public class FirstPersonBody : MonoBehaviour
     {
@@ -48,33 +37,18 @@ namespace Fief
         /// <summary>
         /// Part de la hauteur d'ecran qu'une piece a le droit d'occuper.
         ///
-        /// C'est le VRAI critere, et pas la hauteur : le baton monte a 1,95 m, bien
-        /// au-dessus de l'oeil, et ne gene personne parce qu'il est fin. Les epaules
-        /// montaient moins haut et bouchaient tout parce qu'elles font 50 cm de large.
-        /// Ce qui compte est donc largeur / distance, pas l'altitude.
+        /// C'est la largeur rapportee a la distance qui compte, pas l'altitude :
+        /// une piece fine peut passer au-dessus de l'oeil sans gener, une piece
+        /// large bouche tout en restant plus bas.
         /// </summary>
         public const float MaxScreenShare = 0.60f;
 
-        // Le baton, defini par ses deux bouts plutot que par des angles d'Euler :
-        // c'est la seule facon de garantir qu'il passe la ou on veut a l'ecran.
-        static readonly Vector3 StaffFoot = new Vector3(0.32f, 0.05f, 0.84f);
-        static readonly Vector3 StaffTop = new Vector3(0.38f, 1.95f, 0.46f);
-
         [Header("Reglage a chaud (Hierarchy > JOUEUR > CorpsSubjectif)")]
-        [Tooltip("Decale le baton et la main droite. Z positif = plus loin devant.")]
-        public Vector3 staffOffset = Vector3.zero;
+        [Tooltip("Decale les deux bras. Z positif = plus loin devant.")]
+        public Vector3 armOffset = Vector3.zero;
 
-        [Tooltip("Decale la main gauche.")]
-        public Vector3 handOffset = Vector3.zero;
-
-        [Tooltip("Monte ou descend le poncho.")]
-        public float clothRise;
-
-        Transform staff;
-        Transform leftArm;
+        Transform armL, armR;
         Transform legL, legR;
-        Transform ponchoRoot;
-        Poncho poncho;
         Renderer[] parts;
         bool[] reported;
 
@@ -82,7 +56,7 @@ namespace Fief
         float speedSmoothed;
         float swingTimer;
 
-        Vector3 staffHome, handHome, clothHome;
+        Vector3 armHomeL, armHomeR;
 
         public float Speed;
         public float RunSpeed = 11f;
@@ -132,11 +106,6 @@ namespace Fief
             {
                 if (parts[i] == null || reported[i]) continue;
 
-                // Le poncho est un cone CREUX : sa boite englobante entoure le porteur
-                // et ne dit rien de ce qu'on voit. Son profil est verifie a part, par
-                // construction (voir Poncho.InsideY / InsideR).
-                if (poncho != null && parts[i].transform.IsChildOf(poncho.transform)) continue;
-
                 // BOITE ORIENTEE, pas Renderer.bounds.
                 //
                 // Renderer.bounds est une boite alignee sur les axes du monde. Pour un
@@ -180,81 +149,33 @@ namespace Fief
         void Assemble(Color cloth, Color band, Color patch)
         {
             Color skin = new Color(0.72f, 0.58f, 0.46f);
-            Color sleeve = new Color(0.30f, 0.26f, 0.22f);
-            Color wood = new Color(0.30f, 0.23f, 0.16f);
-            Color rag = new Color(0.46f, 0.41f, 0.34f);
+            Color sleeve = Color.Lerp(cloth, new Color(0.30f, 0.26f, 0.22f), 0.62f);
+            Color rag = Color.Lerp(patch, new Color(0.46f, 0.41f, 0.34f), 0.5f);
             Color boot = new Color(0.18f, 0.14f, 0.11f);
 
-            // --- LE BATON. Pose par ses deux bouts : le pied devant a droite, la tete
-            //     en arriere au-dessus de l'epaule. La hampe traverse ainsi le bas
-            //     droit du cadre meme quand on regarde droit devant.
-            //
-            //     LE PIVOT EST LA POIGNEE, pas la racine du corps. Sinon, en levant le
-            //     baton pour recolter, on le ferait tourner autour de ses propres pieds
-            //     et il balaierait tout l'ecran. On tourne autour de la main, comme
-            //     quand on tient vraiment un baton.
-            Vector3 grip = Vector3.Lerp(StaffFoot, StaffTop, 0.72f);
-            staff = Node(transform, grip, "Baton");
-            BuildStaff(staff, grip, wood, rag);
-            staffHome = staff.localPosition;
+            // --- LES AVANT-BRAS. Ils pendent le long du corps, en avant de l'axe pour
+            //     entrer dans le cadre des qu'on baisse un peu les yeux. Pas d'epaule,
+            //     pas de bras : au-dessus du coude on serait deja dans la lentille.
+            armL = Node(transform, new Vector3(-0.30f, 1.32f, 0.26f), "BrasGauche");
+            armR = Node(transform, new Vector3(0.30f, 1.32f, 0.26f), "BrasDroit");
+            BuildArm(armL, sleeve, skin);
+            BuildArm(armR, sleeve, skin);
+            armHomeL = armL.localPosition;
+            armHomeR = armR.localPosition;
 
-            // --- LA MAIN DROITE, refermee sur la hampe. Elle est fille du baton :
-            //     la main suit l'objet, jamais l'inverse.
-            Proto.Cube(staff, new Vector3(0.015f, 0f, 0.015f),
-                       new Vector3(0.135f, 0.155f, 0.145f), skin, "MainDroite");
-            Proto.Cube(staff, new Vector3(0.05f, 0.145f, 0.05f),
-                       new Vector3(0.115f, 0.28f, 0.115f), Palette.Shade(sleeve, 0.92f), "AvantBrasDroit");
-
-            // --- LA MAIN GAUCHE, qui pend et balance au rythme de la foulee.
-            leftArm = Node(transform, new Vector3(-0.30f, 1.32f, 0.26f), "BrasGauche");
-            Proto.Cube(leftArm, new Vector3(0f, -0.16f, 0f), new Vector3(0.12f, 0.30f, 0.12f),
-                       Palette.Shade(sleeve, 0.92f), "AvantBrasGauche");
-            Proto.Cube(leftArm, new Vector3(0f, -0.36f, 0.015f), new Vector3(0.135f, 0.15f, 0.145f),
-                       skin, "MainGauche");
-            handHome = leftArm.localPosition;
-
-            // --- LES JAMBES. On ne les voit qu'en regardant ses pieds, mais sans elles
-            //     le sol se voit a travers soi, et on flotte.
+            // --- LES JAMBES. Sans elles le sol se voit a travers soi et on flotte.
             legL = Node(transform, new Vector3(-0.13f, 1.00f, 0f), "JambeGauche");
             legR = Node(transform, new Vector3(0.13f, 1.00f, 0f), "JambeDroite");
             BuildLeg(legL, sleeve, rag, boot);
             BuildLeg(legR, sleeve, rag, boot);
-
-            // --- LE PONCHO, profil subjectif : il commence sous la poitrine.
-            ponchoRoot = Node(transform, Vector3.zero, "Vetement");
-            poncho = Poncho.Build(ponchoRoot, cloth, band, patch, true);
-            clothHome = ponchoRoot.localPosition;
         }
 
-        /// <summary>
-        /// La branche, posee dans le repere de la poignee : chaque morceau est place
-        /// par sa fraction le long de l'axe, moins la position de la main.
-        /// </summary>
-        void BuildStaff(Transform parent, Vector3 grip, Color wood, Color rag)
+        void BuildArm(Transform pivot, Color sleeve, Color skin)
         {
-            Vector3 axis = StaffTop - StaffFoot;
-            float length = axis.magnitude;
-            Quaternion lean = Quaternion.FromToRotation(Vector3.up, axis.normalized);
-
-            GameObject shaft = Proto.Cube(parent, (StaffFoot + StaffTop) * 0.5f - grip,
-                                          new Vector3(0.062f, length, 0.062f), wood, "Hampe");
-            shaft.transform.localRotation = lean;
-
-            // Une branche ramassee en chemin, pas une canne taillee : un noeud, une
-            // ligature de chiffon, et le bout use plus clair.
-            Along(parent, grip, lean, 0.58f, new Vector3(0.095f, 0.10f, 0.095f),
-                  Palette.Shade(wood, 0.78f), "Noeud");
-            Along(parent, grip, lean, 0.40f, new Vector3(0.085f, 0.07f, 0.085f), rag, "Ligature");
-            Along(parent, grip, lean, 0.035f, new Vector3(0.07f, 0.13f, 0.07f),
-                  Palette.Shade(wood, 1.15f), "Bout");
-        }
-
-        void Along(Transform parent, Vector3 grip, Quaternion lean, float t,
-                   Vector3 size, Color color, string name)
-        {
-            GameObject piece = Proto.Cube(parent, Vector3.Lerp(StaffFoot, StaffTop, t) - grip,
-                                          size, color, name);
-            piece.transform.localRotation = lean;
+            Proto.Cube(pivot, new Vector3(0f, -0.16f, 0f), new Vector3(0.12f, 0.30f, 0.12f),
+                       sleeve, "AvantBras");
+            Proto.Cube(pivot, new Vector3(0f, -0.36f, 0.015f), new Vector3(0.135f, 0.15f, 0.145f),
+                       skin, "Main");
         }
 
         void BuildLeg(Transform pivot, Color cloth, Color rag, Color boot)
@@ -340,48 +261,23 @@ namespace Fief
             if (legL != null) legL.localRotation = Quaternion.Euler(s * swing, 0f, 0f);
             if (legR != null) legR.localRotation = Quaternion.Euler(-s * swing, 0f, 0f);
 
-            // --- le baton. En marche il se plante a chaque foulee : ce petit appui
-            //     fait l'errant. A la recolte il se leve et retombe.
-            float plant = Mathf.Max(0f, s);
-            if (staff != null)
-            {
-                if (swingTimer > 0f)
-                {
-                    // LE COUP PART VERS L'AVANT, jamais vers l'epaule.
-                    //
-                    // Arme en arriere, la hampe passait a 28 cm de l'oeil au milieu du
-                    // geste -- sous la regle, et invisible pour un controle qui ne
-                    // regarde que la pose au repos. En poussant la poignee en AVANT
-                    // pendant qu'elle monte, le baton s'ecarte du visage au lieu de le
-                    // balayer : 45 cm au plus pres, sur toute la duree du geste.
-                    float t = 1f - Mathf.Clamp01(swingTimer / 0.42f);
-                    float raise = Mathf.Sin(t * Mathf.PI);            // monte puis retombe
-                    float strike = Mathf.SmoothStep(0f, 1f, t);       // l'allonge du coup
-                    staff.localPosition = staffHome + staffOffset
-                                        + new Vector3(0.05f * raise, 0.12f * raise,
-                                                      0.08f * raise + 0.22f * strike);
-                    staff.localRotation = Quaternion.Euler(-46f * raise, 0f, 0f);
-                }
-                else
-                {
-                    staff.localPosition = staffHome + staffOffset
-                                        + new Vector3(0f, -plant * 0.05f * moving + breathe * 0.006f,
-                                                      plant * 0.09f * moving);
-                    staff.localRotation = Quaternion.Euler(plant * 5f * moving, 0f, -plant * 3f * moving);
-                }
-            }
+            // --- les bras balancent a contretemps l'un de l'autre. Pendant un geste
+            //     de recolte, le droit part en avant et revient.
+            float reach = swingTimer > 0f ? Mathf.Sin((1f - swingTimer / 0.42f) * Mathf.PI) : 0f;
+            float armSwing = Mathf.Lerp(10f, 30f, effort) * moving;
 
-            // --- la main gauche balance a contretemps
-            if (leftArm != null)
+            if (armL != null)
             {
-                leftArm.localPosition = handHome + handOffset
-                                      + new Vector3(0f, breathe * 0.008f, -s * 0.06f * moving);
-                leftArm.localRotation = Quaternion.Euler(-s * Mathf.Lerp(10f, 30f, effort) * moving - 6f, 0f, 0f);
+                armL.localPosition = armHomeL + armOffset + new Vector3(0f, breathe * 0.008f, -s * 0.06f * moving);
+                armL.localRotation = Quaternion.Euler(-s * armSwing - 6f, 0f, 0f);
             }
-
-            // --- le vetement n'a besoin que de la vitesse et du cap
-            if (ponchoRoot != null) ponchoRoot.localPosition = clothHome + new Vector3(0f, clothRise, 0f);
-            if (poncho != null) poncho.SetMotion(speedSmoothed, transform.eulerAngles.y);
+            if (armR != null)
+            {
+                armR.localPosition = armHomeR + armOffset
+                                   + new Vector3(0f, breathe * 0.008f + reach * 0.10f,
+                                                 s * 0.06f * moving + reach * 0.22f);
+                armR.localRotation = Quaternion.Euler(s * armSwing - 6f - reach * 38f, 0f, 0f);
+            }
 
             if (swingTimer > 0f) swingTimer -= dt;
 

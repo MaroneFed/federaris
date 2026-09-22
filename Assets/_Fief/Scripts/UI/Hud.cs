@@ -33,13 +33,6 @@ namespace Fief
 
             if (panel != null && !panel.IsStillValid) panel = null;
 
-            if (FiefInput.ToggleViewPressed && orbitCamera != null)
-            {
-                orbitCamera.SetFirstPerson(!orbitCamera.firstPerson);
-                Toasts.Show(orbitCamera.firstPerson ? "Vue a la premiere personne" : "Vue a la troisieme personne",
-                            Palette.Gold);
-            }
-
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
 
             // F4 : on efface le corps subjectif. Si l'ecran se degage, le coupable est
@@ -352,7 +345,7 @@ namespace Fief
 
             y = Line(x, y, inner, "Monde construit en", Game.BuildMilliseconds + " ms");
             y = Line(x, y, inner, "Vue",
-                     orbitCamera != null && orbitCamera.firstPerson ? "premiere personne" : "troisieme personne");
+                     orbitCamera != null && orbitCamera.ThroughEyes ? "premiere personne" : "ecran-titre");
 
             if (Game.PlayerTransform != null)
             {
@@ -377,7 +370,7 @@ namespace Fief
                 // dit en un mot ce qui bouche la vue.
                 string inside = "rien";
                 string nearest = "rien";
-                MonoBehaviour worn = Game.Body != null && orbitCamera != null && orbitCamera.firstPerson
+                MonoBehaviour worn = Game.Body != null && orbitCamera != null && orbitCamera.ThroughEyes
                                    ? (MonoBehaviour)Game.Body : Game.Rig;
                 if (worn != null)
                 {
@@ -476,7 +469,6 @@ namespace Fief
                 { "Maj", "courir" },
                 { "Souris", "camera" },
                 { "E", "recolter, interagir" },
-                { "V", "changer de vue" },
                 { "F3", "diagnostic" },
                 { "F4", "masquer son corps" },
                 { "Echap", "pause" }

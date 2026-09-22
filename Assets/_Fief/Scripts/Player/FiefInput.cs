@@ -86,7 +86,6 @@ namespace Fief
         public static bool JumpPressed { get { return KeyPressed(KeyCode.Space); } }
         public static bool CancelPressed { get { return KeyPressed(KeyCode.Escape); } }
         public static bool HelpPressed { get { return KeyPressed(KeyCode.F1); } }
-        public static bool ToggleViewPressed { get { return KeyPressed(KeyCode.V); } }
         public static bool DiagnosticPressed { get { return KeyPressed(KeyCode.F3); } }
         /// <summary>F4 : efface le corps subjectif. Sert a repondre en un appui a la
         /// question "la masse devant moi, c'est moi ou c'est le decor ?"</summary>
@@ -124,7 +123,6 @@ namespace Fief
                 case KeyCode.Space: return k.spaceKey;
                 case KeyCode.Escape: return k.escapeKey;
                 case KeyCode.F1: return k.f1Key;
-                case KeyCode.V: return k.vKey;
                 case KeyCode.F3: return k.f3Key;
                 case KeyCode.F4: return k.f4Key;
                 case KeyCode.LeftShift: return k.leftShiftKey;

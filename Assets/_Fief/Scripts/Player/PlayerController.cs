@@ -79,7 +79,7 @@ namespace Fief
             // Orientation du personnage.
             // En premiere personne, le corps DOIT suivre le regard : sinon on
             // avancerait de cote pendant que la camera regarde ailleurs.
-            if (orbitCamera != null && orbitCamera.firstPerson)
+            if (orbitCamera != null && orbitCamera.ThroughEyes)
             {
                 transform.rotation = Quaternion.Euler(0f, orbitCamera.yaw, 0f);
             }

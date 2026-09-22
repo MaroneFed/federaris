@@ -11,15 +11,9 @@ namespace Fief
     /// une vague permanente en fait le tour, et l'ourlet se souleve a la course
     /// sans jamais traverser le sol.
     ///
-    /// DEUX PROFILS. Le vetement n'a pas la meme forme selon qui le regarde :
-    ///
-    ///   - DEHORS, il part de l'encolure : c'est la silhouette du mendiant, celle
-    ///     qu'on voit sur l'ecran-titre et que verront les autres joueurs.
-    ///   - PAR SES PROPRES YEUX, il part sous la poitrine. Le haut n'existe tout
-    ///     simplement pas : a 20 cm de l'oeil il ne serait qu'une masse, et on n'en
-    ///     verrait que la face interne. C'est le principe du "viewmodel" : le corps
-    ///     qu'on voit de l'interieur n'est pas le meme objet que celui qu'on voit
-    ///     de l'exterieur.
+    /// Il n'est porte QUE par CharacterRig, donc jamais vu de l'interieur : on le
+    /// regarde toujours de dehors. Porte devant ses propres yeux il formait un
+    /// anneau qui encerclait l'image ; le corps subjectif n'en a donc pas.
     ///
     /// TROIS PIEGES, tous rencontres en chemin :
     ///
@@ -40,18 +34,9 @@ namespace Fief
     {
         const int Segments = 28;
 
-        /// <summary>Profil vu de dehors : depuis l'encolure.</summary>
-        static readonly float[] OutsideY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
-        static readonly float[] OutsideR = { 0.135f, 0.34f, 0.42f, 0.50f, 0.55f, 0.58f, 0.60f, 0.61f, 0.62f };
-
-        /// <summary>
-        /// Profil vu par ses propres yeux : commence a 1,20 m, soit 58 cm sous l'oeil.
-        /// Le premier etage est a 66 cm de la lentille et apparait des qu'on baisse
-        /// les yeux de 31 degres -- assez tot pour se sentir habille, assez loin pour
-        /// ne jamais faire mur.
-        /// </summary>
-        static readonly float[] InsideY = { 1.20f, 1.06f, 0.88f, 0.68f, 0.47f, 0.26f, 0.06f };
-        static readonly float[] InsideR = { 0.44f, 0.52f, 0.58f, 0.62f, 0.64f, 0.65f, 0.65f };
+        /// <summary>Profil du vetement, de l'encolure a l'ourlet.</summary>
+        static readonly float[] ProfileY = { 1.60f, 1.52f, 1.41f, 1.22f, 0.99f, 0.74f, 0.50f, 0.28f, 0.08f };
+        static readonly float[] ProfileR = { 0.135f, 0.34f, 0.42f, 0.50f, 0.55f, 0.58f, 0.60f, 0.61f, 0.62f };
 
         [Header("Tissu")]
         public float trail = 0.085f;
@@ -96,25 +81,15 @@ namespace Fief
             if (r != null) r.enabled = !r.enabled;
         }
 
-        /// <summary>Le poncho tel qu'on le voit de l'exterieur.</summary>
         public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
         {
-            return Build(parent, cloth, band, patch, false);
-        }
-
-        /// <summary>
-        /// <paramref name="throughOwnEyes"/> choisit le profil : le vetement complet
-        /// vu de dehors, ou seulement sa partie basse quand on le porte.
-        /// </summary>
-        public static Poncho Build(Transform parent, Color cloth, Color band, Color patch, bool throughOwnEyes)
-        {
-            GameObject go = new GameObject(throughOwnEyes ? "PonchoSubjectif" : "Poncho");
+            GameObject go = new GameObject("Poncho");
             go.transform.SetParent(parent, false);
 
             Poncho poncho = go.AddComponent<Poncho>();
-            poncho.ringY = throughOwnEyes ? InsideY : OutsideY;
-            poncho.ringR = throughOwnEyes ? InsideR : OutsideR;
-            poncho.rings = poncho.ringY.Length;
+            poncho.ringY = ProfileY;
+            poncho.ringR = ProfileR;
+            poncho.rings = ProfileY.Length;
             poncho.Create(cloth, band, patch);
             return poncho;
         }

@@ -748,7 +748,6 @@ namespace Fief
             orbit.rig = rig;
             orbit.body = body;
             orbit.baseFieldOfView = cam.fieldOfView;
-            orbit.SetFirstPerson(config.firstPerson);
             orbitCamera = orbit;
 
             PlayerController player = go.AddComponent<PlayerController>();

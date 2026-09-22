@@ -3,7 +3,12 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// Camera orbitale 3e personne : la souris tourne autour du joueur, la molette zoome.
+    /// LA camera du jeu. Une seule vue : on regarde par les yeux du personnage.
+    ///
+    /// Le mode orbital ne sert plus qu'a l'ecran-titre, ou la camera tourne autour
+    /// du mendiant pour le montrer. Il n'y a plus de bascule : "firstPerson" etait
+    /// un etat qu'on pouvait changer en jeu, ce n'est plus qu'une consequence --
+    /// on est dans les yeux des que la scene n'est pas cinematique.
     ///
     /// Elle travaille dans LateUpdate : le joueur bouge d'abord (Update), la camera
     /// se replace ensuite. Sinon l'image tremble.
@@ -25,8 +30,8 @@ namespace Fief
         public CharacterRig rig;
         public FirstPersonBody body;
 
-        /// <summary>Vrai = on regarde par les yeux du personnage.</summary>
-        public bool firstPerson;
+        /// <summary>Vrai des que la camera n'est pas en cadrage d'ecran-titre.</summary>
+        public bool ThroughEyes { get { return !cinematic; } }
         public float baseFieldOfView = 62f;
         public float sprintFieldOfView = 7.5f;
 
@@ -66,16 +71,10 @@ namespace Fief
             if (amount > shake) shake = Mathf.Min(0.5f, amount);
         }
 
-        /// <summary>Bascule entre les deux vues. La tete du personnage se cache ou reapparait.</summary>
-        public void SetFirstPerson(bool value)
-        {
-            firstPerson = value;
-            if (value) pitch = Mathf.Clamp(pitch, -82f, 82f);
-        }
-
         public void ReleaseCinematic()
         {
             cinematic = false;
+            pitch = Mathf.Clamp(pitch, -82f, 82f);
             GameConfig cfg = Game.Config;
             if (cfg != null) distance = cfg.cameraDistance;
             pitch = 20f;
@@ -92,10 +91,10 @@ namespace Fief
             // Temps NON mis a l'echelle : la camera continue de vivre quand le jeu est en pause.
             float dt = Time.unscaledDeltaTime;
 
-            // La tete ne se cache que quand on regarde VRAIMENT par ses yeux.
-            // Pendant l'ecran-titre la camera tourne autour du personnage : on ne
-            // veut pas d'un mendiant sans tete sur l'image d'accueil.
-            bool throughEyes = firstPerson && !cinematic;
+            // Pendant l'ecran-titre la camera tourne autour du personnage : on montre
+            // alors le mendiant entier, pas le corps subjectif. Partout ailleurs on
+            // est dans ses yeux.
+            bool throughEyes = !cinematic;
             if (rig != null) rig.SetFirstPerson(throughEyes);
             if (body != null) body.SetVisible(throughEyes);
 
@@ -103,8 +102,8 @@ namespace Fief
             {
                 Vector2 look = FiefInput.Look;
                 yaw += look.x * sensitivity;
-                float lowLimit = firstPerson ? -82f : minPitch;
-                float highLimit = firstPerson ? 82f : maxPitch;
+                float lowLimit = cinematic ? minPitch : -82f;
+                float highLimit = cinematic ? maxPitch : 82f;
                 pitch = Mathf.Clamp(pitch - look.y * sensitivity, lowLimit, highLimit);
                 distance = Mathf.Clamp(distance - FiefInput.ZoomNotches * 1.6f, minD, maxD);
             }
