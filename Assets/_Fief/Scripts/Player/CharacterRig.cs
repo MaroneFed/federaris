@@ -129,12 +129,19 @@ namespace Fief
 
         void Assemble(Color tunic, Color accent)
         {
-            // Laine sale, delavee, presque grise. La couleur du joueur ne survit qu'a
-            // 22 % : assez pour se reconnaitre en multijoueur, pas assez pour avoir
-            // l'air d'un seigneur. C'est un gueux sur les routes, pas un herault.
-            Color cloth = Color.Lerp(tunic, new Color(0.58f, 0.53f, 0.45f), 0.72f);
-            Color band = Color.Lerp(tunic, new Color(0.74f, 0.68f, 0.57f), 0.68f);
-            Color patch = Color.Lerp(tunic, new Color(0.55f, 0.47f, 0.37f), 0.58f);
+            // LAINE. Le blason du joueur 0 est un rouge vif (0,79 / 0,24 / 0,24).
+            // Il ne survivait qu'a 28 % dans le tissu, ce qui paraissait peu -- sauf
+            // que melange a une base chaude ca donnait 0,64 / 0,45 / 0,39, soit
+            // exactement une couleur de PEAU. Vu de pres en premiere personne, le
+            // poncho ne ressemblait plus a un vetement mais a de la chair.
+            //
+            // Le blason ne survit donc qu'a 12 %, sur une base a peine verdatre qui
+            // absorbe le rouge : 0,51 / 0,45 / 0,41, de la laine ecrue sale.
+            // La teinte du joueur, elle, passe par la BANDE et les PIECES -- petites,
+            // contrastees, largement suffisantes pour se reconnaitre en multijoueur.
+            Color cloth = Color.Lerp(tunic, new Color(0.47f, 0.48f, 0.43f), 0.88f);
+            Color band = Color.Lerp(tunic, new Color(0.62f, 0.58f, 0.50f), 0.70f);
+            Color patch = Color.Lerp(tunic, new Color(0.44f, 0.38f, 0.31f), 0.62f);
             Color skin = new Color(0.72f, 0.58f, 0.46f);
             Color underCloth = new Color(0.22f, 0.19f, 0.17f);
             Color leather = new Color(0.18f, 0.14f, 0.11f);

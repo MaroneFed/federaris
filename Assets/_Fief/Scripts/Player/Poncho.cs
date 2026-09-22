@@ -110,65 +110,79 @@ namespace Fief
             return poncho;
         }
 
+        /// <summary>
+        /// Position au repos d'un point du vetement. Fonction PURE de (etage, pan) :
+        /// c'est ce qui permet de dupliquer les sommets sans jamais ouvrir de fente,
+        /// puisque deux copies du meme point donnent toujours le meme resultat.
+        /// </summary>
+        static Vector3 RestPosition(int r, int s)
+        {
+            float angle = (s % Segments / (float)Segments) * Mathf.PI * 2f;
+
+            // OURLET DECHIRE : sur les deux derniers etages, chaque pan descend d'une
+            // hauteur differente. C'est ce qui separe un vetement taille net d'une
+            // loque de mendiant.
+            float ragged = 0f;
+            if (r >= Rings - 2) ragged = Hash((s % Segments) * 7 + r * 31) * (r == Rings - 1 ? 0.30f : 0.12f);
+
+            // l'encolure reste nette : c'est le bas qui est mange par l'usure
+            float wobble = r < 2 ? 0f : (Hash((s % Segments) * 13 + r * 5) - 0.5f) * 0.05f;
+
+            float radius = RingR[r] + wobble;
+            return new Vector3(Mathf.Sin(angle) * radius, RingY[r] + ragged, Mathf.Cos(angle) * radius);
+        }
+
         void Create(Color cloth, Color band, Color patch)
         {
-            int count = Rings * Segments;
+            // FACETTES, PAS DE LISSAGE.
+            //
+            // Le reste du jeu est en low-poly facette : chaque face a sa propre
+            // normale, donc son propre ton. Le poncho, lui, partageait ses sommets
+            // entre faces voisines -- les normales se moyennaient et le tissu
+            // devenait un degrade lisse. De pres, en vue subjective, ca ne
+            // ressemblait plus a du tissu mais a une masse organique.
+            //
+            // On donne donc a chaque quad ses quatre sommets a lui. Deux quads
+            // voisins ne partagent plus rien, chacun garde sa normale, et le
+            // vetement retrouve le langage visuel du jeu : des plis nets.
+            //
+            // Les sommets dupliques ne peuvent pas se separer : leur position est
+            // recalculee a chaque image par une fonction pure de (etage, pan), donc
+            // deux copies du meme point bougent toujours ensemble.
+            int quads = (Rings - 1) * Segments;
+            int count = quads * 4;
+
             rest = new Vector3[count];
             vertices = new Vector3[count];
             normals = new Vector3[count];
             ringT = new float[count];
             segAngle = new float[count];
 
-            for (int r = 0; r < Rings; r++)
-            {
-                float t = r / (float)(Rings - 1);
-                float radius = RingR[r];
-                float y = RingY[r];
-
-                for (int s = 0; s < Segments; s++)
-                {
-                    float angle = (s / (float)Segments) * Mathf.PI * 2f;
-                    int i = r * Segments + s;
-
-                    // OURLET DECHIRE : sur les deux derniers etages, chaque pan descend
-                    // d'une hauteur differente. C'est ce qui separe un vetement taille
-                    // net d'une loque de mendiant.
-                    float ragged = 0f;
-                    if (r >= Rings - 2) ragged = Hash(s * 7 + r * 31) * (r == Rings - 1 ? 0.30f : 0.12f);
-
-                    // l'encolure reste nette : c'est le bas qui est mange par l'usure
-                    float wobble = r < 2 ? 0f : (Hash(s * 13 + r * 5) - 0.5f) * 0.05f;
-
-                    rest[i] = new Vector3(Mathf.Sin(angle) * (radius + wobble), y + ragged,
-                                          Mathf.Cos(angle) * (radius + wobble));
-                    vertices[i] = rest[i];
-                    ringT[i] = t;
-                    segAngle[i] = angle;
-                }
-            }
-
-            // Quatre sous-maillages : la laine, une bande usee, des pieces rapiecees,
-            // et l'encolure a part pour pouvoir la retirer en premiere personne.
             List<int> main = new List<int>();
             List<int> stripe = new List<int>();
             List<int> patches = new List<int>();
             List<int> upper = new List<int>();
             List<int> single = new List<int>();
 
+            int v = 0;
             for (int r = 0; r < Rings - 1; r++)
             {
                 for (int s = 0; s < Segments; s++)
                 {
+                    // les quatre coins du quad : (r,s) (r,s+1) (r+1,s) (r+1,s+1)
+                    int a = v, b = v + 1, c = v + 2, d = v + 3;
+
+                    Place(a, r, s);
+                    Place(b, r, s + 1);
+                    Place(c, r + 1, s);
+                    Place(d, r + 1, s + 1);
+                    v += 4;
+
                     List<int> target;
                     if (r < HiddenRowsInFirstPerson) target = upper;
                     else if (r == Rings - 3) target = stripe;
                     else if (Hash(s * 17 + r * 101) < 0.11f) target = patches;
                     else target = main;
-
-                    int a = r * Segments + s;
-                    int b = r * Segments + (s + 1) % Segments;
-                    int c = (r + 1) * Segments + s;
-                    int d = (r + 1) * Segments + (s + 1) % Segments;
 
                     // faces exterieures : ce sont elles qui donnent l'eclairage
                     single.Add(a); single.Add(c); single.Add(b);
@@ -205,6 +219,15 @@ namespace Fief
                 MaterialFactory.Get(patch),
                 MaterialFactory.Get(cloth)
             };
+        }
+
+        /// <summary>Inscrit un sommet du quad : position au repos et coordonnees.</summary>
+        void Place(int index, int r, int s)
+        {
+            rest[index] = RestPosition(r, s);
+            vertices[index] = rest[index];
+            ringT[index] = r / (float)(Rings - 1);
+            segAngle[index] = (s % Segments / (float)Segments) * Mathf.PI * 2f;
         }
 
         /// <summary>
