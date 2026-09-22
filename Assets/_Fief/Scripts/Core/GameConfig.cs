@@ -101,8 +101,10 @@ namespace Fief
         public float marketRadius = 30f;
         [Tooltip("Marge du marchand : tu achetes plus cher que tu ne vends.")]
         public float buySpread = 1.18f;
-        [Tooltip("Vitesse a laquelle les stocks du marche reviennent a l'equilibre (unites/seconde).")]
-        public float marketDriftPerSecond = 0.35f;
+        [Tooltip("Temps qu'il faut a un prix casse pour remonter a mi-chemin, en secondes. " +
+                 "Plus c'est long, plus brader une cargaison coute cher, et plus on a interet " +
+                 "a changer de ressource. 300 s = 5 minutes.")]
+        public float marketRecoveryHalfLife = 300f;
         [Tooltip("Sensibilite du prix au stock. Plus c'est haut, plus les prix bougent fort.")]
         public float priceElasticity = 0.62f;
 

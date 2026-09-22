@@ -71,16 +71,6 @@ namespace Fief
             turnRate = Mathf.Lerp(turnRate, Mathf.Clamp(delta / dt, -260f, 260f), 1f - Mathf.Exp(-9f * dt));
         }
 
-        /// <summary>
-        /// Efface le vetement (touche F4). Outil de diagnostic : si la masse qui
-        /// bouche l'ecran disparait, c'est le poncho ; sinon c'est autre chose.
-        /// </summary>
-        public void ToggleVisible()
-        {
-            MeshRenderer r = GetComponent<MeshRenderer>();
-            if (r != null) r.enabled = !r.enabled;
-        }
-
         public static Poncho Build(Transform parent, Color cloth, Color band, Color patch)
         {
             GameObject go = new GameObject("Poncho");

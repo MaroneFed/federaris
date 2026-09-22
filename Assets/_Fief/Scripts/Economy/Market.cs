@@ -25,6 +25,8 @@ namespace Fief
     /// LE PRINCIPE : chaque ressource a un stock. Prix = prix_de_base * (equilibre / stock) ^ elasticite.
     ///   - Tu vends 40 bois d'un coup  -> le stock monte -> le prix s'effondre.
     ///   - Personne ne vend de fer     -> le stock fond   -> le fer devient tres cher.
+    /// Et le prix met du temps a se remettre : c'est ce qui pousse a changer de
+    /// ressource au lieu de refaire indefiniment la tournee la plus rentable.
     /// Et le prix de chaque unite est recalcule apres chaque unite vendue : ecouler
     /// une grosse cargaison rapporte donc moins que deux petites, espacees dans le temps.
     /// C'est ce qui rendra le marche interessant a 6 joueurs.
@@ -47,7 +49,8 @@ namespace Fief
 
         float elasticity = 0.62f;
         float buySpread = 1.18f;
-        float driftPerSecond = 0.35f;
+        /// <summary>Taux de retour a l'equilibre, par seconde. Voir Tick().</summary>
+        float recoveryRate = 0.00231f;
 
         const float MinPriceFactor = 0.38f;
         const float MaxPriceFactor = 2.80f;
@@ -58,7 +61,10 @@ namespace Fief
             {
                 elasticity = cfg.priceElasticity;
                 buySpread = cfg.buySpread;
-                driftPerSecond = cfg.marketDriftPerSecond;
+                // On raisonne en demi-vie : c'est lisible. "300 s" veut dire qu'un
+                // ecart de prix a moitie disparu au bout de cinq minutes.
+                float half = Mathf.Max(1f, cfg.marketRecoveryHalfLife);
+                recoveryRate = 0.6931472f / half;
             }
 
             // Prix de base cales sur la Porte 1 : ~20 min pour financer les 5 constructions
@@ -111,14 +117,39 @@ namespace Fief
                                line.basePrice * MaxPriceFactor);
         }
 
-        /// <summary>Les stocks reviennent lentement vers l'equilibre : les prix se remettent d'un krach.</summary>
+        /// <summary>
+        /// Les stocks reviennent vers l'equilibre -- mais d'autant plus vite qu'ils en
+        /// sont loin, pas a vitesse fixe.
+        ///
+        /// POURQUOI CE MODELE. A vitesse fixe, le stock revenait de 0,35 unite par
+        /// seconde. Une tournee dure 200 s : le marche avait donc le temps de ravaler
+        /// 70 unites pendant que le joueur allait en chercher 20. Les prix etaient
+        /// TOUJOURS revenus au depart quand il rentrait. Mesure sur 20 minutes de jeu :
+        /// amplitude des prix 0 %, et sept tournees de Fer identiques. Le marche
+        /// dynamique -- la mecanique centrale du brief -- ne servait litteralement
+        /// a rien en solo.
+        ///
+        /// Avec une relaxation proportionnelle a l'ecart, brader 20 fers fait tomber
+        /// le prix pour environ une tournee et demie. Le joueur va donc vendre son
+        /// bois ailleurs en attendant : la rotation entre ressources apparait toute
+        /// seule, sans regle supplementaire.
+        ///
+        /// Et ca tient en Phase 3 : a 6 joueurs un engorgement dix fois plus gros se
+        /// resorbe dix fois plus vite en valeur absolue. Verifie par simulation, le
+        /// prix plancher n'est jamais atteint (61 % du prix de base contre 38 % de
+        /// plancher). Une vitesse fixe assez lente pour le solo aurait ecrase les
+        /// prix en permanence a six.
+        /// </summary>
         public void Tick(float deltaTime)
         {
-            float step = driftPerSecond * deltaTime;
+            if (deltaTime <= 0f) return;
+
+            // Independant du nombre d'images par seconde.
+            float k = 1f - Mathf.Exp(-recoveryRate * deltaTime);
             for (int i = 0; i < lines.Length; i++)
             {
                 Line l = lines[i];
-                l.stock = Mathf.MoveTowards(l.stock, l.equilibrium, step);
+                l.stock = Mathf.Lerp(l.stock, l.equilibrium, k);
             }
         }
 

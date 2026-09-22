@@ -102,10 +102,19 @@ namespace Fief
             GUILayout.Label("rachat au marchand : " + buyUnit.ToString("0.0") + " or l'unite",
                             UiStyle.Small, GUILayout.Width(UiStyle.S(312)));
 
-            GUI.enabled = wallet.Gold >= Mathf.RoundToInt(buyUnit) && inv.SpaceFor(type) > 0;
+            // Chaque bouton teste SON propre cout. Avant, "Acheter 10" s'allumait des
+            // qu'on pouvait s'offrir UNE unite : on cliquait, et la transaction etait
+            // refusee. Un bouton actif doit toujours mener a quelque chose.
+            int spaceLeft = inv.SpaceFor(type);
+
+            GUI.enabled = spaceLeft >= 1 && wallet.Gold >= market.QuoteBuy(type, 1);
             if (GUILayout.Button("Acheter 1", UiStyle.Button, GUILayout.Height(btnH), GUILayout.Width(UiStyle.S(92))))
                 Apply(market.RequestBuy(inv, wallet, type, 1));
-            if (GUILayout.Button("Acheter 10", UiStyle.Button, GUILayout.Height(btnH), GUILayout.Width(UiStyle.S(100))))
+
+            int tenCost = market.QuoteBuy(type, 10);
+            GUI.enabled = spaceLeft >= 10 && wallet.Gold >= tenCost;
+            string tenLabel = GUI.enabled ? "10 : " + tenCost + " or" : "Acheter 10";
+            if (GUILayout.Button(tenLabel, UiStyle.Button, GUILayout.Height(btnH), GUILayout.Width(UiStyle.S(112))))
                 Apply(market.RequestBuy(inv, wallet, type, 10));
             GUI.enabled = true;
 
