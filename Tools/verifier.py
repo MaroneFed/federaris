@@ -13,12 +13,20 @@ REELLEMENT arrivees sur ce projet :
   2. appel a une methode qui n'existe pas (un bloc supprime par megarde)
   3. reference a Type.Membre qui n'existe pas
   4. appel avec le mauvais nombre d'arguments
-  5. TYPE INCONNU, et attribut orpheline devant une methode
+  5. membre inexistant sur une VARIABLE (pas seulement sur un nom de type)
+  6. TYPE INCONNU, et attribut orphelin devant une methode
 
-Les deux derniers ont ete ajoutes apres que le nettoyage de GameConfig a
-laisse derriere lui une methode qui utilisait une classe supprimee, et un
-[Header] colle devant elle. Unity a rejete les deux ; le verificateur, lui,
-ne les voyait pas. Maintenant si.
+Les trois derniers ont ete ajoutes apres coup, chacun parce qu'une faute est
+passee jusqu'a Unity :
+
+  - une methode oubliee utilisait une classe supprimee, avec un [Header] colle
+    devant elle (CS0246 + CS0592) ;
+  - un champ supprime de GameConfig restait appele via la VARIABLE config, ce
+    que la verification par nom de type ne voyait pas (CS1061). Celle-la a mis
+    Unity en Safe Mode.
+
+A chaque fois la regle a ete la meme : corriger le fichier ne suffit pas, il
+faut apprendre la faute a l'outil, sinon elle revient.
 """
 import io, os, re, sys
 from collections import defaultdict
@@ -163,6 +171,21 @@ for path, s in sources.items():
                     member_arity[(name, member)].add(k)
         for m in field_re.finditer(body):
             type_members[name].add(m.group(1))
+
+        # Membres declares SANS modificateur d'acces. En C# un champ sans mot-cle
+        # est prive, et une interface n'en met jamais -- deux cas que field_re,
+        # qui exige public/private/..., ratait completement. Resultat : le
+        # verificateur croyait que Poncho n'a pas de champ ringY et que
+        # IInteractable n'a pas de methode Interact.
+        #
+        # On se repere a l'INDENTATION : dans ce depot un membre de classe est a
+        # huit espaces, une variable locale a douze ou plus. C'est fragile en
+        # general, fiable ici, et ca evite de gober toutes les locales comme
+        # membres -- ce qui viderait la verification de son sens.
+        for m in re.finditer(r'^        (?!return\b|new\b|if\b|for\b|while\b|foreach\b)'
+                             r'(?:[\w<>\[\],\.\?]+\s+)+(\w+)\s*(?:;|=[^=]|\(|\{\s*get)',
+                             body, re.M):
+            if m.group(1) not in KEYWORDS: type_members[name].add(m.group(1))
         for m in re.finditer(r'\b(?:class|struct|enum)\s+(\w+)', body):
             type_members[name].add(m.group(1))
 
@@ -253,6 +276,45 @@ for path, s in sources.items():
             line = s.count('\n', 0, m.start()) + 1
             errors.append("%s ligne %d : %s.%s appele avec %d argument(s), attendu %s"
                           % (path, line, t, member, n, sorted(member_arity[(t, member)])))
+
+# ---- 4b. membre inexistant sur une VARIABLE -----------------------------
+#
+# La passe 3 ne verifie que les acces par NOM DE TYPE (Palette.Banner). Elle ne
+# voyait rien quand on passe par une variable -- et c'est exactement comme ca que
+# config.playerFiefIndex a survecu a la suppression du champ, jusqu'a bloquer
+# Unity en Safe Mode. On suit donc aussi les variables dont le type est une
+# classe du projet.
+#
+# Une variable dont le nom designe DEUX types differents dans le meme fichier est
+# ignoree : mieux vaut rater un cas que crier au loup.
+decl_var_re = re.compile(r'(?<![\w.])([A-Z]\w*)\s+([a-z_]\w*)\s*(?==|;|,|\)|\s+in\b)')
+member_re = re.compile(r'(?<![\w.])([a-z_]\w*)\.(\w+)')
+
+for path, s2 in sources.items():
+    holder = {}
+    for m in decl_var_re.finditer(s2):
+        t, var = m.group(1), m.group(2)
+        if t not in all_types: continue
+        holder.setdefault(var, set()).add(t)
+
+    for var, types in holder.items():
+        if len(types) != 1: continue
+        t = next(iter(types))
+        known = members_of(t)
+
+        chain = set()
+        cur = t
+        while cur:
+            chain.add(cur); cur = type_bases.get(cur)
+        if 'MonoBehaviour' in chain or any(type_bases.get(x) == 'MonoBehaviour' for x in chain):
+            known |= UNITY['MonoBehaviour']
+
+        for m in member_re.finditer(s2):
+            if m.group(1) != var: continue
+            if m.group(2) in known: continue
+            line = s2.count('\n', 0, m.start()) + 1
+            errors.append("%s ligne %d : %s est un %s, qui n'a pas de membre %s"
+                          % (path, line, var, t, m.group(2)))
 
 # ---- 5a. attribut orphelin : [Header] / [Tooltip] ne valent que sur un champ
 attr_re = re.compile(r'\[\s*(Header|Tooltip|Range|Space)\s*\(')

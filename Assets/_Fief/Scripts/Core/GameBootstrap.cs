@@ -141,8 +141,12 @@ namespace Fief
             controller.skinWidth = 0.03f;
 
             // Le personnage : squelette articule, anime par le code (voir CharacterRig.cs).
-            Color tunic = Palette.Banner(config.playerFiefIndex);
-            CharacterRig rig = CharacterRig.Build(go.transform, tunic, Palette.Shade(tunic, 0.62f));
+            //
+            // Sa laine ne prend plus la couleur d'un blason : les six fiefs n'existent
+            // plus, et de toute facon on ne le voit qu'a l'ecran-titre et dans sa propre
+            // ombre. Une laine ecrue sale, qui est ce qu'elle aurait du etre des le debut.
+            Color wool = new Color(0.42f, 0.41f, 0.37f);
+            CharacterRig rig = CharacterRig.Build(go.transform, wool, Palette.Shade(wool, 0.62f));
             Game.Rig = rig;
 
 
