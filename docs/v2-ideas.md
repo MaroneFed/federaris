@@ -3,7 +3,7 @@
 > **La règle :** le tueur n°1 des projets de jeu, c'est l'ajout de features.
 > Tout ce qui n'est pas dans la phase en cours **atterrit ici, jamais dans le code.**
 
-**Phase en cours : PHASE 1 — boucle économique solo.**
+**Phase en cours : PHASE 1 — la Saison en solo.** Le jeu est décrit dans `LA-SAISON.md`.
 
 ---
 
@@ -22,7 +22,11 @@
   pas pour shipper. À remplacer par de vrais sons — l'appel (`Sfx.Harvest(...)`) ne changera pas.
 - **Les statiques de `Game.cs`.** Elles tombent en multijoueur (voir ARCHITECTURE.md).
 
-## PROPOSITION DE PIVOT — Martin, 21/09/2026 (non tranchée)
+## PROPOSITION DE PIVOT — Martin, 21/09/2026 — **TRANCHÉE ET RÉALISÉE**
+
+> Le 23/09/2026 Martin l'a complétée (caches creusées, pièges, mage errant, relique,
+> stèle) et le jeu a été reconstruit autour. La suite de cette section est gardée
+> comme historique ; **la référence est désormais `LA-SAISON.md`.**
 
 Martin propose de **changer de jeu**, pas d'ajuster celui-ci. Résumé fidèle de ce
 qu'il a dit, pour que la décision se prenne sur une base écrite :
