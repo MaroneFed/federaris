@@ -289,6 +289,11 @@ namespace Fief
                     float pz = z + ((float)rng.NextDouble() - 0.5f) * step * 1.6f;
                     if (Mathf.Abs(px) > half || Mathf.Abs(pz) > half) continue;
 
+                    // Rien ne pousse dans le chateau, ni contre ses murs : une bande de
+                    // huit metres le degage, sinon on arrive nez a nez avec un tronc qui
+                    // traverse la courtine.
+                    if (Castle.Covers(px, pz, 8f)) continue;
+
                     if (rng.NextDouble() < cover * density)
                         PlaceTree(root.transform, px, pz, cover, rng);
 

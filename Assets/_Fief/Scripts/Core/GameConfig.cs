@@ -88,7 +88,7 @@ namespace Fief
         public float mouseSensitivity = 0.13f;
 
         [Header("Inventaire")]
-        [Tooltip("Charge maximale en kg. Bois = 1 kg/u, Pierre = 2, Fer = 3.")]
+        [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, la relique = 5.")]
         public float maxWeight = 60f;
         public int startingGold = 200;
 
@@ -104,16 +104,26 @@ namespace Fief
         public int nodeCapacity = 30;
         public float nodeRespawnDelay = 55f;
 
-        [Header("Marche")]
-        public float marketRadius = 30f;
-        [Tooltip("Marge du marchand : tu achetes plus cher que tu ne vends.")]
-        public float buySpread = 1.18f;
-        [Tooltip("Temps qu'il faut a un prix casse pour remonter a mi-chemin, en secondes. " +
-                 "Plus c'est long, plus brader une cargaison coute cher, et plus on a interet " +
-                 "a changer de ressource. 300 s = 5 minutes.")]
-        public float marketRecoveryHalfLife = 300f;
-        [Tooltip("Sensibilite du prix au stock. Plus c'est haut, plus les prix bougent fort.")]
-        public float priceElasticity = 0.62f;
+        [Header("La Saison (voir docs/LA-SAISON.md)")]
+        [Tooltip("Duree d'une Saison, en minutes. A la cloche, seule compte la relique posee sur la stele.")]
+        public float seasonMinutes = 30f;
+        [Tooltip("Premiere apparition du mage, en secondes. Assez tot pour qu'on le rencontre " +
+                 "avant d'avoir oublie qu'il existe.")]
+        public float mageFirstAppearance = 120f;
+        [Tooltip("Ecart entre deux apparitions, en secondes. Le rater, c'est attendre ca.")]
+        public float mageInterval = 270f;
+        [Tooltip("Duree d'une apparition, en secondes. Il faut le trouver avant qu'il parte.")]
+        public float mageStay = 150f;
+        [Tooltip("Le mage apparait au moins a cette distance de toi : il faut marcher.")]
+        public float mageMinDistance = 110f;
+        [Tooltip("Et au plus a celle-ci : il doit rester atteignable dans le temps imparti.")]
+        public float mageMaxDistance = 320f;
+        [Tooltip("Nombre de caches qu'on peut creuser dans une Saison.")]
+        public int maxCaches = 3;
+        [Tooltip("Ce qu'une cache peut contenir, en kg.")]
+        public float cacheCapacity = 40f;
+        [Tooltip("Temps pour creuser une cache, en secondes (touche maintenue).")]
+        public float digDuration = 3.5f;
 
     }
 }

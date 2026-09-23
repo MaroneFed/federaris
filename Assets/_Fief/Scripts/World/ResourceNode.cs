@@ -4,16 +4,16 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// Un gisement : arbre, rocher ou veine de fer.
+    /// Un gisement : fagot de bois mort, pierre-lune, caisse de fer ancien.
     /// On maintient E a cote pour recolter. Le noeud s'epuise, retrecit, disparait,
     /// puis reapparait apres un delai. C'est ce qui evite de camper un seul arbre.
     /// </summary>
     public class ResourceNode : MonoBehaviour, IInteractable
     {
-        /// <summary>Registre de tous les noeuds vivants (la Tour de guet s'en sert pour les afficher).</summary>
+        /// <summary>Registre de tous les gisements vivants.</summary>
         public static readonly List<ResourceNode> All = new List<ResourceNode>();
 
-        public ResourceType type = ResourceType.Wood;
+        public ResourceType type = ResourceType.Deadwood;
         public int capacity = 24;
         public int yieldPerHarvest = 3;
         public float harvestDuration = 1.1f;
@@ -46,12 +46,10 @@ namespace Fief
         {
             if (remaining > 0) return;
 
+            // Pas de message quand un gisement revient : il y en a des dizaines, et
+            // l'ecran annoncerait des repousses a trois cents metres dans la brume.
             respawnTimer -= Time.deltaTime;
-            if (respawnTimer <= 0f)
-            {
-                remaining = capacity;
-                Toasts.Show(ResourceInfo.Name(type) + " : un gisement a repousse", ResourceInfo.Tint(type));
-            }
+            if (respawnTimer <= 0f) remaining = capacity;
             ApplyVisual();
         }
 
@@ -66,8 +64,8 @@ namespace Fief
             get
             {
                 if (Game.Inventory != null && Game.Inventory.SpaceFor(type) <= 0)
-                    return "Sac plein - va vendre au marche";
-                return "Recolter du " + ResourceInfo.Name(type) + "  (" + remaining + " restant)";
+                    return "Sac plein - vide-le dans une cache";
+                return "Ramasser : " + ResourceInfo.Name(type) + "   (" + remaining + ")";
             }
         }
 
@@ -99,7 +97,8 @@ namespace Fief
             if (inv.SpaceFor(type) <= 0)
             {
                 Sfx.Deny();
-                Toasts.Show("Sac plein (" + Mathf.RoundToInt(inv.Weight) + " kg) - direction le marche", Palette.Iron);
+                Toasts.Show("Sac plein (" + Mathf.RoundToInt(inv.Weight) + " kg) - creuse une cache (G) ou retourne a la tienne",
+                            Palette.Iron);
                 return;
             }
 

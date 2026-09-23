@@ -41,8 +41,10 @@ namespace Fief
             Game.Inventory = new Inventory();
             Game.Inventory.MaxWeight = config.maxWeight;
             Game.Wallet = new Wallet(config.startingGold);
-            Game.Market = new Market(config);
-            Game.Fief = new FiefState();
+            Game.Season = new Season(config);
+            Game.Hoard = new Hoard();
+            Game.Hoard.MaxCaches = Mathf.Max(0, config.maxCaches);
+            Game.Hoard.CacheCapacity = Mathf.Max(1f, config.cacheCapacity);
 
             System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
 
@@ -53,6 +55,7 @@ namespace Fief
             {
                 Ground.Prepare(config);
                 Ground.Build(worldRoot, config);
+                Castle.Build(worldRoot, config);
                 Forest.Plant(worldRoot, config, rng);
             }
             catch (System.Exception error)
@@ -81,7 +84,8 @@ namespace Fief
 
         void Update()
         {
-            if (Game.Market != null) Game.Market.Tick(Time.deltaTime);
+            // Time.deltaTime, pas le temps reel : la pause arrete l'horloge de la Saison.
+            if (Game.Season != null) Game.Season.Tick(Time.deltaTime);
         }
 
         void OnDestroy()
@@ -92,25 +96,26 @@ namespace Fief
         // ================================================================ joueur
 
         /// <summary>
-        /// Cherche l'endroit le plus degage pres du centre. On teste une spirale de
-        /// points et on garde celui ou le couvert est le plus mince : c'est plus sur
-        /// que de coder une clairiere en dur, parce que ca suit la foret si on change
-        /// sa graine ou sa densite.
+        /// Ou l'on apparait : A LA LISIERE, loin du chateau. On arrive de l'exterieur,
+        /// on ne sait pas encore ou il est ; le trouver est le premier voyage.
+        ///
+        /// On cherche sur un anneau entre 220 et 290 m du centre l'endroit le plus
+        /// degage et le plus plat -- une clairiere, pas un fourre : sinon la premiere
+        /// image du jeu est un tronc a cinquante centimetres du nez.
         /// </summary>
         Vector3 FindClearing()
         {
             float bestScore = 99f;
-            Vector2 best = Vector2.zero;
+            Vector2 best = new Vector2(0f, -250f);
 
-            for (int i = 0; i < 220; i++)
+            for (int i = 0; i < 240; i++)
             {
                 float a = i * 2.39996f;                 // angle d'or : repartition reguliere
-                float r = 9f * Mathf.Sqrt(i);
+                float r = Mathf.Lerp(220f, 290f, (i % 12) / 11f);
                 float x = Mathf.Cos(a) * r;
                 float z = Mathf.Sin(a) * r;
 
-                // Un couvert mince ET un sol plat : on ne veut pas naitre sur un talus.
-                float score = Forest.Canopy(x, z) + Ground.Slope(x, z) * 0.02f;
+                float score = Forest.Canopy(x, z) + Ground.Slope(x, z) * 0.6f;
                 if (score < bestScore)
                 {
                     bestScore = score;
@@ -130,7 +135,12 @@ namespace Fief
 
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
-            go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+
+            // On regarde vers l'interieur de la foret, a peu pres vers le chateau --
+            // a quarante degres pres : on sait d'ou l'on vient, pas exactement ou aller.
+            Vector3 inward = -new Vector3(spawn.x, 0f, spawn.z);
+            float yaw = Mathf.Atan2(inward.x, inward.z) * Mathf.Rad2Deg + ((float)rng.NextDouble() - 0.5f) * 80f;
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
             CharacterController controller = go.AddComponent<CharacterController>();
             controller.height = 1.8f;
@@ -200,10 +210,10 @@ namespace Fief
             hud.viewCamera = viewCamera;
             Game.Hud = hud;
 
-            // L'ecran-titre. Il met le jeu en pause (Time.timeScale = 0) jusqu'a ce que
-            // le joueur clique sur "Commencer la Saison".
+            // L'ecran-titre, la pause, et l'ecran de fin de Saison.
             Menus menus = go.AddComponent<Menus>();
             hud.menus = menus;
+            Game.Menus = menus;
         }
     }
 }

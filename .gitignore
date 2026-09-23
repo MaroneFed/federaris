@@ -48,3 +48,6 @@ Thumbs.db
 # IMPORTANT : les .meta NE SONT PAS ignores.
 # Unity y stocke l'identite (GUID) de chaque asset. Sans eux, toutes les
 # references se cassent au prochain clone. Ne les supprime jamais.
+
+# Caches Python des outils
+Tools/__pycache__/

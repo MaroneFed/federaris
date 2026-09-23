@@ -296,11 +296,13 @@ decl_var_re = re.compile(r'(?<![\w.])([A-Z]\w*)\s+([a-z_]\w*)\s*(?==|;|,|\)|\s+i
 member_re = re.compile(r'(?<![\w.])([a-z_]\w*)\.(\w+)')
 
 for path, s2 in sources.items():
+    # On note TOUS les types declares pour chaque nom, Unity compris : une variable
+    # "c" qui est une Color dans une methode et une Cache dans une autre est ambigue
+    # (le verificateur ne suit pas les portees), donc on l'ignore.
     holder = {}
     for m in decl_var_re.finditer(s2):
-        t, var = m.group(1), m.group(2)
-        if t not in all_types: continue
-        holder.setdefault(var, set()).add(t)
+        holder.setdefault(m.group(2), set()).add(m.group(1))
+    holder = dict((v, ts) for v, ts in holder.items() if len(ts) == 1 and next(iter(ts)) in all_types)
 
     for var, types in holder.items():
         if len(types) != 1: continue
@@ -396,7 +398,8 @@ chain_re = re.compile(r'(?<![\w.])([A-Za-z_]\w*)((?:\.[A-Za-z_]\w*)+)')
 for path, s2 in sources.items():
     holder = {}
     for m in decl_var_re.finditer(s2):
-        if m.group(1) in all_types: holder.setdefault(m.group(2), set()).add(m.group(1))
+        holder.setdefault(m.group(2), set()).add(m.group(1))
+    holder = dict((v, ts) for v, ts in holder.items() if len(ts) == 1 and next(iter(ts)) in all_types)
 
     for m in chain_re.finditer(s2):
         head, rest = m.group(1), m.group(2).split('.')[1:]

@@ -71,8 +71,8 @@ namespace Fief
         {
             switch (type)
             {
-                case ResourceType.Wood: Play(Pick(chop), 0.75f); break;
-                case ResourceType.Stone: Play(Pick(pick), 0.65f); break;
+                case ResourceType.Deadwood: Play(Pick(chop), 0.75f); break;
+                case ResourceType.Moonstone: Play(Pick(pick), 0.65f); break;
                 case ResourceType.Iron: Play(Pick(clang), 0.55f); break;
             }
         }
@@ -82,8 +82,8 @@ namespace Fief
         {
             switch (type)
             {
-                case ResourceType.Wood: Play(Pick(chop), 0.38f); break;
-                case ResourceType.Stone: Play(Pick(pick), 0.32f); break;
+                case ResourceType.Deadwood: Play(Pick(chop), 0.38f); break;
+                case ResourceType.Moonstone: Play(Pick(pick), 0.32f); break;
                 case ResourceType.Iron: Play(Pick(clang), 0.26f); break;
             }
         }
