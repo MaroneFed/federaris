@@ -146,6 +146,10 @@ namespace Fief
                 cam.pitch = 3f;
             }
 
+            // L'horloge ne part qu'ici, pas au chargement : l'ecran-titre ne mange
+            // pas les trente minutes de la Saison.
+            if (Game.Season != null) Game.Season.Begin();
+
             Toasts.Clear();
             Toasts.Show("La brume se referme derriere toi.", Palette.Gold);
             Toasts.Show("F1 pour les commandes.", UiStyle.Ink);

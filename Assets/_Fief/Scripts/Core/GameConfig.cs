@@ -117,7 +117,7 @@ namespace Fief
         [Tooltip("Le mage apparait au moins a cette distance de toi : il faut marcher.")]
         public float mageMinDistance = 110f;
         [Tooltip("Et au plus a celle-ci : il doit rester atteignable dans le temps imparti.")]
-        public float mageMaxDistance = 320f;
+        public float mageMaxDistance = 260f;
         [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
                  "tente se voit.")]
         public float campCapacity = 60f;

@@ -193,6 +193,56 @@ namespace Fief
             return FromSamples(name, data);
         }
 
+        static AudioClip drone;
+
+        /// <summary>
+        /// LA VOIX DU MAGE : un bourdonnement grave, en boucle, qu'on entend a travers
+        /// la brume bien avant de voir quoi que ce soit.
+        ///
+        /// Pour qu'une boucle ne "claque" pas a chaque tour, chaque frequence doit
+        /// faire un nombre ENTIER de periodes dans la duree du son (6 s). 110 Hz fait
+        /// 660 periodes, 110,5 Hz en fait 663 : les deux ensemble battent doucement,
+        /// une fois toutes les deux secondes, et c'est ce battement qui sonne "vivant".
+        ///
+        /// Les harmoniques 3 et 4 montent et descendent lentement, a contretemps :
+        /// l'oreille y entend une voix qui change de voyelle, comme un chant sans mots.
+        /// </summary>
+        public static AudioClip Drone()
+        {
+            if (drone != null) return drone;
+
+            const float length = 6f;
+            int count = Mathf.RoundToInt(Rate * length);
+            float[] data = new float[count];
+            float peak = 0.0001f;
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float phase = t / length;                       // 0 -> 1 sur la boucle
+                float vowelA = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * phase);
+                float vowelB = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * phase * 2f + 1.3f);
+                float swell = 0.8f + 0.2f * Mathf.Sin(2f * Mathf.PI * phase * 3f);
+
+                float v = Mathf.Sin(2f * Mathf.PI * 110f * t)
+                        + Mathf.Sin(2f * Mathf.PI * 110.5f * t) * 0.8f
+                        + Mathf.Sin(2f * Mathf.PI * 220f * t) * 0.45f
+                        + Mathf.Sin(2f * Mathf.PI * 330f * t) * 0.35f * vowelA
+                        + Mathf.Sin(2f * Mathf.PI * 440f * t) * 0.22f * vowelB
+                        + Mathf.Sin(2f * Mathf.PI * 165f * t) * 0.3f;   // la quinte, lointaine
+                v *= swell;
+                data[i] = v;
+                peak = Mathf.Max(peak, Mathf.Abs(v));
+            }
+
+            for (int i = 0; i < count; i++) data[i] *= 0.8f / peak;
+
+            // PAS de FromSamples : son fondu de fin creerait un trou a chaque tour.
+            drone = AudioClip.Create("mage", count, 1, Rate, false);
+            drone.SetData(data, 0);
+            return drone;
+        }
+
         static AudioClip FromSamples(string name, float[] data)
         {
             // Petit fondu de fin : sans lui, la coupure nette fait un "clic".

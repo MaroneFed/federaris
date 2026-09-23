@@ -64,6 +64,11 @@ namespace Fief
                 Gathering.FindHollows(config);
                 Forest.Plant(worldRoot, config, rng);
                 Gathering.PlaceMoonstones(worldRoot, config, rng);
+
+                // Le mage existe des le debut, invisible et muet : c'est l'agenda de
+                // la Saison qui le fait apparaitre. Il a besoin des colliders de la
+                // foret pour choisir une place libre, il vient donc apres elle.
+                Game.Mage = Mage.Build(worldRoot, config);
             }
             catch (System.Exception error)
             {

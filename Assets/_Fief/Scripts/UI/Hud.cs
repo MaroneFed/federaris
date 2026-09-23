@@ -388,7 +388,7 @@ namespace Fief
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
 
             float w = UiStyle.S(500);
-            float h = UiStyle.S(356);
+            float h = UiStyle.S(377);
             Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(90), w, h);
             UiStyle.Frame(box);
 
@@ -416,6 +416,15 @@ namespace Fief
                 y = Line(x, y, inner, "Joueur",
                          p.x.ToString("0") + " / " + p.y.ToString("0.0") + " / " + p.z.ToString("0"));
                 y = Line(x, y, inner, "Sol sous les pieds", Ground.Sample(p.x, p.z).ToString("0.0") + " m");
+
+                // Pour tester sans chercher une demi-heure : ou est le mage. En jeu,
+                // aucun repere ne le montre -- on le trouve a l'oreille.
+                Mage mage = Game.Mage;
+                y = Line(x, y, inner, "Mage",
+                         mage != null && mage.Present
+                             ? "a " + FlatDistance(p, mage.transform.position).ToString("0") + " m, "
+                               + Direction(p, mage.transform.position)
+                             : "absent");
             }
 
             if (cam != null)
