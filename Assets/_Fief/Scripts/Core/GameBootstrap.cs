@@ -75,8 +75,8 @@ namespace Fief
             Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
                       + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs.");
 
-            Toasts.Show("La brume se referme a quelques pas.", Palette.Gold);
-            Toasts.Show("F1 pour les commandes.", UiStyle.Ink);
+            // Les messages d'accueil sont affiches par Menus, a l'entree en jeu : ici
+            // ils s'eteignaient pendant l'ecran-titre sans que personne les voie.
         }
 
         void Update()
