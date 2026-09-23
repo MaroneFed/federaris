@@ -110,3 +110,4 @@ IList
 IEnumerable
 IComparable
 StringBuilder
+ColorSpace

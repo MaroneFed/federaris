@@ -327,7 +327,7 @@ namespace Fief
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
 
             float w = UiStyle.S(500);
-            float h = UiStyle.S(334);
+            float h = UiStyle.S(356);
             Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(90), w, h);
             UiStyle.Frame(box);
 
@@ -341,6 +341,11 @@ namespace Fief
             y += UiStyle.S(8);
 
             y = Line(x, y, inner, "Monde construit en", Game.BuildMilliseconds + " ms");
+
+            // Tout le reglage de la lumiere depend de cet espace, et le depot ne le
+            // versionne pas : c'est Unity qui le choisit sur chaque machine.
+            y = Line(x, y, inner, "Espace colorimetrique",
+                     QualitySettings.activeColorSpace == ColorSpace.Linear ? "lineaire" : "gamma");
             y = Line(x, y, inner, "Vue",
                      orbitCamera != null && orbitCamera.ThroughEyes ? "premiere personne" : "ecran-titre");
 

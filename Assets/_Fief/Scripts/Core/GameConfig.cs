@@ -25,19 +25,26 @@ namespace Fief
                  "plus loin. Descends a 18 pour etouffer, remonte a 40 pour respirer.")]
         public float sightDistance = 26f;
 
-        [Tooltip("Couleur de la brume et du fond. Bleu-vert tres sombre : une brume " +
-                 "grise a l'air d'un bug de rendu, une brume teintee a l'air d'un lieu.")]
-        public Color hazeColor = new Color(0.10f, 0.12f, 0.13f);
+        [Tooltip("Couleur de la brume et du fond. Gris-vert, et PLUS CLAIRE que les " +
+                 "troncs proches : c'est ce qui les decoupe en silhouettes. Une brume plus " +
+                 "sombre que les arbres donne un vide noir, pas une foret.")]
+        public Color hazeColor = new Color(0.17f, 0.19f, 0.17f);
 
-        [Tooltip("Force de la lumiere rasante. Elle ne sert pas a eclairer mais a decouper.")]
-        public float sunIntensity = 0.5f;
+        [Tooltip("Hauteur de la lumiere au-dessus de l'horizon, en degres. Sous un couvert " +
+                 "la lumiere tombe d'en haut : en dessous de 35 elle eclaire les troncs de " +
+                 "cote, comme un projecteur, et plus rien n'a l'air naturel.")]
+        public float sunElevation = 52f;
+
+        [Tooltip("Force de la lumiere du ciel. Faible : c'est un temps couvert.")]
+        public float sunIntensity = 0.45f;
 
         [Tooltip("Force de la lanterne que tu portes. Sans elle, sombre veut dire " +
-                 "'on ne voit rien' et le jeu devient penible.")]
-        public float lampIntensity = 1.35f;
+                 "'on ne voit rien' et le jeu devient penible. Trop forte, elle repeint " +
+                 "la foret en orange.")]
+        public float lampIntensity = 1.0f;
 
         [Tooltip("Portee de la lanterne, en metres.")]
-        public float lampRange = 15f;
+        public float lampRange = 13f;
 
         [Tooltip("Ecart moyen entre deux emplacements d'arbre, en metres. Plus petit = " +
                  "plus dense, mais aussi plus long a construire.")]
