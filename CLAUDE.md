@@ -75,3 +75,20 @@ Si Martin propose une idée hors-phase, lui rappeler cette règle.
 - La logique de jeu ne vit pas dans les `MonoBehaviour` quand elle peut en être extraite
   (voir `docs/ARCHITECTURE.md`).
 - Or, prix, stocks et inventaires ne se modifient **que** par les méthodes `Request*` / `Try*`.
+
+## Le vérificateur
+
+Claude ne peut pas lancer Unity : il ne voit jamais ses propres erreurs de compilation.
+`Tools/verifier.py` les cherche à sa place. **À lancer avant chaque push**, et tu peux le
+lancer toi-même avant d'ouvrir l'éditeur :
+
+```
+python3 Tools/verifier.py
+```
+
+Il attrape les cinq fautes qui sont *réellement* arrivées sur ce projet : accolades
+déséquilibrées, appel à une méthode supprimée, référence à `Type.Membre` inexistant,
+mauvais nombre d'arguments, type inconnu ou `[Header]` posé devant une méthode.
+
+Si tu ajoutes du code utilisant un type Unity absent de `Tools/types-externes.txt`,
+le vérificateur rouspète : ajoute son nom au fichier, une ligne chacun.

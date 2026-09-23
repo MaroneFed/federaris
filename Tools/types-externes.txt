@@ -1,0 +1,112 @@
+# Types qui viennent d'Unity ou de .NET, pas de ce projet.
+#
+# Le verificateur signale tout type utilise qui n'est declare nulle part dans
+# Assets/_Fief/Scripts. C'est ce qui attrape une classe supprimee par erreur et
+# encore utilisee quelque part -- le cas exact qui a casse la compilation de
+# GameConfig.cs le 23/09/2026.
+#
+# Si tu ajoutes du code qui se sert d'un type Unity absent de cette liste, le
+# verificateur va rouspeter : ajoute simplement son nom ici, une ligne chacun.
+
+# --- Unity, socle
+GameObject
+Transform
+Component
+MonoBehaviour
+ScriptableObject
+Object
+
+# --- Unity, maths et couleurs
+Vector2
+Vector3
+Vector4
+Quaternion
+Matrix4x4
+Color
+Color32
+Rect
+Bounds
+Ray
+
+# --- Unity, rendu
+Mesh
+MeshFilter
+MeshRenderer
+Renderer
+Material
+Shader
+Texture2D
+Sprite
+Camera
+Light
+PrimitiveType
+ShadowCastingMode
+LightShadows
+LightType
+FogMode
+AmbientMode
+CameraClearFlags
+IndexFormat
+
+# --- Unity, physique
+Collider
+BoxCollider
+CapsuleCollider
+SphereCollider
+MeshCollider
+Rigidbody
+CharacterController
+RaycastHit
+QueryTriggerInteraction
+
+# --- Unity, son
+AudioClip
+AudioSource
+AudioListener
+
+# --- Unity, interface immediate
+GUIStyle
+GUIContent
+GUISkin
+Font
+FontStyle
+TextAnchor
+RectOffset
+ScaleMode
+
+# --- Unity, entrees (ancien et nouveau systeme)
+KeyCode
+Keyboard
+Mouse
+ButtonControl
+
+# --- Unity, divers
+Scene
+Time
+Debug
+Random
+Mathf
+Application
+Screen
+QualitySettings
+RenderSettings
+Physics
+Resources
+Gizmos
+
+# --- .NET
+System
+List
+Dictionary
+HashSet
+Queue
+Stack
+Array
+String
+Math
+Action
+Func
+IList
+IEnumerable
+IComparable
+StringBuilder

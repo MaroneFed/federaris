@@ -107,19 +107,5 @@ namespace Fief
         [Tooltip("Sensibilite du prix au stock. Plus c'est haut, plus les prix bougent fort.")]
         public float priceElasticity = 0.62f;
 
-        [Header("Zones de ressources (dessinees a la main)")]
-
-
-        static ResourceZone NewZone(string name, ResourceType type, Vector2 center, float radius, int count)
-        {
-            ResourceZone z = new ResourceZone();
-            z.name = name;
-            z.type = type;
-            z.center = center;
-            z.radius = radius;
-            z.nodeCount = count;
-            return z;
-        }
-
     }
 }
