@@ -31,8 +31,9 @@ namespace Fief
         {
             // Filet de securite : les teintes proches partagent un materiau.
             // Sans ca, du code qui tire des couleurs au hasard cree des milliers
-            // de materiaux et le lancement s'effondre.
-            color = Palette.Quantize(color, 24);
+            // de materiaux et le lancement s'effondre. Arrondi perceptuel : voir
+            // Palette.QuantizeFine, l'arrondi lineaire ecrasait les sombres.
+            color = Palette.QuantizeFine(color, 40);
 
             Material mat;
             if (Cache.TryGetValue(color, out mat) && mat != null) return mat;

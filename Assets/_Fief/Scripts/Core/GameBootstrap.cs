@@ -75,7 +75,7 @@ namespace Fief
             Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
                       + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs.");
 
-            Toasts.Show("Tu n'y vois pas a quarante metres.", Palette.Gold);
+            Toasts.Show("La brume se referme a quelques pas.", Palette.Gold);
             Toasts.Show("F1 pour les commandes.", UiStyle.Ink);
         }
 
