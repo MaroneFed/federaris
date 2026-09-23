@@ -45,6 +45,7 @@ namespace Fief
             Game.Hoard = new Hoard();
             Game.Hoard.MaxCaches = Mathf.Max(0, config.maxCaches);
             Game.Hoard.CacheCapacity = Mathf.Max(1f, config.cacheCapacity);
+            Game.Hoard.CampCapacity = Mathf.Max(1f, config.campCapacity);
 
             System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
 
@@ -196,6 +197,9 @@ namespace Fief
             player.rig = rig;
             player.orbitCamera = orbit;
             go.AddComponent<PlayerInteractor>();
+            // C plante le camp, G creuse une cache. Apres PlayerController : son Awake
+            // va chercher ce composant pour savoir quand les entrees sont figees.
+            go.AddComponent<CampActions>();
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;

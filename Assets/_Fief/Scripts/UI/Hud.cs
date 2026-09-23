@@ -68,6 +68,7 @@ namespace Fief
             DrawSeason();
             DrawPack();
             DrawPrompt();
+            DrawDigging();
             Toasts.Draw();
             DrawHelp();
             DrawBuildError();
@@ -263,6 +264,26 @@ namespace Fief
                                     box.width - UiStyle.S(12), UiStyle.S(4));
                 UiStyle.Bar(bar, interactor.HoldProgress01, Palette.Gold, new Color(0f, 0f, 0f, 0.5f));
             }
+        }
+
+        // ---------------------------------------------------------------- creusage
+
+        /// <summary>La jauge de G maintenu : a la place de l'invite, au meme endroit.</summary>
+        void DrawDigging()
+        {
+            if (!CampActions.Digging) return;
+
+            float w = UiStyle.S(300);
+            float h = UiStyle.S(44);
+            Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(276), w, h);
+            UiStyle.DropShadow(box, UiStyle.S(14));
+            GUI.Box(box, GUIContent.none, UiStyle.CardBox);
+
+            float pad = UiStyle.S(14);
+            GUI.Label(new Rect(box.x + pad, box.y + UiStyle.S(4), w - pad * 2f, UiStyle.S(22)),
+                      "Tu creuses...", UiStyle.Label);
+            UiStyle.Bar(new Rect(box.x + pad, box.y + UiStyle.S(28), w - pad * 2f, UiStyle.S(8)),
+                        CampActions.Progress01, new Color(0.80f, 0.66f, 0.46f), UiStyle.BarBg);
         }
 
         // ---------------------------------------------------------------- reperes
@@ -483,7 +504,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(300);
-            float h = UiStyle.S(235);
+            float h = UiStyle.S(277);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -508,6 +529,8 @@ namespace Fief
                 { "Maj", "courir" },
                 { "Souris", "camera" },
                 { "E", "recolter, interagir" },
+                { "C", "planter le camp" },
+                { "G", "creuser une cache" },
                 { "F3", "diagnostic" },
                 { "Echap", "pause" }
             };

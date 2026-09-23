@@ -118,6 +118,9 @@ namespace Fief
         public float mageMinDistance = 110f;
         [Tooltip("Et au plus a celle-ci : il doit rester atteignable dans le temps imparti.")]
         public float mageMaxDistance = 320f;
+        [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
+                 "tente se voit.")]
+        public float campCapacity = 60f;
         [Tooltip("Nombre de caches qu'on peut creuser dans une Saison.")]
         public int maxCaches = 3;
         [Tooltip("Ce qu'une cache peut contenir, en kg.")]

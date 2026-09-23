@@ -15,6 +15,14 @@ namespace Fief
         public bool CampPlanted { get; private set; }
         public Vector3 CampPosition { get; private set; }
 
+        /// <summary>
+        /// Ce que contient la tente. Plus grande qu'une cache, mais VISIBLE : une
+        /// tente se voit, une butte de terre non. En solo ca ne change rien ; en
+        /// Phase 2, c'est toute la difference entre ce qu'on vole et ce qu'on trouve.
+        /// </summary>
+        public Cache CampStash { get; private set; }
+        public float CampCapacity = 60f;
+
         public readonly List<Cache> Caches = new List<Cache>();
         public int MaxCaches = 3;
         public float CacheCapacity = 40f;
@@ -35,6 +43,7 @@ namespace Fief
             if (CampPlanted) return false;
             CampPlanted = true;
             CampPosition = at;
+            CampStash = new Cache(at, 0, CampCapacity);
             return true;
         }
 

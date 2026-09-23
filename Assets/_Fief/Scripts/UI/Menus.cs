@@ -340,6 +340,8 @@ namespace Fief
             { "Maj", "Courir (sac pas trop lourd)" },
             { "Espace", "Sauter" },
             { "E", "Interagir, ramasser" },
+            { "C", "Planter ton camp (une fois)" },
+            { "G (maintenir)", "Creuser une cache (trois)" },
             { "Echap", "Pause" },
             { "F1", "Aide a l'ecran" },
             { "F3", "Diagnostic" }
