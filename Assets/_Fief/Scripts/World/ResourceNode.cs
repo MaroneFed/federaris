@@ -44,7 +44,8 @@ namespace Fief
 
         void Update()
         {
-            if (remaining > 0) return;
+            // respawnDelay a zero : ce gisement ne revient JAMAIS (le fer du chateau).
+            if (remaining > 0 || respawnDelay <= 0f) return;
 
             // Pas de message quand un gisement revient : il y en a des dizaines, et
             // l'ecran annoncerait des repousses a trois cents metres dans la brume.

@@ -66,6 +66,27 @@ nouvelle idée.
 Six apparitions par Saison. La rareté du mage **est** la tension : le rater, c'est
 attendre quatre minutes et demie.
 
+Il apparaît **à 110–260 m de toi**, dans une place dégagée, jamais au château ni dans
+un creux. On ne le voit qu'à 26 m (la brume) ; sa voix, elle, s'entend à deux cents
+mètres. Un message dit seulement « au nord-est » au moment où il arrive.
+
+**Il ne prend que ce qu'on porte, mais on peut faire plusieurs voyages** tant qu'il
+chante. C'est ce qui donne leur sens aux caches en solo : une cache pleine près de
+l'endroit où il apparaît, c'est un deuxième sac.
+
+### Ce que dit la simulation (`python3 Tools/saison.py`)
+
+| Joueur type | Puissance médiane | Ce que dit l'écran de fin |
+|---|---|---|
+| Flâneur (3 apparitions, pas de fer) | ~140 | un talisman |
+| Régulier (rate une apparition sur trois) | ~990 | un trésor de mage |
+| Expert, six apparitions, sans caches | ~1340 | un trésor de mage |
+| Expert qui se sert de ses caches | ~1550 | **une légende** |
+
+Paliers : babiole < 120 ≤ talisman < 400 ≤ relique < 800 ≤ trésor < 1450 ≤ légende.
+La légende **exige** les caches : c'est voulu, c'est la mécanique qu'on veut qu'il
+apprenne.
+
 ---
 
 ## Les trois ressources
@@ -78,11 +99,15 @@ lieu, pas de nombre.
 | Où | fagots au pied des arbres morts | pierres qui luisent, **dans les creux** | les réserves **du château** |
 | Poids | 1 kg | 3 kg | 2 kg |
 | Valeur pour le mage | 1 | 4 | 10 |
-| Abondance | partout | rare, on la voit briller | très rare, et gardée (Phase 2) |
+| Abondance | partout | rare, on la voit briller | **54 lingots pour toute la Saison**, ne reviennent pas ; gardés en Phase 2 |
 
 **La relique** vaut la somme des valeurs, multipliée par un bonus de **variété** :
 ×1 pour une seule ressource, ×1,25 pour deux, **×1,6 pour les trois**. Sans ce bonus,
 tout le monde ne ferait que du fer ; avec lui, il faut **les trois lieux**.
+
+Le fer du château **ne revient pas**. Quand il revenait (toutes les deux minutes), la
+simulation montrait que le meilleur plan était la navette château–mage, sans jamais
+entrer dans la forêt. Fini, il devient une course : qui vide les réserves le premier.
 
 ---
 

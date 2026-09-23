@@ -94,6 +94,37 @@ namespace Fief
         public static void Pop() { Play(pop, 0.5f); }
         public static void Step() { Play(Pick(step), 0.22f); }
 
+        static AudioClip bell;
+
+        /// <summary>
+        /// La cloche de fin de Saison. Une cloche n'a pas des harmoniques "justes"
+        /// (x2, x3...) comme une corde : ses partiels sont decales (x2,0 ; x2,4 ; x3 ;
+        /// x4,5). C'est ce decalage qui fait qu'on reconnait une cloche.
+        /// </summary>
+        public static void Bell()
+        {
+            if (bell == null)
+            {
+                const float duration = 5f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                float[] ratios = { 0.5f, 1f, 2f, 2.4f, 3f, 4.5f };
+                float[] levels = { 0.35f, 1f, 0.6f, 0.45f, 0.3f, 0.2f };
+                float[] decays = { 0.5f, 0.8f, 1.2f, 1.6f, 2.2f, 3.2f };
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float attack = Mathf.Min(1f, t * 400f);
+                    float v = 0f;
+                    for (int p = 0; p < ratios.Length; p++)
+                        v += Mathf.Sin(2f * Mathf.PI * 196f * ratios[p] * t) * levels[p] * Mathf.Exp(-decays[p] * t);
+                    data[i] = v * attack * 0.3f;
+                }
+                bell = FromSamples("cloche", data);
+            }
+            Play(bell, 1f);
+        }
+
         static AudioClip Pick(AudioClip[] bank)
         {
             if (bank == null || bank.Length == 0) return null;

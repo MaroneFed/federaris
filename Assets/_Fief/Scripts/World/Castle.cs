@@ -361,7 +361,11 @@ namespace Fief
             ResourceNode node = go.AddComponent<ResourceNode>();
             node.yieldPerHarvest = 1;
             node.harvestDuration = cfg != null ? cfg.harvestDuration : 1.15f;
-            node.respawnDelay = 120f;
+            // Le fer du chateau NE REVIENT PAS : 54 lingots pour toute la Saison.
+            // Sans ca, le meilleur plan etait de faire la navette chateau-mage avec du
+            // fer et d'ignorer la foret. Rare veut dire fini ; en Phase 2, c'est ce
+            // qui fera se croiser les joueurs dans les reserves.
+            node.respawnDelay = 0f;
             node.Initialise(ResourceType.Iron, 6, visual.transform);
         }
 

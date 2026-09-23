@@ -26,13 +26,17 @@ namespace Fief
     /// place dans les yeux pendant que l'ecran est noir, puis l'image revient. Sans
     /// ca, le saut de la vue de dehors a la vue de dedans est un a-coup brutal.
     ///
+    /// LA CLOCHE. Quand la Saison s'acheve, le jeu se fige (le joueur, pas le monde :
+    /// la lanterne vacille toujours) et l'ecran de fin dit ce que vaut la relique
+    /// posee sur la stele. Seule une relique POSEE compte.
+    ///
     /// Concept Unity : Time.timeScale = 0 met le temps du jeu en pause ; les Update
     /// tournent toujours mais Time.deltaTime vaut 0. Un menu doit donc s'animer
     /// avec Time.unscaledDeltaTime, qui avance toujours.
     /// </summary>
     public class Menus : MonoBehaviour
     {
-        public enum State { Title, Playing, Paused }
+        public enum State { Title, Playing, Paused, Ended }
 
         public State Current { get; private set; }
 
@@ -43,6 +47,8 @@ namespace Fief
         float veil;             // 0 -> 1 : voile de la pause
         float curtain;          // 0 -> 1 : noir complet, pendant l'entree en jeu
         bool entering;          // le rideau descend ; on bascule quand il est noir
+        float ended;            // 0 -> 1 : apparition de l'ecran de fin
+        int bellWarnings;       // rappels "la cloche approche" deja donnes
 
         static Texture2D sideShade;
         static Texture2D vignette;
@@ -66,6 +72,14 @@ namespace Fief
             appear = Mathf.Min(1f, appear + dt * 0.55f);
 
             bool panelOpen = Game.Hud != null && Game.Hud.PanelOpen;
+
+            Season season = Game.Season;
+            if (Current == State.Playing && season != null)
+            {
+                WarnOfBell(season);
+                if (season.Over) EndSeason();
+            }
+            if (Current == State.Ended) ended = Mathf.Min(1f, ended + dt * 0.4f);
 
             if (FiefInput.CancelPressed && !entering)
             {
@@ -120,7 +134,8 @@ namespace Fief
             if (Game.Hud != null && Game.Hud.interactor != null) Game.Hud.interactor.InputLocked = blocked;
             // Le HUD se cache tout seul tant que le menu bloque (Hud.Hidden lit Blocking).
 
-            veil = Mathf.MoveTowards(veil, Current == State.Paused || showControls ? 1f : 0f, dt * 5f);
+            float wantVeil = Current == State.Paused || showControls ? 1f : Current == State.Ended ? 0.85f : 0f;
+            veil = Mathf.MoveTowards(veil, wantVeil, dt * (Current == State.Ended ? 0.5f : 5f));
         }
 
         // ------------------------------------------------------------------ transitions
@@ -155,6 +170,31 @@ namespace Fief
             Toasts.Show("F1 pour les commandes.", UiStyle.Ink);
         }
 
+        /// <summary>Deux rappels : a cinq minutes, puis a une minute de la cloche.</summary>
+        void WarnOfBell(Season season)
+        {
+            float left = season.Remaining;
+            if (bellWarnings == 0 && left <= 300f)
+            {
+                bellWarnings = 1;
+                Toasts.Show("La cloche sonnera dans cinq minutes. Seule une relique posee sur la stele comptera.",
+                            new Color(0.92f, 0.62f, 0.32f));
+            }
+            else if (bellWarnings == 1 && left <= 60f)
+            {
+                bellWarnings = 2;
+                Toasts.Show("Une minute avant la cloche.", new Color(0.92f, 0.45f, 0.32f));
+            }
+        }
+
+        void EndSeason()
+        {
+            Current = State.Ended;
+            ended = 0f;
+            if (Game.Hud != null) Game.Hud.ClosePanel();
+            Sfx.Bell();
+        }
+
         public void Pause()
         {
             Current = State.Paused;
@@ -179,7 +219,7 @@ namespace Fief
             else
             {
                 Toasts.Show("Ajoute la scene au Build Settings pour relancer.", Palette.Iron);
-                Resume();
+                if (Current == State.Paused) Resume();
             }
         }
 
@@ -258,6 +298,7 @@ namespace Fief
             if (showControls) DrawControls();
             else if (Current == State.Title && !entering) DrawTitle();
             else if (Current == State.Paused) DrawPause();
+            else if (Current == State.Ended) DrawEnd();
 
             // Le rideau passe par-dessus tout, y compris le texte.
             if (curtain > 0.001f) UiStyle.Fill(screen, new Color(0f, 0f, 0f, curtain));
@@ -334,6 +375,99 @@ namespace Fief
             if (GUI.Button(new Rect(x, y, bw, bh * 0.85f), "Recommencer", UiStyle.Button)) Restart();
             y += bh * 0.85f + UiStyle.S(7);
             if (GUI.Button(new Rect(x, y, bw, bh * 0.85f), "Quitter le jeu", UiStyle.Button)) Quit();
+        }
+
+        /// <summary>
+        /// Ce que vaut la relique, dit avec des mots. En solo, il n'y a personne a
+        /// battre : ces paliers donnent un but a la partie suivante. Ils sont regles
+        /// par la simulation de Saison (Tools/saison.py) : un flaneur fait un
+        /// talisman (~140), un joueur regulier un tresor (~990), un expert qui va
+        /// aux six apparitions ~1340 -- et seul celui qui se sert AUSSI de ses caches
+        /// pour faire deux voyages par apparition atteint la legende (~1550).
+        /// </summary>
+        public static string Rank(int power)
+        {
+            if (power <= 0) return "rien";
+            if (power < 120) return "une babiole";
+            if (power < 400) return "un talisman";
+            if (power < 800) return "une relique";
+            if (power < 1450) return "un tresor de mage";
+            return "une legende";
+        }
+
+        void DrawEnd()
+        {
+            Hoard hoard = Game.Hoard;
+            if (hoard == null) return;
+
+            float ease = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((ended - 0.2f) / 0.8f));
+            if (ease <= 0f) return;
+            Color was = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, ease);
+
+            float w = UiStyle.S(560);
+            float h = UiStyle.S(420);
+            Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f + (1f - ease) * UiStyle.S(20), w, h);
+            UiStyle.Frame(box);
+
+            float x = box.x + UiStyle.S(32);
+            float y = box.y + UiStyle.S(26);
+            float bw = w - UiStyle.S(64);
+
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), "LA CLOCHE A SONNE", UiStyle.Title);
+            y += UiStyle.S(42);
+            UiStyle.Rule(new Rect(x, y, bw, 1f));
+            y += UiStyle.S(20);
+
+            int score = hoard.FinalScore;
+            Relic relic = hoard.Relic;
+            string verdict;
+            string detail;
+            if (relic == null)
+            {
+                verdict = "Tu n'as rien forge.";
+                detail = "Le mage chante six fois par Saison. Suis sa voix, les bras charges.";
+            }
+            else if (!hoard.RelicOnStele)
+            {
+                verdict = "Ta relique n'etait pas sur la stele.";
+                detail = "Puissance " + relic.Power + ", mais elle ne compte pas : il fallait la poser avant la cloche.";
+            }
+            else
+            {
+                verdict = "Sur la stele : " + Rank(score) + ".";
+                detail = "Forgee " + relic.Forgings + " fois : "
+                         + relic.Get(ResourceType.Deadwood) + " bois mort, "
+                         + relic.Get(ResourceType.Moonstone) + " pierre-lune, "
+                         + relic.Get(ResourceType.Iron) + " fer ancien.";
+            }
+
+            GUIStyle big = UiStyle.Big;
+            UiStyle.Shadowed(new Rect(x, y, bw, UiStyle.S(56)), score.ToString(), big);
+            GUI.Label(new Rect(x, y + UiStyle.S(52), bw, UiStyle.S(20)), "puissance", UiStyle.Small);
+            y += UiStyle.S(84);
+
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(26)), verdict, UiStyle.Head);
+            y += UiStyle.S(30);
+
+            GUIStyle wrapped = UiStyle.Small;
+            bool wrap = wrapped.wordWrap;
+            wrapped.wordWrap = true;
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(40)), detail, wrapped);
+            y += UiStyle.S(46);
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(40)),
+                      "Astuce : une cache pleine pres de l'endroit ou le mage chante, c'est deux voyages au lieu d'un.",
+                      UiStyle.Tiny);
+            wrapped.wordWrap = wrap;
+
+            float bh = UiStyle.S(42);
+            float by = box.yMax - bh - UiStyle.S(26);
+            if (GUI.Button(new Rect(x, by, bw * 0.55f, bh), "UNE AUTRE SAISON", UiStyle.ButtonPrimary) && ease > 0.9f)
+                Restart();
+            if (GUI.Button(new Rect(x + bw * 0.6f, by, bw * 0.4f, bh), "Quitter", UiStyle.Button) && ease > 0.9f)
+                Quit();
+
+            GUI.color = was;
         }
 
         /// <summary>La liste des commandes. A tenir a jour a chaque nouvelle action.</summary>
