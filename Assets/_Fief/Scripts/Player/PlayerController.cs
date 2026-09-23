@@ -141,7 +141,21 @@ namespace Fief
             }
         }
 
-        /// <summary>Filet de securite : on ne sort pas de la carte, meme si un mur manque.</summary>
+        /// <summary>
+        /// Filet de securite : on ne sort pas de la carte, et si on passe a travers
+        /// le sol on est remis DESSUS.
+        ///
+        /// LE BUG QU'IL A CAUSE. Ce filet remettait le joueur a y = +2 m des qu'il
+        /// passait sous y = -20 m -- deux altitudes ABSOLUES, calibrees pour l'ancienne
+        /// carte. Le relief de la sylve creuse des vallons jusqu'a -26,1 m (recalcule a
+        /// l'identique dans Tools/monde.py). En y entrant, on se retrouvait "sous -20",
+        /// donc renvoye a +2 m : 28 m au-dessus du sol, au niveau des cimes. On
+        /// retombait, on retouchait le fond du vallon, et ca recommencait. A l'infini.
+        ///
+        /// La regle est maintenant RELATIVE AU SOL : on n'est secouru que si l'on est
+        /// vraiment passe dessous, et on est repose juste au-dessus. Plus aucune
+        /// altitude en dur, donc plus rien a recalibrer si le relief change.
+        /// </summary>
         void KeepInsideMap(GameConfig cfg)
         {
             float limit = cfg.mapSize * 0.5f - 3f;
@@ -149,7 +163,14 @@ namespace Fief
             bool clamped = false;
             if (Mathf.Abs(p.x) > limit) { p.x = Mathf.Sign(p.x) * limit; clamped = true; }
             if (Mathf.Abs(p.z) > limit) { p.z = Mathf.Sign(p.z) * limit; clamped = true; }
-            if (p.y < -20f) { p = new Vector3(p.x, 2f, p.z); clamped = true; verticalVelocity = 0f; }
+
+            float ground = Ground.Sample(p.x, p.z);
+            if (p.y < ground - 4f)
+            {
+                p.y = ground + 1.5f;
+                clamped = true;
+                verticalVelocity = 0f;
+            }
             if (clamped)
             {
                 controller.enabled = false;
