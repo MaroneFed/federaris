@@ -56,7 +56,13 @@ namespace Fief
                 Ground.Prepare(config);
                 Ground.Build(worldRoot, config);
                 Castle.Build(worldRoot, config);
+
+                // Les creux d'abord (ils ne dependent que du relief), pour que la foret
+                // les laisse degages ; les pierres-lune y sont posees ensuite.
+                Gathering.Reset();
+                Gathering.FindHollows(config);
                 Forest.Plant(worldRoot, config, rng);
+                Gathering.PlaceMoonstones(worldRoot, config, rng);
             }
             catch (System.Exception error)
             {
@@ -76,7 +82,9 @@ namespace Fief
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
-                      + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs.");
+                      + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs, "
+                      + Gathering.FagotCount + " fagots, " + Gathering.LogSourceCount + " troncs a bois mort, "
+                      + Gathering.MoonstoneCount + " pierres-lune dans " + Gathering.HollowCount + " creux.");
 
             // Les messages d'accueil sont affiches par Menus, a l'entree en jeu : ici
             // ils s'eteignaient pendant l'ecran-titre sans que personne les voie.

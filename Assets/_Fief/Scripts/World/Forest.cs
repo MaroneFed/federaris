@@ -294,8 +294,12 @@ namespace Fief
                     // traverse la courtine.
                     if (Castle.Covers(px, pz, 8f)) continue;
 
+                    // Les creux a pierre-lune restent degages : une clairiere bleue, pas
+                    // un tronc plante au milieu des eclats.
+                    if (Gathering.NearHollow(px, pz, 9f)) continue;
+
                     if (rng.NextDouble() < cover * density)
-                        PlaceTree(root.transform, px, pz, cover, rng);
+                        PlaceTree(root.transform, px, pz, cover, rng, cfg);
 
                     // Le sous-bois prospere la ou le couvert s'ouvre : c'est l'inverse
                     // des arbres, et ca remplit les clairieres au lieu de les vider.
@@ -305,7 +309,7 @@ namespace Fief
 
                     // Le bois mort git sous le couvert, la ou des arbres sont tombes.
                     if (cover > 0.35f && rng.NextDouble() < 0.022)
-                        PlaceLog(root.transform, px - step * 0.3f, pz + step * 0.3f, rng);
+                        PlaceLog(root.transform, px - step * 0.3f, pz + step * 0.3f, rng, cfg);
                 }
             }
         }
@@ -329,7 +333,7 @@ namespace Fief
             return set[rng.Next(set.Count)];
         }
 
-        static void PlaceTree(Transform parent, float x, float z, float cover, System.Random rng)
+        static void PlaceTree(Transform parent, float x, float z, float cover, System.Random rng, GameConfig cfg)
         {
             Model model = PickTree(cover, rng);
             float scale = 0.78f + (float)rng.NextDouble() * 0.62f;
@@ -339,6 +343,16 @@ namespace Fief
                                    ((float)rng.NextDouble() - 0.5f) * 5f),
                   scale, "Arbre");
             TreeCount++;
+
+            // Au pied d'un arbre mort sur trois, un fagot de bois mort. Hors du fut
+            // (un metre et demi plus loin), pour qu'on puisse le ramasser.
+            if (Deads.Contains(model) && rng.NextDouble() < 0.34)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float fx = x + Mathf.Cos(a) * 1.6f;
+                float fz = z + Mathf.Sin(a) * 1.6f;
+                Gathering.Fagot(parent, Ground.Place(fx, fz, -0.05f), rng, cfg);
+            }
         }
 
         static void PlaceGround(Transform parent, float x, float z, System.Random rng)
@@ -366,7 +380,7 @@ namespace Fief
         /// l'incline d'autant. Pose a plat, il flotterait d'un cote et s'enfoncerait
         /// de l'autre des qu'on n'est pas sur un replat -- c'est-a-dire presque partout.
         /// </summary>
-        static void PlaceLog(Transform parent, float x, float z, System.Random rng)
+        static void PlaceLog(Transform parent, float x, float z, System.Random rng, GameConfig cfg)
         {
             Model model = Logs[rng.Next(Logs.Count)];
             float yaw = (float)rng.NextDouble() * 360f;
@@ -383,14 +397,15 @@ namespace Fief
             // Un leger roulis seulement : la mousse est modelisee sur le DESSUS. Un
             // tronc tourne au hasard sur lui-meme la porterait dessous.
             float roll = ((float)rng.NextDouble() - 0.5f) * 40f;
-            Spawn(parent, model, new Vector3(x, y, z),
-                  Quaternion.Euler(0f, yaw, pitch) * Quaternion.Euler(roll, 0f, 0f),
-                  scale, "Souche");
+            GameObject log = Spawn(parent, model, new Vector3(x, y, z),
+                                   Quaternion.Euler(0f, yaw, pitch) * Quaternion.Euler(roll, 0f, 0f),
+                                   scale, "Souche");
+            Gathering.MakeLogHarvestable(log, cfg);
             LogCount++;
         }
 
-        static void Spawn(Transform parent, Model model, Vector3 at, Quaternion turn,
-                          float scale, string name)
+        static GameObject Spawn(Transform parent, Model model, Vector3 at, Quaternion turn,
+                                float scale, string name)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -408,6 +423,7 @@ namespace Fief
             r.receiveShadows = false;
 
             AddBlocker(go, model);
+            return go;
         }
 
         /// <summary>
