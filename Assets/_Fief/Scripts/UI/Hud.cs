@@ -54,10 +54,11 @@ namespace Fief
             UiStyle.Ensure();
             if (Hidden) return;
 
-            DrawMarkers();
+            // La bourse, le sac et les reperes au loin appartenaient au monde
+            // d'avant. Un repere "MARCHE a 666 m" n'a aucun sens quand on ne voit
+            // pas a quarante metres -- et il tuerait justement ce qu'on cherche :
+            // ne pas savoir ou on est. On ne garde que ce qui sert ici.
             FloatingTexts.Draw(viewCamera != null ? viewCamera : Camera.main);
-            DrawPurse();
-            DrawPack();
             DrawPrompt();
             Toasts.Draw();
             DrawHelp();

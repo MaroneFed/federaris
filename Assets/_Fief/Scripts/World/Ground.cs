@@ -63,7 +63,7 @@ namespace Fief
         static float gridHalf;
 
         static float mapSize = 400f;
-        static float rimHeight = 40f;
+        static float rimHeight = 14f;   // un talus, pas une muraille : la brume suffit a fermer
         static bool ready;
 
         public static bool Ready { get { return ready; } }
@@ -83,82 +83,48 @@ namespace Fief
             basins.Clear();
             mapSize = cfg.mapSize;
 
-            // --- Les collines. Six d'entre elles sont des BARRIERES posees entre deux
-            //     fiefs voisins : c'est elles qui empechent de voir un chateau depuis
-            //     un autre. Dix massifs ferment l'horizon, vingt collines meublent le reste.
-            AddHill(175f, 649f, 116f, 74f);
-            AddHill(474f, 476f, 116f, 74f);
-            AddHill(650f, 173f, 127f, 74f);
-            AddHill(650f, -172f, 127f, 74f);
-            AddHill(474f, -476f, 135f, 74f);
-            AddHill(175f, -649f, 135f, 74f);
-            AddHill(-175f, -649f, 116f, 74f);
-            AddHill(-474f, -476f, 116f, 74f);
-            AddHill(-650f, -173f, 127f, 74f);
-            AddHill(-650f, 172f, 127f, 74f);
-            AddHill(-474f, 476f, 135f, 74f);
-            AddHill(-175f, 649f, 135f, 74f);
-            AddHill(309f, 951f, 230f, 105f);
-            AddHill(809f, 588f, 230f, 105f);
-            AddHill(1000f, 0f, 230f, 105f);
-            AddHill(809f, -588f, 230f, 105f);
-            AddHill(309f, -951f, 230f, 105f);
-            AddHill(-309f, -951f, 230f, 105f);
-            AddHill(-809f, -588f, 230f, 105f);
-            AddHill(-1000f, 0f, 230f, 105f);
-            AddHill(-809f, 588f, 230f, 105f);
-            AddHill(-309f, 951f, 230f, 105f);
-            AddHill(-140f, 300f, 120f, 48f);
-            AddHill(-140f, -300f, 120f, 48f);
-            AddHill(340f, 40f, 120f, 48f);
-            AddHill(400f, -120f, 120f, 45f);
-            AddHill(-320f, 280f, 120f, 45f);
-            AddHill(-320f, -280f, 120f, 45f);
-            AddHill(-80f, 460f, 120f, 43f);
-            AddHill(-80f, -460f, 120f, 42f);
-            AddHill(600f, -660f, 120f, 41f);
-            AddHill(460f, 180f, 120f, 39f);
-            AddHill(-860f, 200f, 120f, 38f);
-            AddHill(-860f, -200f, 120f, 38f);
-            AddHill(620f, 640f, 120f, 38f);
-            AddHill(860f, 240f, 120f, 36f);
+            // LE RELIEF D'UNE SYLVE.
+            //
+            // Il etait taille pour l'ancien monde : douze collines-barrieres posees
+            // sur les lignes de vue entre chateaux, des couloirs aplanis le long des
+            // routes, cinq lacs. Rien de tout ca n'a de sens ici.
+            //
+            // Sous un couvert ou l'on ne voit pas a quarante metres, le relief ne
+            // sert plus a composer un panorama -- on ne verra jamais de panorama. Il
+            // sert a ce qu'on ne marche jamais droit : une montee douce, un creux
+            // humide, un replat. C'est ce qui fait qu'on perd le nord, et se perdre
+            // est la moitie du sujet.
+            //
+            // Il est donc tire au sort a partir de la graine du monde, et non plus
+            // ecrit a la main : la carte suit desormais sa taille et sa graine sans
+            // qu'on ait a replacer trente collines une par une.
+            System.Random rng = new System.Random(cfg.worldSeed ^ 0x51F5E);
+            float half = mapSize * 0.5f;
 
-            // --- Zones aplanies : on ne construit pas sur une pente.
-            AddFlat(Vector2.zero, cfg.marketRadius + 46f, 1f);
-            for (int i = 0; i < cfg.fiefCount; i++)
+            // Une ondulation tous les ~9000 m2 : assez pour qu'il y ait toujours du
+            // relief dans les quarante metres qu'on voit.
+            int count = Mathf.Clamp(Mathf.RoundToInt(mapSize * mapSize / 9000f), 12, 400);
+            for (int i = 0; i < count; i++)
             {
-                Vector3 p = cfg.FiefPosition(i);
-                AddFlat(new Vector2(p.x, p.z), 96f, 1f);
+                float x = ((float)rng.NextDouble() * 2f - 1f) * half;
+                float z = ((float)rng.NextDouble() * 2f - 1f) * half;
+                float radius = 34f + (float)rng.NextDouble() * 96f;
+
+                // Autant de creux que de bosses : un terrain qui ne fait que monter
+                // se lit comme une serie de taupinieres.
+                float height = ((float)rng.NextDouble() * 2f - 1f) * 7.5f;
+                AddHill(x, z, radius, height);
             }
 
-            // --- Zones de ressources : relief attenue, pas supprime.
-            //     On veut des arbres a flanc de colline, pas un billard.
-            if (cfg.zones != null)
+            // Quelques vallons francs, plus larges et plus creux : ce sont eux qu'on
+            // reconnait, et donc les seuls reperes possibles quand on n'a pas d'horizon.
+            for (int i = 0; i < 5; i++)
             {
-                for (int i = 0; i < cfg.zones.Count; i++)
-                {
-                    ResourceZone z = cfg.zones[i];
-                    if (z == null) continue;
-                    AddFlat(z.center, z.radius + 12f, 0.45f);
-                }
+                float a = (i / 5f) * Mathf.PI * 2f + (float)rng.NextDouble();
+                float d = half * (0.25f + (float)rng.NextDouble() * 0.5f);
+                AddHill(Mathf.Cos(a) * d, Mathf.Sin(a) * d,
+                        150f + (float)rng.NextDouble() * 90f, -11f);
             }
-
-            // --- Couloirs aplanis le long des chemins.
-            //     Une vraie route contourne ou entaille la colline, elle ne la gravit
-            //     pas tout droit. Sans ca, le trajet marche-fief passait a 43 degres.
-            for (int i = 0; i < cfg.fiefCount; i++)
-            {
-                Vector3 p = cfg.FiefPosition(i);
-                AddCorridor(Vector2.zero, new Vector2(p.x, p.z), 26f, 0.95f);
-            }
-
-            // --- Les lacs. Un bassin force le terrain a descendre a plat sous le niveau
-            //     de l'eau : on obtient une cuvette propre et donc une rive nette.
-            AddBasin(-250f, -25f, 48f, 16f);
-            AddBasin(155f, 200f, 41f, 16f);
-            AddBasin(365f, -325f, 44f, 16f);
-            AddBasin(-250f, 455f, 58f, 16f);
-            AddBasin(-250f, -445f, 61f, 16f);
 
             ready = true;
         }
@@ -435,17 +401,22 @@ namespace Fief
             GameObject go = new GameObject("Terrain");
             go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            // LE SOL DE LA SYLVE. Neuf teintes, toutes entre 10 % et 27 % de clarte :
+            // mousses dans les creux humides, litiere de feuilles sur les replats,
+            // terre nue la ou la pente lessive, roche mouillee sur les devers.
+            // L'ancien nuancier allait du sable a la neige -- sous cette brume il
+            // aurait fait une moquette vert vif.
             go.AddComponent<MeshRenderer>().sharedMaterials = new Material[]
             {
-                MaterialFactory.Get(Palette.Sand),
-                MaterialFactory.Get(Palette.Grass1),
-                MaterialFactory.Get(Palette.Grass2),
-                MaterialFactory.Get(Palette.Grass3),
-                MaterialFactory.Get(Palette.Grass4),
-                MaterialFactory.Get(Palette.Scree),
-                MaterialFactory.Get(Palette.Rock1),
-                MaterialFactory.Get(Palette.Rock2),
-                MaterialFactory.Get(Palette.Snow)
+                MaterialFactory.Get(new Color(0.11f, 0.13f, 0.11f)),   // 0 fond de vallon, detrempe
+                MaterialFactory.Get(Palette.Moss[0]),
+                MaterialFactory.Get(Palette.Moss[1]),
+                MaterialFactory.Get(Palette.Moss[2]),
+                MaterialFactory.Get(Palette.Moss[3]),
+                MaterialFactory.Get(Palette.Litter[0]),
+                MaterialFactory.Get(Palette.Litter[1]),
+                MaterialFactory.Get(Palette.Litter[2]),
+                MaterialFactory.Get(Palette.WetRocks[2])               // 8 devers, roche a nu
             };
 
             go.AddComponent<MeshCollider>().sharedMesh = collisionMesh;
@@ -464,30 +435,32 @@ namespace Fief
             float cz = (v0.z + v1.z + v2.z) / 3f;
             float n = Noise(cx, cz);
 
+            // Le sol d'une foret ne se lit pas a l'altitude -- il n'y a plus de
+            // montagne ici, tout tient dans une quinzaine de metres. Il se lit a
+            // l'HUMIDITE : ce qui est bas et plat retient l'eau et se couvre de
+            // mousse, ce qui est haut et expose seche et se couvre de feuilles
+            // mortes, ce qui est raide se lessive et montre la roche.
             int band;
-            if (flatness < 0.62f)
+            if (flatness < 0.58f)
             {
-                band = n < 0.5f ? 6 : 7;                      // falaise
+                band = 8;                                      // devers : roche a nu
             }
-            else if (height > 88f + n * 16f)
+            else if (height < -6f + n * 3f)
             {
-                band = 8;                                      // neige des sommets
-            }
-            else if (height > 54f + n * 20f)
-            {
-                band = n < 0.45f ? 6 : 5;                      // roche et eboulis
-            }
-            else if (height < -2.2f + n * 1.4f)
-            {
-                band = 0;                                      // rivage des lacs
+                band = 0;                                      // fond de vallon detrempe
             }
             else
             {
-                float g = Mathf.Clamp01(height / 54f) + n * 0.34f;
-                if (g < 0.22f) band = 1;
-                else if (g < 0.48f) band = 2;
-                else if (g < 0.76f) band = 3;
-                else band = 4;
+                // 0 = creux humide, 1 = croupe seche. Le bruit brouille la frontiere
+                // pour qu'on ne lise pas les courbes de niveau.
+                float dryness = Mathf.Clamp01((height + 8f) / 20f) * 0.72f + n * 0.44f;
+                if (dryness < 0.20f) band = 1;
+                else if (dryness < 0.36f) band = 2;
+                else if (dryness < 0.52f) band = 3;
+                else if (dryness < 0.66f) band = 4;
+                else if (dryness < 0.80f) band = 5;
+                else if (dryness < 0.92f) band = 6;
+                else band = 7;
             }
 
             int index = vertices.Count;

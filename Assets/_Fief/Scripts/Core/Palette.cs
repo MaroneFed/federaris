@@ -132,6 +132,73 @@ namespace Fief
             new Color(0.26f, 0.20f, 0.15f)
         };
 
+        // ------------------------------------------------------------------
+        //  LA SYLVE
+        //
+        //  Une foret sombre ne se fait pas en baissant la luminosite : ca donne du
+        //  gris sale. Elle se fait avec des teintes DESATUREES et FROIDES, dans une
+        //  plage etroite -- ici tout vit entre 8 % et 34 % de clarte. Les seuls
+        //  ecarts autorises sont les futs pales des hetres et des bouleaux : ce sont
+        //  eux qui accrochent le peu de lumiere et donnent la profondeur.
+        // ------------------------------------------------------------------
+
+        public static readonly Color[] DarkBarks =
+        {
+            new Color(0.17f, 0.15f, 0.13f),
+            new Color(0.21f, 0.18f, 0.15f),
+            new Color(0.14f, 0.13f, 0.13f),
+            new Color(0.24f, 0.20f, 0.16f)
+        };
+
+        /// <summary>Les futs clairs : hetres et bouleaux. Ils percent la penombre.</summary>
+        public static readonly Color[] PaleBarks =
+        {
+            new Color(0.52f, 0.51f, 0.47f),
+            new Color(0.46f, 0.45f, 0.43f),
+            new Color(0.57f, 0.55f, 0.50f)
+        };
+
+        public static readonly Color[] DarkNeedles =
+        {
+            new Color(0.10f, 0.16f, 0.13f),
+            new Color(0.13f, 0.19f, 0.15f),
+            new Color(0.08f, 0.13f, 0.12f),
+            new Color(0.12f, 0.17f, 0.12f)
+        };
+
+        public static readonly Color[] DarkLeaves =
+        {
+            new Color(0.16f, 0.21f, 0.14f),
+            new Color(0.19f, 0.23f, 0.15f),
+            new Color(0.14f, 0.18f, 0.13f),
+            new Color(0.21f, 0.24f, 0.16f)
+        };
+
+        public static readonly Color[] Moss =
+        {
+            new Color(0.15f, 0.20f, 0.13f),
+            new Color(0.18f, 0.22f, 0.14f),
+            new Color(0.12f, 0.17f, 0.12f),
+            new Color(0.20f, 0.23f, 0.16f)
+        };
+
+        public static readonly Color[] Litter =
+        {
+            new Color(0.19f, 0.16f, 0.12f),
+            new Color(0.23f, 0.19f, 0.14f),
+            new Color(0.16f, 0.14f, 0.11f)
+        };
+
+        public static readonly Color[] WetRocks =
+        {
+            new Color(0.22f, 0.22f, 0.23f),
+            new Color(0.27f, 0.27f, 0.28f),
+            new Color(0.18f, 0.19f, 0.20f)
+        };
+
+        /// <summary>Ce qu'on voit au loin : la brume, pas le ciel.</summary>
+        public static readonly Color Haze = new Color(0.10f, 0.12f, 0.13f);
+
         public static Color Pick(Color[] set, System.Random rng)
         {
             if (set == null || set.Length == 0) return Color.white;
