@@ -59,11 +59,44 @@ namespace Fief
                             UiStyle.Small);
             GUILayout.Space(UiStyle.S(10));
 
+            Rows(cache, bag, cache.Number == 0 ? "TENTE" : "CACHE");
+            GUILayout.Space(UiStyle.S(8));
+
+            // --- les deux jauges : ce qu'on porte, ce que le trou peut encore avaler
+            Rect gauges = GUILayoutUtility.GetRect(box.width - pad * 2f, UiStyle.S(38));
+            Gauge(new Rect(gauges.x, gauges.y, gauges.width * 0.47f, gauges.height), "Sac", bag);
+            Gauge(new Rect(gauges.x + gauges.width * 0.53f, gauges.y, gauges.width * 0.47f, gauges.height),
+                  cache.Number == 0 ? "Tente" : "Cache", hole);
+
+            GUILayout.FlexibleSpace();
+
+            GUILayout.BeginHorizontal();
+            DepositAll(cache, bag);
+            GUI.enabled = true;
+
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Fermer  (Echap)", UiStyle.Button, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(160))))
+            {
+                if (Game.Hud != null) Game.Hud.ClosePanel();
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndArea();
+        }
+
+        /// <summary>
+        /// Les lignes "ressource / sac / reserve / deposer / reprendre". Partagees par
+        /// les caches, la tente et la stele : un seul endroit ou l'on deplace des
+        /// unites, et toujours par RequestDeposit / RequestWithdraw.
+        /// </summary>
+        public static void Rows(Cache cache, Inventory bag, string holeHeader)
+        {
+            Inventory hole = cache.Contents;
             // --- en-tetes de colonnes
             GUILayout.BeginHorizontal();
             GUILayout.Label("", UiStyle.Tiny, GUILayout.Width(UiStyle.S(150)));
             GUILayout.Label("SAC", UiStyle.Tiny, GUILayout.Width(UiStyle.S(60)));
-            GUILayout.Label(cache.Number == 0 ? "TENTE" : "CACHE", UiStyle.Tiny, GUILayout.Width(UiStyle.S(70)));
+            GUILayout.Label(holeHeader, UiStyle.Tiny, GUILayout.Width(UiStyle.S(70)));
             GUILayout.EndHorizontal();
 
             float btnH = UiStyle.S(27);
@@ -95,17 +128,11 @@ namespace Fief
                 GUILayout.Space(UiStyle.S(4));
             }
 
-            GUILayout.Space(UiStyle.S(8));
+        }
 
-            // --- les deux jauges : ce qu'on porte, ce que le trou peut encore avaler
-            Rect gauges = GUILayoutUtility.GetRect(box.width - pad * 2f, UiStyle.S(38));
-            Gauge(new Rect(gauges.x, gauges.y, gauges.width * 0.47f, gauges.height), "Sac", bag);
-            Gauge(new Rect(gauges.x + gauges.width * 0.53f, gauges.y, gauges.width * 0.47f, gauges.height),
-                  cache.Number == 0 ? "Tente" : "Cache", hole);
-
-            GUILayout.FlexibleSpace();
-
-            GUILayout.BeginHorizontal();
+        /// <summary>Le bouton "Tout deposer".</summary>
+        public static void DepositAll(Cache cache, Inventory bag)
+        {
             GUI.enabled = !bag.IsEmpty;
             if (GUILayout.Button("Tout deposer", UiStyle.ButtonPrimary, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(180))))
             {
@@ -127,15 +154,6 @@ namespace Fief
                 }
             }
             GUI.enabled = true;
-
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Fermer  (Echap)", UiStyle.Button, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(160))))
-            {
-                if (Game.Hud != null) Game.Hud.ClosePanel();
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.EndArea();
         }
 
         static void Report(int moved, string verb, ResourceType type)
@@ -151,7 +169,7 @@ namespace Fief
             }
         }
 
-        static void Gauge(Rect r, string label, Inventory inv)
+        public static void Gauge(Rect r, string label, Inventory inv)
         {
             GUI.Label(new Rect(r.x, r.y, r.width, UiStyle.S(20)), label, UiStyle.Small);
             GUIStyle right = UiStyle.Small;

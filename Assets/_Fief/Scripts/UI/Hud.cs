@@ -290,6 +290,21 @@ namespace Fief
                 tint = new Color(0.92f, 0.62f, 0.32f);
             }
             UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(4), Screen.width, UiStyle.S(20)), mage, UiStyle.CenteredSmall, tint);
+
+            // --- la Malediction : visible des qu'elle approche (deux minutes), et
+            // qui palpite dans les vingt dernieres secondes.
+            float curse = season.NextCurseIn;
+            if (curse >= 0f && curse < 120f && !season.MagePresent)
+            {
+                bool urgent = curse < 20f;
+                float pulse = urgent ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 8f) : 1f;
+                Color c = Curse.Violet;
+                c.a = pulse;
+                string line = "LA MALEDICTION dans " + Clock(curse)
+                              + (Game.Inventory != null && !Game.Inventory.IsEmpty ? "  --  vide ton sac a ta stele" : "  --  ton sac est vide");
+                UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(24), Screen.width, UiStyle.S(20)), line,
+                               urgent ? UiStyle.Centered : UiStyle.CenteredSmall, c);
+            }
         }
 
         // ---------------------------------------------------------------- le sac

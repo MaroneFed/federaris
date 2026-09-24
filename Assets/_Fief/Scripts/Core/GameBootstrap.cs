@@ -130,6 +130,8 @@ namespace Fief
             BuildHud(player);
 
             // La musique : tes morceaux s'ils sont dans Resources/Music, sinon la sienne.
+            Curse.Build();
+
             try { MusicDirector.Build(); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignoree : " + error.Message); }
 

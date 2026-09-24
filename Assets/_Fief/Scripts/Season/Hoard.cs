@@ -164,7 +164,117 @@ namespace Fief
             if (StelePlanted) return false;
             StelePlanted = true;
             StelePosition = at;
+            Store = new Cache(at, -1, StoreCapacity);
             return true;
+        }
+
+        // ------------------------------------------------------------------ la reserve
+
+        /// <summary>
+        /// LA RESERVE DE LA STELE (Martin, 25/09 : "la stele, c'est notre marche").
+        /// Tout ce qu'on y depose echappe a la Malediction. Mais elle ne se deplace
+        /// pas, et elle ne se defend pas : qui la trouve sans toi a cote la vide.
+        /// C'est une Cache comme les autres : on n'y touche que par RequestDeposit /
+        /// RequestWithdraw.
+        /// </summary>
+        public Cache Store { get; private set; }
+        public float StoreCapacity = 400f;
+
+        /// <summary>
+        /// Piller la reserve d'un autre : on prend tout ce qui rentre dans son sac.
+        /// Renvoie le nombre d'unites emportees.
+        /// </summary>
+        public int RequestLoot(Inventory thiefBag)
+        {
+            if (Store == null || thiefBag == null) return 0;
+            int total = 0;
+            for (int i = 0; i < ResourceInfo.Count; i++)
+            {
+                ResourceType t = (ResourceType)i;
+                total += Store.RequestWithdraw(thiefBag, t, Store.Contents.Get(t));
+            }
+            return total;
+        }
+
+        /// <summary>Deposer tout le sac dans sa reserve. Renvoie les unites deposees.</summary>
+        public int RequestStoreAll(Inventory bag)
+        {
+            if (Store == null || bag == null) return 0;
+            int total = 0;
+            for (int i = 0; i < ResourceInfo.Count; i++)
+            {
+                ResourceType t = (ResourceType)i;
+                total += Store.RequestDeposit(bag, t, bag.Get(t));
+            }
+            return total;
+        }
+
+        /// <summary>Reprendre de sa reserve tout ce qui rentre dans le sac.</summary>
+        public int RequestTakeAll(Inventory bag)
+        {
+            return RequestLoot(bag);
+        }
+
+        // ------------------------------------------------------------------ les ameliorations
+
+        readonly int[] upgrades = new int[UpgradeInfo.Count];
+
+        public int Level(UpgradeKind k) { return upgrades[(int)k]; }
+
+        public bool CanBuy(UpgradeKind k, Wallet wallet)
+        {
+            int level = Level(k);
+            if (Store == null || level >= UpgradeInfo.MaxLevel(k)) return false;
+            int[] cost = UpgradeInfo.Cost(k, level);
+            for (int i = 0; i < cost.Length; i++) if (Store.Contents.Get((ResourceType)i) < cost[i]) return false;
+            int gold = UpgradeInfo.GoldCost(k, level);
+            return gold <= 0 || wallet != null && wallet.CanAfford(gold);
+        }
+
+        /// <summary>
+        /// Acheter le niveau suivant : paye avec la RESERVE de la stele (par
+        /// Inventory.TryRemove) et la bourse (Wallet.TrySpend). Les effets qui
+        /// vivent dans les regles (sac, Malediction) s'appliquent ici ; ceux qui
+        /// vivent dans le monde (lanterne, vitesse, degats) lisent Level().
+        /// </summary>
+        public bool TryBuyUpgrade(UpgradeKind k, Inventory bag, Wallet wallet)
+        {
+            if (!CanBuy(k, wallet)) return false;
+            int level = Level(k);
+            int[] cost = UpgradeInfo.Cost(k, level);
+            int gold = UpgradeInfo.GoldCost(k, level);
+            if (gold > 0 && !wallet.TrySpend(gold)) return false;
+            for (int i = 0; i < cost.Length; i++) Store.Contents.TryRemove((ResourceType)i, cost[i]);
+            upgrades[(int)k] = level + 1;
+
+            if (k == UpgradeKind.Besace && bag != null) bag.MaxWeight += UpgradeInfo.BesaceKilos;
+            if (k == UpgradeKind.Amulette) CurseKeeps = UpgradeInfo.AmuletteKeeps;
+            return true;
+        }
+
+        /// <summary>
+        /// Ce que la Malediction laisse dans le sac (0 = rien). L'Amulette de la
+        /// stele en sauve une part (voir les ameliorations).
+        /// </summary>
+        public float CurseKeeps;
+
+        /// <summary>
+        /// La Malediction frappe : le sac perd ses ressources (moins ce que protege
+        /// l'amulette). La relique, l'or, les outils, les caches ne craignent rien.
+        /// Renvoie les unites perdues, par ressource.
+        /// </summary>
+        public int[] RequestCurse(Inventory bag)
+        {
+            int[] lost = new int[ResourceInfo.Count];
+            if (bag == null) return lost;
+            for (int i = 0; i < ResourceInfo.Count; i++)
+            {
+                ResourceType t = (ResourceType)i;
+                int have = bag.Get(t);
+                int keep = Mathf.FloorToInt(have * Mathf.Clamp01(CurseKeeps));
+                lost[i] = bag.TryRemove(t, have - keep);
+            }
+            return lost;
         }
 
         public bool TryPlaceOnStele()

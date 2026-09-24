@@ -44,7 +44,7 @@ namespace Fief
                 to.y = 0f;
                 if (to.magnitude > Reach || Vector3.Angle(flatForward, to) > 55f) continue;
                 if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
-                Hit(r.seeker, me, SwordDamage);
+                Hit(r.seeker, me, SwordDamage * (me.Hoard.Level(UpgradeKind.Lame) > 0 ? UpgradeInfo.LameFactor : 1f));
                 break;                              // un coup, une cible
             }
         }

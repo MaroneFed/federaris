@@ -34,7 +34,7 @@ namespace Fief
     {
         public static readonly List<Rival> All = new List<Rival>();
 
-        enum Goal { Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
+        enum Goal { Deposit, Resupply, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
 
         [System.NonSerialized] public Seeker seeker;
 
@@ -272,6 +272,14 @@ namespace Fief
             // Sa stele est plantee d'office (SteleSites) ; sans elle, rien a faire.
             if (!h.StelePlanted) { goal = Goal.Gather; target = transform.position; return; }
 
+            // LA MALEDICTION approche : il rentre vider son sac a sa stele, a temps.
+            float curse = season.NextCurseIn;
+            if (curse >= 0f && !seeker.Bag.IsEmpty && !season.MagePresent)
+            {
+                float eta = Flat(h.StelePosition - transform.position).magnitude / (WalkSpeed * 0.8f);
+                if (curse < eta + 25f) { goal = Goal.Deposit; target = h.StelePosition; return; }
+            }
+
             // Un trophee dans les mains : rentrer le fondre, vite.
             if (h.Trophy != null) { goal = Goal.ToStele; target = h.StelePosition; return; }
 
@@ -289,6 +297,14 @@ namespace Fief
             if (h.RelicInHand && (season.Remaining < 120f || noMageSoon || seeker.Bag.IsEmpty))
             {
                 goal = Goal.ToStele; target = h.StelePosition; return;
+            }
+
+            // Le mage arrive et son sac est presque vide, mais sa reserve est pleine :
+            // il passe d'abord la reprendre.
+            bool mageSoon = mage != null && (mage.Announced || season.MagePresent && season.MageTimeLeft > 50f);
+            if (mageSoon && seeker.Bag.Weight < 8f && h.Store != null && h.Store.Contents.TotalUnits >= 6)
+            {
+                goal = Goal.Resupply; target = h.StelePosition; return;
             }
 
             // Le mage chante -- ou sa colonne annonce ou il descendra -- et il a de
@@ -312,8 +328,8 @@ namespace Fief
             // Piller la stele du joueur, s'il la connait et que le joueur est loin.
             if (goal == Goal.Steal || WantsToSteal()) { goal = Goal.Steal; target = Game.Me.Hoard.StelePosition; return; }
 
-            // Sac plein : il garde sa stele en attendant le mage.
-            if (seeker.Bag.Load01 > 0.9f) { goal = Goal.Guard; target = h.StelePosition + GuardOffset(); return; }
+            // Sac lourd : il rentre le deposer (la Malediction ne pardonne pas).
+            if (seeker.Bag.Load01 > 0.75f) { goal = Goal.Deposit; target = h.StelePosition; return; }
 
             goal = Goal.Gather;
             if (node == null || node.IsDepleted || seeker.Bag.SpaceFor(node.type) <= 0) node = ChooseNode();
@@ -325,8 +341,10 @@ namespace Fief
             Seeker me = Game.Me;
             if (me == null || stealCooldown > 0f || !seeker.Knows(me)) return false;
             Hoard mine = me.Hoard;
-            if (!mine.StelePlanted || !mine.RelicOnStele || mine.Relic == null) return false;
-            if (seeker.Hoard.Trophy != null) return false;
+            if (!mine.StelePlanted) return false;
+            bool relic = mine.RelicOnStele && mine.Relic != null && seeker.Hoard.Trophy == null;
+            bool store = mine.Store != null && mine.Store.Contents.TotalUnits >= 8 && seeker.Bag.Load01 < 0.5f;
+            if (!relic && !store) return false;
             if (me.Body != null && Flat(me.Body.position - mine.StelePosition).magnitude < 45f) return false;
             stealCooldown = 25f;
             return rng.NextDouble() < aggression;
@@ -364,6 +382,19 @@ namespace Fief
             {
                 case Goal.Gather:
                     Harvest(dt);
+                    break;
+
+                case Goal.Deposit:
+                    h.RequestStoreAll(seeker.Bag);
+                    if (h.RelicInHand) h.TryPlaceOnStele();
+                    seeker.SyncWeight();
+                    think = 0f;
+                    break;
+
+                case Goal.Resupply:
+                    h.RequestTakeAll(seeker.Bag);
+                    seeker.SyncWeight();
+                    think = 0f;
                     break;
 
                 case Goal.ToMage:
@@ -483,7 +514,9 @@ namespace Fief
         {
             Seeker me = Game.Me;
             Hoard mine = me != null ? me.Hoard : null;
-            if (mine == null || !mine.RelicOnStele || mine.Relic == null || seeker.Hoard.Trophy != null)
+            bool relic = mine != null && mine.RelicOnStele && mine.Relic != null && seeker.Hoard.Trophy == null;
+            bool store = mine != null && mine.Store != null && !mine.Store.Contents.IsEmpty && seeker.Bag.Load01 < 0.95f;
+            if (!relic && !store)
             {
                 goal = Goal.Gather; think = 0f; stealTimer = 0f;
                 return;
@@ -495,18 +528,27 @@ namespace Fief
             if (stealTimer < 3f) return;
             stealTimer = 0f;
 
-            Relic taken = mine.TrySurrenderRelic();
-            if (taken == null || !seeker.Hoard.TryTakeTrophy(taken, me)) return;
+            string took = "";
+            if (relic)
+            {
+                Relic taken = mine.TrySurrenderRelic();
+                if (taken != null && seeker.Hoard.TryTakeTrophy(taken, me)) took = "ta relique (puissance " + taken.Power + ")";
+            }
+            int units = mine.RequestLoot(seeker.Bag);
+            if (units > 0) took += (took.Length > 0 ? " et " : "") + units + " ressources de ta reserve";
             me.SyncWeight();
             seeker.SyncWeight();
-            goal = Goal.ToStele;
+            goal = seeker.Hoard.Trophy != null ? Goal.ToStele : Goal.Deposit;
+            target = seeker.Hoard.StelePosition;
             think = 0.7f;
+            if (took.Length == 0) return;
 
             Sfx.Deny();
             if (Game.Hud != null && me.Body != null)
                 Game.Hud.ShowDiscovery("ALERTE", seeker.Name + " a pille ta stele",
-                                       "Il emporte ta relique (puissance " + taken.Power + "), " + Hud.Direction(me.Body.position, transform.position) + ".",
-                                       "Rattrape-le avant qu'il la fonde a sa stele : E pour la reprendre.",
+                                       "Il emporte " + took + ". Il file " + Hud.Direction(me.Body.position, transform.position) + ".",
+                                       seeker.Hoard.Trophy != null ? "Rattrape-le avant qu'il la fonde a sa stele : E pour la reprendre."
+                                                                   : "Abats-le : tout ce qu'il porte tombera dans sa depouille.",
                                        new Color(1f, 0.4f, 0.3f));
         }
 

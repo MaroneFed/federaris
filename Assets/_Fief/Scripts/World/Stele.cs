@@ -125,8 +125,43 @@ namespace Fief
             return null;
         }
 
+        float sentinelCooldown;
+
+        /// <summary>
+        /// LA SENTINELLE (amelioration) : si un rival rode a moins de 12 m de TA
+        /// stele pendant que tu es loin, elle sonne -- et te dit ou elle est par
+        /// rapport a toi. Une fois toutes les 40 secondes, pas plus.
+        /// </summary>
+        void Watch()
+        {
+            if (sentinelCooldown > 0f) { sentinelCooldown -= Time.deltaTime; return; }
+            Seeker me = Game.Me;
+            if (me == null || owner != me || me.Hoard.Level(UpgradeKind.Sentinelle) <= 0 || me.Body == null) return;
+            if (Flat(me.Body.position - transform.position).magnitude < 25f) return;
+            for (int i = 0; i < Rival.All.Count; i++)
+            {
+                Rival r = Rival.All[i];
+                if (r == null || !r.seeker.Alive) continue;
+                if (Flat(r.transform.position - transform.position).magnitude > 12f) continue;
+                sentinelCooldown = 40f;
+                Sfx.CurseToll();
+                if (Game.Hud != null)
+                    Game.Hud.ShowDiscovery("SENTINELLE", r.seeker.Name + " rode a ta stele",
+                                           "Elle est " + Hud.Direction(me.Body.position, transform.position) + ".",
+                                           "Il vient pour ta reserve. Ou pour ta relique.", r.seeker.Colour);
+                return;
+            }
+        }
+
+        static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v;
+        }
+
         void Update()
         {
+            Watch();
             Hoard h = owner != null ? owner.Hoard : null;
             bool lit = h != null && h.RelicOnStele && h.Relic != null;
 
@@ -208,6 +243,18 @@ namespace Fief
 
         bool Mine { get { return owner != null && owner == Game.Me; } }
 
+        /// <summary>Ce qu'il y a a prendre sur la stele d'un autre : sa relique posee, sa reserve.</summary>
+        bool HasLoot
+        {
+            get
+            {
+                Hoard o = owner.Hoard;
+                bool relic = o.RelicOnStele && o.Relic != null && Game.Me.Hoard.Trophy == null;
+                bool store = o.Store != null && !o.Store.Contents.IsEmpty;
+                return relic || store;
+            }
+        }
+
         public bool CanInteract
         {
             get
@@ -215,11 +262,10 @@ namespace Fief
                 Seeker me = Game.Me;
                 if (me == null || owner == null) return false;
                 if (Game.Season != null && Game.Season.Over) return false;
-                Hoard h = me.Hoard;
-                if (Mine) return h.Trophy != null || h.RelicInHand || h.RelicOnStele;
+                if (Mine) return true;
                 // On ne pille pas une stele sous le nez de son proprietaire.
                 if (Rival.IsGuarding(owner, transform.position)) return false;
-                return owner.Hoard.RelicOnStele && owner.Hoard.Relic != null && h.Trophy == null;
+                return HasLoot;
             }
         }
 
@@ -229,69 +275,103 @@ namespace Fief
             {
                 Seeker me = Game.Me;
                 if (me == null || owner == null) return "";
-                Hoard h = me.Hoard;
                 if (Mine)
                 {
-                    if (h.Trophy != null)
-                        return "Fondre la relique de " + h.TrophyFrom.Name + " dans la tienne";
-                    if (h.RelicInHand) return "Poser ta relique (puissance " + h.Relic.Power + ")";
-                    if (h.RelicOnStele) return "Reprendre ta relique (puissance " + h.Relic.Power + ")";
-                    return "";
+                    Hoard h = me.Hoard;
+                    if (h.Trophy != null) return "Ta stele  --  fondre la relique de " + h.TrophyFrom.Name;
+                    if (h.RelicInHand) return "Ta stele  --  poser ta relique, deposer ton sac";
+                    return "Ta stele  --  reserve, relique, ameliorations";
                 }
-                return "VOLER la relique de " + owner.Name + " (puissance " + owner.Hoard.FinalScore + ")";
+                Hoard o = owner.Hoard;
+                string what = o.RelicOnStele && o.Relic != null ? "sa relique (" + o.FinalScore + ")" : "";
+                if (o.Store != null && !o.Store.Contents.IsEmpty)
+                    what += (what.Length > 0 ? " et " : "") + "sa reserve (" + o.Store.Contents.TotalUnits + ")";
+                return "PILLER la stele de " + owner.Name + " : " + what;
             }
         }
 
-        public float HoldDuration { get { return Mine ? 1.2f : 3f; } }
+        public float HoldDuration { get { return Mine ? 0f : 3f; } }
 
         public void Interact()
         {
             Seeker me = Game.Me;
             if (me == null || owner == null) return;
-            Hoard h = me.Hoard;
 
-            if (!Mine)
+            if (Mine)
             {
-                if (!owner.Hoard.RelicOnStele) return;
-                Relic taken = owner.Hoard.TrySurrenderRelic();
-                if (taken == null || !h.TryTakeTrophy(taken, owner)) return;
-                me.SyncWeight();
-                owner.SyncWeight();
-                Sfx.Discovery();
-                if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("RELIQUE VOLEE", "La relique de " + owner.Name,
-                                           "Puissance " + taken.Power + ". Porte-la a TA stele pour la fondre.",
-                                           "Elle pese lourd. S'il te rattrape, il la reprend.", owner.Colour);
-                Rival.NotifyTheft(owner, me);
-                return;
-            }
-
-            if (h.Trophy != null)
-            {
-                string from = h.TrophyFrom != null ? h.TrophyFrom.Name : "quelqu'un";
-                int gained = h.RequestAbsorbTrophy();
-                if (h.RelicInHand) h.TryPlaceOnStele();
-                me.SyncWeight();
-                Sfx.Build();
-                if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("LA RELIQUE DE " + from.ToUpperInvariant(), "fondue dans la tienne",
-                                           "+" + gained + "  --  puissance " + h.Relic.Power, "Le vol ne rend que 60 % : le reste s'est perdu.",
-                                           RuneBlue);
-                return;
-            }
-
-            if (h.RelicInHand && h.TryPlaceOnStele())
-            {
-                me.SyncWeight();
-                Sfx.Build();
-                Toasts.Show("Ta relique repose sur ta stele. Elle comptera a la cloche -- si personne ne la vole.", RuneBlue);
-            }
-            else if (h.RelicOnStele && h.TryTakeFromStele())
-            {
-                me.SyncWeight();
+                // Une relique volee ou la sienne en main : l'onglet Relique d'abord.
+                int first = me.Hoard.Trophy != null || me.Hoard.RelicInHand ? 1 : 0;
+                if (Game.Hud != null) Game.Hud.OpenPanel(new StelePanel(this, first));
                 Sfx.Pop();
-                Toasts.Show("Tu reprends ta relique. Elle ne compte plus tant qu'elle n'est pas reposee.", Palette.Gold);
+                return;
             }
+            Loot(me);
+        }
+
+        /// <summary>Piller la stele d'un autre : sa relique posee (en trophee), et sa reserve.</summary>
+        void Loot(Seeker me)
+        {
+            Hoard h = me.Hoard;
+            Hoard o = owner.Hoard;
+            string relicLine = "";
+            if (o.RelicOnStele && o.Relic != null && h.Trophy == null)
+            {
+                Relic taken = o.TrySurrenderRelic();
+                if (taken != null && h.TryTakeTrophy(taken, owner))
+                    relicLine = "Sa relique (puissance " + taken.Power + ") : porte-la a TA stele pour la fondre.";
+            }
+            int units = o.RequestLoot(me.Bag);
+            me.SyncWeight();
+            owner.SyncWeight();
+            if (relicLine.Length == 0 && units == 0)
+            {
+                Sfx.Deny();
+                Toasts.Show("Ton sac est plein : tu ne peux rien emporter.", UiStyle.InkDim);
+                return;
+            }
+            Sfx.Discovery();
+            if (Game.Hud != null)
+                Game.Hud.ShowDiscovery("STELE PILLEE", "celle de " + owner.Name,
+                                       relicLine.Length > 0 ? relicLine : units + " ressources emportees de sa reserve.",
+                                       relicLine.Length > 0 && units > 0 ? "Et " + units + " ressources de sa reserve." : "Il saura que c'est toi.",
+                                       owner.Colour);
+            Rival.NotifyTheft(owner, me);
+        }
+
+        // ------------------------------------------------------------------ les gestes, partages
+        //
+        // Le panneau de la stele (StelePanel) appelle ces trois-la. Ils ne font que
+        // demander a Hoard, puis le dire.
+
+        public static void PlaceRelic(Seeker me)
+        {
+            if (me == null || !me.Hoard.TryPlaceOnStele()) return;
+            me.SyncWeight();
+            Sfx.Build();
+            Toasts.Show("Ta relique repose sur ta stele. Elle comptera a la cloche -- si personne ne la vole.", RuneBlue);
+        }
+
+        public static void TakeRelic(Seeker me)
+        {
+            if (me == null || !me.Hoard.TryTakeFromStele()) return;
+            me.SyncWeight();
+            Sfx.Pop();
+            Toasts.Show("Tu reprends ta relique. Elle ne compte plus tant qu'elle n'est pas reposee.", Palette.Gold);
+        }
+
+        public static void AbsorbTrophy(Seeker me)
+        {
+            Hoard h = me != null ? me.Hoard : null;
+            if (h == null || h.Trophy == null) return;
+            string from = h.TrophyFrom != null ? h.TrophyFrom.Name : "quelqu'un";
+            int gained = h.RequestAbsorbTrophy();
+            if (h.RelicInHand) h.TryPlaceOnStele();
+            me.SyncWeight();
+            Sfx.Build();
+            if (Game.Hud != null)
+                Game.Hud.ShowDiscovery("LA RELIQUE DE " + from.ToUpperInvariant(), "fondue dans la tienne",
+                                       "+" + gained + "  --  puissance " + h.Relic.Power, "Le vol ne rend que 60 % : le reste s'est perdu.",
+                                       RuneBlue);
         }
     }
 

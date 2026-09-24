@@ -26,16 +26,16 @@ namespace Fief
         {
             new Step { text = "Ramasse du bois mort",
                        hint = "Au pied des arbres morts (gris, sans feuilles) : des fagots. Maintiens E." },
-            new Step { text = "Plante ta stele (P)",
-                       hint = "Loin des chemins, dans un fourre. Elle chante doucement : on peut la trouver a l'oreille." },
+            new Step { text = "Depose-le dans ta stele (E)",
+                       hint = "Ta stele est la ou tu es ne. Retiens le chemin : rien ne te la montrera. La Malediction devore les sacs, pas les steles." },
             new Step { text = "Ramasse de la pierre-lune",
                        hint = "Dans les creux ou des pierres bleues luisent. Suis les lucioles, ou un feu-follet." },
             new Step { text = "Porte ton sac au mage",
-                       hint = "Quand une colonne bleue monte au-dessus des arbres, cours-y. Il fond ce que tu portes." },
+                       hint = "Quand une colonne bleue monte au-dessus des arbres, reprends ta reserve et cours-y. Il fond ce que tu portes." },
             new Step { text = "Pose ta relique sur ta stele",
-                       hint = "E devant ta stele. Seule une relique posee compte a la cloche." },
-            new Step { text = "Choisis ton chemin vers la victoire",
-                       hint = "Tab : l'onglet Victoires montre les quatre facons de gagner." }
+                       hint = "E devant ta stele, onglet Relique. Seule une relique posee compte a la cloche." },
+            new Step { text = "Achete une amelioration",
+                       hint = "Ta stele, onglet Ameliorations : paye avec ta reserve. Puis Tab pour les quatre victoires." }
         };
 
         static int done;
@@ -59,13 +59,24 @@ namespace Fief
             if (h == null || bag == null) return false;
             switch (step)
             {
-                case 0: return bag.Get(ResourceType.Deadwood) >= 4 || h.Relic != null;
-                case 1: return h.StelePlanted;
-                case 2: return bag.Get(ResourceType.Moonstone) >= 2 || h.Relic != null;
+                case 0: return bag.Get(ResourceType.Deadwood) >= 4 || Stored(h) > 0 || h.Relic != null;
+                case 1: return Stored(h) > 0 || h.Relic != null;
+                case 2: return bag.Get(ResourceType.Moonstone) >= 2 || h.Store != null && h.Store.Contents.Get(ResourceType.Moonstone) >= 2 || h.Relic != null;
                 case 3: return h.Relic != null;
                 case 4: return h.RelicOnStele;
-                default: return sawVictories;
+                default: return AnyUpgrade(h) || sawVictories;
             }
+        }
+
+        static int Stored(Hoard h)
+        {
+            return h.Store != null ? h.Store.Contents.TotalUnits : 0;
+        }
+
+        static bool AnyUpgrade(Hoard h)
+        {
+            for (int i = 0; i < UpgradeInfo.Count; i++) if (h.Level((UpgradeKind)i) > 0) return true;
+            return false;
         }
 
         public static void Draw()
@@ -145,16 +156,19 @@ namespace Fief
             {
                 Rival r = Rival.All[i];
                 if (r != null && r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == Game.Me)
-                    return r.seeker.Name + " emporte ta relique ! Rattrape-le (losange rouge sur la boussole), puis E.";
+                    return r.seeker.Name + " emporte ta relique ! Rattrape-le, puis E.";
             }
+            float curse = season.NextCurseIn;
+            if (curse >= 0f && curse < 75f && !Game.Inventory.IsEmpty && !season.MagePresent)
+                return "La Malediction frappe dans " + Hud.Clock(curse) + " : rentre deposer ton sac a ta stele !";
             if (h.Trophy != null) return "Tu portes la relique de " + h.TrophyFrom.Name + " : cours a ta stele pour la fondre.";
             if (season.Remaining < 120f && h.RelicInHand) return "La cloche approche : pose ta relique sur ta stele, vite.";
             if (Game.Mage != null && Game.Mage.Announced)
-                return "Le mage descend dans " + Hud.Clock(season.NextMageIn) + " (colonne bleue, point bleu sur la boussole). Cours-y avec ton sac !";
+                return "Le mage descend dans " + Hud.Clock(season.NextMageIn) + " (la colonne bleue au-dessus des arbres). Prends ta reserve et cours-y !";
             if (season.MagePresent && !Game.Inventory.IsEmpty) return "Le mage chante (" + Hud.Clock(season.MageTimeLeft) + ") : porte-lui ton sac.";
             if (h.RelicInHand) return "Ta relique est en main : pose-la sur ta stele (E), sinon elle ne compte pas.";
             if (season.NextMageIn >= 0f && season.NextMageIn < 40f) return "Le mage arrive dans " + Hud.Clock(season.NextMageIn) + " : prepare ton sac.";
-            if (season.NextMageIn >= 0f) return "Prochain mage dans " + Hud.Clock(season.NextMageIn) + ". Remplis ton sac, ou avance sur une autre victoire (Tab).";
+            if (season.NextMageIn >= 0f) return "Prochain mage dans " + Hud.Clock(season.NextMageIn) + ". Remplis ta reserve, ameliore-toi a ta stele, ou pose des pieges.";
             return "Le mage ne reviendra plus. Defends ta stele jusqu'a la cloche.";
         }
     }

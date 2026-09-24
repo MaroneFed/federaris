@@ -739,6 +739,65 @@ namespace Fief
             return drone;
         }
 
+        static AudioClip curseToll, curseStrike;
+
+        /// <summary>
+        /// L'AVERTISSEMENT de la Malediction : un glas tres grave, desaccorde (deux
+        /// cloches qui ne s'entendent pas), qu'on entend partout. Il ne ressemble a
+        /// aucun autre son du jeu : on apprend vite ce qu'il veut dire.
+        /// </summary>
+        public static void CurseToll()
+        {
+            if (curseToll == null)
+            {
+                const float duration = 4f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float env = Mathf.Min(1f, t * 200f) * Mathf.Exp(-1.1f * t);
+                    float v = Mathf.Sin(2f * Mathf.PI * 73.4f * t)
+                            + Mathf.Sin(2f * Mathf.PI * 77.8f * t) * 0.8f          // le desaccord : une seconde mineure
+                            + Mathf.Sin(2f * Mathf.PI * 73.4f * 2.4f * t) * 0.35f * Mathf.Exp(-1.5f * t)
+                            + Mathf.Sin(2f * Mathf.PI * 73.4f * 4.1f * t) * 0.18f * Mathf.Exp(-3f * t);
+                    data[i] = v * env;
+                }
+                Normalize(data, 0.8f);
+                curseToll = FromSamples("glas", data);
+            }
+            Play(curseToll, 0.9f);
+        }
+
+        /// <summary>
+        /// LA MALEDICTION FRAPPE : un souffle qui enfle (du bruit filtre qui monte),
+        /// puis un coup sourd et un chuchotement qui retombe. Deux secondes et demie.
+        /// </summary>
+        public static void CurseStrike()
+        {
+            if (curseStrike == null)
+            {
+                const float duration = 3f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                System.Random rng = new System.Random(66);
+                float low = 0f;
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float noise = (float)rng.NextDouble() * 2f - 1f;
+                    float cutoff = t < 1.1f ? Mathf.Lerp(0.01f, 0.25f, t / 1.1f) : Mathf.Lerp(0.25f, 0.02f, (t - 1.1f) / 1.9f);
+                    low += (noise - low) * cutoff;
+                    float swell = t < 1.1f ? t / 1.1f : Mathf.Exp(-2.2f * (t - 1.1f));
+                    float thud = t > 1.1f ? Mathf.Sin(2f * Mathf.PI * 48f * (t - 1.1f)) * Mathf.Exp(-6f * (t - 1.1f)) * 1.4f : 0f;
+                    data[i] = low * swell * 1.6f + thud;
+                }
+                Normalize(data, 0.85f);
+                curseStrike = FromSamples("malediction", data);
+            }
+            Play(curseStrike, 1f);
+        }
+
         static AudioClip FromSamples(string name, float[] data)
         {
             // Petit fondu de fin : sans lui, la coupure nette fait un "clic".

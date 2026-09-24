@@ -126,6 +126,53 @@ namespace Fief
             }
         }
 
+        // ------------------------------------------------------------------ la malediction
+
+        /// <summary>
+        /// LA MALEDICTION (Martin, 25/09/2026) : un moment apres chaque depart du
+        /// mage, la foret devore tout ce que chacun porte dans son sac. On a donc
+        /// cette fenetre pour tout rapporter a sa stele -- et une stele pleine attire
+        /// les pillards. Comme le mage, elle se deduit de la seule heure : rien a
+        /// synchroniser en reseau.
+        /// </summary>
+        public float CurseDelay = 75f;
+
+        public float CurseTime(int k)
+        {
+            return AppearanceStart(k) + MageStay + CurseDelay;
+        }
+
+        /// <summary>Pas de malediction dans les dernieres secondes : la cloche passe avant.</summary>
+        public bool CurseHappens(int k)
+        {
+            return AppearanceHappens(k) && CurseTime(k) < Duration - 20f;
+        }
+
+        /// <summary>Combien de maledictions sont deja tombees.</summary>
+        public int CursesPassed
+        {
+            get
+            {
+                int n = 0;
+                for (int k = 0; CurseHappens(k); k++) if (CurseTime(k) <= Elapsed) n++;
+                return n;
+            }
+        }
+
+        /// <summary>Temps avant la prochaine malediction, ou -1 s'il n'y en aura plus.</summary>
+        public float NextCurseIn
+        {
+            get
+            {
+                for (int k = 0; CurseHappens(k); k++)
+                {
+                    float at = CurseTime(k);
+                    if (at > Elapsed) return at - Elapsed;
+                }
+                return -1f;
+            }
+        }
+
         /// <summary>Temps avant la prochaine apparition, ou -1 s'il n'y en aura plus.</summary>
         public float NextMageIn
         {
