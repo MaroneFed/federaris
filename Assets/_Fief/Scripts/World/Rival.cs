@@ -34,7 +34,7 @@ namespace Fief
     {
         public static readonly List<Rival> All = new List<Rival>();
 
-        enum Goal { PlantStele, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
+        enum Goal { Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
 
         [System.NonSerialized] public Seeker seeker;
 
@@ -44,9 +44,8 @@ namespace Fief
         string[] taunts;
 
         // --- etat
-        Goal goal = Goal.PlantStele;
+        Goal goal = Goal.Gather;
         Vector3 target;
-        Vector3 steleSpot;
         float think;
         float work;
         ResourceNode node;
@@ -154,7 +153,6 @@ namespace Fief
             light.shadows = LightShadows.None;
             lightGo.AddComponent<LampFlicker>();
 
-            r.steleSpot = r.ChooseSteleSpot();
             All.Add(r);
             return r;
         }
@@ -271,7 +269,8 @@ namespace Fief
             }
             aggro = null;
 
-            if (!h.StelePlanted) { goal = Goal.PlantStele; target = steleSpot; return; }
+            // Sa stele est plantee d'office (SteleSites) ; sans elle, rien a faire.
+            if (!h.StelePlanted) { goal = Goal.Gather; target = transform.position; return; }
 
             // Un trophee dans les mains : rentrer le fondre, vite.
             if (h.Trophy != null) { goal = Goal.ToStele; target = h.StelePosition; return; }
@@ -363,11 +362,6 @@ namespace Fief
 
             switch (goal)
             {
-                case Goal.PlantStele:
-                    if (h.TryPlantStele(transform.position))
-                        Stele.Build(null, Ground.Place(transform.position, 0f), (float)rng.NextDouble() * 360f, seeker);
-                    break;
-
                 case Goal.Gather:
                     Harvest(dt);
                     break;
@@ -669,34 +663,6 @@ namespace Fief
             Vector3 moved = Flat(transform.position - lastPosition);
             lastPosition = transform.position;
             if (rig != null) rig.Speed = Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
-        }
-
-        // ================================================================== ou planter
-
-        Vector3 ChooseSteleSpot()
-        {
-            float half = (Game.Config != null ? Game.Config.mapSize : 700f) * 0.5f - 90f;
-            for (int i = 0; i < 300; i++)
-            {
-                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float r = 110f + (float)rng.NextDouble() * 150f;
-                float x = Mathf.Clamp(Mathf.Cos(a) * r, -half, half);
-                float z = Mathf.Clamp(Mathf.Sin(a) * r, -half, half);
-                if (Castle.Covers(x, z, 20f) || Landmarks.Near(x, z, 15f) || Gathering.NearHollow(x, z, 12f)) continue;
-                if (Ground.Slope(x, z) > 0.25f) continue;
-                // Ils la cachent : dans le fourre, la ou le couvert est dense.
-                if (i < 200 && Forest.Canopy(x, z) < 0.58f) continue;
-                bool apart = true;
-                for (int k = 0; k < All.Count; k++)
-                    if (All[k] != this && Flat(All[k].steleSpot - new Vector3(x, 0f, z)).magnitude < 90f) { apart = false; break; }
-                if (!apart) continue;
-                Vector3 at = Ground.Place(x, z, 0f);
-                Collider[] hits = Physics.OverlapBox(at + Vector3.up * 1.2f, new Vector3(1.6f, 1f, 1.6f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
-                bool clear = true;
-                for (int h = 0; h < hits.Length; h++) if (!(hits[h] is MeshCollider)) { clear = false; break; }
-                if (clear) return at;
-            }
-            return Ground.Place(transform.position.x, transform.position.z, 0f);
         }
 
         // ================================================================== outils

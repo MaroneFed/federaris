@@ -660,7 +660,6 @@ namespace Fief
             { "E", "Interagir, ramasser" },
             { "C", "Planter ton camp (une fois)" },
             { "G (maintenir)", "Creuser une cache (trois)" },
-            { "P", "Planter ta stele (une fois)" },
             { "Tab", "Ta besace : victoires, artisanat, talismans" },
             { "1 / 2", "Prendre en main un outil (hache, epee)" },
             { "Clic gauche", "Frapper : abattre un arbre, se battre" },

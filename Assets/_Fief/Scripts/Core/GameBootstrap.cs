@@ -94,6 +94,11 @@ namespace Fief
 
                 // Les autres habitants de la sylve.
                 BuildInhabitants();
+
+                // Les steles, une par chercheur, tirees au hasard a chaque partie.
+                // Apres les rivaux (il faut leurs Seeker) et apres la foret (il faut
+                // ses troncs pour trouver une place libre).
+                SteleSites.PlaceAll(worldRoot, Game.Seekers);
             }
             catch (System.Exception error)
             {
@@ -264,15 +269,22 @@ namespace Fief
             // montre ta banniere et tes 6 emplacements de construction.
             // On apparait dans une CLAIRIERE, pas au milieu d'un fourre : sinon la
             // premiere image du jeu est un tronc a cinquante centimetres du nez.
-            Vector3 spawn = FindClearing();
+            //
+            // Depuis le 25/09 : on nait A COTE DE SA STELE, et on la regarde. C'est la
+            // premiere chose qu'on voit -- et la seule fois ou on la trouve sans la
+            // chercher. Rien ne l'indiquera plus ensuite.
+            Hoard mine = Game.Me != null ? Game.Me.Hoard : null;
+            bool atStele = mine != null && mine.StelePlanted;
+            Vector3 spawn = atStele
+                ? SteleSites.SpawnBeside(mine.StelePosition, (float)rng.NextDouble() * Mathf.PI * 2f)
+                : FindClearing();
 
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
 
-            // On regarde vers l'interieur de la foret, a peu pres vers le chateau --
-            // a quarante degres pres : on sait d'ou l'on vient, pas exactement ou aller.
-            Vector3 inward = -new Vector3(spawn.x, 0f, spawn.z);
-            float yaw = Mathf.Atan2(inward.x, inward.z) * Mathf.Rad2Deg + ((float)rng.NextDouble() - 0.5f) * 80f;
+            Vector3 look = atStele ? mine.StelePosition - spawn : -new Vector3(spawn.x, 0f, spawn.z);
+            look.y = 0f;
+            float yaw = Mathf.Atan2(look.x, look.z) * Mathf.Rad2Deg;
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
             CharacterController controller = go.AddComponent<CharacterController>();

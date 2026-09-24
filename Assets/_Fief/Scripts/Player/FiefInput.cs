@@ -117,8 +117,6 @@ namespace Fief
         /// <summary>Tab : ouvrir sa besace (les talismans trouves).</summary>
         public static bool SatchelPressed { get { return KeyPressed(KeyCode.Tab); } }
 
-        /// <summary>P : planter ta stele. Une seule fois, la ou tu te tiens.</summary>
-        public static bool StelePressed { get { return KeyPressed(KeyCode.P); } }
 
         static bool KeyHeld(KeyCode code)
         {

@@ -843,7 +843,6 @@ namespace Fief
                 { "E", "recolter, interagir" },
                 { "C", "planter le camp" },
                 { "G", "creuser une cache" },
-                { "P", "planter ta stele" },
                 { "Tab", "ta besace" },
                 { "F3", "diagnostic" },
                 { "Echap", "pause" }

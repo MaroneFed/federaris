@@ -251,7 +251,7 @@ namespace Fief
             if (h == null || h.Relic == null)
                 return "Tu n'as pas de relique. Le mage la forge avec ce que tu portes. Seulement ce que tu portes.";
             if (!h.StelePlanted)
-                return "Tu n'as pas plante ta stele. Choisis ta place (P) : c'est la qu'on viendra te voler.";
+                return "Tu n'as pas de stele. C'est etrange. Tout le monde en a une.";
             if (h.RelicOnStele)
                 return "Ta relique est sur ta stele. Elle vaut " + h.FinalScore + ", pour l'instant. Si personne ne l'a trouvee.";
             return "Ta relique pese dans ton sac. Tant qu'elle n'est pas sur ta stele, elle ne compte pas.";

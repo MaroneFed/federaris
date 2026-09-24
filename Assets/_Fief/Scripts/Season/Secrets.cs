@@ -11,8 +11,8 @@ namespace Fief
     ///   3e forge    ou est enterre un tresor d'or (60 pieces) ;
     ///   puis        on recommence la ronde.
     ///
-    /// Le secret apparait sur la boussole (losange mauve) jusqu'a ce qu'il soit
-    /// resolu : le talisman pris, le tresor deterre.
+    /// Il le dit EN MOTS, une fois (direction et distance, depuis la ou tu te
+    /// tiens) : rien n'apparait sur la boussole (Martin, 25/09). A toi de retenir.
     /// </summary>
     public static class Secrets
     {
@@ -78,7 +78,7 @@ namespace Fief
             s.isTalisman = true;
             All.Add(s);
             return "\"Un talisman -- " + TalismanInfo.Name(best.talisman) + " -- dort " + Hud.Direction(me.Body.position, s.at)
-                   + ". Je l'ai mis sur ta boussole.\"";
+                   + ". Retiens-le : je ne le repeterai pas.\"";
         }
 
         static bool Known(Talisman t)

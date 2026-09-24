@@ -218,6 +218,9 @@ namespace Fief
         void Update()
         {
             // La colonne d'arrivee : quatorze secondes, puis elle s'eteint doucement.
+            // Avec la Corne d'appel, elle reste allumee tant qu'il chante.
+            if (beaconTimer > 0f && Present && Game.Hoard != null && Game.Hoard.Has(Talisman.Corne))
+                beaconTimer = Mathf.Max(beaconTimer, 1f);
             if (beaconTimer > 0f)
             {
                 beaconTimer -= Time.deltaTime;

@@ -10,7 +10,7 @@ namespace Fief
     /// par Saison, et chacun change une chose, franchement :
     ///
     ///   Lanterne ardente   sur le trone          ta lanterne porte bien plus loin
-    ///   Corne d'appel      le Grand Chene        la boussole montre le mage
+    ///   Corne d'appel      le Grand Chene        la colonne du mage reste allumee
     ///   Coeur de lune      le Cercle de pierres  chaque pierre-lune en donne deux
     ///   Besace ciree       la cabane du braconnier  +15 kg dans le sac
     ///   Pelle d'os         le Tertre             creuser 3x plus vite, une cache de plus
@@ -68,7 +68,7 @@ namespace Fief
             switch (t)
             {
                 case Talisman.Lanterne: return "Ta lanterne eclaire bien plus loin.";
-                case Talisman.Corne: return "Quand le mage chante, ta boussole le montre.";
+                case Talisman.Corne: return "Tant que le mage chante, sa colonne de lumiere reste allumee pour toi.";
                 case Talisman.Coeur: return "Chaque pierre-lune ramassee en donne deux.";
                 case Talisman.Besace: return "Ton sac porte " + Mathf.RoundToInt(BesaceKilos) + " kg de plus.";
                 case Talisman.Pelle: return "Tu creuses trois fois plus vite, et une cache de plus.";

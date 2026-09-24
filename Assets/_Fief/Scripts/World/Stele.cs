@@ -145,7 +145,7 @@ namespace Fief
                         Sfx.Discovery();
                         Game.Hud.ShowDiscovery("TU AS TROUVE", "La stele de " + owner.Name,
                                                lit ? "Une relique y flotte. Puissance " + h.FinalScore + "." : "Rien dessus. Pour l'instant.",
-                                               "Elle apparait maintenant sur ta boussole.", owner.Colour);
+                                               "Retiens le chemin : rien ne te la montrera.", owner.Colour);
                     }
                 }
             }
