@@ -228,8 +228,8 @@ manquait.
 | **Les feux-follets** | neuf, dans la sylve | approche-toi : ils s'éloignent, t'attendent, et te mènent au creux à pierres-lune le plus proche |
 | **Le cerf blanc** | devant toi, à la limite de la brume | aucune utilité. Il te regarde, puis s'enfuit. C'est ce dont on se souvient |
 
-Les gardes, le rôdeur qui pille les caches et les pièges restent en Phase 2 : ils
-n'ont de sens qu'avec quelqu'un à arrêter.
+Les gardes et les rivaux sont arrivés depuis (voir plus haut). Le rôdeur qui pille les
+caches et les pièges restent en Phase 2.
 
 ---
 
