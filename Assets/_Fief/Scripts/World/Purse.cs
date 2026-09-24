@@ -36,14 +36,34 @@ namespace Fief
             Color gold = new Color(0.95f, 0.76f, 0.3f);
             Material coin = MaterialFactory.GetGlow(gold, 0.9f);
             Proto.BeginVisualOnly();
-            GameObject bag = Proto.Cube(root.transform, new Vector3(0f, 0.12f, 0f), new Vector3(0.3f, 0.24f, 0.22f), leather, "Sacoche");
-            bag.transform.localRotation = Quaternion.Euler(0f, 0f, 12f);
-            Proto.Cube(root.transform, new Vector3(0.02f, 0.26f, 0f), new Vector3(0.12f, 0.06f, 0.12f), Palette.Shade(leather, 0.7f), "Lien");
-            for (int i = 0; i < 5; i++)
+            // Une bourse de cuir renflee, le col serre par une cordelette, couchee
+            // sur le flanc ; des pieces en deux petites piles et d'autres repandues.
+            GameObject bag = Proto.Sphere(root.transform, new Vector3(0f, 0.13f, 0f), new Vector3(0.32f, 0.26f, 0.28f), leather, "Bourse");
+            bag.transform.localRotation = Quaternion.Euler(0f, 0f, 18f);
+            GameObject neck = Proto.Cylinder(root.transform, new Vector3(-0.1f, 0.27f, 0f), new Vector3(0.1f, 0.05f, 0.1f), Palette.Shade(leather, 0.85f), "Col");
+            neck.transform.localRotation = Quaternion.Euler(0f, 0f, 30f);
+            GameObject cord = Proto.Cylinder(root.transform, new Vector3(-0.09f, 0.25f, 0f), new Vector3(0.12f, 0.012f, 0.12f), new Color(0.62f, 0.5f, 0.3f), "Cordelette");
+            cord.transform.localRotation = Quaternion.Euler(0f, 0f, 30f);
+            GameObject flap = Proto.Cone(root.transform, new Vector3(-0.15f, 0.31f, 0f), 0.07f, 0.08f, Palette.Shade(leather, 0.9f), "Fronce", 6);
+            flap.transform.localRotation = Quaternion.Euler(0f, 0f, 30f);
+            for (int stack = 0; stack < 2; stack++)
             {
-                float a = i * 1.3f;
-                GameObject c = Proto.Cylinder(root.transform, new Vector3(0.22f + Mathf.Cos(a) * 0.14f, 0.012f + i * 0.004f, Mathf.Sin(a) * 0.14f),
+                int n = 3 + stack * 2;
+                for (int i = 0; i < n; i++)
+                {
+                    GameObject c = Proto.Cylinder(root.transform, new Vector3(0.24f + stack * 0.1f, 0.008f + i * 0.016f, 0.1f - stack * 0.18f),
+                                                  new Vector3(0.09f, 0.008f, 0.09f), gold, "Piece");
+                    c.transform.localRotation = Quaternion.Euler(0f, i * 23f, (i % 2) * 3f);
+                    c.GetComponent<Renderer>().sharedMaterial = coin;
+                }
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                float a = i * 1.1f + 0.4f;
+                float d = 0.18f + (i % 3) * 0.09f;
+                GameObject c = Proto.Cylinder(root.transform, new Vector3(0.12f + Mathf.Cos(a) * d, 0.01f, Mathf.Sin(a) * d),
                                               new Vector3(0.09f, 0.008f, 0.09f), gold, "Piece");
+                c.transform.localRotation = Quaternion.Euler(i % 2 == 0 ? 0f : 60f, i * 40f, 0f);
                 c.GetComponent<Renderer>().sharedMaterial = coin;
             }
             Proto.EndVisualOnly();
