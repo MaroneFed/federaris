@@ -130,6 +130,26 @@ namespace Fief
             ApplyVisual();
         }
 
+        /// <summary>
+        /// Un RIVAL se sert. Meme gisement, memes regles que toi : ce qu'il prend,
+        /// tu ne le trouveras plus. C'est ce qui fait du fer du chateau une course.
+        /// Passe par Inventory.TryAdd, comme tout le reste. Renvoie ce qui a ete pris.
+        /// </summary>
+        public int TryTakeFor(Inventory bag, int quantity)
+        {
+            if (bag == null || remaining <= 0 || quantity <= 0) return 0;
+            int added = bag.TryAdd(type, Mathf.Min(quantity, remaining));
+            if (added <= 0) return 0;
+            remaining -= added;
+            if (remaining <= 0)
+            {
+                remaining = 0;
+                respawnTimer = respawnDelay;
+            }
+            ApplyVisual();
+            return added;
+        }
+
         /// <summary>Le gisement retrecit a mesure qu'on le vide : lisible sans aucune UI.</summary>
         void ApplyVisual()
         {

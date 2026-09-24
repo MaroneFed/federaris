@@ -424,6 +424,32 @@ namespace Fief
             if (hoard.CampPlanted && FlatDistance(me, hoard.CampPosition) > 6f)
                 DrawMarker(cam, hoard.CampPosition + Vector3.up * 2.2f, "CAMP", new Color(0.78f, 0.86f, 0.62f));
 
+            // Les rivaux : leur nom au-dessus de la tete quand on est pres. Et celui
+            // qui emporte TA relique, on le voit toujours : c'est une chasse.
+            for (int i = 0; i < Rival.All.Count; i++)
+            {
+                Rival r = Rival.All[i];
+                if (r == null) continue;
+                bool thief = r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == Game.Me;
+                float d = FlatDistance(me, r.transform.position);
+                if (thief)
+                    DrawMarker(cam, r.transform.position + Vector3.up * 2.4f, "VOLEUR : " + r.seeker.Name, new Color(1f, 0.4f, 0.3f));
+                else if (d < 16f)
+                    DrawMarker(cam, r.transform.position + Vector3.up * 2.4f, r.seeker.Name, r.seeker.Colour);
+            }
+
+            // Ta stele, et celles des rivaux que tu as trouvees.
+            for (int i = 0; i < Stele.All.Count; i++)
+            {
+                Stele st = Stele.All[i];
+                if (st == null || st.owner == null) continue;
+                bool mine = st.owner == Game.Me;
+                if (!mine && (Game.Me == null || !Game.Me.Knows(st.owner))) continue;
+                if (FlatDistance(me, st.transform.position) < 12f) continue;
+                DrawMarker(cam, st.transform.position + Vector3.up * 4.2f,
+                           mine ? "TA STELE" : "stele de " + st.owner.Name, mine ? Stele.RuneBlue : st.owner.Colour);
+            }
+
             // Les lieux-dits deja decouverts : des reperes pour ne plus se perdre.
             for (int i = 0; i < Landmarks.All.Count; i++)
             {

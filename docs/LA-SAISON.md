@@ -111,6 +111,30 @@ entrer dans la forêt. Fini, il devient une course : qui vide les réserves le p
 
 ---
 
+## Chacun sa stèle, trois rivaux, et le vol (décidé par Martin le 24/09/2026)
+
+Martin : « je veux que chacun ait sa stèle et qu'il la pose quelque part sur la map »,
+« on doit pouvoir voler ». Ce qui était prévu en Phase 2 arrive maintenant, **contre des
+rivaux PNJ** — les mêmes règles serviront telles quelles en multijoueur.
+
+- **Ta stèle** : touche **P**, une seule fois, où tu veux (pas dans le château, pas sur
+  un lieu-dit). À la cloche, seule compte la relique posée sur **ta** stèle.
+- **Le Registre**, au château (l'ancienne stèle) : il grave le classement de tous.
+- **Trois rivaux** : Mahaut la Rousse (pilleuse), Oswin le Borgne (le fer du château),
+  Guérin des Marais (les creux, presque honnête). Ils récoltent aux **mêmes gisements**
+  que toi, courent au mage, forgent, posent leur relique. On voit leur lanterne dans la
+  brume.
+- **Voler** : devant la stèle d'un rival, E maintenu 3 s. Impossible s'il la garde (à
+  moins de 9 m). On peut aussi **détrousser** un rival qui récolte avec sa relique sur lui.
+  La relique volée pèse 8 kg ; il faut la porter à **ta** stèle pour la fondre dans la
+  tienne — **60 %** seulement : le reste se perd.
+- **Être volé** : un rival qui est passé près de ta stèle s'en souvient. Quand tu es loin,
+  il vient la piller. Un marqueur « VOLEUR » le montre : rattrape-le, E pour reprendre.
+- **Être chassé** : si tu voles un rival, il te poursuit. S'il te rattrape avant que tu
+  aies fondu sa relique, il la reprend.
+
+---
+
 ## Les talismans et les lieux-dits (ajoutés le 24/09/2026)
 
 Martin : « je veux des items incroyables ». Six **talismans**, uniques, qu'on trouve une

@@ -141,8 +141,40 @@ namespace Fief
             Wisp.SpawnAll(folk.transform, config, 9);
             WhiteStag.Build(folk.transform, config);
 
+            // Tes trois rivaux. Chacun son caractere : Mahaut pille, Oswin aime le
+            // fer du chateau, Guerin reste dans ses creux et ne vole presque jamais.
+            BuildRival(folk.transform, 0, "Mahaut la Rousse", new Color(0.86f, 0.36f, 0.26f), 0.7f, 0.25f, new[]
+            {
+                "Ne traine pas dans mes pattes.",
+                "J'ai vu ta lanterne. Tout le monde l'a vue.",
+                "Le mage m'aime bien. Il me le dit en chantant.",
+                "Ta stele ? Je sais ou elle est. Peut-etre."
+            });
+            BuildRival(folk.transform, 1, "Oswin le Borgne", new Color(0.36f, 0.58f, 0.88f), 0.35f, 0.6f, new[]
+            {
+                "Le fer du chateau, c'est pour ceux qui osent.",
+                "Un oeil me suffit pour te voir venir.",
+                "Les gardes ? Ils me connaissent.",
+                "Ta relique pese combien ? Pas assez."
+            });
+            BuildRival(folk.transform, 2, "Guerin des Marais", new Color(0.46f, 0.76f, 0.36f), 0.15f, 0.1f, new[]
+            {
+                "Chut. Tu entends ? Non ? Tant mieux.",
+                "Je ne prends que ce que la foret donne.",
+                "Les pierres-lune chantent, la nuit. Tu les as ecoutees ?",
+                "Laisse ma stele tranquille, et je laisserai la tienne."
+            });
+
             // Et ce qu'on entend : le vent, les betes, la cloche du chateau.
             Soundscape.Build(folk.transform);
+        }
+
+        /// <summary>Un rival, qui part de la lisiere, a un tiers de tour des autres.</summary>
+        void BuildRival(Transform parent, int index, string name, Color colour, float aggression, float ironLove, string[] taunts)
+        {
+            float a = (index * 120f + 60f) * Mathf.Deg2Rad;
+            Vector3 spawn = Ground.Place(Mathf.Cos(a) * 240f, Mathf.Sin(a) * 240f, 0.1f);
+            Rival.Build(parent, name, colour, spawn, aggression, ironLove, taunts, config.worldSeed * 41 + index);
         }
 
         // ================================================================ joueur

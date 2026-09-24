@@ -40,6 +40,7 @@ de 16 ans pour les assets et la map (débutant complet).
 | Ressources | 3 en v1, **renommées le 23/09/2026** : **Bois mort** (partout, 1 kg), **Pierre-lune** (dans les creux, 3 kg), **Fer ancien** (dans le château, 2 kg). Toujours trois, toujours placées dans des zones fixes. |
 | Boucle | **Récolter → cacher → porter au mage → forger une relique → la poser sur la stèle.** Le mage errant n'accepte que ce qu'on *porte* : c'est ce qui oblige à ressortir sa cache et à traverser la forêt chargé. Détails et chiffres : `docs/LA-SAISON.md`. |
 | Camp et caches | Un camp, planté **une seule fois**. Trois caches au plus, creusées n'importe où ; seul leur propriétaire sait où elles sont. |
+| Stèles et vol | **Chacun sa stèle**, plantée une fois où il veut (révisé le 24/09/2026 par Martin). Seule la relique posée sur **sa** stèle compte. On peut **voler** celle des autres (60 % seulement se fond dans la sienne). Trois **rivaux PNJ** jouent avec exactement les mêmes règles que le joueur (classe `Seeker`). |
 | Monnaie | L'Or, unique. Il sert à **soudoyer** (Phase 2), pas à acheter. |
 | Combat | Simple et lisible (mêlée + arc). L'intérêt est tactique/préparatoire |
 | Persistance | **Aucune** entre parties |

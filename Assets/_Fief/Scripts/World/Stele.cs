@@ -196,6 +196,8 @@ namespace Fief
                 if (Game.Season != null && Game.Season.Over) return false;
                 Hoard h = me.Hoard;
                 if (Mine) return h.Trophy != null || h.RelicInHand || h.RelicOnStele;
+                // On ne pille pas une stele sous le nez de son proprietaire.
+                if (Rival.IsGuarding(owner, transform.position)) return false;
                 return owner.Hoard.RelicOnStele && owner.Hoard.Relic != null && h.Trophy == null;
             }
         }
