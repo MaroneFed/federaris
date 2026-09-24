@@ -739,6 +739,38 @@ namespace Fief
             return drone;
         }
 
+        static AudioClip trapSnap;
+
+        /// <summary>
+        /// Un piege qui se referme : un claquement de fer (bruit tres bref, filtre
+        /// haut) et deux notes metalliques qui sonnent faux. Sec, et on le reconnait.
+        /// </summary>
+        public static void TrapSnap()
+        {
+            if (trapSnap == null)
+            {
+                const float duration = 0.9f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                System.Random rng = new System.Random(9);
+                float prev = 0f;
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float noise = (float)rng.NextDouble() * 2f - 1f;
+                    float high = noise - prev;              // un filtre passe-haut tout simple
+                    prev = noise;
+                    float clack = high * Mathf.Exp(-60f * t) * 1.2f;
+                    float ring = (Mathf.Sin(2f * Mathf.PI * 1480f * t) + Mathf.Sin(2f * Mathf.PI * 2210f * t) * 0.7f)
+                                 * Mathf.Exp(-7f * t) * 0.35f;
+                    data[i] = clack + ring;
+                }
+                Normalize(data, 0.9f);
+                trapSnap = FromSamples("piege", data);
+            }
+            Play(trapSnap, 1f);
+        }
+
         static AudioClip curseToll, curseStrike;
 
         /// <summary>

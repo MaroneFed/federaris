@@ -99,6 +99,10 @@ namespace Fief
                 // Apres les rivaux (il faut leurs Seeker) et apres la foret (il faut
                 // ses troncs pour trouver une place libre).
                 SteleSites.PlaceAll(worldRoot, Game.Seekers);
+
+                // Ce qui veut ton mal : trois meutes de loups (apres les steles, pour
+                // ne pas naitre au milieu d'elles).
+                Beast.SpawnPacks(worldRoot, 3);
             }
             catch (System.Exception error)
             {

@@ -70,9 +70,10 @@ namespace Fief
             hurtFlash = 1f;
         }
 
-        public void ShowDeath(string killer)
+        /// <summary>"how" : comment on est tombe ("sous les coups de Mahaut", "dans un piege").</summary>
+        public void ShowDeath(string how)
         {
-            killedBy = killer;
+            killedBy = how;
             deathTimer = Combat.RespawnSeconds;
             ClosePanel();
             Sfx.Bell();
@@ -119,7 +120,7 @@ namespace Fief
                                new Color(0.85f, 0.3f, 0.25f, a));
                 big.alignment = previous;
                 UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f + UiStyle.S(76), Screen.width, UiStyle.S(24)),
-                               "sous les coups de " + killedBy + ". Tout ce que tu portais est reste la-bas.", UiStyle.Centered,
+                               killedBy + ". Tout ce que tu portais est reste la-bas.", UiStyle.Centered,
                                new Color(0.9f, 0.85f, 0.78f, a));
                 return;
             }

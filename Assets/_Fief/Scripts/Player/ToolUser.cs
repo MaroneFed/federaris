@@ -78,8 +78,23 @@ namespace Fief
                 else Hint = kit.Held == null ? "F : grimper dans l'arbre      (une hache pour l'abattre : Tab, Artisanat)" : "F : grimper dans l'arbre";
             }
 
-            // --- frapper
+            // --- poser un piege
             swingTimer -= Time.deltaTime;
+            if (kit.Holding(ToolKind.Piege))
+            {
+                Hint = "Clic : poser le piege devant toi   (" + Trap.CountOf(me) + " / " + Trap.MaxFor(me) + " poses)";
+                if (FiefInput.UseHeld && swingTimer <= 0f)
+                {
+                    swingTimer = 0.8f;
+                    swing = 1f;
+                    PlaceTrap(me, kit);
+                }
+                swing = Mathf.Max(0f, swing - Time.deltaTime * 3.2f);
+                AnimateViewModel();
+                return;
+            }
+
+            // --- frapper
             if (FiefInput.UseHeld && kit.Held != null && swingTimer <= 0f)
             {
                 float penalty = Game.Brewed ? 1f : Mathf.Lerp(1f, 1.8f, me.Bag.Load01);
@@ -127,6 +142,28 @@ namespace Fief
             Vector3 away = c.transform.position - transform.position;
             away.y = 0f;
             TreeFall.Fell(c.gameObject, away.sqrMagnitude > 0.01f ? away.normalized : transform.forward);
+        }
+
+        // ================================================================== pieger
+
+        void PlaceTrap(Seeker me, Kit kit)
+        {
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            forward = forward.sqrMagnitude > 0.001f ? forward.normalized : Vector3.forward;
+            Vector3 at = transform.position + forward * 1.6f;
+            string why = Trap.WhyNot(me, at);
+            if (why != null)
+            {
+                Sfx.Deny();
+                Toasts.Show(why, UiStyle.InkDim);
+                return;
+            }
+            Trap.Place(me, at, Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg);
+            kit.Wear(1);                 // le piege quitte la main : l'emplacement se libere
+            Sfx.Build();
+            OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
+            Toasts.Show("Piege pose, sous les feuilles. De loin, toi seul sais qu'il est la.", new Color(0.95f, 0.62f, 0.35f));
         }
 
         // ================================================================== grimper
@@ -203,7 +240,19 @@ namespace Fief
             Proto.BeginVisualOnly();
             Color wood = new Color(0.36f, 0.26f, 0.16f);
             Color steel = new Color(0.62f, 0.64f, 0.68f);
-            if (kind == ToolKind.Hache)
+            if (kind == ToolKind.Piege)
+            {
+                // Le piege ferme, tenu par sa chaine : un anneau de fer herisse.
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = i / 8f * Mathf.PI * 2f;
+                    GameObject seg = Proto.Cube(go.transform, new Vector3(Mathf.Cos(a) * 0.09f, Mathf.Sin(a) * 0.09f, 0f),
+                                                new Vector3(0.05f, 0.02f, 0.02f), Trap.Iron, "Machoire");
+                    seg.transform.localRotation = Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg + 90f);
+                }
+                Proto.Cube(go.transform, new Vector3(0f, -0.14f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Trap.Iron, "Chaine");
+            }
+            else if (kind == ToolKind.Hache)
             {
                 Proto.Cube(go.transform, new Vector3(0f, 0f, 0f), new Vector3(0.035f, 0.5f, 0.035f), wood, "Manche");
                 Proto.Cube(go.transform, new Vector3(0.06f, 0.22f, 0f), new Vector3(0.12f, 0.1f, 0.02f), new Color(0.35f, 0.5f, 0.75f), "Lame");

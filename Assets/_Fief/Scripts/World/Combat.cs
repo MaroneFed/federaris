@@ -36,6 +36,7 @@ namespace Fief
             Vector3 flatForward = eye.forward;
             flatForward.y = 0f;
             flatForward.Normalize();
+            float damage = SwordDamage * (me.Hoard.Level(UpgradeKind.Lame) > 0 ? UpgradeInfo.LameFactor : 1f);
             for (int i = 0; i < Rival.All.Count; i++)
             {
                 Rival r = Rival.All[i];
@@ -44,13 +45,32 @@ namespace Fief
                 to.y = 0f;
                 if (to.magnitude > Reach || Vector3.Angle(flatForward, to) > 55f) continue;
                 if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
-                Hit(r.seeker, me, SwordDamage * (me.Hoard.Level(UpgradeKind.Lame) > 0 ? UpgradeInfo.LameFactor : 1f));
-                break;                              // un coup, une cible
+                Hit(r.seeker, me, damage);
+                return;                             // un coup, une cible
+            }
+            // Les betes : loups, revenants.
+            for (int i = 0; i < Beast.All.Count; i++)
+            {
+                Beast b = Beast.All[i];
+                if (b == null || !b.Alive) continue;
+                Vector3 to = b.transform.position - me.Body.position;
+                to.y = 0f;
+                if (to.magnitude > Reach + 0.4f || Vector3.Angle(flatForward, to) > 60f) continue;
+                if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
+                Sfx.Harvest(ResourceType.Iron);
+                b.Hurt(damage, me);
+                return;
             }
         }
 
         /// <summary>Un coup porte. Tout passe par ici : degats, cris, mort.</summary>
         public static void Hit(Seeker victim, Seeker attacker, float damage)
+        {
+            Hit(victim, attacker, damage, "sous les coups de " + (attacker != null ? attacker.Name : "la foret"));
+        }
+
+        /// <summary>Un coup porte, en disant de quoi on meurt s'il est mortel.</summary>
+        public static void Hit(Seeker victim, Seeker attacker, float damage, string how)
         {
             if (victim == null || !victim.Alive) return;
             bool dead = victim.TakeDamage(damage, Time.time);
@@ -69,11 +89,23 @@ namespace Fief
                 if (r != null) r.OnHit(attacker);
             }
 
-            if (dead) Fall(victim, attacker);
+            if (dead) Fall(victim, attacker, how);
+        }
+
+        /// <summary>
+        /// Une mort d'un coup : un piege, une bete, la chute. "how" dit comment, pour
+        /// l'ecran de chute ("dans un piege de Mahaut").
+        /// </summary>
+        public static void Kill(Seeker victim, Seeker killer, string how)
+        {
+            if (victim == null || !victim.Alive) return;
+            victim.TakeDamage(9999f, Time.time);
+            if (victim.IsPlayer && Game.Hud != null) Game.Hud.Hurt();
+            Fall(victim, killer, how);
         }
 
         /// <summary>Tomber : tout ce qu'on porte reste sur place, dans une depouille.</summary>
-        static void Fall(Seeker victim, Seeker killer)
+        static void Fall(Seeker victim, Seeker killer, string how)
         {
             Vector3 at = victim.Body != null ? victim.Body.position : Vector3.zero;
             // Celui qui abat son voleur reprend sa relique, tout de suite.
@@ -86,7 +118,7 @@ namespace Fief
 
             if (victim.IsPlayer)
             {
-                if (Game.Hud != null) Game.Hud.ShowDeath(killer != null ? killer.Name : "la foret");
+                if (Game.Hud != null) Game.Hud.ShowDeath(how);
             }
             else
             {

@@ -10,11 +10,14 @@ namespace Fief
     ///          d'un coup), et casse au bout de 12 coups.
     ///   EPEE   2 bois mort + 3 fer ancien.    Pour se battre. 25 coups, puis elle
     ///          casse aussi. Le fer vient du chateau : il faut passer les gardes.
+    ///   PIEGE  3 bois mort + 2 fer ancien.    Des machoires de fer qu'on pose au
+    ///          sol (clic). Qui marche dessus meurt et lache TOUT (Martin, 25/09).
+    ///          Il occupe un emplacement jusqu'a ce qu'on le pose.
     ///
     /// Classe C# pure, comme le sac. On ne fabrique que par TryCraft (qui passe
     /// par Inventory.TryRemove), on n'use que par Wear.
     /// </summary>
-    public enum ToolKind { None = 0, Hache = 1, Epee = 2 }
+    public enum ToolKind { None = 0, Hache = 1, Epee = 2, Piege = 3 }
 
     public class Tool
     {
@@ -38,15 +41,22 @@ namespace Fief
         public Tool Held { get { return Active >= 0 ? Slots[Active] : null; } }
         public bool Holding(ToolKind k) { return Held != null && Held.Kind == k; }
 
-        public static string Name(ToolKind k) { return k == ToolKind.Hache ? "Hache" : k == ToolKind.Epee ? "Epee" : ""; }
+        public static string Name(ToolKind k)
+        {
+            return k == ToolKind.Hache ? "Hache" : k == ToolKind.Epee ? "Epee" : k == ToolKind.Piege ? "Piege" : "";
+        }
 
-        public static int MaxDurability(ToolKind k) { return k == ToolKind.Hache ? 12 : k == ToolKind.Epee ? 25 : 0; }
+        public static int MaxDurability(ToolKind k)
+        {
+            return k == ToolKind.Hache ? 12 : k == ToolKind.Epee ? 25 : k == ToolKind.Piege ? 1 : 0;
+        }
 
         /// <summary>Ce que coute un outil : bois mort, pierre-lune, fer ancien.</summary>
         public static int[] Cost(ToolKind k)
         {
             if (k == ToolKind.Hache) return new[] { 3, 2, 0 };
             if (k == ToolKind.Epee) return new[] { 2, 0, 3 };
+            if (k == ToolKind.Piege) return new[] { 3, 0, 2 };
             return new[] { 0, 0, 0 };
         }
 

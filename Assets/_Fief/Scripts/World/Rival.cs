@@ -388,6 +388,7 @@ namespace Fief
                     h.RequestStoreAll(seeker.Bag);
                     if (h.RelicInHand) h.TryPlaceOnStele();
                     seeker.SyncWeight();
+                    SetTraps();
                     think = 0f;
                     break;
 
@@ -465,6 +466,35 @@ namespace Fief
                     // Il reste la, et se tourne de temps en temps.
                     transform.Rotate(0f, 20f * dt * Mathf.Sin(Time.time * 0.3f + seeker.Name.Length), 0f);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Les rivaux agressifs piegent les abords de leur stele, avec ce qui dort
+        /// dans leur reserve (3 bois mort, 2 fer par piege) : piller Mahaut, c'est
+        /// regarder ou l'on pose les pieds.
+        /// </summary>
+        void SetTraps()
+        {
+            Hoard h = seeker.Hoard;
+            if (aggression < 0.3f || h.Store == null) return;
+            int wanted = aggression >= 0.6f ? 3 : 2;
+            int[] cost = Kit.Cost(ToolKind.Piege);
+            for (int n = Trap.CountOf(seeker); n < wanted; n++)
+            {
+                for (int i = 0; i < cost.Length; i++) if (h.Store.Contents.Get((ResourceType)i) < cost[i]) return;
+                Vector3 at = Vector3.zero;
+                bool found = false;
+                for (int tries = 0; tries < 12 && !found; tries++)
+                {
+                    float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                    float r = 2.5f + (float)rng.NextDouble() * 3.5f;
+                    at = h.StelePosition + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+                    found = Trap.WhyNot(seeker, at) == null;
+                }
+                if (!found) return;
+                for (int i = 0; i < cost.Length; i++) h.Store.Contents.TryRemove((ResourceType)i, cost[i]);
+                Trap.Place(seeker, at, (float)rng.NextDouble() * 360f);
             }
         }
 

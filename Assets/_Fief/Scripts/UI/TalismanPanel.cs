@@ -165,15 +165,17 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null) return;
-            ToolKind[] kinds = { ToolKind.Hache, ToolKind.Epee };
+            ToolKind[] kinds = { ToolKind.Hache, ToolKind.Epee, ToolKind.Piege };
             string[] uses =
             {
                 "Abat les arbres (clic, face a un tronc) : 14 bois mort d'un coup. Se brise apres 12 coups.",
-                "Pour se battre : quatre coups tuent. Qui porte une relique ne peut pas frapper. Se brise apres 25 coups."
+                "Pour se battre : quatre coups tuent. Qui porte une relique ne peut pas frapper. Se brise apres 25 coups.",
+                "Clic : le poser devant toi. Qui marche dessus meurt et lache tout. Toi, tu ne crains rien. "
+                + Trap.MaxFor(me) + " poses au plus."
             };
             for (int k = 0; k < kinds.Length; k++)
             {
-                Rect r = new Rect(x, y, width, UiStyle.S(112));
+                Rect r = new Rect(x, y, width, UiStyle.S(104));
                 GUI.Box(r, GUIContent.none, UiStyle.CardBox);
                 UiStyle.Tinted(new Rect(r.x + UiStyle.S(18), r.y + UiStyle.S(8), width, UiStyle.S(28)), Kit.Name(kinds[k]), UiStyle.Title, Palette.Gold);
                 GUIStyle body = UiStyle.Small;
@@ -192,7 +194,7 @@ namespace Fief
                           + " (" + me.Bag.Get((ResourceType)i) + ")";
                 }
                 bool can = Kit.CanAfford(kinds[k], me.Bag);
-                UiStyle.Tinted(new Rect(r.x + UiStyle.S(18), r.y + UiStyle.S(84), width * 0.62f, UiStyle.S(20)), line, UiStyle.Small,
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(18), r.y + UiStyle.S(80), width * 0.62f, UiStyle.S(20)), line, UiStyle.Small,
                                can ? UiStyle.Ink : new Color(0.9f, 0.45f, 0.38f));
 
                 bool room = me.Kit.FreeSlot >= 0;
@@ -204,11 +206,12 @@ namespace Fief
                     {
                         me.SyncWeight();
                         Sfx.Build();
-                        Toasts.Show(Kit.Name(kinds[k]) + " fabriquee. Elle est en main (touche " + (me.Kit.Active + 1) + ").", Palette.Gold);
+                        Toasts.Show(Kit.Name(kinds[k]) + " : en main (touche " + (me.Kit.Active + 1) + ")."
+                                    + (kinds[k] == ToolKind.Piege ? " Clic pour le poser devant toi." : ""), Palette.Gold);
                     }
                 }
                 GUI.enabled = true;
-                y += UiStyle.S(122);
+                y += UiStyle.S(112);
             }
             UiStyle.Tinted(new Rect(x, y + UiStyle.S(4), width, UiStyle.S(20)),
                            "Touches 1 et 2 : prendre en main ou ranger.   Clic gauche : frapper.   F : grimper dans un arbre.",
