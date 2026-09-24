@@ -36,6 +36,9 @@ namespace Fief
         public const float TowerHeight = 18f;
         public const float GateWidth = 6.5f;
         public const float GateHeight = 7.5f;
+        public const float BreachFrom = 8f;
+        public const float BreachTo = 16f;
+        public const float BreachHeight = 6.5f;
 
         /// <summary>Rayon du sol aplani sous le chateau, coins et tours compris.</summary>
         public const float FlatRadius = HalfSize * 1.42f + TowerSize * 0.5f + 10f;
@@ -51,12 +54,27 @@ namespace Fief
         static readonly Color IronDark = new Color(0.12f, 0.12f, 0.13f);
         static readonly Color Paving = new Color(0.20f, 0.20f, 0.19f);
 
-        /// <summary>Vrai si ce point est dans l'emprise du chateau (plus une marge).</summary>
+        /// <summary>L'allee des rois : de la porte vers le sud, bordee de statues.</summary>
+        public const float AvenueHalfWidth = 10f;
+        public const float AvenueEnd = -92f;
+
+        /// <summary>
+        /// Vrai si ce point est dans l'emprise du chateau (plus une marge) -- allee
+        /// des rois comprise : la foret n'y pousse pas, le mage n'y apparait pas.
+        /// </summary>
         public static bool Covers(float x, float z, float margin)
         {
             float reach = HalfSize + TowerSize * 0.5f + margin;
-            return Mathf.Abs(x) < reach && Mathf.Abs(z) < reach;
+            if (Mathf.Abs(x) < reach && Mathf.Abs(z) < reach) return true;
+            return Mathf.Abs(x) < AvenueHalfWidth + margin && z < -HalfSize && z > AvenueEnd - margin;
         }
+
+        /// <summary>Le donjon : sa salle du trone se visite.</summary>
+        public static readonly Vector3 KeepCentre = new Vector3(0f, 0f, 19f);
+        public const float KeepHalfWidth = 10f;
+        public const float KeepHalfDepth = 8f;
+        public const float HallFloor = 0.9f;
+        public const float HallCeiling = 9f;
 
         public static void Build(Transform parent, GameConfig cfg)
         {
@@ -77,6 +95,10 @@ namespace Fief
 
             Stele.Build(t, StelePosition);
             BuildTorches(t);
+
+            // Tout ce qui fait qu'on s'arrete pour regarder : l'allee des rois, les
+            // portes ouvertes, les braseros, la salle du trone, la cour en ruine.
+            CastleDecor.Build(t, cfg);
         }
 
         // ------------------------------------------------------------------ outils
@@ -152,7 +174,14 @@ namespace Fief
             Vector3 sw = new Vector3(-h, 0f, -h), se = new Vector3(h, 0f, -h);
 
             Segment(t, nw, ne, y0, WallHeight, WallThickness, Stone, true, "Courtine_Nord");
-            Segment(t, ne, se, y0, WallHeight, WallThickness, Stone, true, "Courtine_Est");
+
+            // A l'est, un pan s'est effondre : entre z = 8 et z = 16, le mur ne monte
+            // plus qu'a six metres et demi. Trop haut pour passer, assez bas pour qu'on
+            // se dise que ce chateau a perdu une guerre.
+            Vector3 breachS = new Vector3(h, 0f, BreachFrom), breachN = new Vector3(h, 0f, BreachTo);
+            Segment(t, ne, breachN, y0, WallHeight, WallThickness, Stone, true, "Courtine_Est");
+            Segment(t, breachN, breachS, y0, BreachHeight, WallThickness, Stone, true, "Breche");
+            Segment(t, breachS, se, y0, WallHeight, WallThickness, Stone, true, "Courtine_Est");
             Segment(t, sw, nw, y0, WallHeight, WallThickness, Stone, true, "Courtine_Ouest");
             WallWithDoor(t, sw, se, y0, WallHeight, WallThickness, GateWidth, GateHeight, Stone, "Courtine_Sud");
 
@@ -162,7 +191,8 @@ namespace Fief
             Segment(t, sw, nw, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
 
             Crenellate(t, nw, ne, WallHeight, WallThickness, 11);
-            Crenellate(t, ne, se, WallHeight, WallThickness, 12);
+            Crenellate(t, ne, new Vector3(h, 0f, BreachTo + 1f), WallHeight, WallThickness, 12);
+            Crenellate(t, new Vector3(h, 0f, BreachFrom - 1f), se, WallHeight, WallThickness, 16);
             Crenellate(t, sw, nw, WallHeight, WallThickness, 13);
             Crenellate(t, sw, new Vector3(-GateWidth * 0.5f - 4f, 0f, -h), WallHeight, WallThickness, 14);
             Crenellate(t, new Vector3(GateWidth * 0.5f + 4f, 0f, -h), se, WallHeight, WallThickness, 15);
@@ -178,11 +208,17 @@ namespace Fief
             };
             for (int i = 0; i < corners.Length; i++)
             {
-                Tower(t, corners[i], TowerSize, TowerHeight, 20 + i);
+                Tower(t, corners[i], TowerSize, TowerHeight, 20 + i, true);
             }
         }
 
-        static void Tower(Transform t, Vector3 at, float size, float height, int seed)
+        /// <summary>
+        /// Une tour. Les quatre tours d'angle portent un TOIT POINTU d'ardoise : c'est
+        /// la silhouette qu'on devine au-dessus de la brume en s'approchant, et c'est
+        /// ce qui dit "chateau" avant meme qu'on voie un mur. Les tours du chatelet
+        /// gardent leurs creneaux : le contraste rend les deux plus lisibles.
+        /// </summary>
+        static void Tower(Transform t, Vector3 at, float size, float height, int seed, bool roofed = false)
         {
             Proto.Cube(t, new Vector3(at.x, (height - 1.5f) * 0.5f, at.z),
                        new Vector3(size, height + 1.5f, size), Stone, "Tour");
@@ -203,6 +239,18 @@ namespace Fief
             Proto.EndVisualOnly();
 
             float half = size * 0.5f;
+            if (roofed)
+            {
+                // Un bandeau sombre sous l'avant-toit, puis le cone d'ardoise, puis une
+                // fine fleche. Octogonal : une arete tombe sur chaque coin de la tour.
+                Proto.BeginVisualOnly();
+                Proto.Cube(t, new Vector3(at.x, height + 0.3f, at.z), new Vector3(size + 0.5f, 0.6f, size + 0.5f), StoneDark, "Corniche");
+                Proto.EndVisualOnly();
+                Proto.Cone(t, new Vector3(at.x, height + 0.55f, at.z), size * 0.78f, size * 1.05f, Slate, "Toit");
+                Proto.Cone(t, new Vector3(at.x, height + 0.55f + size * 1.0f, at.z), 0.18f, 3.2f, IronDark, "Fleche", 4);
+                return;
+            }
+
             Vector3 a1 = at + new Vector3(-half, 0f, half), a2 = at + new Vector3(half, 0f, half);
             Vector3 a3 = at + new Vector3(half, 0f, -half), a4 = at + new Vector3(-half, 0f, -half);
             Crenellate(t, a1, a2, height, 1.2f, seed);
@@ -229,10 +277,55 @@ namespace Fief
             Proto.EndVisualOnly();
         }
 
+        /// <summary>
+        /// LE DONJON. Il n'est plus plein : sa porte est ouverte, et derriere il y a
+        /// la SALLE DU TRONE -- dix-sept metres de long, huit de haut, des piliers,
+        /// deux braseros, et un trone vide au fond (meublee par CastleDecor).
+        ///
+        /// Construction : quatre murs de 1,6 m (celui du sud perce de la porte), un
+        /// plancher sureleve de 0,9 m auquel on monte par trois marches, et au-dessus
+        /// de la salle un bloc plein de dix-neuf metres -- les etages qu'on ne visite
+        /// pas. Vu de dehors, rien n'a change : c'est toujours une masse de 28 m.
+        /// </summary>
         static void BuildKeep(Transform t)
         {
-            Vector3 c = new Vector3(0f, 0f, 19f);
-            Proto.Cube(t, new Vector3(c.x, (28f - 1.5f) * 0.5f, c.z), new Vector3(20f, 29.5f, 16f), Stone, "Donjon");
+            Vector3 c = KeepCentre;
+            float hx = KeepHalfWidth, hz = KeepHalfDepth;
+            float thick = 1.6f;
+            Vector3 p1 = c + new Vector3(-hx + thick * 0.5f, 0f, hz - thick * 0.5f);
+            Vector3 p2 = c + new Vector3(hx - thick * 0.5f, 0f, hz - thick * 0.5f);
+            Vector3 p3 = c + new Vector3(hx - thick * 0.5f, 0f, -hz + thick * 0.5f);
+            Vector3 p4 = c + new Vector3(-hx + thick * 0.5f, 0f, -hz + thick * 0.5f);
+
+            // Les murs de la salle, du sol jusqu'au plafond. Les murs lateraux sont
+            // allonges d'une demi-epaisseur : sinon chaque coin aurait un trou carre.
+            Vector3 ext = new Vector3(0f, 0f, thick * 0.5f);
+            Segment(t, p1 - new Vector3(thick * 0.5f, 0f, 0f), p2 + new Vector3(thick * 0.5f, 0f, 0f),
+                    -1.5f, HallCeiling, thick, Stone, true, "Donjon_Nord");
+            Segment(t, p2 + ext, p3 - ext, -1.5f, HallCeiling, thick, Stone, true, "Donjon_Est");
+            Segment(t, p4 - ext, p1 + ext, -1.5f, HallCeiling, thick, Stone, true, "Donjon_Ouest");
+            WallWithDoor(t, p3 + new Vector3(thick * 0.5f, 0f, 0f), p4 - new Vector3(thick * 0.5f, 0f, 0f),
+                         -1.5f, HallCeiling, thick, 3.6f, HallFloor + 5.2f, Stone, "Donjon_Sud");
+
+            // Le plancher de la salle, et les trois marches du perron.
+            // Il va jusqu'au bord EXTERIEUR du seuil (z = 11) : arrete au milieu du
+            // mur, il laissait sous la porte une fosse de 0,9 m ou le joueur restait
+            // coince (on ne remonte seul que 0,42 m).
+            float floorFront = c.z - hz, floorBack = c.z + hz - thick;
+            Proto.Cube(t, new Vector3(c.x, HallFloor * 0.5f - 0.25f, (floorFront + floorBack) * 0.5f),
+                       new Vector3(hx * 2f - thick, HallFloor + 0.5f, floorBack - floorFront), Paving, "Plancher");
+            float doorZ = c.z - hz;
+            for (int i = 0; i < 3; i++)
+            {
+                float top = HallFloor * (i + 1) / 3f;
+                float z0 = doorZ - 2.7f + i * 0.9f;
+                Proto.Cube(t, new Vector3(c.x, top * 0.5f - 0.1f, z0 + 0.45f),
+                           new Vector3(7f - i * 0.6f, top + 0.2f, 0.9f), StoneDark, "Marche");
+            }
+
+            // Au-dessus de la salle, les etages pleins.
+            Proto.Cube(t, new Vector3(c.x, (HallCeiling + 28f) * 0.5f, c.z),
+                       new Vector3(hx * 2f, 28f - HallCeiling, hz * 2f), Stone, "Donjon");
 
             // Contreforts : ils cassent la facade, et le pied du donjon parait ancre.
             for (int i = -1; i <= 1; i += 2)
@@ -241,15 +334,13 @@ namespace Fief
             }
 
             Proto.BeginVisualOnly();
-            // La grande porte, fermee : un aplat de bois cercle de fer.
-            Proto.Cube(t, new Vector3(c.x, 2.6f, c.z - 8.05f), new Vector3(3.6f, 5.2f, 0.2f), Timber, "Porte");
-            Proto.Cube(t, new Vector3(c.x, 1.6f, c.z - 8.18f), new Vector3(3.7f, 0.18f, 0.12f), IronDark, "Ferrure");
-            Proto.Cube(t, new Vector3(c.x, 3.8f, c.z - 8.18f), new Vector3(3.7f, 0.18f, 0.12f), IronDark, "Ferrure");
-            // Des fenetres hautes, noires.
+            // Des fenetres hautes, noires. Sauf une, tout en haut a droite, qui luit
+            // d'une lumiere froide. Il y a quelqu'un la-haut.
             for (int k = -1; k <= 1; k++)
             {
                 Proto.Cube(t, new Vector3(c.x + k * 5.5f, 17f, c.z - 8.02f), new Vector3(1.1f, 2.8f, 0.08f), IronDark, "Fenetre");
-                Proto.Cube(t, new Vector3(c.x + k * 5.5f, 23f, c.z - 8.02f), new Vector3(1.1f, 2.4f, 0.08f), IronDark, "Fenetre");
+                GameObject high = Proto.Cube(t, new Vector3(c.x + k * 5.5f, 23f, c.z - 8.02f), new Vector3(1.1f, 2.4f, 0.08f), IronDark, "Fenetre");
+                if (k == 1) high.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.62f, 0.74f, 0.95f), 1.4f);
             }
             Proto.EndVisualOnly();
 
@@ -259,6 +350,17 @@ namespace Fief
             Crenellate(t, a2, a3, 28f, 1.4f, 61);
             Crenellate(t, a3, a4, 28f, 1.4f, 62);
             Crenellate(t, a4, a1, 28f, 1.4f, 63);
+
+            // Quatre echauguettes aux coins du sommet, coiffees de fleches d'ardoise.
+            Vector3[] corners = { a1, a2, a3, a4 };
+            for (int i = 0; i < corners.Length; i++)
+            {
+                Vector3 q = corners[i];
+                Proto.BeginVisualOnly();
+                Proto.Cylinder(t, new Vector3(q.x, 30f, q.z), new Vector3(2.8f, 2.2f, 2.8f), Stone, "Echauguette");
+                Proto.EndVisualOnly();
+                Proto.Cone(t, new Vector3(q.x, 32.2f, q.z), 1.9f, 4.2f, Slate, "Fleche");
+            }
         }
 
         static void BuildCourtyard(Transform t)
@@ -403,7 +505,7 @@ namespace Fief
         /// Une torche : un poteau, une flamme, et une lumiere qui vacille. Pas d'ombre
         /// portee : une vingtaine de lumieres a ombres couterait tres cher.
         /// </summary>
-        static void Torch(Transform t, Vector3 at, float height)
+        public static void Torch(Transform t, Vector3 at, float height)
         {
             Proto.BeginVisualOnly();
             Proto.Cube(t, new Vector3(at.x, height * 0.5f, at.z), new Vector3(0.16f, height, 0.16f), Timber, "Torche");
@@ -414,6 +516,7 @@ namespace Fief
 
             Renderer r = flame.GetComponent<Renderer>();
             if (r != null) r.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.22f), 2.2f);
+            flame.AddComponent<Flame>();
 
             GameObject lightGo = new GameObject("Lueur");
             lightGo.transform.SetParent(t, false);

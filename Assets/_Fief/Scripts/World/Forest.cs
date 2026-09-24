@@ -102,7 +102,7 @@ namespace Fief
         /// Cinq materiaux par arbre, dans l'ordre des sous-maillages de TreeMesh :
         /// ecorce, mousse, puis le feuillage a l'ombre, au milieu, au soleil.
         /// </summary>
-        static Material[] TreeMaterials(Color bark, Color foliage)
+        public static Material[] TreeMaterials(Color bark, Color foliage)
         {
             Color moss = Palette.Shade(Palette.Moss[1], 1.3f);
             Color shade = Palette.Shade(foliage, 0.62f);

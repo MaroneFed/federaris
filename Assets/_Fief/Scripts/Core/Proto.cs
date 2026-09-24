@@ -64,6 +64,82 @@ namespace Fief
             return go;
         }
 
+        static readonly Dictionary<int, Mesh> Cones = new Dictionary<int, Mesh>();
+
+        /// <summary>
+        /// Un cone a facettes de rayon 1 et de hauteur 1, base en y = 0. Unity n'a pas
+        /// de cone parmi ses primitives : on le fabrique. Chaque face a ses propres
+        /// sommets, pour qu'elle capte la lumiere a plat (le look low-poly).
+        ///
+        /// Sens des triangles : une face est vue de DEVANT quand ses trois sommets
+        /// tournent dans le sens des aiguilles d'une montre vu de l'exterieur.
+        /// Dans l'autre sens, Unity ne la dessine pas -- on verrait au travers.
+        /// </summary>
+        public static Mesh ConeMesh(int sides)
+        {
+            sides = Mathf.Clamp(sides, 3, 32);
+            Mesh mesh;
+            if (Cones.TryGetValue(sides, out mesh) && mesh != null) return mesh;
+
+            List<Vector3> v = new List<Vector3>();
+            List<int> tris = new List<int>();
+            Vector3 tip = new Vector3(0f, 1f, 0f);
+            for (int i = 0; i < sides; i++)
+            {
+                float a0 = i / (float)sides * Mathf.PI * 2f;
+                float a1 = (i + 1) / (float)sides * Mathf.PI * 2f;
+                Vector3 b0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0));
+                Vector3 b1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
+
+                // flanc : b0, pointe, b1
+                int k = v.Count;
+                v.Add(b0); v.Add(tip); v.Add(b1);
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+
+                // dessous : centre, b0, b1
+                k = v.Count;
+                v.Add(Vector3.zero); v.Add(b0); v.Add(b1);
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+            }
+
+            mesh = new Mesh();
+            mesh.name = "Cone" + sides;
+            mesh.SetVertices(v);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            Cones[sides] = mesh;
+            return mesh;
+        }
+
+        /// <summary>Un cone pose (toit de tour, fleche, chapeau) : toujours sans collider.</summary>
+        public static GameObject Cone(Transform parent, Vector3 basePos, float radius, float height,
+                                      Color color, string name = "Cone", int sides = 8)
+        {
+            GameObject go = new GameObject(name);
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.transform.localPosition = basePos;
+            go.transform.localScale = new Vector3(radius, height, radius);
+            go.AddComponent<MeshFilter>().sharedMesh = ConeMesh(sides);
+            go.AddComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Get(color);
+            return go;
+        }
+
+        /// <summary>
+        /// Un bloc invisible qui arrete le joueur. Pour les objets dont la forme
+        /// visible est compliquee (un puits, une charrette) : un seul collider simple
+        /// vaut mieux que dix colliders exacts.
+        /// </summary>
+        public static GameObject Blocker(Transform parent, Vector3 centre, Vector3 size, string name = "Obstacle")
+        {
+            GameObject go = new GameObject(name);
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.transform.localPosition = centre;
+            BoxCollider box = go.AddComponent<BoxCollider>();
+            box.size = size;
+            return go;
+        }
+
         /// <summary>Execute une construction de decor sans creer le moindre collider.</summary>
         public static void BeginVisualOnly() { CollidersEnabled = false; }
         public static void EndVisualOnly() { CollidersEnabled = true; }

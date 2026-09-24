@@ -172,6 +172,46 @@ namespace Fief
             ps.Play();
         }
 
+        /// <summary>
+        /// Des etincelles qui montent d'un feu (braseros du chateau). Une poignee de
+        /// points orange qui s'elevent, derivent et s'eteignent : c'est ce qui fait
+        /// qu'un feu "vit", bien plus qu'une flamme qui bouge.
+        /// </summary>
+        public static void Embers(Transform parent, Vector3 localPosition)
+        {
+            if (!EnsureMaterials()) return;
+            ParticleSystem ps = NewSystem("Etincelles", parent, localPosition, additive);
+
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = 4f;
+            main.loop = true;
+            main.prewarm = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.6f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.6f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.07f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.55f, 0.18f, 1f),
+                                                                new Color(1f, 0.82f, 0.4f, 1f));
+            main.maxParticles = 40;
+
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 9f;
+
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 12f;
+            shape.radius = 0.25f;
+            shape.rotation = new Vector3(-90f, 0f, 0f);     // le cone pointe vers le haut
+
+            ParticleSystem.NoiseModule noise = ps.noise;
+            noise.enabled = true;
+            noise.strength = 0.5f;
+            noise.frequency = 1.2f;
+
+            FadeInOut(ps, 1f);
+            ps.randomSeed = (uint)localPosition.GetHashCode();
+            ps.Play();
+        }
+
         // ================================================================== outils
 
         /// <summary>
