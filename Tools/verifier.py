@@ -192,6 +192,15 @@ for path, s in sources.items():
                              r'(?:[\w<>\[\],\.\?]+\s+)+(\w+)\s*(?:;|=[^=]|\(|\{\s*get)',
                              body, re.M):
             if m.group(1) not in KEYWORDS: type_members[name].add(m.group(1))
+        # Declarations GROUPEES : "float a, b, c;" est du C# valide, et declare
+        # trois champs. Sans ce cas, seul le dernier etait vu (faux positif sur
+        # Soundscape et Sky, le 24/09/2026).
+        for m in re.finditer(r'^        (?:(?:public|private|protected|internal|static|readonly)\s+)*'
+                             r'[\w<>\[\]\.\?]+\s+(\w+(?:\s*,\s*\w+)+)\s*;',
+                             body, re.M):
+            for piece in m.group(1).split(','):
+                piece = piece.strip()
+                if piece and piece not in KEYWORDS: type_members[name].add(piece)
         for m in re.finditer(r'\b(?:class|struct|enum)\s+(\w+)', body):
             type_members[name].add(m.group(1))
 

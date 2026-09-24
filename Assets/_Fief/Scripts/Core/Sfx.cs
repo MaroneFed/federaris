@@ -261,6 +261,70 @@ namespace Fief
             return howl;
         }
 
+        static AudioClip rain, thunder;
+
+        /// <summary>
+        /// La pluie : du bruit dont on a retire les graves (on garde le crepitement),
+        /// avec de petites gouttes plus fortes semees dedans. Six secondes, en boucle.
+        /// </summary>
+        public static AudioClip Rain()
+        {
+            if (rain != null) return rain;
+            const float length = 6f, overlap = 0.8f;
+            int count = Mathf.RoundToInt(Rate * length);
+            int extra = Mathf.RoundToInt(Rate * overlap);
+            float[] raw = new float[count + extra];
+            System.Random r = new System.Random(21);
+            float low = 0f;
+            for (int i = 0; i < raw.Length; i++)
+            {
+                float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                low += (noise - low) * 0.12f;
+                float hiss = noise - low;                       // passe-haut : le crepitement
+                raw[i] = hiss * 0.5f + low * 0.35f;
+                if (r.NextDouble() < 0.0009) raw[i] += (float)(r.NextDouble() - 0.5) * 2.5f;
+            }
+            float[] data = new float[count];
+            for (int i = 0; i < count; i++) data[i] = raw[i];
+            for (int i = 0; i < extra; i++)
+            {
+                float k = (float)i / extra;
+                data[i] = raw[count + i] * (1f - k) + raw[i] * k;
+            }
+            Normalize(data, 0.7f);
+            rain = AudioClip.Create("pluie", count, 1, Rate, false);
+            rain.SetData(data, 0);
+            return rain;
+        }
+
+        /// <summary>
+        /// Le tonnerre : un craquement, puis un grondement grave qui roule et
+        /// s'eteint en quatre secondes (du bruit tres filtre, module par des vagues).
+        /// </summary>
+        public static AudioClip Thunder()
+        {
+            if (thunder != null) return thunder;
+            const float length = 5f;
+            int count = Mathf.RoundToInt(Rate * length);
+            float[] data = new float[count];
+            System.Random r = new System.Random(33);
+            float low = 0f, lower = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                low += (noise - low) * 0.03f;
+                lower += (low - lower) * 0.05f;
+                float roll = 0.6f + 0.4f * Mathf.Sin(t * 7f) * Mathf.Sin(t * 2.3f);
+                float env = Mathf.Min(1f, t * 12f) * Mathf.Exp(-0.9f * t);
+                float crackle = noise * Mathf.Exp(-18f * t) * 0.25f;
+                data[i] = lower * roll * env * 6f + crackle;
+            }
+            Normalize(data, 0.95f);
+            thunder = FromSamples("tonnerre", data);
+            return thunder;
+        }
+
         /// <summary>Le clip de la cloche, pour la faire sonner depuis le chateau.</summary>
         public static AudioClip BellClip()
         {

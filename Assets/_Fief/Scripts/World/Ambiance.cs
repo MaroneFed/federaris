@@ -256,6 +256,54 @@ namespace Fief
             ps.Play();
         }
 
+        /// <summary>
+        /// La pluie de l'orage, accrochee au joueur. Elle ne tombe pas encore : Sky
+        /// regle son debit (0 hors orage). Chaque goutte meurt au premier contact --
+        /// toit, feuillage, sol -- grace au module de collision : il ne pleut donc
+        /// pas dans la salle du trone.
+        /// </summary>
+        public static ParticleSystem RainSystem(Transform player)
+        {
+            if (!EnsureMaterials()) return null;
+            ParticleSystem ps = NewSystem("Pluie", player, new Vector3(0f, 11f, 0f), additive);
+
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = 5f;
+            main.loop = true;
+            main.startLifetime = 1.4f;
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.018f, 0.03f);
+            main.startColor = new Color(0.55f, 0.6f, 0.68f, 0.5f);
+            main.maxParticles = 2500;
+
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 0f;
+
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(30f, 1f, 30f);
+
+            ParticleSystem.VelocityOverLifetimeModule velocity = ps.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(-2.2f);
+            velocity.y = new ParticleSystem.MinMaxCurve(-16f);
+            velocity.z = new ParticleSystem.MinMaxCurve(-0.8f);
+
+            ParticleSystem.CollisionModule collision = ps.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.quality = ParticleSystemCollisionQuality.Low;
+            collision.lifetimeLoss = 1f;
+            collision.bounce = 0f;
+
+            ParticleSystemRenderer renderer = ps.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.velocityScale = 0.045f;
+            renderer.lengthScale = 1f;
+            return ps;
+        }
+
         // ================================================================== outils
 
         /// <summary>
