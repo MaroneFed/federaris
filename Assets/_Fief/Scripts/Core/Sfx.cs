@@ -94,6 +94,188 @@ namespace Fief
         public static void Pop() { Play(pop, 0.5f); }
         public static void Step() { Play(Pick(step), 0.22f); }
 
+        // ================================================================== la foret
+        //
+        // Les sons d'ambiance sont des CLIPS, pas des lectures : c'est Soundscape
+        // qui les joue, depuis un point de l'espace (un hibou dans un arbre a droite,
+        // une branche qui casse derriere). Ils sont fabriques une fois, a la demande.
+
+        static AudioClip wind, owl, crack, creak, howl;
+
+        /// <summary>
+        /// Le vent dans les cimes : du bruit, adouci par un filtre dont la frequence
+        /// monte et descend (les rafales). Huit secondes qui bouclent sans couture :
+        /// la derniere seconde est fondue dans la premiere.
+        /// </summary>
+        public static AudioClip Wind()
+        {
+            if (wind != null) return wind;
+            const float length = 8f, overlap = 1f;
+            int count = Mathf.RoundToInt(Rate * length);
+            int extra = Mathf.RoundToInt(Rate * overlap);
+            float[] raw = new float[count + extra];
+            System.Random r = new System.Random(11);
+            float low = 0f, lower = 0f;
+            for (int i = 0; i < raw.Length; i++)
+            {
+                float t = (float)i / Rate;
+                float gust = 0.5f + 0.5f * Mathf.Sin(t * 0.7f) * Mathf.Sin(t * 0.23f + 1f);
+                float alpha = Mathf.Lerp(0.015f, 0.07f, gust);
+                float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                low += (noise - low) * alpha;
+                lower += (low - lower) * 0.08f;
+                raw[i] = lower * (0.6f + gust * 0.8f);
+            }
+            float[] data = new float[count];
+            for (int i = 0; i < count; i++) data[i] = raw[i];
+            for (int i = 0; i < extra; i++)
+            {
+                float k = (float)i / extra;
+                data[i] = raw[count + i] * (1f - k) + raw[i] * k;
+            }
+            Normalize(data, 0.8f);
+            wind = AudioClip.Create("vent", count, 1, Rate, false);
+            wind.SetData(data, 0);
+            return wind;
+        }
+
+        /// <summary>Un hibou : "hou... hou-hou", trois notes graves qui glissent un peu.</summary>
+        public static AudioClip Owl()
+        {
+            if (owl != null) return owl;
+            int count = Mathf.RoundToInt(Rate * 2.1f);
+            float[] data = new float[count];
+            float[] starts = { 0f, 0.95f, 1.3f };
+            float[] lengths = { 0.5f, 0.28f, 0.55f };
+            for (int n = 0; n < starts.Length; n++)
+            {
+                int from = Mathf.RoundToInt(starts[n] * Rate);
+                int len = Mathf.RoundToInt(lengths[n] * Rate);
+                float phase = 0f;
+                for (int i = 0; i < len && from + i < count; i++)
+                {
+                    float u = (float)i / len;
+                    float f = Mathf.Lerp(390f, 350f, u);
+                    phase += 2f * Mathf.PI * f / Rate;
+                    float env = Mathf.Sin(u * Mathf.PI);
+                    env *= env;
+                    data[from + i] += (Mathf.Sin(phase) + Mathf.Sin(phase * 2f) * 0.12f) * env;
+                }
+            }
+            Normalize(data, 0.7f);
+            owl = FromSamples("hibou", data);
+            return owl;
+        }
+
+        /// <summary>Une branche qui casse : un claquement sec, puis un second plus petit.</summary>
+        public static AudioClip Crack()
+        {
+            if (crack != null) return crack;
+            int count = Mathf.RoundToInt(Rate * 0.6f);
+            float[] data = new float[count];
+            System.Random r = new System.Random(5);
+            float[] at = { 0f, 0.13f, 0.21f };
+            float[] level = { 1f, 0.5f, 0.25f };
+            for (int k = 0; k < at.Length; k++)
+            {
+                int from = Mathf.RoundToInt(at[k] * Rate);
+                for (int i = from; i < count; i++)
+                {
+                    float t = (float)(i - from) / Rate;
+                    float snap = (float)(r.NextDouble() * 2.0 - 1.0) * Mathf.Exp(-70f * t);
+                    float body = Mathf.Sin(2f * Mathf.PI * 95f * t) * Mathf.Exp(-22f * t) * 0.5f;
+                    data[i] += (snap + body) * level[k];
+                }
+            }
+            Normalize(data, 0.85f);
+            crack = FromSamples("branche", data);
+            return crack;
+        }
+
+        /// <summary>
+        /// Un grand arbre qui grince : une suite de petits chocs irreguliers, comme
+        /// du bois qui frotte sur du bois ("stick-slip"). Leur cadence monte, puis
+        /// redescend : c'est ce qui en fait une plainte.
+        /// </summary>
+        public static AudioClip Creak()
+        {
+            if (creak != null) return creak;
+            const float length = 1.6f;
+            int count = Mathf.RoundToInt(Rate * length);
+            float[] data = new float[count];
+            System.Random r = new System.Random(9);
+            float t = 0.05f;
+            while (t < length - 0.1f)
+            {
+                float u = t / length;
+                float rateHz = Mathf.Lerp(70f, 140f, Mathf.Sin(u * Mathf.PI));
+                float amp = Mathf.Sin(u * Mathf.PI);
+                int from = Mathf.RoundToInt(t * Rate);
+                int len = Mathf.RoundToInt(Rate * 0.012f);
+                for (int i = 0; i < len && from + i < count; i++)
+                {
+                    float x = (float)i / Rate;
+                    data[from + i] += Mathf.Sin(2f * Mathf.PI * 820f * x) * Mathf.Exp(-400f * x) * amp;
+                }
+                t += 1f / rateHz * (0.8f + (float)r.NextDouble() * 0.4f);
+            }
+            Normalize(data, 0.6f);
+            creak = FromSamples("grincement", data);
+            return creak;
+        }
+
+        /// <summary>
+        /// Un loup, tres loin : une note qui monte, tient, redescend, avec un leger
+        /// vibrato, et deux echos plus faibles -- la foret qui repond.
+        /// </summary>
+        public static AudioClip Howl()
+        {
+            if (howl != null) return howl;
+            const float voice = 3.2f;
+            int count = Mathf.RoundToInt(Rate * (voice + 1.4f));
+            float[] dry = new float[count];
+            float phase = 0f;
+            int len = Mathf.RoundToInt(Rate * voice);
+            for (int i = 0; i < len; i++)
+            {
+                float u = (float)i / len;
+                float contour = u < 0.25f ? Mathf.Lerp(330f, 520f, u / 0.25f)
+                              : u < 0.7f ? Mathf.Lerp(520f, 470f, (u - 0.25f) / 0.45f)
+                              : Mathf.Lerp(470f, 300f, (u - 0.7f) / 0.3f);
+                float t = (float)i / Rate;
+                float f = contour + Mathf.Sin(t * 2f * Mathf.PI * 5f) * 6f;
+                phase += 2f * Mathf.PI * f / Rate;
+                float env = Mathf.Min(1f, u * 8f) * Mathf.Min(1f, (1f - u) * 5f);
+                dry[i] = (Mathf.Sin(phase) + Mathf.Sin(phase * 2f) * 0.25f + Mathf.Sin(phase * 3f) * 0.08f) * env;
+            }
+            float[] data = new float[count];
+            int d1 = Mathf.RoundToInt(Rate * 0.37f), d2 = Mathf.RoundToInt(Rate * 0.83f);
+            for (int i = 0; i < count; i++)
+            {
+                data[i] = dry[i];
+                if (i >= d1) data[i] += dry[i - d1] * 0.3f;
+                if (i >= d2) data[i] += dry[i - d2] * 0.14f;
+            }
+            Normalize(data, 0.6f);
+            howl = FromSamples("loup", data);
+            return howl;
+        }
+
+        /// <summary>Le clip de la cloche, pour la faire sonner depuis le chateau.</summary>
+        public static AudioClip BellClip()
+        {
+            if (bell == null) BuildBell();
+            return bell;
+        }
+
+        static void Normalize(float[] data, float peak)
+        {
+            float max = 0.0001f;
+            for (int i = 0; i < data.Length; i++) max = Mathf.Max(max, Mathf.Abs(data[i]));
+            float k = peak / max;
+            for (int i = 0; i < data.Length; i++) data[i] *= k;
+        }
+
         static AudioClip discovery;
 
         /// <summary>
@@ -136,7 +318,12 @@ namespace Fief
         /// </summary>
         public static void Bell()
         {
-            if (bell == null)
+            if (bell == null) BuildBell();
+            Play(bell, 1f);
+        }
+
+        static void BuildBell()
+        {
             {
                 const float duration = 5f;
                 int count = Mathf.RoundToInt(Rate * duration);
@@ -155,7 +342,6 @@ namespace Fief
                 }
                 bell = FromSamples("cloche", data);
             }
-            Play(bell, 1f);
         }
 
         static AudioClip Pick(AudioClip[] bank)

@@ -134,6 +134,9 @@ namespace Fief
             if (Landmarks.Tour != null) Ermite.Build(Landmarks.Tour);
             Wisp.SpawnAll(folk.transform, config, 9);
             WhiteStag.Build(folk.transform, config);
+
+            // Et ce qu'on entend : le vent, les betes, la cloche du chateau.
+            Soundscape.Build(folk.transform);
         }
 
         // ================================================================ joueur
