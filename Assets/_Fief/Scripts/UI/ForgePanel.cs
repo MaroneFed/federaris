@@ -140,12 +140,17 @@ namespace Fief
             // La relique se porte : elle pese dans le sac tant qu'elle n'est pas posee.
             bag.ExtraWeight = Relic.Weight;
 
-            Sfx.Build();
-            if (first)
-                Toasts.Show("Le mage fond " + melted + " morceaux. Ta relique est nee : puissance " + relic.Power + ".", Mage.Glow);
-            else
-                Toasts.Show("Le mage fond " + melted + " morceaux. Puissance " + relic.Power + "  (+" + (relic.Power - before) + ").", Mage.Glow);
-            Toasts.Show("Porte-la sur la stele du chateau avant la cloche.", Palette.Gold);
+            if (Game.Mage != null) Game.Mage.PlayForge();
+            if (Game.Hud != null)
+                Game.Hud.ShowDiscovery(first ? "LA RELIQUE EST NEE" : "LA FORGE",
+                                       "Puissance " + relic.Power,
+                                       first ? Relic.TierName(Relic.Tier(relic.Power)) + ", pour commencer."
+                                             : "+" + (relic.Power - before) + "  --  " + Relic.TierName(Relic.Tier(relic.Power)),
+                                       "Porte-la sur la stele avant la cloche.", Mage.Glow);
+            Toasts.Show("Le mage fond " + melted + " morceaux dans la relique.", Mage.Glow);
+
+            // On ferme le panneau : le spectacle de la forge se passe DEVANT toi.
+            if (Game.Hud != null) Game.Hud.ClosePanel();
         }
     }
 }

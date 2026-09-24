@@ -258,7 +258,7 @@ def rank(p):
     if p < 120:
         return "une babiole"
     if p < 400:
-        return "un talisman"
+        return "un fetiche"
     if p < 800:
         return "une relique"
     if p < 1450:

@@ -78,12 +78,12 @@ l'endroit où il apparaît, c'est un deuxième sac.
 
 | Joueur type | Puissance médiane | Ce que dit l'écran de fin |
 |---|---|---|
-| Flâneur (3 apparitions, pas de fer) | ~140 | un talisman |
+| Flâneur (3 apparitions, pas de fer) | ~140 | un fétiche |
 | Régulier (rate une apparition sur trois) | ~990 | un trésor de mage |
 | Expert, six apparitions, sans caches | ~1340 | un trésor de mage |
 | Expert qui se sert de ses caches | ~1550 | **une légende** |
 
-Paliers : babiole < 120 ≤ talisman < 400 ≤ relique < 800 ≤ trésor < 1450 ≤ légende.
+Paliers : babiole < 120 ≤ fétiche < 400 ≤ relique < 800 ≤ trésor < 1450 ≤ légende.
 La légende **exige** les caches : c'est voulu, c'est la mécanique qu'on veut qu'il
 apprenne.
 

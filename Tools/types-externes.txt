@@ -125,3 +125,4 @@ GradientColorKey
 GradientAlphaKey
 ParticleSystemCollisionType
 ParticleSystemCollisionQuality
+ParticleSystemStopAction

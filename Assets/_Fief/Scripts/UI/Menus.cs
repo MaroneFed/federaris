@@ -387,12 +387,8 @@ namespace Fief
         /// </summary>
         public static string Rank(int power)
         {
-            if (power <= 0) return "rien";
-            if (power < 120) return "une babiole";
-            if (power < 400) return "un talisman";
-            if (power < 800) return "une relique";
-            if (power < 1450) return "un tresor de mage";
-            return "une legende";
+            // "fetiche" et plus "talisman" : les talismans sont devenus des objets.
+            return Relic.TierName(Relic.Tier(power));
         }
 
         void DrawEnd()

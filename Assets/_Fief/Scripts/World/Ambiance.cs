@@ -304,6 +304,48 @@ namespace Fief
             return ps;
         }
 
+        /// <summary>
+        /// Une gerbe unique : quatre-vingts eclats projetes dans toutes les
+        /// directions, qui ralentissent et s'eteignent. La forge du mage.
+        /// Le systeme se detruit tout seul quand il a fini (stopAction).
+        /// </summary>
+        public static void Burst(Transform parent, Vector3 localPosition, Color tint)
+        {
+            if (!EnsureMaterials()) return;
+            ParticleSystem ps = NewSystem("Gerbe", parent, localPosition, additive);
+
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = 1f;
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 1.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 7f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.14f);
+            main.startColor = new ParticleSystem.MinMaxGradient(tint, Color.white);
+            main.gravityModifier = 0.25f;
+            main.maxParticles = 120;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)80), new ParticleSystem.Burst(0.25f, (short)30) });
+
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.3f;
+
+            ParticleSystem.LimitVelocityOverLifetimeModule drag = ps.limitVelocityOverLifetime;
+            drag.enabled = true;
+            drag.limit = 0.6f;
+            drag.dampen = 0.08f;
+
+            FadeInOut(ps, 1f);
+            burstCount++;
+            ps.randomSeed = burstCount * 104729u;
+            ps.Play();
+        }
+
+        static uint burstCount;
+
         // ================================================================== outils
 
         /// <summary>

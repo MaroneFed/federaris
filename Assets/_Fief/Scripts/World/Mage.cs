@@ -44,7 +44,24 @@ namespace Fief
         float shown;                // 0 -> 1 : fondu d'apparition
         bool warned;                // "il repart bientot" deja dit pour cette apparition
 
+        LightBeam beacon;           // la colonne bleue, les premieres secondes
+        float beaconTimer;
+        float forgeGlow;            // 1 -> 0 : l'eclat de la forge
+
         public bool Present { get { return appearance >= 0; } }
+
+        float orbit;
+
+        /// <summary>
+        /// L'instant de la forge : une gerbe d'eclats bleus, la lumiere qui flambe,
+        /// les runes qui s'emballent, et un grondement. Appele par ForgePanel.
+        /// </summary>
+        public void PlayForge()
+        {
+            forgeGlow = 1f;
+            Ambiance.Burst(transform, new Vector3(0f, 1.6f, 0f), Glow);
+            Sfx.Forge();
+        }
 
         // ================================================================== construction
 
@@ -152,6 +169,11 @@ namespace Fief
             mage.voice.dopplerLevel = 0f;
             mage.voice.volume = 0f;
 
+            // La colonne de lumiere de son arrivee. Posee a cote du mage, pas sur son
+            // corps : elle doit pouvoir s'eteindre lentement apres son depart.
+            mage.beacon = LightBeam.Build(parent, Vector3.zero, Glow, 5f, 34f);
+            if (mage.beacon != null) mage.beacon.targetAlpha = 0f;
+
             mage.body.SetActive(false);
             return mage;
         }
@@ -160,6 +182,18 @@ namespace Fief
 
         void Update()
         {
+            // La colonne d'arrivee : quatorze secondes, puis elle s'eteint doucement.
+            if (beaconTimer > 0f)
+            {
+                beaconTimer -= Time.deltaTime;
+                if (beaconTimer <= 0f && beacon != null)
+                {
+                    beacon.targetAlpha = 0f;
+                    beacon.fadeSpeed = 0.2f;
+                }
+            }
+            forgeGlow = Mathf.MoveTowards(forgeGlow, 0f, Time.deltaTime * 0.5f);
+
             Season season = Game.Season;
             int wanted = season != null ? season.CurrentAppearance : -1;
 
@@ -215,7 +249,8 @@ namespace Fief
 
             for (int i = 0; i < orbiters.Length; i++)
             {
-                float a = t * 0.55f + i * 2.094f;
+                orbit += Time.deltaTime * (0.55f + forgeGlow * 5f) / orbiters.Length;
+                float a = orbit + i * 2.094f;
                 orbiters[i].localPosition = new Vector3(Mathf.Cos(a) * 1.5f,
                                                         1.5f + Mathf.Sin(t * 1.1f + i * 1.7f) * 0.3f,
                                                         Mathf.Sin(a) * 1.5f);
@@ -223,7 +258,8 @@ namespace Fief
             }
 
             float pulse = 1.5f + Mathf.Sin(t * 1.9f) * 0.25f + Mathf.Sin(t * 4.3f) * 0.1f;
-            halo.intensity = pulse * shown;
+            halo.intensity = (pulse + forgeGlow * 6f) * shown;
+            halo.range = 16f + forgeGlow * 10f;
         }
 
         void Appear(int k)
@@ -238,6 +274,18 @@ namespace Fief
                 ? Hud.Direction(Game.PlayerTransform.position, spot)
                 : "quelque part";
             Toasts.Show("Le mage chante, " + where + ". Ecoute, et suis sa voix.", Glow);
+
+            // Son arrivee se VOIT, une fois : une colonne bleue monte au-dessus des
+            // arbres dans sa direction, pendant quatorze secondes. Apres, il faut
+            // l'oreille.
+            if (beacon != null)
+            {
+                beacon.source = spot;
+                beacon.targetAlpha = 0.85f;
+                beacon.fadeSpeed = 0.6f;
+                beaconTimer = 14f;
+            }
+            Sfx.MageArrives();
         }
 
         void Leave()

@@ -261,7 +261,69 @@ namespace Fief
             return howl;
         }
 
-        static AudioClip rain, thunder;
+        static AudioClip rain, thunder, arrival, forge;
+
+        /// <summary>
+        /// L'arrivee du mage : une nappe qui enfle en montant (80 -> 220 Hz), avec
+        /// un souffle, et retombe. Deux secondes et demie. On l'entend partout : c'est
+        /// l'annonce, pas sa voix (sa voix, elle, vient de lui).
+        /// </summary>
+        public static void MageArrives()
+        {
+            if (arrival == null)
+            {
+                const float length = 2.6f;
+                int count = Mathf.RoundToInt(Rate * length);
+                float[] data = new float[count];
+                System.Random r = new System.Random(71);
+                float phase = 0f, phase2 = 0f, low = 0f;
+                for (int i = 0; i < count; i++)
+                {
+                    float u = (float)i / count;
+                    float f = Mathf.Lerp(80f, 220f, Mathf.SmoothStep(0f, 1f, u));
+                    phase += 2f * Mathf.PI * f / Rate;
+                    phase2 += 2f * Mathf.PI * f * 1.5f / Rate;
+                    float env = Mathf.Sin(u * Mathf.PI);
+                    float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                    low += (noise - low) * 0.05f;
+                    data[i] = (Mathf.Sin(phase) + Mathf.Sin(phase2) * 0.4f + low * 2f) * env;
+                }
+                Normalize(data, 0.7f);
+                arrival = FromSamples("arrivee", data);
+            }
+            Play(arrival, 0.8f);
+        }
+
+        /// <summary>La forge : un coup sourd, puis une pluie de clochettes qui monte.</summary>
+        public static void Forge()
+        {
+            if (forge == null)
+            {
+                const float length = 2.4f;
+                int count = Mathf.RoundToInt(Rate * length);
+                float[] data = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    data[i] += Mathf.Sin(2f * Mathf.PI * 55f * t) * Mathf.Exp(-3.5f * t) * 1.2f;
+                    data[i] += Mathf.Sin(2f * Mathf.PI * 110f * t) * Mathf.Exp(-5f * t) * 0.5f;
+                }
+                float[] notes = { 659.25f, 783.99f, 987.77f, 1318.5f };
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    int start = Mathf.RoundToInt(Rate * (0.12f + n * 0.09f));
+                    for (int i = start; i < count; i++)
+                    {
+                        float t = (float)(i - start) / Rate;
+                        data[i] += Mathf.Sin(2f * Mathf.PI * notes[n] * t) * Mathf.Exp(-3f * t) * 0.35f
+                                 + Mathf.Sin(2f * Mathf.PI * notes[n] * 2.76f * t) * Mathf.Exp(-6f * t) * 0.1f;
+                    }
+                }
+                Normalize(data, 0.9f);
+                forge = FromSamples("forge", data);
+            }
+            Play(forge, 1f);
+        }
 
         /// <summary>
         /// La pluie : du bruit dont on a retire les graves (on garde le crepitement),

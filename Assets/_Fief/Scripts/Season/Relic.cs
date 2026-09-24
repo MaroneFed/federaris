@@ -40,6 +40,35 @@ namespace Fief
             get { return PowerOf(parts); }
         }
 
+        /// <summary>
+        /// Le PALIER d'une puissance : 0 rien, 1 babiole, 2 fetiche, 3 relique,
+        /// 4 tresor de mage, 5 legende. Regle par Tools/saison.py : seul un joueur qui
+        /// se sert de ses caches atteint la legende. L'ecran de fin en tire son
+        /// verdict, la stele en tire l'allure de la relique posee.
+        /// </summary>
+        public static int Tier(int power)
+        {
+            if (power <= 0) return 0;
+            if (power < 120) return 1;
+            if (power < 400) return 2;
+            if (power < 800) return 3;
+            if (power < 1450) return 4;
+            return 5;
+        }
+
+        public static string TierName(int tier)
+        {
+            switch (tier)
+            {
+                case 0: return "rien";
+                case 1: return "une babiole";
+                case 2: return "un fetiche";
+                case 3: return "une relique";
+                case 4: return "un tresor de mage";
+                default: return "une legende";
+            }
+        }
+
         /// <summary>Nombre de fois qu'on l'a fait passer par la forge.</summary>
         public int Forgings { get; private set; }
 
