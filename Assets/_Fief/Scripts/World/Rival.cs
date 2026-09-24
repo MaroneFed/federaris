@@ -34,7 +34,7 @@ namespace Fief
     {
         public static readonly List<Rival> All = new List<Rival>();
 
-        enum Goal { Deposit, Resupply, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
+        enum Goal { Siege, Deposit, Resupply, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
 
         [System.NonSerialized] public Seeker seeker;
 
@@ -57,6 +57,8 @@ namespace Fief
         float barkTimer;
         int talks;
         System.Random rng;
+        Monument siege;
+        float siegeTimer;
 
         // --- le combat
         Seeker aggro;
@@ -232,6 +234,7 @@ namespace Fief
                 }
             }
             if (huntTimer > 0f) huntTimer -= dt;
+            if (siegeTimer > 0f) siegeTimer -= dt;
             if (stealCooldown > 0f) stealCooldown -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
 
@@ -328,6 +331,25 @@ namespace Fief
             // Piller la stele du joueur, s'il la connait et que le joueur est loin.
             if (goal == Goal.Steal || WantsToSteal()) { goal = Goal.Steal; target = Game.Me.Hoard.StelePosition; return; }
 
+            // Prendre un Autel : les rivaux armes y vont, sac leger, hors du temps du mage.
+            if (siege != null && siegeTimer > 0f && siege.Owner != seeker && !season.MagePresent)
+            {
+                goal = Goal.Siege; target = siege.transform.position; return;
+            }
+            siege = null;
+            if (armed && seeker.Kit.Holding(ToolKind.Epee) && seeker.Bag.Load01 < 0.3f && !season.MagePresent
+                && (season.NextMageIn < 0f || season.NextMageIn > 90f) && rng.NextDouble() < 0.025 * aggression)
+            {
+                siege = NearestAltar();
+                if (siege != null)
+                {
+                    siegeTimer = 45f;
+                    goal = Goal.Siege; target = siege.transform.position;
+                    Bark("L'autel. Il sera a moi.");
+                    return;
+                }
+            }
+
             // Sac lourd : il rentre le deposer (la Malediction ne pardonne pas).
             if (seeker.Bag.Load01 > 0.75f) { goal = Goal.Deposit; target = h.StelePosition; return; }
 
@@ -382,6 +404,11 @@ namespace Fief
             {
                 case Goal.Gather:
                     Harvest(dt);
+                    break;
+
+                case Goal.Siege:
+                    // Il reste sur le cercle : c'est l'Autel qui compte le temps.
+                    target = siege != null ? siege.transform.position + GuardOffset() * 0.5f : transform.position;
                     break;
 
                 case Goal.Deposit:
@@ -467,6 +494,20 @@ namespace Fief
                     transform.Rotate(0f, 20f * dt * Mathf.Sin(Time.time * 0.3f + seeker.Name.Length), 0f);
                     break;
             }
+        }
+
+        Monument NearestAltar()
+        {
+            Monument best = null;
+            float bestD = 260f;
+            for (int i = 0; i < Monument.All.Count; i++)
+            {
+                Monument m = Monument.All[i];
+                if (m == null || m.Owner == seeker) continue;
+                float d = Flat(m.transform.position - transform.position).magnitude;
+                if (d < bestD) { bestD = d; best = m; }
+            }
+            return best;
         }
 
         /// <summary>
@@ -622,6 +663,17 @@ namespace Fief
             armed = true;
             seeker.Kit.Slots[0] = new Tool(ToolKind.Epee);
             seeker.Kit.Select(0);
+        }
+
+        /// <summary>Une bete le mord et il est a bout : il fuit, et renonce a l'Autel.</summary>
+        public void FleeFrom(Vector3 from)
+        {
+            fleeTimer = 7f;
+            fleeFrom = from;
+            siege = null;
+            siegeTimer = 0f;
+            think = 0f;
+            Bark("Au diable cette bete !");
         }
 
         /// <summary>On vient de le frapper. S'il peut se battre, il se retourne ; sinon il fuit.</summary>

@@ -350,7 +350,7 @@ namespace Fief
                     // Rien ne pousse dans le chateau, ni contre ses murs : une bande de
                     // huit metres le degage, sinon on arrive nez a nez avec un tronc qui
                     // traverse la courtine.
-                    if (Castle.Covers(px, pz, 8f)) continue;
+                    if (Castle.Covers(px, pz, 8f) || Monument.Near(px, pz, 2f)) continue;
 
                     // Les creux a pierre-lune restent degages : une clairiere bleue, pas
                     // un tronc plante au milieu des eclats.

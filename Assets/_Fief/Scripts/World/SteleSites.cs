@@ -61,7 +61,7 @@ namespace Fief
                     float r = Mathf.Lerp(MinRadius, MaxRadius, Mathf.Sqrt((float)rng.NextDouble()));
                     float x = Mathf.Clamp(Mathf.Cos(a) * r, -half, half);
                     float z = Mathf.Clamp(Mathf.Sin(a) * r, -half, half);
-                    if (Castle.Covers(x, z, 25f) || Landmarks.Near(x, z, 18f) || Gathering.NearHollow(x, z, 12f)) continue;
+                    if (Castle.Covers(x, z, 25f) || Landmarks.Near(x, z, 18f) || Gathering.NearHollow(x, z, 12f) || Monument.Near(x, z, 40f)) continue;
                     if (Ground.Slope(x, z) > 0.25f) continue;
 
                     bool far = true;

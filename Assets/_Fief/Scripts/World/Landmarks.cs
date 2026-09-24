@@ -96,7 +96,7 @@ namespace Fief
                 float x = ((float)rng.NextDouble() * 2f - 1f) * half;
                 float z = ((float)rng.NextDouble() * 2f - 1f) * half;
                 if (new Vector2(x, z).magnitude < 95f) continue;
-                if (Castle.Covers(x, z, clear + 10f)) continue;
+                if (Castle.Covers(x, z, clear + 10f) || Monument.Near(x, z, clear + 10f)) continue;
                 if (Gathering.NearHollow(x, z, clear + 12f)) continue;
                 if (Ground.Slope(x, z) > 0.22f) continue;
 

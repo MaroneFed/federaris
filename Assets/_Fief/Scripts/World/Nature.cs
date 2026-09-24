@@ -31,7 +31,7 @@ namespace Fief
             for (int tries = 0; tries < 600 && ruins < 12; tries++)
             {
                 float x = R(rng, -half, half), z = R(rng, -half, half);
-                if (Castle.Covers(x, z, 20f) || Landmarks.Near(x, z, 15f) || Gathering.NearHollow(x, z, 10f)) continue;
+                if (Castle.Covers(x, z, 20f) || Landmarks.Near(x, z, 15f) || Gathering.NearHollow(x, z, 10f) || Monument.Near(x, z, 8f)) continue;
                 if (Ground.Slope(x, z) > 0.25f || Blocked(Ground.Place(x, z, 0f), 4f)) continue;
                 Ruin(root.transform, Ground.Place(x, z, 0f), rng);
                 ruins++;
@@ -61,7 +61,7 @@ namespace Fief
             for (int tries = 0; tries < 400 && flocks < 26; tries++)
             {
                 float x = R(rng, -half, half), z = R(rng, -half, half);
-                if (Castle.Covers(x, z, 5f) || Landmarks.Near(x, z, 2f)) continue;
+                if (Castle.Covers(x, z, 5f) || Landmarks.Near(x, z, 2f) || Monument.Near(x, z, 2f)) continue;
                 CrowFlock.Build(root.transform, Ground.Place(x, z, 0f), 3 + rng.Next(4), rng.Next());
                 flocks++;
             }

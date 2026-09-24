@@ -92,6 +92,10 @@ namespace Fief
                 // foret pour choisir une place libre, il vient donc apres elle.
                 Game.Mage = Mage.Build(worldRoot, config);
 
+                // Les trois Autels au pied du chateau, et leurs revenants. La foret
+                // leur a laisse la place (Monument.Near).
+                Monument.BuildAll(worldRoot);
+
                 // Les autres habitants de la sylve.
                 BuildInhabitants();
 

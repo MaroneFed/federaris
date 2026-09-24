@@ -264,7 +264,13 @@ namespace Fief
             biteTimer = bite;
             if (walker != null) walker.PlaySwing();
             Combat.Hit(prey, null, damage, kind == Kind.Loup ? "sous les crocs d'un loup" : "sous la lame d'un revenant");
-            if (!prey.IsPlayer) Defend(prey);
+            if (!prey.IsPlayer)
+            {
+                Defend(prey);
+                // A bout de forces, un rival s'enfuit.
+                Rival r = Rival.Of(prey);
+                if (r != null && prey.Alive && (prey.Health < 40f || !prey.Kit.Holding(ToolKind.Epee))) r.FleeFrom(transform.position);
+            }
             if (!prey.Alive) { prey = null; state = State.Return; }
         }
 
@@ -273,7 +279,7 @@ namespace Fief
         {
             if (!rival.CanStrike || !rival.Kit.Holding(ToolKind.Epee)) return;
             rival.Kit.Wear(1);
-            Hurt(20f, rival);
+            Hurt(28f, rival);
         }
 
         void Return(float dt)

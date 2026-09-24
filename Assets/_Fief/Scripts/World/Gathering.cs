@@ -137,7 +137,7 @@ namespace Fief
             {
                 for (float z = -half; z <= half; z += Step)
                 {
-                    if (Castle.Covers(x, z, 14f)) continue;
+                    if (Castle.Covers(x, z, 14f) || Monument.Near(x, z, 10f)) continue;
                     float h = Ground.Sample(x, z);
                     float around = 0f;
                     for (int k = 0; k < 8; k++)
