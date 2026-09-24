@@ -17,6 +17,7 @@ REELLEMENT arrivees sur ce projet :
   6. CHAINE d'acces (Game.Hud.Hidden) et membre NON PUBLIC appele d'ailleurs
   7. TYPE INCONNU, et attribut orphelin devant une methode
   8. API Unity PERIMEE, devenue une erreur dans Unity 6 (GetInstanceID...)
+  9. une METHODE qui porte le nom d'une CLASSE et la cache (CS0119)
 
 Les trois derniers ont ete ajoutes apres coup, chacun parce qu'une faute est
 passee jusqu'a Unity :
@@ -514,6 +515,24 @@ for path, s2 in sources.items():
         for m in re.finditer(pattern, s2):
             line = s2.count('\n', 0, m.start()) + 1
             errors.append("%s ligne %d : %s" % (path, line, advice))
+
+# ---- 5d. Une methode qui cache une classe (CS0119) ----------------------
+# Dans CastleDecor, une methode s'appelait Throne(...) ; la classe Throne
+# existait aussi. Dans CastleDecor, "Throne.Build(...)" designait alors la
+# METHODE, et Unity a refuse (CS0119, le 24/09/2026, Safe Mode). Le
+# verificateur voyait Throne.Build exister et ne disait rien.
+method_decl_re = re.compile(
+    r'^[ \t]*(?:(?:public|private|protected|internal|static|override|virtual|abstract|new)\s+)*'
+    r'(?!return\b|new\b|else\b)[\w<>\[\],.]+\s+([A-Z]\w*)\s*\([^;=]*$', re.M)
+for path, s2 in sources.items():
+    methods = set(m.group(1) for m in method_decl_re.finditer(s2))
+    for name in methods:
+        if name not in all_types:
+            continue
+        for m in re.finditer(r'(?<![\w.])' + re.escape(name) + r'\s*\.\s*[A-Za-z_]', s2):
+            line = s2.count('\n', 0, m.start()) + 1
+            errors.append("%s ligne %d : la methode %s(...) de ce fichier cache la classe %s ; "
+                          "renomme la methode, ou ecris Fief.%s (CS0119)" % (path, line, name, name, name))
 
 print("%d fichiers, %d types" % (len(files), len(all_types)))
 if errors:

@@ -282,7 +282,7 @@ namespace Fief
             // Marches de 25 cm (le joueur en monte 42 seul) : dessus a +0,25 puis +0,5.
             Proto.Cube(t, new Vector3(0f, floor + 0.025f, back - 1.0f), new Vector3(5.2f, 0.45f, 2.0f), StoneDark, "Estrade");
             Proto.Cube(t, new Vector3(0f, floor + 0.15f, back - 0.6f), new Vector3(3.6f, 0.7f, 1.2f), StoneDark, "Estrade");
-            Throne(t, new Vector3(0f, floor + 0.5f, back - 0.55f));
+            ThroneSeat(t, new Vector3(0f, floor + 0.5f, back - 0.55f));
 
             // Deux braseros de part et d'autre de l'estrade.
             Brazier(t, new Vector3(-2.9f, floor, back - 2.6f));
@@ -314,7 +314,7 @@ namespace Fief
         }
 
         /// <summary>Un trone de bois noir, haut dossier, garni de fer. Vide.</summary>
-        static void Throne(Transform t, Vector3 seatBase)
+        static void ThroneSeat(Transform t, Vector3 seatBase)
         {
             Proto.BeginVisualOnly();
             Proto.Cube(t, seatBase + new Vector3(0f, 0.45f, 0f), new Vector3(1.3f, 0.2f, 1.0f), TimberDark, "Siege");
