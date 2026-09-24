@@ -146,49 +146,90 @@ namespace Fief
         }
 
         /// <summary>
-        /// Une touffe : quelques frondes plates qui partent d'un meme point. C'est le
-        /// detail qui compte le plus, parce que c'est le seul qu'on voie DE PRES.
+        /// Une FOUGERE : des frondes qui partent d'un meme point, montent puis
+        /// retombent en arc, chacune garnie de folioles de part et d'autre, de plus
+        /// en plus petites vers la pointe. C'est le detail qui compte le plus, parce
+        /// que c'est le seul qu'on voie DE PRES -- une touffe de rubans plats ne
+        /// ressemblait a rien.
+        ///
+        /// Deux sous-maillages : les folioles (vertes), et la tige (plus sombre).
+        /// Tout est a double face : une feuille se voit des deux cotes.
         /// </summary>
         static Model MakeBush(int seed, System.Random pick)
         {
             System.Random rng = new System.Random(seed);
             List<Vector3> v = new List<Vector3>();
-            List<int> t = new List<int>();
+            List<int> leaf = new List<int>();
+            List<int> stem = new List<int>();
 
-            int fronds = 5 + rng.Next(4);
+            int fronds = 6 + rng.Next(4);
             for (int i = 0; i < fronds; i++)
             {
                 float a = (i / (float)fronds) * Mathf.PI * 2f + (float)rng.NextDouble() * 0.6f;
-                float len = 0.55f + (float)rng.NextDouble() * 0.75f;
-                float rise = 0.35f + (float)rng.NextDouble() * 0.7f;
-                float wide = 0.11f + (float)rng.NextDouble() * 0.09f;
+                float len = 0.6f + (float)rng.NextDouble() * 0.7f;
+                float rise = 0.4f + (float)rng.NextDouble() * 0.6f;
+                float wide = 0.16f + (float)rng.NextDouble() * 0.08f;
 
                 Vector3 dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                Vector3 side = new Vector3(-dir.z, 0f, dir.x) * wide;
-                Vector3 foot = dir * 0.06f;
-                Vector3 bend = dir * len + new Vector3(0f, rise, 0f);
-                Vector3 tip = dir * len * 1.5f + new Vector3(0f, rise * 0.72f, 0f);
+                Vector3 side = new Vector3(-dir.z, 0f, dir.x);
+                // La courbe de la tige : elle part droite, s'arque, et la pointe retombe.
+                Vector3 p0 = dir * 0.04f;
+                Vector3 p1 = dir * len * 0.55f + new Vector3(0f, rise * 1.35f, 0f);
+                Vector3 p2 = dir * len * 1.45f + new Vector3(0f, rise * 0.45f, 0f);
 
-                // Deux quads par fronde, dans les deux sens : une feuille se voit des
-                // deux cotes, et a plat un seul sens la rendrait invisible de dessus.
-                Face(v, t, foot - side, foot + side, bend + side, bend - side);
-                Point(v, t, bend - side * 0.6f, bend + side * 0.6f, tip);
-                Face(v, t, foot + side, foot - side, bend - side, bend + side);
-                Point(v, t, bend + side * 0.6f, bend - side * 0.6f, tip);
+                const int Segments = 9;
+                Vector3 previous = p0;
+                for (int k = 1; k <= Segments; k++)
+                {
+                    float t = k / (float)Segments;
+                    Vector3 p = Bezier(p0, p1, p2, t);
+                    Vector3 w = side * 0.012f;
+                    Face(v, stem, previous - w, previous + w, p + w, p - w);
+                    Face(v, stem, previous + w, previous - w, p - w, p + w);
+
+                    // Une paire de folioles a chaque noeud (sauf le premier, nu).
+                    if (k >= 2 && k < Segments)
+                    {
+                        Vector3 along = (p - previous).normalized;
+                        float size = wide * Mathf.Sin(Mathf.PI * Mathf.Lerp(0.25f, 1f, t)) * (1.1f - t * 0.5f);
+                        for (int sd = -1; sd <= 1; sd += 2)
+                        {
+                            Vector3 outv = side * sd * size + along * size * 0.55f + Vector3.down * size * 0.25f;
+                            Vector3 root0 = p - along * size * 0.18f;
+                            Vector3 root1 = p + along * size * 0.18f;
+                            Point(v, leaf, root0, root1, p + outv);
+                            Point(v, leaf, root1, root0, p + outv);
+                        }
+                    }
+                    previous = p;
+                }
             }
 
             Mesh mesh = new Mesh();
-            mesh.name = "Touffe_" + seed;
+            mesh.name = "Fougere_" + seed;
             mesh.SetVertices(v);
-            mesh.SetTriangles(t, 0);
+            mesh.subMeshCount = 2;
+            mesh.SetTriangles(leaf, 0);
+            mesh.SetTriangles(stem, 1);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
+            Color green = Palette.Pick(Palette.Moss, pick);
             Model m = new Model();
             m.mesh = mesh;
             m.height = 1f;
-            m.materials = new Material[] { MaterialFactory.Get(Palette.Pick(Palette.Moss, pick)) };
+            m.materials = new Material[]
+            {
+                MaterialFactory.Get(Palette.Shade(green, 1.25f)),
+                MaterialFactory.Get(Palette.Shade(green, 0.7f))
+            };
             return m;
+        }
+
+        static Vector3 Bezier(Vector3 a, Vector3 b, Vector3 c, float t)
+        {
+            float u = 1f - t;
+            return a * (u * u) + b * (2f * u * t) + c * (t * t);
         }
 
         /// <summary>

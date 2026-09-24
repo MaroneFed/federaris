@@ -118,6 +118,10 @@ namespace Fief
             try { Ambiance.Build(worldRoot, player != null ? player.transform : null, config); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignoree : " + error.Message); }
 
+            // Le tapis de la foret : feuilles mortes, brindilles, champignons, autour de toi.
+            try { if (player != null) GroundCover.Build(worldRoot, player.transform, config); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Tapis de foret ignore : " + error.Message); }
+
             BuildHud(player);
 
             // La musique : tes morceaux s'ils sont dans Resources/Music, sinon la sienne.

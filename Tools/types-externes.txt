@@ -139,3 +139,4 @@ Animator
 PlayableGraph
 Animation
 DirectorUpdateMode
+Vector2Int
