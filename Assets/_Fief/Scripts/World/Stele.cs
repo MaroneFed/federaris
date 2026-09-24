@@ -27,19 +27,27 @@ namespace Fief
         Transform relicShown;
         int shownTier = -1;
         Transform[] rings = new Transform[0];
-        LightBeam legendBeam;
         Renderer rune;
         Material runeOff;
         Material runeOn;
         bool announcedToPlayer;
+        AudioSource hum;
 
         static readonly Color StoneBlack = new Color(0.14f, 0.14f, 0.15f);
         static readonly Color DaisStone = new Color(0.27f, 0.27f, 0.26f);
         static readonly Color Pole = new Color(0.22f, 0.17f, 0.12f);
         public static readonly Color RuneBlue = new Color(0.55f, 0.72f, 1f);
 
-        const float RelicHeight = 3.5f;
+        const float RelicHeight = 1.85f;
 
+        /// <summary>
+        /// Une stele DISCRETE (Martin, 24/09 : "quand meme un minimum cachee" -- et
+        /// en multijoueur, une stele enorme n'aurait aucun sens) : une pierre
+        /// levee d'un metre quarante, moussue, sans banniere. On ne la voit qu'a
+        /// quelques pas, dans la brume. Mais elle CHANTE : un bourdonnement tres
+        /// doux, qu'on entend a quinze metres. On peut la trouver a l'oreille --
+        /// toi, et les autres.
+        /// </summary>
         public static Stele Build(Transform parent, Vector3 at, float yaw, Seeker owner)
         {
             GameObject root = new GameObject("STELE de " + owner.Name);
@@ -48,45 +56,59 @@ namespace Fief
             root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             Transform t = root.transform;
 
-            Proto.BeginVisualOnly();
-            Proto.Cylinder(t, new Vector3(0f, 0.06f, 0f), new Vector3(3.4f, 0.1f, 3.4f), DaisStone, "Dais");
-            Proto.EndVisualOnly();
-            Proto.Cube(t, new Vector3(0f, 1.2f, 0f), new Vector3(0.95f, 2.6f, 0.42f), StoneBlack, "Pierre");
-
+            Proto.Cube(t, new Vector3(0f, 0.62f, 0f), new Vector3(0.62f, 1.44f, 0.32f), StoneBlack, "Pierre");
             Stele stele = root.AddComponent<Stele>();
             stele.owner = owner;
 
             Proto.BeginVisualOnly();
-            GameObject runeGo = Proto.Cube(t, new Vector3(0f, 1.6f, -0.22f), new Vector3(0.38f, 0.7f, 0.03f), owner.Colour, "Rune");
-            Proto.Cube(t, new Vector3(0f, 2.58f, 0f), new Vector3(1.1f, 0.18f, 0.55f), StoneBlack, "Chapiteau");
-
-            // La banniere du proprietaire : c'est elle qu'on reconnait de loin.
-            Proto.Cube(t, new Vector3(1.1f, 1.6f, 0f), new Vector3(0.08f, 3.2f, 0.08f), Pole, "Hampe");
-            Proto.Cube(t, new Vector3(1.45f, 2.7f, 0f), new Vector3(0.66f, 0.9f, 0.04f), owner.Colour, "Banniere");
-            GameObject tail = Proto.Cube(t, new Vector3(1.45f, 2.05f, 0f), new Vector3(0.46f, 0.46f, 0.04f), owner.Colour, "Pointe");
-            tail.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            GameObject top = Proto.Cube(t, new Vector3(0.04f, 1.38f, 0f), new Vector3(0.5f, 0.16f, 0.3f), StoneBlack, "Tete");
+            top.transform.localRotation = Quaternion.Euler(0f, 0f, 9f);
+            Proto.Cube(t, new Vector3(-0.2f, 0.25f, -0.17f), new Vector3(0.3f, 0.5f, 0.04f), new Color(0.2f, 0.26f, 0.16f), "Mousse");
+            // Une rune de la couleur de son proprietaire : eteinte, elle se confond avec la pierre.
+            GameObject runeGo = Proto.Cube(t, new Vector3(0f, 0.9f, -0.17f), new Vector3(0.2f, 0.34f, 0.02f), owner.Colour, "Rune");
+            // Trois pierres plates a ses pieds.
+            for (int i = 0; i < 3; i++)
+            {
+                float a = i * 2.1f + 0.4f;
+                GameObject s = Proto.Cube(t, new Vector3(Mathf.Cos(a) * 0.6f, 0.04f, Mathf.Sin(a) * 0.6f), new Vector3(0.36f, 0.08f, 0.28f),
+                                          DaisStone, "Pierre plate");
+                s.transform.localRotation = Quaternion.Euler(0f, i * 50f, 0f);
+            }
             Proto.EndVisualOnly();
 
             GameObject relic = new GameObject("Relique");
             relic.transform.SetParent(t, false);
             relic.transform.localPosition = new Vector3(0f, RelicHeight, 0f);
+            relic.transform.localScale = Vector3.one * 0.55f;
             stele.relicShown = relic.transform;
             relic.SetActive(false);
 
             stele.rune = runeGo.GetComponent<Renderer>();
-            stele.runeOff = MaterialFactory.Get(Palette.Shade(owner.Colour, 0.45f));
-            stele.runeOn = MaterialFactory.GetGlow(owner.Colour, 2.4f);
+            stele.runeOff = MaterialFactory.Get(Palette.Shade(owner.Colour, 0.4f));
+            stele.runeOn = MaterialFactory.GetGlow(owner.Colour, 1.6f);
             if (stele.rune != null) stele.rune.sharedMaterial = stele.runeOff;
 
             GameObject lightGo = new GameObject("Lueur");
             lightGo.transform.SetParent(t, false);
-            lightGo.transform.localPosition = new Vector3(0f, 2.8f, -1.0f);
+            lightGo.transform.localPosition = new Vector3(0f, 1.8f, -0.6f);
             stele.glow = lightGo.AddComponent<Light>();
             stele.glow.type = LightType.Point;
             stele.glow.color = RuneBlue;
-            stele.glow.range = 8f;
+            stele.glow.range = 3f;
             stele.glow.intensity = 0f;
             stele.glow.shadows = LightShadows.None;
+
+            // Le chant : un son en boucle, spatialise, qui s'eteint a 15 m.
+            stele.hum = root.AddComponent<AudioSource>();
+            stele.hum.clip = Sfx.SteleHum();
+            stele.hum.loop = true;
+            stele.hum.spatialBlend = 1f;
+            stele.hum.rolloffMode = AudioRolloffMode.Linear;
+            stele.hum.minDistance = 1.5f;
+            stele.hum.maxDistance = 15f;
+            stele.hum.dopplerLevel = 0f;
+            stele.hum.volume = 0.35f;
+            stele.hum.Play();
 
             All.Add(stele);
             return stele;
@@ -114,7 +136,7 @@ namespace Fief
             {
                 Vector3 d = me.Body.position - transform.position;
                 d.y = 0f;
-                if (d.magnitude < 18f)
+                if (d.magnitude < 8f)
                 {
                     me.Discover(owner);
                     if (!announcedToPlayer && Game.Hud != null)
@@ -144,7 +166,7 @@ namespace Fief
                 {
                     relicShown.Rotate(0f, 40f * Time.deltaTime, 0f, Space.World);
                     Vector3 p = relicShown.localPosition;
-                    p.y = RelicHeight + tier * 0.12f + Mathf.Sin(Time.time * 1.3f) * 0.12f;
+                    p.y = RelicHeight + Mathf.Sin(Time.time * 1.3f) * 0.06f;
                     relicShown.localPosition = p;
                     for (int i = 0; i < rings.Length; i++)
                         rings[i].Rotate(new Vector3(i == 1 ? 60f : 0f, i == 2 ? 50f : 0f, i == 0 ? 70f : 25f) * Time.deltaTime, Space.Self);
@@ -152,8 +174,8 @@ namespace Fief
             }
             if (glow != null)
             {
-                glow.intensity = Mathf.MoveTowards(glow.intensity, lit ? 1.2f + tier * 0.4f : 0f, Time.deltaTime * 2f);
-                glow.range = 7f + tier * 2f;
+                glow.intensity = Mathf.MoveTowards(glow.intensity, lit ? 0.6f + tier * 0.15f : 0f, Time.deltaTime * 2f);
+                glow.range = 3f + tier * 0.4f;
             }
         }
 
@@ -162,8 +184,8 @@ namespace Fief
         /// <summary>
         /// La relique posee change d'allure avec sa puissance. Babiole : un cube.
         /// Fetiche : un joyau et un anneau. Relique : trois eclats en orbite. Tresor :
-        /// deux anneaux d'or. Legende : trois anneaux, huit eclats, et une colonne de
-        /// lumiere doree qui se voit de toute la foret -- une legende, ca se vole.
+        /// deux anneaux d'or. Legende : trois anneaux, huit eclats. Petite, mais elle
+        /// luit : de pres, on sait tout de suite ce qu'elle vaut.
         /// </summary>
         void ShowTier(int tier)
         {
@@ -172,12 +194,11 @@ namespace Fief
             for (int i = relicShown.childCount - 1; i >= 0; i--) Destroy(relicShown.GetChild(i).gameObject);
             RelicModels.Build(relicShown, tier, out rings);
 
-            if (tier >= 5 && legendBeam == null)
-                legendBeam = LightBeam.Build(transform, transform.position, new Color(0.95f, 0.82f, 0.45f), 4f, 34f);
-            if (legendBeam != null)
+            // Le chant monte avec la relique posee : une legende s'entend de plus loin.
+            if (hum != null)
             {
-                legendBeam.source = transform.position;
-                legendBeam.targetAlpha = tier >= 5 ? 0.75f : 0f;
+                hum.volume = tier > 0 ? 0.45f + tier * 0.06f : 0.3f;
+                hum.maxDistance = 15f + tier * 2f;
             }
         }
 

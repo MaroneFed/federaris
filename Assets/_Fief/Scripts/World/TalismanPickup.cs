@@ -17,7 +17,6 @@ namespace Fief
 
         Transform model;
         Light halo;
-        LightBeam beam;
         Transform[] runes = new Transform[0];
         float baseY;
         bool taken;
@@ -48,21 +47,15 @@ namespace Fief
             pickup.halo = lightGo.AddComponent<Light>();
             pickup.halo.type = LightType.Point;
             pickup.halo.color = TalismanInfo.Tint(t);
-            pickup.halo.range = 5.5f;
+            pickup.halo.range = 3f;
             pickup.halo.intensity = 1.4f;
             pickup.halo.shadows = LightShadows.None;
 
             Ambiance.Sparkles(root.transform, Vector3.zero, TalismanInfo.Tint(t));
 
-            // Une colonne de lumiere de sa couleur, qui perce la brume jusqu'a
-            // cinquante metres : on voit qu'il y a QUELQUE CHOSE la-bas, entre les
-            // troncs. Pas projetee plus loin : il faut s'approcher pour la voir.
-            pickup.beam = LightBeam.Build(root.transform, root.transform.position, TalismanInfo.Tint(t), 1.3f, 9f);
-            if (pickup.beam != null)
-            {
-                pickup.beam.projectFar = false;
-                pickup.beam.targetAlpha = 0.45f;
-            }
+            // Pas de colonne de lumiere : un talisman, ca se CHERCHE (Martin, 24/09 :
+            // "les reliques ne doivent pas etre aussi faciles a trouver"). Juste une
+            // lueur de quelques metres, et des paillettes qu'on voit de pres.
 
             // Trois runes qui tournent autour de lui.
             Material glow = MaterialFactory.GetGlow(TalismanInfo.Tint(t), 2f);
@@ -119,7 +112,6 @@ namespace Fief
             TalismanEffects.Apply(talisman);
             Sfx.Discovery();
             if (Game.Hud != null) Game.Hud.ShowItem(talisman, Game.Hoard.TalismanCount);
-            if (beam != null) { beam.targetAlpha = 0f; beam.fadeSpeed = 0.4f; }
             for (int i = 0; i < runes.Length; i++) if (runes[i] != null) runes[i].gameObject.SetActive(false);
 
             // L'objet disparait ; les paillettes s'eteignent d'elles-memes.

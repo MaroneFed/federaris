@@ -184,6 +184,7 @@ namespace Fief
                 Sfx.HarvestTap(ResourceType.Moonstone);
             }
 
+            OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);     // on creuse a genoux
             float duration = DigDuration();
             digTimer += Time.deltaTime;
             Progress01 = Mathf.Clamp01(digTimer / duration);

@@ -26,9 +26,11 @@ namespace Fief
         public Menus menus;
 
         IPanel panel;
-        bool showHelp = true;
+        // La liste des commandes ne s'affiche plus d'office (Martin : "je ne veux pas
+        // la liste en haut") : F1 l'ouvre. Les objectifs du debut guident a la place.
+        bool showHelp = false;
         bool showDiagnostic;
-        float helpTimer = 22f;
+        float helpTimer = 0f;
 
         public bool PanelOpen { get { return panel != null; } }
 

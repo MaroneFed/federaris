@@ -28,6 +28,7 @@ namespace Fief
         static AudioClip deny;        // action refusee
         static AudioClip[] step;      // pas
         static AudioClip pop;         // depot / ramassage
+        static AudioClip[] rustle;    // fourrager dans les branches, fourrer dans le sac
 
         public static bool Muted;
 
@@ -60,6 +61,9 @@ namespace Fief
                 step[i] = Impact("step" + i, 92f + i * 9f, 0.085f, 0.85f, 52f);
             }
 
+            rustle = new AudioClip[3];
+            for (int i = 0; i < 3; i++) rustle[i] = Rustle("fourrage" + i, 0.28f + i * 0.08f, 11 + i);
+
             hammer = Impact("hammer", 120f, 0.34f, 0.5f, 11f);
             deny = Buzz("deny", 128f, 0.22f);
             pop = Impact("pop", 520f, 0.09f, 0.25f, 46f);
@@ -71,7 +75,7 @@ namespace Fief
         {
             switch (type)
             {
-                case ResourceType.Deadwood: Play(Pick(chop), 0.75f); break;
+                case ResourceType.Deadwood: Play(Pick(rustle), 0.9f); Play(pop, 0.35f); break;
                 case ResourceType.Moonstone: Play(Pick(pick), 0.65f); break;
                 case ResourceType.Iron: Play(Pick(clang), 0.55f); break;
             }
@@ -82,7 +86,7 @@ namespace Fief
         {
             switch (type)
             {
-                case ResourceType.Deadwood: Play(Pick(chop), 0.38f); break;
+                case ResourceType.Deadwood: Play(Pick(rustle), 0.55f); break;
                 case ResourceType.Moonstone: Play(Pick(pick), 0.32f); break;
                 case ResourceType.Iron: Play(Pick(clang), 0.26f); break;
             }
@@ -261,7 +265,34 @@ namespace Fief
             return howl;
         }
 
-        static AudioClip caw, wings;
+        static AudioClip caw, wings, steleHum;
+
+        /// <summary>
+        /// Le chant d'une stele : trois notes tenues (mi, si, la), tres douces, qui
+        /// respirent. Trois secondes en boucle, sans couture (chaque frequence fait un
+        /// nombre entier de periodes). On l'entend a quinze metres, pas plus.
+        /// </summary>
+        public static AudioClip SteleHum()
+        {
+            if (steleHum != null) return steleHum;
+            const float length = 3f;
+            int count = Mathf.RoundToInt(Rate * length);
+            float[] data = new float[count];
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float breath = 0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * t / 1.5f);
+                float v = Mathf.Sin(2f * Mathf.PI * 330f * t)
+                        + Mathf.Sin(2f * Mathf.PI * 495f * t) * 0.6f
+                        + Mathf.Sin(2f * Mathf.PI * 440f * t) * 0.35f * (0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * t / 3f))
+                        + Mathf.Sin(2f * Mathf.PI * 990f * t) * 0.08f;
+                data[i] = v * breath;
+            }
+            Normalize(data, 0.6f);
+            steleHum = AudioClip.Create("chant de stele", count, 1, Rate, false);
+            steleHum.SetData(data, 0);
+            return steleHum;
+        }
 
         /// <summary>
         /// Un croassement : une note rauque (dent de scie) qui retombe, melee de
@@ -562,6 +593,32 @@ namespace Fief
                 data[i] = envelope * (tone * (1f - noiseAmount) + noise * noiseAmount) * 0.85f;
             }
 
+            return FromSamples(name, data);
+        }
+
+        /// <summary>
+        /// Un bruit de fourrage : des brindilles qu'on rassemble, des feuilles
+        /// seches. Du bruit filtre en bouffees irregulieres, avec de petits
+        /// craquements seches seme dedans.
+        /// </summary>
+        static AudioClip Rustle(string name, float duration, int seed)
+        {
+            int count = Mathf.RoundToInt(Rate * duration);
+            float[] data = new float[count];
+            System.Random r = new System.Random(seed);
+            float low = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / count;
+                float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                low += (noise - low) * 0.35f;
+                float hiss = noise - low * 0.6f;
+                float puffs = 0.5f + 0.5f * Mathf.Sin(t * 40f + seed) * Mathf.Sin(t * 17f);
+                float env = Mathf.Sin(t * Mathf.PI);
+                float v = hiss * puffs * env * 0.5f;
+                if (r.NextDouble() < 0.0025) v += (float)(r.NextDouble() - 0.5) * 1.6f * env;
+                data[i] = v;
+            }
             return FromSamples(name, data);
         }
 

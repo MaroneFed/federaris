@@ -449,7 +449,7 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null || seeker.Knows(me) || !me.Hoard.StelePlanted) return;
-            if (Flat(me.Hoard.StelePosition - transform.position).magnitude < 18f)
+            if (Flat(me.Hoard.StelePosition - transform.position).magnitude < 9f)
             {
                 seeker.Discover(me);
                 if (PlayerWithin(25f)) Bark("Tiens. Une stele.");
@@ -520,6 +520,8 @@ namespace Fief
                 float z = Mathf.Clamp(Mathf.Sin(a) * r, -half, half);
                 if (Castle.Covers(x, z, 20f) || Landmarks.Near(x, z, 15f) || Gathering.NearHollow(x, z, 12f)) continue;
                 if (Ground.Slope(x, z) > 0.25f) continue;
+                // Ils la cachent : dans le fourre, la ou le couvert est dense.
+                if (i < 200 && Forest.Canopy(x, z) < 0.58f) continue;
                 bool apart = true;
                 for (int k = 0; k < All.Count; k++)
                     if (All[k] != this && Flat(All[k].steleSpot - new Vector3(x, 0f, z)).magnitude < 90f) { apart = false; break; }

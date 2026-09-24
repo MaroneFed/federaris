@@ -52,6 +52,11 @@ namespace Fief
 
             if (FiefInput.InteractHeld)
             {
+                // Ce qui est par terre (bois mort, pierre-lune), on se baisse pour le
+                // prendre. Une caisse de fer, on la fouille debout, a peine penche.
+                ResourceNode ground = current as ResourceNode;
+                if (ground != null) OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, ground.type == ResourceType.Iron ? 0.3f : 1f);
+
                 // Pendant le maintien, le personnage frappe vraiment : un coup toutes les
                 // 0,55 s, bras anime et son a chaque impact. Sans ca, maintenir E est une
                 // barre de chargement ; avec ca, c'est un geste.

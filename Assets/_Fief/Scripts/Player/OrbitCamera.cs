@@ -31,6 +31,14 @@ namespace Fief
 
         /// <summary>Vrai des que la camera n'est pas en cadrage d'ecran-titre.</summary>
         public bool ThroughEyes { get { return !cinematic; } }
+
+        /// <summary>
+        /// 0 = debout, 1 = accroupi. Mis a 1 par PlayerInteractor pendant qu'on
+        /// ramasse quelque chose au sol : la camera descend et plonge vers le sol.
+        /// On SENT le geste, meme sans voir ses mains.
+        /// </summary>
+        public static float Crouch;
+        float crouched;
         public float baseFieldOfView = 62f;
         public float sprintFieldOfView = 7.5f;
 
@@ -133,10 +141,17 @@ namespace Fief
                 float lateral = Mathf.Sin(bobPhase * 0.5f) * bobAmount * 0.75f * moving;
                 bobOffset = Mathf.Lerp(bobOffset, vertical, 1f - Mathf.Exp(-16f * dt));
 
+                // S'accroupir : on descend de 70 cm et on regarde vers ses mains.
+                // Chaque frame, ceux qui font se baisser (ramasser, creuser) remettent
+                // Crouch a 1 ; on le lit, puis on le remet a zero pour la frame suivante.
+                crouched = Mathf.Lerp(crouched, Crouch, 1f - Mathf.Exp(-9f * dt));
+                Crouch = 0f;
+                float dip = crouched * 0.7f;
+
                 Vector3 forward = target.forward;
                 Vector3 right = target.right;
                 Vector3 head = target.position
-                             + Vector3.up * (eye + bobOffset)
+                             + Vector3.up * (eye + bobOffset - dip)
                              + forward * ahead
                              + right * lateral;
 
@@ -155,7 +170,7 @@ namespace Fief
                 }
 
                 transform.position = head + jolt1;
-                transform.rotation = Quaternion.Euler(pitch, yaw, lateral * 40f);
+                transform.rotation = Quaternion.Euler(pitch + crouched * 22f, yaw, lateral * 40f + crouched * 3f);
                 return;
             }
 

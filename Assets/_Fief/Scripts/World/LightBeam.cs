@@ -75,7 +75,9 @@ namespace Fief
             {
                 Vector3 flat = new Vector3(source.x - eye.x, 0f, source.z - eye.z);
                 float d = flat.magnitude;
-                if (d > 30f) at = new Vector3(eye.x, source.y, eye.z) + flat / d * 30f;
+                // Juste en deca du plan lointain de la camera (qui suit la brume).
+                float limit = cam.farClipPlane * 0.5f;
+                if (d > limit) at = new Vector3(eye.x, source.y, eye.z) + flat / d * limit;
             }
             transform.position = at;
 
