@@ -63,9 +63,11 @@ quoi. Porte dérobée = impossible par la force, uniquement par quelqu'un de l'i
   Porte 1 : une Saison solo de 30 minutes est-elle haletante du début à la fin ?
   Ressources, camp, caches, mage, relique, château, stèle, cloche — et depuis le 24/09 :
   six talismans, cinq lieux-dits, et des habitants qui ne se battent pas (Veilleur,
-  Ermite, feux-follets, cerf blanc).
+  Ermite, feux-follets, cerf blanc). Et, demandés explicitement par Martin le 24/09 :
+  **chacun sa stèle, trois rivaux PNJ, le vol, six gardes et le soudoiement (poterne)**.
 - **PHASE 2 — le conflit.** Porte 2 : un vol de relique crée-t-il une histoire qu'on se
-  raconte après ? Gardes et **soudoiement**, pièges, vol, combat, rôdeur PNJ.
+  raconte après ? Ce qui reste : **pièges**, **combat** (mêlée + arc), rôdeur PNJ, et les
+  gardes qui trahissent **pour les rivaux** aussi (le vol et le soudoiement existent déjà).
 - **PHASE 3 — multijoueur.** Porte 3 : une Saison de 30-45 min à 4 joueurs sans crash ni désync.
 - **PHASE 4 — la Saison complète.** Anti-snowball, événements, équilibrage fin.
 - **PHASE 5 — vitrine.** Page Steam, démo, Next Fest, localisation EN.
