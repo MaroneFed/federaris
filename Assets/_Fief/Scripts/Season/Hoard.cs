@@ -83,6 +83,39 @@ namespace Fief
             return cache;
         }
 
+        // ------------------------------------------------------------------ l'offrande
+
+        /// <summary>Ce qui a deja ete depose au Registre, par ressource.</summary>
+        public readonly int[] Offered = new int[ResourceInfo.Count];
+
+        public bool OfferingComplete
+        {
+            get
+            {
+                for (int i = 0; i < Offered.Length; i++) if (Offered[i] < Victories.Offering[i]) return false;
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Deposer au Registre ce qu'on porte, jusqu'a ce qui manque encore. Par
+        /// Inventory.TryRemove, comme toujours. Renvoie le nombre d'unites deposees.
+        /// </summary>
+        public int RequestOffer(Inventory bag)
+        {
+            if (bag == null) return 0;
+            int total = 0;
+            for (int i = 0; i < Offered.Length; i++)
+            {
+                int missing = Victories.Offering[i] - Offered[i];
+                if (missing <= 0) continue;
+                int moved = bag.TryRemove((ResourceType)i, Mathf.Min(missing, bag.Get((ResourceType)i)));
+                Offered[i] += moved;
+                total += moved;
+            }
+            return total;
+        }
+
         // ------------------------------------------------------------------ l'infusion
 
         public const int BrewCost = 12;

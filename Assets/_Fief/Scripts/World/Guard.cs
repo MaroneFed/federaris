@@ -171,6 +171,7 @@ namespace Fief
                 Seeker s = Game.Seekers[i];
                 if (s.Body == null || !Suspect(s)) continue;
                 if (s.IsPlayer && info.Bribed(season.Elapsed)) continue;
+                if (info.SwornTo == s) continue;          // il a jure : il ne te voit plus jamais
                 float d;
                 if (!InSight(s.Body.position, out d)) continue;
                 if (d < bestDistance) { bestDistance = d; seen = s; }
@@ -359,6 +360,9 @@ namespace Fief
         {
             get
             {
+                if (info.SwornTo == Game.Me && Game.Me != null)
+                    return "\"Je suis ton homme. Ce chateau aussi, bientot.\"\n\nIl a prete serment. Gardes a toi : "
+                         + Game.Garrison.SwornCount(Game.Me) + " sur " + Game.Garrison.Guards.Count + ".";
                 if (info.Bribed(Now))
                     return "\"Je ne t'ai pas vu. Je ne te vois pas. Et dans " + Hud.Clock(info.BribedUntil - Now)
                          + ", je recommencerai a te voir. File.\"";
@@ -377,12 +381,13 @@ namespace Fief
             }
         }
 
-        public int ChoiceCount { get { return 3; } }
+        public int ChoiceCount { get { return 4; } }
 
         public string ChoiceLabel(int index)
         {
             if (index == 0) return "Lui glisser " + info.LookAwayPrice + " or : qu'il regarde ailleurs trois minutes";
             if (index == 1) return "Lui glisser " + info.PosternePrice + " or : qu'il ouvre la poterne du mur nord";
+            if (index == 2) return "Acheter son SERMENT : " + info.OathPrice + " or (victoire si les six jurent)";
             return "Partir";
         }
 
@@ -392,6 +397,7 @@ namespace Fief
             if (purse == null || Game.Garrison == null) return index == 2;
             if (index == 0) return !info.Bribed(Now) && purse.CanAfford(info.LookAwayPrice);
             if (index == 1) return !Game.Garrison.PosterneOpen && purse.CanAfford(info.PosternePrice);
+            if (index == 2) return info.SwornTo != Game.Me && purse.CanAfford(info.OathPrice);
             return true;
         }
 
@@ -401,6 +407,22 @@ namespace Fief
             {
                 Sfx.Coin();
                 Toasts.Show(info.Name + " empoche les pieces et se tourne vers le mur.", new Color(0.95f, 0.8f, 0.4f));
+                return false;
+            }
+            if (index == 2 && Game.Garrison.RequestOath(Game.Me, info))
+            {
+                Sfx.Coin();
+                int sworn = Game.Garrison.SwornCount(Game.Me);
+                int all = Game.Garrison.Guards.Count;
+                if (sworn >= all)
+                {
+                    Victories.Declare(Game.Me, VictoryKind.Trahison);
+                    return true;
+                }
+                if (Game.Hud != null)
+                    Game.Hud.ShowDiscovery("SERMENT", info.Name + " est a toi",
+                                           "Gardes qui t'ont jure : " + sworn + " sur " + all + ".",
+                                           "Quand les six auront jure, le chateau t'appartiendra.", new Color(0.95f, 0.8f, 0.4f));
                 return false;
             }
             if (index == 1 && Game.Garrison.RequestPosterne(Game.Wallet, info))

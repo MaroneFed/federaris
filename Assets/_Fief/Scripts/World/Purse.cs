@@ -73,12 +73,12 @@ namespace Fief
             }
 
             int placed = 0;
-            for (int tries = 0; tries < 400 && placed < 14; tries++)
+            for (int tries = 0; tries < 600 && placed < 24; tries++)
             {
                 float x = ((float)rng.NextDouble() * 2f - 1f) * half;
                 float z = ((float)rng.NextDouble() * 2f - 1f) * half;
                 if (Castle.Covers(x, z, 10f) || Landmarks.Near(x, z, 2f)) continue;
-                Build(group.transform, Ground.Place(x, z, 0f), 10 + rng.Next(18), rng.Next(360));
+                Build(group.transform, Ground.Place(x, z, 0f), 12 + rng.Next(19), rng.Next(360));
                 placed++;
             }
         }

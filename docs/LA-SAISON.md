@@ -111,6 +111,22 @@ entrer dans la forêt. Fini, il devient une course : qui vide les réserves le p
 
 ---
 
+## Quatre façons de gagner (décidé par Martin le 24/09/2026 : « comme dans Civilization »)
+
+| Victoire | Comment | Quand |
+|---|---|---|
+| **La Relique** | la plus puissante relique posée sur **sa** stèle | à la cloche |
+| **La Trahison** | acheter le **serment** des six gardes (44 à 156 or chacun, ~575 or en tout) | immédiate |
+| **La Couronne** | réunir les **six talismans**, puis s'asseoir sur le **trône** du donjon | immédiate |
+| **L'Offrande** | déposer au **Registre** 60 bois mort, 20 pierres-lune, 10 fer ancien | immédiate |
+
+Les trois victoires immédiates sont des **courses contre la cloche** : si personne n'en
+décroche une, la Relique tranche. La besace (**Tab**, onglet « Victoires ») montre où l'on
+en est sur chacune. L'or vient des bourses perdues (40 au départ, une près de chaque
+lieu-dit, 24 dans la forêt) : la Trahison demande presque toutes les bourses.
+
+---
+
 ## Chacun sa stèle, trois rivaux, et le vol (décidé par Martin le 24/09/2026)
 
 Martin : « je veux que chacun ait sa stèle et qu'il la pose quelque part sur la map »,

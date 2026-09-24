@@ -25,6 +25,12 @@ namespace Fief
         public readonly float Loyalty;        // 0 : achetable pour rien ; 1 : incorruptible ou presque
         public float BribedUntil = -1f;
 
+        /// <summary>A qui il a prete serment (null : au chateau, c'est-a-dire a personne).</summary>
+        public Seeker SwornTo;
+
+        /// <summary>Le prix de son SERMENT : il est a toi pour toute la Saison.</summary>
+        public int OathPrice { get { return Mathf.RoundToInt(45f + 130f * Loyalty - MonthsUnpaid * 4f); } }
+
         public GuardInfo(string name, int wage, int monthsUnpaid, float loyalty)
         {
             Name = name;
@@ -59,6 +65,25 @@ namespace Fief
             if (!purse.TrySpend(guard.LookAwayPrice)) return false;
             guard.BribedUntil = now + LookAwaySeconds;
             return true;
+        }
+
+        /// <summary>
+        /// Acheter le serment d'un garde. Quand les six ont jure au meme chercheur,
+        /// c'est la victoire par la Trahison.
+        /// </summary>
+        public bool RequestOath(Seeker buyer, GuardInfo guard)
+        {
+            if (buyer == null || guard == null || guard.SwornTo == buyer) return false;
+            if (!buyer.Money.TrySpend(guard.OathPrice)) return false;
+            guard.SwornTo = buyer;
+            return true;
+        }
+
+        public int SwornCount(Seeker who)
+        {
+            int n = 0;
+            for (int i = 0; i < Guards.Count; i++) if (Guards[i].SwornTo == who) n++;
+            return n;
         }
 
         public bool RequestPosterne(Wallet purse, GuardInfo guard)

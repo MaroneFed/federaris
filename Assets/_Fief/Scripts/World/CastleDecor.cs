@@ -329,6 +329,7 @@ namespace Fief
             Proto.Cone(t, seatBase + new Vector3(0.55f, 3.5f, 0.42f), 0.16f, 0.7f, FadedGold, "Pinacle", 4);
             Proto.Cone(t, seatBase + new Vector3(0f, 3.5f, 0.42f), 0.22f, 1.1f, FadedGold, "Pinacle", 4);
             Proto.Blocker(t, seatBase + new Vector3(0f, 1.7f, 0.1f), new Vector3(1.6f, 3.4f, 1.2f), "Trone");
+            Throne.Build(t, seatBase + new Vector3(0f, 0.6f, -0.9f));
         }
 
         // ================================================================== 3. la cour

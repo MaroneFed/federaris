@@ -77,7 +77,8 @@ namespace Fief
             if (Current == State.Playing && season != null)
             {
                 WarnOfBell(season);
-                if (season.Over) EndSeason();
+                // Une victoire immediate (Trahison, Couronne, Offrande) arrete tout.
+                if (season.Over || Victories.Decided) EndSeason();
             }
             if (Current == State.Ended) ended = Mathf.Min(1f, ended + dt * 0.4f);
 
@@ -189,6 +190,7 @@ namespace Fief
 
         void EndSeason()
         {
+            Victories.DecideByRelic();
             Current = State.Ended;
             ended = 0f;
             if (Game.Hud != null) Game.Hud.ClosePanel();
@@ -485,15 +487,22 @@ namespace Fief
             // --- le classement : toi et les rivaux, du plus puissant au plus faible.
             System.Collections.Generic.List<Seeker> order = new System.Collections.Generic.List<Seeker>(Game.Seekers);
             order.Sort((a, b) => b.Score.CompareTo(a.Score));
-            bool won = order.Count > 0 && order[0].IsPlayer && order[0].Score > 0;
+            bool won = Victories.Winner != null && Victories.Winner.IsPlayer;
 
+            // Le titre de la victoire, puis qui, puis comment.
+            UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(30)), Victories.Title(Victories.Kind), UiStyle.Head,
+                           won ? Palette.Gold : new Color(0.9f, 0.5f, 0.4f));
+            y += UiStyle.S(28);
             string verdict;
-            if (won) verdict = "Ta relique l'emporte : " + Rank(hoard.FinalScore) + ".";
-            else if (hoard.Relic == null) verdict = hoard.Trophy != null ? "Tu portais une relique volee. Elle ne compte pas." : "Tu n'as rien sur ta stele.";
-            else if (!hoard.RelicOnStele) verdict = "Ta relique n'etait pas sur ta stele. Elle ne compte pas.";
-            else verdict = "Ta relique : " + Rank(hoard.FinalScore) + ". Pas assez.";
-            UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(30)), verdict, UiStyle.Head, won ? Palette.Gold : UiStyle.Ink);
-            y += UiStyle.S(40);
+            if (Victories.Winner == null) verdict = "Aucune relique posee, aucun serment, aucune couronne.";
+            else if (won) verdict = "C'est toi. " + Victories.How(Victories.Kind);
+            else verdict = Victories.Winner.Name + " l'emporte. " + (hoard.RelicOnStele ? "Ta relique : " + Rank(hoard.FinalScore) + "." : "");
+            GUIStyle wrappedVerdict = UiStyle.Small;
+            bool wrapV = wrappedVerdict.wordWrap;
+            wrappedVerdict.wordWrap = true;
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(36)), verdict, wrappedVerdict);
+            wrappedVerdict.wordWrap = wrapV;
+            y += UiStyle.S(42);
 
             for (int i = 0; i < order.Count; i++)
             {

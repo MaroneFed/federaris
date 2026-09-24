@@ -19,7 +19,7 @@ namespace Fief
         public readonly Color Colour;
         public readonly bool IsPlayer;
         public readonly Inventory Bag;
-        public readonly Wallet Purse;
+        public readonly Wallet Money;
         public readonly Hoard Hoard;
         public Transform Body;
 
@@ -33,7 +33,7 @@ namespace Fief
             Colour = colour;
             IsPlayer = isPlayer;
             Bag = bag;
-            Purse = purse;
+            Money = purse;
             Hoard = hoard;
         }
 

@@ -132,13 +132,42 @@ namespace Fief
                     string known = s.IsPlayer ? "" : (Game.Me != null && Game.Me.Knows(s) ? "   (tu sais ou est sa stele)" : "");
                     text += "\n" + (i + 1) + ".  " + s.Name + " : " + what + known;
                 }
+                Hoard mine = Game.Hoard;
+                if (mine != null)
+                {
+                    text += "\n\nL'OFFRANDE (victoire immediate) : ";
+                    for (int i = 0; i < ResourceInfo.Count; i++)
+                        text += (i > 0 ? ",  " : "") + ResourceInfo.Name((ResourceType)i) + " " + mine.Offered[i] + "/" + Victories.Offering[i];
+                }
                 return text;
             }
         }
 
-        public int ChoiceCount { get { return 1; } }
-        public string ChoiceLabel(int index) { return "Fermer"; }
-        public bool ChoiceEnabled(int index) { return true; }
-        public bool Choose(int index) { return true; }
+        public int ChoiceCount { get { return 2; } }
+        public string ChoiceLabel(int index) { return index == 0 ? "Deposer ce que je porte en offrande" : "Fermer"; }
+
+        public bool ChoiceEnabled(int index)
+        {
+            if (index != 0) return true;
+            Inventory bag = Game.Inventory;
+            return bag != null && !bag.IsEmpty && Game.Hoard != null && !Game.Hoard.OfferingComplete;
+        }
+
+        public bool Choose(int index)
+        {
+            if (index != 0) return true;
+            int given = Game.Hoard.RequestOffer(Game.Inventory);
+            if (given > 0)
+            {
+                Sfx.Build();
+                Toasts.Show("Le Registre boit ton offrande : " + given + " de plus.", Gold);
+            }
+            if (Game.Hoard.OfferingComplete)
+            {
+                Victories.Declare(Game.Me, VictoryKind.Offrande);
+                return true;
+            }
+            return false;
+        }
     }
 }
