@@ -85,7 +85,7 @@ namespace Fief
             if (FiefInput.CancelPressed && !entering)
             {
                 if (showControls) showControls = false;
-                else if (Current == State.Briefing) Current = State.Title;
+                else if (Current == State.Briefing) { entering = true; Current = State.Title; }
                 else if (Current == State.Playing)
                 {
                     if (panelOpen) Game.Hud.ClosePanel();
@@ -144,119 +144,151 @@ namespace Fief
         // ------------------------------------------------------------------ transitions
 
         /// <summary>
-        /// "Entrer dans la sylve" : d'abord le BRIEFING (trois pages : le but, la
-        /// boucle, les gestes), puis seulement le fondu au noir et la partie.
+        /// "Entrer dans la sylve" : d'abord LE RECIT (Martin, 25/09 : "presente l'intro
+        /// en version histoire plutot qu'en trois slides longues"), puis le fondu au
+        /// noir et la partie.
         /// </summary>
         public void StartSeason()
         {
             if (entering || Current != State.Title) return;
             Current = State.Briefing;
-            briefingPage = 0;
+            beat = 0;
+            beatTime = 0f;
             showControls = false;
         }
 
-        int briefingPage;
+        // ------------------------------------------------------------------ le recit
+
+        /// <summary>
+        /// L'histoire, en courtes phrases qui s'ecrivent une a une devant la foret de
+        /// nuit. Chaque phrase dit UNE regle, sans en avoir l'air : la stele, la
+        /// Malediction, les rivaux, les loups, les gardes mal payes, la cloche. Un clic
+        /// (ou Espace) acheve la phrase, un second passe a la suivante ; Echap saute
+        /// tout.
+        /// </summary>
+        static readonly string[][] Story =
+        {
+            new[] { "I", "Il y a cent hivers, un roi voulut enfermer la magie dans une pierre." },
+            new[] { "II", "La pierre se brisa. Sur les ruines de son royaume, la forêt poussa, noire et sans fin : la Sylve." },
+            new[] { "III", "Depuis, chaque automne, un mage erre sous ses arbres. Une colonne de lumière annonce sa venue. Avec ce qu'on lui porte, il forge des reliques." },
+            new[] { "IV", "Tu t'éveilles devant une stèle. La tienne. Regarde bien autour de toi : rien ne te montrera le chemin du retour." },
+            new[] { "V", "Car la forêt a faim. Après chaque passage du mage, un glas sonne, et la Malédiction dévore tout ce que tu portes. Ce que tu confies à ta stèle, elle le garde." },
+            new[] { "VI", "Mais une stèle ne se défend pas. Trois autres chercheurs rôdent dans la Sylve. Ils pilleront la tienne si tu la laisses seule." },
+            new[] { "VII", "Les loups, eux, ne cherchent rien. Au pied du château, des revenants gardent trois autels qui paient qui les tient." },
+            new[] { "VIII", "Le château a une garde. Elle est mal payée. Souviens-t'en." },
+            new[] { "IX", "Quand la cloche sonnera, dans trente minutes, seule comptera la relique posée sur ta stèle." }
+        };
+
+        const float TypeSpeed = 42f;        // lettres par seconde
+        const float BeatHold = 3.2f;        // la phrase reste, entiere, avant la suivante
+        int beat;
+        float beatTime;
+
+        float BeatLength(int b)
+        {
+            return b < Story.Length ? Story[b][1].Length / TypeSpeed + BeatHold : 3.2f;
+        }
+
+        /// <summary>Clic : finir la phrase, ou passer a la suivante.</summary>
+        void Advance()
+        {
+            float typed = beat < Story.Length ? Story[beat][1].Length / TypeSpeed : 0f;
+            if (beatTime < typed) { beatTime = typed; return; }
+            NextBeat();
+        }
+
+        void NextBeat()
+        {
+            beat++;
+            beatTime = 0f;
+            if (beat > Story.Length) { entering = true; Current = State.Title; }
+            else Sfx.Step();
+        }
 
         void DrawBriefing()
         {
-            DrawEmbers(0.5f);
-            float w = Mathf.Min(UiStyle.S(820), Screen.width - UiStyle.S(40));
-            float h = UiStyle.S(520);
-            Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
-            UiStyle.Frame(box);
-            float x = box.x + UiStyle.S(44);
-            float y = box.y + UiStyle.S(30);
-            float bw = w - UiStyle.S(88);
+            beatTime += Time.unscaledDeltaTime * (Event.current.type == EventType.Repaint ? 1f : 0f);
+            if (beatTime > BeatLength(beat)) NextBeat();
+            if (Current != State.Briefing) return;
 
-            string[] titles = { "LA SAISON", "LA BOUCLE", "TES GESTES" };
-            GUIStyle title = UiStyle.Title;
-            TextAnchor previous = title.alignment;
-            title.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(box.x, y, w, UiStyle.S(40)), UiStyle.Spaced(titles[briefingPage]), title);
-            title.alignment = previous;
-            y += UiStyle.S(48);
-            UiStyle.Rule(new Rect(x, y, bw, UiStyle.S(8)));
-            y += UiStyle.S(24);
-
-            GUIStyle body = UiStyle.Label;
-            bool wrap = body.wordWrap;
-            body.wordWrap = true;
-            if (briefingPage == 0)
+            Event e = Event.current;
+            if (e.type == EventType.MouseDown || e.type == EventType.KeyDown && (e.keyCode == KeyCode.Space || e.keyCode == KeyCode.Return))
             {
-                GUI.Label(new Rect(x, y, bw, UiStyle.S(50)),
-                          "Trente minutes. Au centre de la foret, un chateau mort. Autour de toi, trois rivaux qui cherchent la meme chose que toi. "
-                          + "Il y a quatre facons de gagner :", body);
-                y += UiStyle.S(62);
-                VictoryKind[] kinds = { VictoryKind.Relique, VictoryKind.Trahison, VictoryKind.Couronne, VictoryKind.Offrande };
-                Color[] tints = { Stele.RuneBlue, new Color(0.95f, 0.78f, 0.35f), new Color(0.9f, 0.5f, 0.4f), new Color(0.62f, 0.86f, 0.48f) };
-                for (int i = 0; i < kinds.Length; i++)
-                {
-                    float d = UiStyle.S(12);
-                    UiStyle.Icon(new Rect(x, y + UiStyle.S(8), d, d), UiStyle.Shape.Diamond, tints[i]);
-                    UiStyle.Tinted(new Rect(x + UiStyle.S(24), y, bw, UiStyle.S(26)), Victories.Title(kinds[i]), UiStyle.Head, tints[i]);
-                    UiStyle.Tinted(new Rect(x + UiStyle.S(24), y + UiStyle.S(26), bw, UiStyle.S(20)), Victories.How(kinds[i]), UiStyle.Small, UiStyle.InkDim);
-                    y += UiStyle.S(58);
-                }
-                UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(20)), "Les trois dernieres sont des courses : la premiere tombee arrete tout. Sinon, la Relique tranche a la cloche.",
-                               UiStyle.Tiny, UiStyle.InkFaint);
+                Advance();
+                e.Use();
             }
-            else if (briefingPage == 1)
+
+            // La nuit tombe sur l'ecran-titre : on ne voit plus que la foret qui tourne.
+            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.72f));
+            DrawEmbers(0.35f);
+
+            float w = Mathf.Min(UiStyle.S(880), Screen.width - UiStyle.S(80));
+            float x = (Screen.width - w) * 0.5f;
+            float y = Screen.height * 0.36f;
+
+            if (beat < Story.Length)
             {
-                string[] lines =
-                {
-                    "1.  RECOLTE.  Bois mort au pied des arbres morts, pierre-lune dans les creux qui luisent, fer ancien dans les reserves du chateau (gardees).",
-                    "2.  CACHE.  Ton sac est limite par le POIDS, et plus il est lourd, plus tes gestes sont lents. Creuse des caches (G), plante ton camp (C).",
-                    "3.  LE MAGE.  Six fois par Saison, une colonne bleue monte au-dessus des arbres : tout le monde y court. Il fond ce que tu PORTES en une relique.",
-                    "4.  TA STELE.  Plante-la une fois (P), cachee. Pose ta relique dessus : elle comptera a la cloche. Elle chante doucement -- on peut la trouver, et la PILLER.",
-                    "5.  LES AUTRES.  Les rivaux pillent les steles qu'ils trouvent. Toi aussi, tu peux. Les gardes du chateau ne voient pas l'or : ils l'empochent."
-                };
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    GUI.Label(new Rect(x, y, bw, UiStyle.S(54)), lines[i], body);
-                    y += UiStyle.S(62);
-                }
+                string kicker = Story[beat][0];
+                string text = Story[beat][1];
+                int shown = Mathf.Clamp(Mathf.FloorToInt(beatTime * TypeSpeed), 0, text.Length);
+                float fadeIn = Mathf.Clamp01(beatTime * 2.5f);
+                float fadeOut = Mathf.Clamp01((BeatLength(beat) - beatTime) * 2f);
+                float a = Mathf.Min(fadeIn, fadeOut);
+
+                GUIStyle head = UiStyle.Head;
+                TextAnchor was = head.alignment;
+                head.alignment = TextAnchor.MiddleCenter;
+                UiStyle.Tinted(new Rect(x, y - UiStyle.S(70), w, UiStyle.S(30)), kicker, head, new Color(0.86f, 0.36f, 0.26f, a));
+                head.alignment = was;
+                UiStyle.Rule(new Rect(x + w * 0.35f, y - UiStyle.S(36), w * 0.3f, UiStyle.S(8)));
+
+                GUIStyle body = UiStyle.Title;
+                TextAnchor previous = body.alignment;
+                bool wrap = body.wordWrap;
+                int size = body.fontSize;
+                body.alignment = TextAnchor.UpperCenter;
+                body.wordWrap = true;
+                body.fontSize = UiStyle.S(27);
+                // L'ombre d'abord, puis le texte : lisible sur n'importe quel fond.
+                UiStyle.Tinted(new Rect(x + 2f, y + 2f, w, UiStyle.S(200)), text.Substring(0, shown), body, new Color(0f, 0f, 0f, a * 0.8f));
+                UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(200)), text.Substring(0, shown), body, new Color(0.93f, 0.87f, 0.74f, a));
+                body.alignment = previous;
+                body.wordWrap = wrap;
+                body.fontSize = size;
             }
             else
             {
-                string[,] keys =
-                {
-                    { "ZQSD + souris", "marcher, regarder  --  Maj pour courir (si le sac n'est pas trop lourd)" },
-                    { "E", "ramasser, parler, poser, voler (maintenir)" },
-                    { "P", "planter ta stele (une seule fois)" },
-                    { "C  /  G", "planter ton camp  /  creuser une cache (maintenir)" },
-                    { "Tab", "ta besace : victoires, artisanat (hache, epee), talismans" },
-                    { "1 / 2  +  clic", "prendre un outil, frapper  --  F : grimper dans un arbre" },
-                    { "Echap", "pause   --   F1 : toutes les commandes" }
-                };
-                for (int i = 0; i < keys.GetLength(0); i++)
-                {
-                    Rect key = new Rect(x, y + UiStyle.S(2), UiStyle.S(170), UiStyle.S(28));
-                    UiStyle.Pill(key);
-                    UiStyle.Tinted(key, keys[i, 0], UiStyle.Centered, Palette.Gold);
-                    UiStyle.Tinted(new Rect(x + UiStyle.S(190), y, bw - UiStyle.S(190), UiStyle.S(32)), keys[i, 1], UiStyle.Label, UiStyle.Ink);
-                    y += UiStyle.S(44);
-                }
-                UiStyle.Tinted(new Rect(x, y + UiStyle.S(10), bw, UiStyle.S(22)),
-                               "En haut a droite, les PREMIERS PAS te guident. Suis-les.", UiStyle.Label, Palette.Gold);
+                // La derniere image : le titre de la partie.
+                float a = Mathf.Clamp01(beatTime * 1.5f);
+                GUIStyle big = UiStyle.Big;
+                TextAnchor previous = big.alignment;
+                big.alignment = TextAnchor.MiddleCenter;
+                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(20), Screen.width, UiStyle.S(80)), UiStyle.Spaced("LA SAISON COMMENCE"), big,
+                               new Color(0.93f, 0.78f, 0.45f, a));
+                big.alignment = previous;
             }
-            body.wordWrap = wrap;
 
-            float bh = UiStyle.S(44);
-            float by = box.yMax - bh - UiStyle.S(24);
-            if (briefingPage > 0 && GUI.Button(new Rect(x, by, UiStyle.S(160), bh), "Retour", UiStyle.Button)) briefingPage--;
-            bool last = briefingPage == 2;
-            if (GUI.Button(new Rect(box.xMax - UiStyle.S(44) - UiStyle.S(260), by, UiStyle.S(260), bh),
-                           last ? "Entrer dans la sylve" : "Suivant", UiStyle.ButtonPrimary))
+            // Les points de progression, et de quoi passer.
+            for (int i = 0; i <= Story.Length; i++)
             {
-                if (last) { entering = true; Current = State.Title; }
-                else briefingPage++;
+                float d = UiStyle.S(7);
+                float px = Screen.width * 0.5f + (i - Story.Length * 0.5f) * UiStyle.S(18);
+                UiStyle.Icon(new Rect(px, Screen.height - UiStyle.S(70), d, d), UiStyle.Shape.Diamond,
+                             i == beat ? Palette.Gold : i < beat ? UiStyle.InkDim : UiStyle.InkFaint);
             }
-            for (int i = 0; i < 3; i++)
+            UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(48), Screen.width - UiStyle.S(30), UiStyle.S(20)),
+                           "Clic ou Espace : continuer        Echap : passer le recit", RightTiny(), UiStyle.InkFaint);
+        }
+
+        static GUIStyle rightTiny;
+        static GUIStyle RightTiny()
+        {
+            if (rightTiny == null || rightTiny.fontSize != UiStyle.Tiny.fontSize)
             {
-                float d = UiStyle.S(8);
-                UiStyle.Icon(new Rect(box.center.x - UiStyle.S(24) + i * UiStyle.S(20), by + bh * 0.5f - d * 0.5f, d, d),
-                             UiStyle.Shape.Diamond, i == briefingPage ? Palette.Gold : UiStyle.InkFaint);
+                rightTiny = new GUIStyle(UiStyle.Tiny);
+                rightTiny.alignment = TextAnchor.MiddleRight;
             }
+            return rightTiny;
         }
 
         void BeginPlaying()
