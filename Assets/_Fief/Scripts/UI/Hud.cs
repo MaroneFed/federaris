@@ -99,7 +99,7 @@ namespace Fief
             if (FiefInput.SatchelPressed && menus != null && !menus.Blocking)
             {
                 if (panel is TalismanPanel) ClosePanel();
-                else if (panel == null) OpenPanel(new TalismanPanel());
+                else if (panel == null) { OpenPanel(new TalismanPanel()); Objectives.VictoriesSeen(); }
             }
 
             bool brewed = Game.Brewed;
@@ -138,6 +138,7 @@ namespace Fief
             DrawDigging();
             DrawDiscovery();
             Toasts.Draw();
+            if (!showHelp) Objectives.Draw();
             DrawHelp();
             DrawBuildError();
             if (showDiagnostic) DrawDiagnostic();

@@ -36,7 +36,7 @@ namespace Fief
     /// </summary>
     public class Menus : MonoBehaviour
     {
-        public enum State { Title, Playing, Paused, Ended }
+        public enum State { Title, Briefing, Playing, Paused, Ended }
 
         public State Current { get; private set; }
 
@@ -85,6 +85,7 @@ namespace Fief
             if (FiefInput.CancelPressed && !entering)
             {
                 if (showControls) showControls = false;
+                else if (Current == State.Briefing) Current = State.Title;
                 else if (Current == State.Playing)
                 {
                     if (panelOpen) Game.Hud.ClosePanel();
@@ -96,7 +97,7 @@ namespace Fief
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (cam != null)
             {
-                if (Current == State.Title)
+                if (Current == State.Title || Current == State.Briefing)
                 {
                     // Six metres, a peine au-dessus de la tete : assez pres pour que
                     // la brume ne l'efface pas, assez loin pour voir la silhouette.
@@ -141,11 +142,119 @@ namespace Fief
 
         // ------------------------------------------------------------------ transitions
 
+        /// <summary>
+        /// "Entrer dans la sylve" : d'abord le BRIEFING (trois pages : le but, la
+        /// boucle, les gestes), puis seulement le fondu au noir et la partie.
+        /// </summary>
         public void StartSeason()
         {
             if (entering || Current != State.Title) return;
-            entering = true;
+            Current = State.Briefing;
+            briefingPage = 0;
             showControls = false;
+        }
+
+        int briefingPage;
+
+        void DrawBriefing()
+        {
+            DrawEmbers(0.5f);
+            float w = Mathf.Min(UiStyle.S(820), Screen.width - UiStyle.S(40));
+            float h = UiStyle.S(520);
+            Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+            UiStyle.Frame(box);
+            float x = box.x + UiStyle.S(44);
+            float y = box.y + UiStyle.S(30);
+            float bw = w - UiStyle.S(88);
+
+            string[] titles = { "LA SAISON", "LA BOUCLE", "TES GESTES" };
+            GUIStyle title = UiStyle.Title;
+            TextAnchor previous = title.alignment;
+            title.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(box.x, y, w, UiStyle.S(40)), UiStyle.Spaced(titles[briefingPage]), title);
+            title.alignment = previous;
+            y += UiStyle.S(48);
+            UiStyle.Rule(new Rect(x, y, bw, UiStyle.S(8)));
+            y += UiStyle.S(24);
+
+            GUIStyle body = UiStyle.Label;
+            bool wrap = body.wordWrap;
+            body.wordWrap = true;
+            if (briefingPage == 0)
+            {
+                GUI.Label(new Rect(x, y, bw, UiStyle.S(50)),
+                          "Trente minutes. Au centre de la foret, un chateau mort. Autour de toi, trois rivaux qui cherchent la meme chose que toi. "
+                          + "Il y a quatre facons de gagner :", body);
+                y += UiStyle.S(62);
+                VictoryKind[] kinds = { VictoryKind.Relique, VictoryKind.Trahison, VictoryKind.Couronne, VictoryKind.Offrande };
+                Color[] tints = { Stele.RuneBlue, new Color(0.95f, 0.78f, 0.35f), new Color(0.9f, 0.5f, 0.4f), new Color(0.62f, 0.86f, 0.48f) };
+                for (int i = 0; i < kinds.Length; i++)
+                {
+                    float d = UiStyle.S(12);
+                    UiStyle.Icon(new Rect(x, y + UiStyle.S(8), d, d), UiStyle.Shape.Diamond, tints[i]);
+                    UiStyle.Tinted(new Rect(x + UiStyle.S(24), y, bw, UiStyle.S(26)), Victories.Title(kinds[i]), UiStyle.Head, tints[i]);
+                    UiStyle.Tinted(new Rect(x + UiStyle.S(24), y + UiStyle.S(26), bw, UiStyle.S(20)), Victories.How(kinds[i]), UiStyle.Small, UiStyle.InkDim);
+                    y += UiStyle.S(58);
+                }
+                UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(20)), "Les trois dernieres sont des courses : la premiere tombee arrete tout. Sinon, la Relique tranche a la cloche.",
+                               UiStyle.Tiny, UiStyle.InkFaint);
+            }
+            else if (briefingPage == 1)
+            {
+                string[] lines =
+                {
+                    "1.  RECOLTE.  Bois mort au pied des arbres morts, pierre-lune dans les creux qui luisent, fer ancien dans les reserves du chateau (gardees).",
+                    "2.  CACHE.  Ton sac est limite par le POIDS, et plus il est lourd, plus tes gestes sont lents. Creuse des caches (G), plante ton camp (C).",
+                    "3.  LE MAGE.  Six fois par Saison, une colonne bleue monte au-dessus des arbres : tout le monde y court. Il fond ce que tu PORTES en une relique.",
+                    "4.  TA STELE.  Plante-la une fois (P), cachee. Pose ta relique dessus : elle comptera a la cloche. Elle chante doucement -- on peut la trouver, et la PILLER.",
+                    "5.  LES AUTRES.  Les rivaux pillent les steles qu'ils trouvent. Toi aussi, tu peux. Les gardes du chateau ne voient pas l'or : ils l'empochent."
+                };
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    GUI.Label(new Rect(x, y, bw, UiStyle.S(54)), lines[i], body);
+                    y += UiStyle.S(62);
+                }
+            }
+            else
+            {
+                string[,] keys =
+                {
+                    { "ZQSD + souris", "marcher, regarder  --  Maj pour courir (si le sac n'est pas trop lourd)" },
+                    { "E", "ramasser, parler, poser, voler (maintenir)" },
+                    { "P", "planter ta stele (une seule fois)" },
+                    { "C  /  G", "planter ton camp  /  creuser une cache (maintenir)" },
+                    { "Tab", "ta besace : victoires et talismans" },
+                    { "Echap", "pause   --   F1 : toutes les commandes" }
+                };
+                for (int i = 0; i < keys.GetLength(0); i++)
+                {
+                    Rect key = new Rect(x, y + UiStyle.S(2), UiStyle.S(170), UiStyle.S(28));
+                    UiStyle.Pill(key);
+                    UiStyle.Tinted(key, keys[i, 0], UiStyle.Centered, Palette.Gold);
+                    UiStyle.Tinted(new Rect(x + UiStyle.S(190), y, bw - UiStyle.S(190), UiStyle.S(32)), keys[i, 1], UiStyle.Label, UiStyle.Ink);
+                    y += UiStyle.S(44);
+                }
+                UiStyle.Tinted(new Rect(x, y + UiStyle.S(10), bw, UiStyle.S(22)),
+                               "En haut a droite, les PREMIERS PAS te guident. Suis-les.", UiStyle.Label, Palette.Gold);
+            }
+            body.wordWrap = wrap;
+
+            float bh = UiStyle.S(44);
+            float by = box.yMax - bh - UiStyle.S(24);
+            if (briefingPage > 0 && GUI.Button(new Rect(x, by, UiStyle.S(160), bh), "Retour", UiStyle.Button)) briefingPage--;
+            bool last = briefingPage == 2;
+            if (GUI.Button(new Rect(box.xMax - UiStyle.S(44) - UiStyle.S(260), by, UiStyle.S(260), bh),
+                           last ? "Entrer dans la sylve" : "Suivant", UiStyle.ButtonPrimary))
+            {
+                if (last) { entering = true; Current = State.Title; }
+                else briefingPage++;
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                float d = UiStyle.S(8);
+                UiStyle.Icon(new Rect(box.center.x - UiStyle.S(24) + i * UiStyle.S(20), by + bh * 0.5f - d * 0.5f, d, d),
+                             UiStyle.Shape.Diamond, i == briefingPage ? Palette.Gold : UiStyle.InkFaint);
+            }
         }
 
         void BeginPlaying()
@@ -299,6 +408,7 @@ namespace Fief
 
             if (showControls) DrawControls();
             else if (Current == State.Title && !entering) DrawTitle();
+            else if (Current == State.Briefing) DrawBriefing();
             else if (Current == State.Paused) DrawPause();
             else if (Current == State.Ended) DrawEnd();
 
