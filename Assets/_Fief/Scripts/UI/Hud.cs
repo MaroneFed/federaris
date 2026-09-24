@@ -264,14 +264,19 @@ namespace Fief
             Hoard hoard = Game.Hoard;
             string relic;
             Color tint;
-            if (hoard == null || hoard.Relic == null)
+            if (hoard != null && hoard.Trophy != null)
+            {
+                relic = "Relique VOLEE a " + hoard.TrophyFrom.Name + " : cours a ta stele";
+                tint = new Color(1f, 0.55f, 0.4f);
+            }
+            else if (hoard == null || hoard.Relic == null)
             {
                 relic = "Pas encore de relique";
                 tint = UiStyle.InkFaint;
             }
             else
             {
-                relic = "Relique  " + hoard.Relic.Power + (hoard.RelicOnStele ? "   sur la stele" : "   en main");
+                relic = "Relique  " + hoard.Relic.Power + (hoard.RelicOnStele ? "   sur ta stele" : "   en main");
                 tint = hoard.RelicOnStele ? new Color(0.62f, 0.78f, 0.95f) : Palette.Gold;
             }
             UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), relic, UiStyle.Small, tint);

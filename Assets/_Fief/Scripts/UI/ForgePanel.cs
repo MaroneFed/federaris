@@ -96,7 +96,7 @@ namespace Fief
 
             // --- la raison pour laquelle on ne peut pas forger, s'il y en a une
             string blocked = null;
-            if (onStele) blocked = "Ta relique est sur la stele. Va la reprendre : il ne renforce que ce que tu lui apportes.";
+            if (onStele) blocked = "Ta relique est sur ta stele. Va la reprendre : il ne renforce que ce que tu lui apportes.";
             else if (bag.IsEmpty) blocked = "Ton sac est vide. Il ne fond que ce que tu portes.";
             if (blocked != null) UiStyle.Tinted(GUILayoutUtility.GetRect(w - pad * 2f, UiStyle.S(22)), blocked,
                                                 UiStyle.Small, new Color(0.92f, 0.62f, 0.32f));
@@ -138,7 +138,7 @@ namespace Fief
             if (melted <= 0) { Sfx.Deny(); return; }
 
             // La relique se porte : elle pese dans le sac tant qu'elle n'est pas posee.
-            bag.ExtraWeight = Relic.Weight;
+            if (Game.Me != null) Game.Me.SyncWeight();
 
             if (Game.Mage != null) Game.Mage.PlayForge();
             if (Game.Hud != null)
@@ -146,7 +146,7 @@ namespace Fief
                                        "Puissance " + relic.Power,
                                        first ? Relic.TierName(Relic.Tier(relic.Power)) + ", pour commencer."
                                              : "+" + (relic.Power - before) + "  --  " + Relic.TierName(Relic.Tier(relic.Power)),
-                                       "Porte-la sur la stele avant la cloche.", Mage.Glow);
+                                       "Porte-la sur TA stele avant la cloche (P pour la planter).", Mage.Glow);
             Toasts.Show("Le mage fond " + melted + " morceaux dans la relique.", Mage.Glow);
 
             // On ferme le panneau : le spectacle de la forge se passe DEVANT toi.

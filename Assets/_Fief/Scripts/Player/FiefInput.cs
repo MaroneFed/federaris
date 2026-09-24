@@ -95,6 +95,9 @@ namespace Fief
         public static bool DigHeld { get { return KeyHeld(KeyCode.G); } }
         public static bool DigPressed { get { return KeyPressed(KeyCode.G); } }
 
+        /// <summary>P : planter ta stele. Une seule fois, la ou tu te tiens.</summary>
+        public static bool StelePressed { get { return KeyPressed(KeyCode.P); } }
+
         static bool KeyHeld(KeyCode code)
         {
 #if ENABLE_INPUT_SYSTEM
@@ -130,6 +133,7 @@ namespace Fief
                 case KeyCode.LeftShift: return k.leftShiftKey;
                 case KeyCode.C: return k.cKey;
                 case KeyCode.G: return k.gKey;
+                case KeyCode.P: return k.pKey;
             }
             return null;
         }

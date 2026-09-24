@@ -53,6 +53,7 @@ namespace Fief
             }
 
             if (FiefInput.CampPressed) TryCamp();
+            if (FiefInput.StelePressed) TryStele();
 
             if (FiefInput.DigPressed) BeginDigging();
             if (Digging) ContinueDigging();
@@ -95,8 +96,13 @@ namespace Fief
         /// </summary>
         bool Blocked(Vector3 at, Vector3 forward)
         {
+            return BlockedAt(at, forward, new Vector3(1.3f, 0.7f, 1.5f));
+        }
+
+        bool BlockedAt(Vector3 at, Vector3 forward, Vector3 halfExtents)
+        {
             Quaternion rotation = Quaternion.LookRotation(forward, Vector3.up);
-            Collider[] hits = Physics.OverlapBox(at + Vector3.up * 1f, new Vector3(1.3f, 0.7f, 1.5f), rotation,
+            Collider[] hits = Physics.OverlapBox(at + Vector3.up * 1f, halfExtents, rotation,
                                                  ~0, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < hits.Length; i++)
             {
@@ -106,6 +112,42 @@ namespace Fief
                 return true;
             }
             return false;
+        }
+
+        // ------------------------------------------------------------------ la stele
+
+        /// <summary>
+        /// P : planter sa stele, une fois, trois metres devant soi. Pas dans le
+        /// chateau (les gardes). Partout ailleurs, c'est TON choix -- et c'est le
+        /// choix le plus important de la Saison : c'est la qu'on viendra te voler.
+        /// </summary>
+        void TryStele()
+        {
+            Seeker me = Game.Me;
+            if (me == null) return;
+            Hoard hoard = me.Hoard;
+            if (hoard.StelePlanted)
+            {
+                Refuse("Ta stele est deja plantee, " + Hud.Direction(transform.position, hoard.StelePosition) + ".");
+                return;
+            }
+
+            Vector3 forward = Facing();
+            Vector3 at = Ground.Place(transform.position + forward * 3f, 0f);
+            string why = WhyNotHere(at, 8f);
+            if (why == null && Landmarks.Near(at.x, at.z, 0f)) why = "Pas sur un lieu-dit : trouve ta propre place.";
+            if (why == null && BlockedAt(at, forward, new Vector3(1.8f, 1.2f, 1.8f))) why = "Pas la place ici pour une stele.";
+            if (why != null) { Refuse(why); return; }
+
+            if (!hoard.TryPlantStele(at)) return;
+            float yaw = Mathf.Atan2(-forward.x, -forward.z) * Mathf.Rad2Deg;
+            Stele.Build(null, at, yaw, me);
+
+            Sfx.Build();
+            if (Game.Hud != null)
+                Game.Hud.ShowDiscovery("TA STELE", "est plantee",
+                                       "Pose ta relique dessus : a la cloche, seule elle comptera.",
+                                       "Les autres peuvent la trouver. Et la piller.", Stele.RuneBlue);
         }
 
         // ------------------------------------------------------------------ les caches

@@ -48,7 +48,7 @@ namespace Fief
             e.fireWorld = tower.TransformPoint(fire);
 
             Proto.BeginVisualOnly();
-            Figures.Body f = Figures.Robed(root.transform, 1.9f, 1.05f, Cloak, CloakDark, Skin, true);
+            Figures.Shape f = Figures.Robed(root.transform, 1.9f, 1.05f, Cloak, CloakDark, Skin, true);
             // Voute : toute la silhouette penche en avant.
             f.root.localRotation = Quaternion.Euler(12f, 0f, 0f);
             e.figure = f.root;

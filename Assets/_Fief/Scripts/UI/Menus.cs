@@ -402,7 +402,7 @@ namespace Fief
             GUI.color = new Color(1f, 1f, 1f, ease);
 
             float w = UiStyle.S(560);
-            float h = UiStyle.S(444);
+            float h = UiStyle.S(520);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f + (1f - ease) * UiStyle.S(20), w, h);
             UiStyle.Frame(box);
 
@@ -415,50 +415,42 @@ namespace Fief
             UiStyle.Rule(new Rect(x, y, bw, 1f));
             y += UiStyle.S(20);
 
-            int score = hoard.FinalScore;
-            Relic relic = hoard.Relic;
+            // --- le classement : toi et les rivaux, du plus puissant au plus faible.
+            System.Collections.Generic.List<Seeker> order = new System.Collections.Generic.List<Seeker>(Game.Seekers);
+            order.Sort((a, b) => b.Score.CompareTo(a.Score));
+            bool won = order.Count > 0 && order[0].IsPlayer && order[0].Score > 0;
+
             string verdict;
-            string detail;
-            if (relic == null)
-            {
-                verdict = "Tu n'as rien forge.";
-                detail = "Le mage chante six fois par Saison. Suis sa voix, les bras charges.";
-            }
-            else if (!hoard.RelicOnStele)
-            {
-                verdict = "Ta relique n'etait pas sur la stele.";
-                detail = "Puissance " + relic.Power + ", mais elle ne compte pas : il fallait la poser avant la cloche.";
-            }
-            else
-            {
-                verdict = "Sur la stele : " + Rank(score) + ".";
-                detail = "Forgee " + relic.Forgings + " fois : "
-                         + relic.Get(ResourceType.Deadwood) + " bois mort, "
-                         + relic.Get(ResourceType.Moonstone) + " pierre-lune, "
-                         + relic.Get(ResourceType.Iron) + " fer ancien."
-                         + (hoard.Has(Talisman.Couronne) ? "  La Couronne sans tete ajoute 15 %." : "");
-            }
+            if (won) verdict = "Ta relique l'emporte : " + Rank(hoard.FinalScore) + ".";
+            else if (hoard.Relic == null) verdict = hoard.Trophy != null ? "Tu portais une relique volee. Elle ne compte pas." : "Tu n'as rien sur ta stele.";
+            else if (!hoard.RelicOnStele) verdict = "Ta relique n'etait pas sur ta stele. Elle ne compte pas.";
+            else verdict = "Ta relique : " + Rank(hoard.FinalScore) + ". Pas assez.";
+            UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(30)), verdict, UiStyle.Head, won ? Palette.Gold : UiStyle.Ink);
+            y += UiStyle.S(40);
 
-            GUIStyle big = UiStyle.Big;
-            UiStyle.Shadowed(new Rect(x, y, bw, UiStyle.S(56)), score.ToString(), big);
-            GUI.Label(new Rect(x, y + UiStyle.S(52), bw, UiStyle.S(20)), "puissance", UiStyle.Small);
-            y += UiStyle.S(84);
-
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(26)), verdict, UiStyle.Head);
-            y += UiStyle.S(30);
-
-            GUIStyle wrapped = UiStyle.Small;
-            bool wrap = wrapped.wordWrap;
-            wrapped.wordWrap = true;
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(40)), detail, wrapped);
-            y += UiStyle.S(46);
+            for (int i = 0; i < order.Count; i++)
+            {
+                Seeker sk = order[i];
+                float rowH = UiStyle.S(i == 0 ? 50 : 38);
+                Rect row = new Rect(x, y, bw, rowH - UiStyle.S(6));
+                UiStyle.CardFrame(row);
+                UiStyle.Fill(new Rect(row.x, row.y + UiStyle.S(6), UiStyle.S(4), row.height - UiStyle.S(12)), sk.Colour);
+                GUIStyle nameStyle = i == 0 ? UiStyle.Head : UiStyle.Label;
+                UiStyle.Tinted(new Rect(row.x + UiStyle.S(16), row.y, UiStyle.S(40), row.height), (i + 1) + ".", nameStyle, UiStyle.InkDim);
+                UiStyle.Tinted(new Rect(row.x + UiStyle.S(48), row.y, bw * 0.5f, row.height), sk.Name, nameStyle,
+                               sk.IsPlayer ? Palette.Gold : UiStyle.Ink);
+                GUIStyle right = UiStyle.Label;
+                TextAnchor previous = right.alignment;
+                right.alignment = TextAnchor.MiddleRight;
+                string what = sk.Score > 0 ? sk.Score + "   " + Relic.TierName(Relic.Tier(sk.Score)) : "rien sur sa stele";
+                GUI.Label(new Rect(row.x, row.y, row.width - UiStyle.S(16), row.height), what, right);
+                right.alignment = previous;
+                y += rowH;
+            }
+            y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, bw, UiStyle.S(20)),
                       "Talismans trouves : " + hoard.TalismanCount + " / " + TalismanInfo.Count, UiStyle.Small);
             y += UiStyle.S(22);
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(40)),
-                      "Astuce : une cache pleine pres de l'endroit ou le mage chante, c'est deux voyages au lieu d'un.",
-                      UiStyle.Tiny);
-            wrapped.wordWrap = wrap;
 
             float bh = UiStyle.S(42);
             float by = box.yMax - bh - UiStyle.S(26);
@@ -480,6 +472,7 @@ namespace Fief
             { "E", "Interagir, ramasser" },
             { "C", "Planter ton camp (une fois)" },
             { "G (maintenir)", "Creuser une cache (trois)" },
+            { "P", "Planter ta stele (une fois)" },
             { "Echap", "Pause" },
             { "F1", "Aide a l'ecran" },
             { "F3", "Diagnostic" }

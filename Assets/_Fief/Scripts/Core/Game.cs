@@ -19,6 +19,12 @@ namespace Fief
         public static Wallet Wallet;
         public static Season Season;
         public static Hoard Hoard;
+
+        /// <summary>Toi, en tant que chercheur de relique (ton sac, ta bourse, ton Hoard).</summary>
+        public static Seeker Me;
+        /// <summary>Tous les chercheurs de la Saison : toi d'abord, puis les rivaux.</summary>
+        public static readonly System.Collections.Generic.List<Seeker> Seekers =
+            new System.Collections.Generic.List<Seeker>();
         public static Hud Hud;
         public static Menus Menus;
         public static PlayerController Player;
@@ -60,6 +66,8 @@ namespace Fief
             Rig = null;
             PlayerTransform = null;
             Mage = null;
+            Me = null;
+            Seekers.Clear();
             CastleCentre = Vector3.zero;
             BuildError = null;
             FloatingTexts.Clear();

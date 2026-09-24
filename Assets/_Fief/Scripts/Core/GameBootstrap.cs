@@ -46,6 +46,8 @@ namespace Fief
             Game.Hoard.MaxCaches = Mathf.Max(0, config.maxCaches);
             Game.Hoard.CacheCapacity = Mathf.Max(1f, config.cacheCapacity);
             Game.Hoard.CampCapacity = Mathf.Max(1f, config.campCapacity);
+            Game.Me = new Seeker("Toi", new Color(0.92f, 0.78f, 0.42f), true, Game.Inventory, Game.Wallet, Game.Hoard);
+            Game.Seekers.Add(Game.Me);
 
             System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
 
@@ -247,6 +249,7 @@ namespace Fief
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;
+            if (Game.Me != null) Game.Me.Body = go.transform;
 
             // Les sons sont synthetises par le code et joues depuis le joueur.
             Sfx.Init(go);

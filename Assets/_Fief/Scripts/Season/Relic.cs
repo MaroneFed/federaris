@@ -104,6 +104,21 @@ namespace Fief
         }
 
         /// <summary>
+        /// Fondre une relique VOLEE dans la sienne. On n'en garde qu'une part (60 %) :
+        /// voler rapporte, mais jamais autant que ce que l'autre a perdu. Sans cette
+        /// perte, le vol serait toujours le meilleur plan.
+        /// </summary>
+        public int Absorb(Relic stolen, float share)
+        {
+            if (stolen == null || stolen == this) return 0;
+            int before = Power;
+            for (int i = 0; i < parts.Length; i++)
+                parts[i] += Mathf.FloorToInt(stolen.parts[i] * share);
+            Forgings++;
+            return Power - before;
+        }
+
+        /// <summary>
         /// Fond tout le contenu du sac dans la relique. Passe par Inventory.TryRemove :
         /// la regle du depot veut que rien ne modifie un inventaire autrement.
         /// Renvoie le nombre d'unites fondues.

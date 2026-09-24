@@ -116,11 +116,112 @@ namespace Fief
             return Relic;
         }
 
+        // ------------------------------------------------------------------ la stele
+
+        /// <summary>
+        /// CHACUN SA STELE (decide par Martin le 24/09/2026). On la plante UNE fois,
+        /// ou l'on veut. Seule une relique posee sur SA stele compte a la cloche. Et
+        /// une stele se voit : qui la trouve peut voler ce qu'il y a dessus.
+        /// </summary>
+        public bool StelePlanted { get; private set; }
+        public Vector3 StelePosition { get; private set; }
+
+        public bool TryPlantStele(Vector3 at)
+        {
+            if (StelePlanted) return false;
+            StelePlanted = true;
+            StelePosition = at;
+            return true;
+        }
+
         public bool TryPlaceOnStele()
         {
-            if (!RelicInHand) return false;
+            if (!RelicInHand || !StelePlanted) return false;
             RelicOnStele = true;
             return true;
+        }
+
+        // ------------------------------------------------------------------ le vol
+
+        /// <summary>Poids d'une relique volee qu'on porte : lourde, pour qu'on puisse te rattraper.</summary>
+        public const float TrophyWeight = 8f;
+        public const float StolenShare = 0.6f;
+
+        /// <summary>Une relique volee, qu'on porte vers sa propre stele. Nulle sinon.</summary>
+        public Relic Trophy { get; private set; }
+        /// <summary>A qui on l'a prise.</summary>
+        public Seeker TrophyFrom { get; private set; }
+
+        /// <summary>Ce qu'on porte en plus du sac : sa relique en main, et un trophee.</summary>
+        public float CarriedWeight
+        {
+            get
+            {
+                float w = RelicInHand ? Relic.Weight : 0f;
+                if (Trophy != null) w += TrophyWeight;
+                return w;
+            }
+        }
+
+        /// <summary>
+        /// Se faire prendre sa relique : sur la stele, ou dans les mains si l'on se
+        /// fait rattraper. Elle quitte ce Hoard entierement.
+        /// </summary>
+        public Relic TrySurrenderRelic()
+        {
+            if (Relic == null) return null;
+            Relic taken = Relic;
+            Relic = null;
+            RelicOnStele = false;
+            return taken;
+        }
+
+        /// <summary>Lacher le trophee qu'on porte (rattrape par son proprietaire).</summary>
+        public Relic TrySurrenderTrophy()
+        {
+            Relic taken = Trophy;
+            Trophy = null;
+            TrophyFrom = null;
+            return taken;
+        }
+
+        /// <summary>Ramasser une relique prise a quelqu'un. Un seul trophee a la fois.</summary>
+        public bool TryTakeTrophy(Relic relic, Seeker from)
+        {
+            if (relic == null || Trophy != null) return false;
+            Trophy = relic;
+            TrophyFrom = from;
+            return true;
+        }
+
+        /// <summary>
+        /// Reprendre SA relique a un voleur : elle revient en main, entiere. Si l'on
+        /// en avait deja reforge une autre entre-temps, la volee s'y fond sans perte.
+        /// </summary>
+        public bool TryRecover(Relic mine)
+        {
+            if (mine == null) return false;
+            if (Relic == null) { Relic = mine; RelicOnStele = false; return true; }
+            Relic.Absorb(mine, 1f);
+            return true;
+        }
+
+        /// <summary>
+        /// A sa stele, fondre le trophee dans sa relique (60 %). S'il n'y a pas
+        /// encore de relique, le trophee en devient une -- amputee de 40 %.
+        /// Renvoie la puissance gagnee.
+        /// </summary>
+        public int RequestAbsorbTrophy()
+        {
+            if (Trophy == null) return 0;
+            Relic stolen = Trophy;
+            Trophy = null;
+            TrophyFrom = null;
+            bool fresh = Relic == null;
+            Relic mine = EnsureRelic();
+            int gained = mine.Absorb(stolen, StolenShare);
+            if (fresh) RelicOnStele = false;
+            return gained;
         }
 
         public bool TryTakeFromStele()

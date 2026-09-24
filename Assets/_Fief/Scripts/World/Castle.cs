@@ -93,7 +93,9 @@ namespace Fief
             Storeroom(t, new Vector3(HalfSize - WallThickness * 0.5f - 4.6f, 0f, -14f), 9f, 12f, Side.MinusX, cfg);
             Storeroom(t, new Vector3(-25f, 0f, HalfSize - WallThickness * 0.5f - 4.6f), 12f, 9f, Side.MinusZ, cfg);
 
-            Stele.Build(t, StelePosition);
+            // L'ancienne stele du chateau est devenue le Registre : chacun a
+            // maintenant la sienne, dans la foret. Celle-ci grave le classement.
+            Registry.Build(t, StelePosition);
             BuildTorches(t);
 
             // Tout ce qui fait qu'on s'arrete pour regarder : l'allee des rois, les

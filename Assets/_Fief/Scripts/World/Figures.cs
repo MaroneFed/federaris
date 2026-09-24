@@ -12,7 +12,7 @@ namespace Fief
     /// </summary>
     public static class Figures
     {
-        public struct Body
+        public struct Shape
         {
             /// <summary>Le pivot a tourner pour que le PNJ regarde quelqu'un.</summary>
             public Transform root;
@@ -20,7 +20,7 @@ namespace Fief
             public float shoulders;
         }
 
-        public static Body Robed(Transform parent, float height, float width, Color cloth, Color clothDark,
+        public static Shape Robed(Transform parent, float height, float width, Color cloth, Color clothDark,
                                  Color skin, bool hooded)
         {
             GameObject go = new GameObject("Silhouette");
@@ -58,7 +58,7 @@ namespace Fief
                 arm.transform.localRotation = Quaternion.Euler(-10f, 0f, side * 6f);
             }
 
-            Body body = new Body();
+            Shape body = new Shape();
             body.root = f;
             body.shoulders = shoulders;
             return body;

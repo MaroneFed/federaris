@@ -59,7 +59,7 @@ namespace Fief
             Veilleur v = root.AddComponent<Veilleur>();
 
             Proto.BeginVisualOnly();
-            Figures.Body f = Figures.Robed(root.transform, 2.15f, 1.0f, Cloak, CloakDark, Skin, false);
+            Figures.Shape f = Figures.Robed(root.transform, 2.15f, 1.0f, Cloak, CloakDark, Skin, false);
             v.figure = f.root;
             float head = f.shoulders + 0.3f * (2.15f / 2.6f);
 
@@ -227,9 +227,11 @@ namespace Fief
             Hoard h = Game.Hoard;
             if (h == null || h.Relic == null)
                 return "Tu n'as pas de relique. Le mage la forge avec ce que tu portes. Seulement ce que tu portes.";
+            if (!h.StelePlanted)
+                return "Tu n'as pas plante ta stele. Choisis ta place (P) : c'est la qu'on viendra te voler.";
             if (h.RelicOnStele)
-                return "Ta relique est sur la stele. Elle vaut " + h.FinalScore + ", pour l'instant.";
-            return "Ta relique pese dans ton sac. Tant qu'elle n'est pas sur la stele, elle ne compte pas.";
+                return "Ta relique est sur ta stele. Elle vaut " + h.FinalScore + ", pour l'instant. Si personne ne l'a trouvee.";
+            return "Ta relique pese dans ton sac. Tant qu'elle n'est pas sur ta stele, elle ne compte pas.";
         }
 
         static string TalismanLines()
