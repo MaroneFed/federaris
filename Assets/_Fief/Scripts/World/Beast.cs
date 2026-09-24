@@ -40,6 +40,23 @@ namespace Fief
         Vector3 wander;
         float wanderTimer;
         State state = State.Roam;
+        float windup;
+        float fear;
+        /// <summary>Angle d'approche de ce loup dans sa meute (-60, 0, +60).</summary>
+        float flank;
+        /// <summary>Les autres loups de sa meute.</summary>
+        List<Beast> pack;
+
+        bool Afraid
+        {
+            get
+            {
+                if (pack == null) return false;
+                int dead = 0;
+                for (int i = 0; i < pack.Count; i++) if (pack[i] != null && !pack[i].Alive) dead++;
+                return dead >= 2;
+            }
+        }
         Seeker prey;
         float biteTimer;
         float deadTimer;
@@ -220,6 +237,7 @@ namespace Fief
                 wander = home + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
             }
             Move(wander, speed * 0.3f, dt);
+            if (fear > 0f) { fear -= dt; return; }
 
             Seeker target = Spot();
             if (target != null)
@@ -257,13 +275,45 @@ namespace Fief
                 prey = null;
                 return;
             }
+            // LA PEUR : une meute qui a perdu deux des siens s'enfuit.
+            if (Afraid) { fear = 20f; state = State.Return; prey = null; return; }
+
             float d = Flat(p - transform.position).magnitude;
-            if (d > 1.7f) { Move(p, speed, dt); return; }
+            if (d > 1.7f)
+            {
+                windup = 0f;
+                // L'ENCERCLEMENT : de loin, chaque loup vise un point decale autour de
+                // la proie (a gauche, en face, a droite) ; il ne ferme qu'a 4 m.
+                Vector3 goal = p;
+                if (kind == Kind.Loup && d > 4f)
+                {
+                    Vector3 from = Flat(transform.position - p).normalized;
+                    goal = p + Quaternion.Euler(0f, flank, 0f) * from * 3f;
+                }
+                Move(goal, speed, dt);
+                return;
+            }
 
             Figures.Face(transform, p, 540f);
             if (biteTimer > 0f) return;
-            biteTimer = bite;
-            if (walker != null) walker.PlaySwing();
+
+            // LE TELEGRAPHE du revenant : il leve sa lame 0,6 s avant de frapper. Qui
+            // recule a temps n'est pas touche.
+            if (kind == Kind.Revenant)
+            {
+                if (windup <= 0f)
+                {
+                    windup = 0.001f;
+                    if (walker != null) walker.PlaySwing();
+                    return;
+                }
+                windup += dt;
+                if (windup < 0.6f) return;
+                windup = 0f;
+                biteTimer = bite;
+                if (Flat(prey.Body.position - transform.position).magnitude > 2.3f) return;     // esquive
+            }
+            else biteTimer = bite;
             Combat.Hit(prey, null, damage, kind == Kind.Loup ? "sous les crocs d'un loup" : "sous la lame d'un revenant");
             if (!prey.IsPlayer)
             {
@@ -285,10 +335,11 @@ namespace Fief
 
         void Return(float dt)
         {
-            Move(home, speed * 0.6f, dt);
+            if (fear > 0f) fear -= dt;
+            Move(home, fear > 0f ? speed : speed * 0.6f, dt);
             if (Flat(home - transform.position).magnitude < 3f) state = State.Roam;
             // Il ne rentre pas bredouille si quelqu'un repasse sous son nez.
-            Seeker target = Flat(home - transform.position).magnitude < leash * 0.7f ? Spot() : null;
+            Seeker target = fear <= 0f && Flat(home - transform.position).magnitude < leash * 0.7f ? Spot() : null;
             if (target != null) { prey = target; state = State.Chase; }
         }
 
@@ -447,10 +498,14 @@ namespace Fief
                 for (int i = 0; i < All.Count && clear; i++)
                     if (All[i].kind == Kind.Loup && Flat(All[i].home - new Vector3(x, 0f, z)).magnitude < 120f) clear = false;
                 if (!clear) continue;
+                List<Beast> pack = new List<Beast>();
                 for (int k = 0; k < 3; k++)
                 {
                     Vector3 at = Ground.Place(x + (k - 1) * 2.2f, z + (k % 2) * 1.8f, 0.3f);
-                    Wolf(root.transform, at, rng.Next());
+                    Beast w = Wolf(root.transform, at, rng.Next());
+                    w.flank = (k - 1) * 60f;
+                    w.pack = pack;
+                    pack.Add(w);
                 }
                 made++;
             }

@@ -693,6 +693,7 @@ namespace Fief
             { "1 / 2", "Prendre en main un outil (hache, epee, piege)" },
             { "Clic gauche", "Abattre un arbre, frapper, poser un piege" },
             { "F", "Grimper dans un arbre / redescendre" },
+            { "H", "Tendre l'oreille : ta stele chante, une fois par minute" },
             { "Echap", "Pause" },
             { "F1", "Aide a l'ecran" },
             { "F3", "Diagnostic" }

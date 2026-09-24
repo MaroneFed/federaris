@@ -522,7 +522,7 @@ namespace Fief
             trigger.isTrigger = true;
             trigger.size = new Vector3(1.6f, 1.4f, 5f);
             ResourceNode node = heap.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 2;
+            node.yieldPerHarvest = 4;
             node.harvestDuration = Game.Config != null ? Game.Config.harvestDuration : 1.15f;
             node.respawnDelay = 0f;
             node.Initialise(ResourceType.Deadwood, 14, null);

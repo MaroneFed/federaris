@@ -223,7 +223,8 @@ namespace Fief
             if (aggroTimer > 0f) aggroTimer -= dt;
             if (fleeTimer > 0f) fleeTimer -= dt;
             if (strikeTimer > 0f) strikeTimer -= dt;
-            if (seeker.Alive && Time.time - seeker.LastHurt > 8f) seeker.Heal(3f * dt);
+            if (seeker.Alive && Stele.NearOwn(seeker, 8f) && Time.time - seeker.LastHurt > 2f) seeker.Heal(18f * dt);
+            else if (seeker.Alive && Time.time - seeker.LastHurt > 8f) seeker.Heal(3f * dt);
             if (rearmTimer > 0f)
             {
                 rearmTimer -= dt;
@@ -547,7 +548,7 @@ namespace Fief
             work += dt;
             if (work < node.harvestDuration * penalty * 1.15f) return;
             work = 0f;
-            node.TryTakeFor(seeker.Bag, node.type == ResourceType.Deadwood ? 2 : 1);
+            node.TryTakeFor(seeker.Bag, node.yieldPerHarvest);
             if (node.IsDepleted || seeker.Bag.SpaceFor(node.type) <= 0) think = 0f;
         }
 

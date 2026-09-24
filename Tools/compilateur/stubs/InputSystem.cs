@@ -24,7 +24,7 @@ namespace UnityEngine.InputSystem
     public class Keyboard
     {
         public static Keyboard current { get { return null; } }
-        public KeyControl wKey, aKey, sKey, dKey, eKey, cKey, gKey, pKey, fKey, qKey, zKey;
+        public KeyControl wKey, aKey, sKey, dKey, eKey, cKey, gKey, pKey, fKey, qKey, zKey, hKey;
         public KeyControl upArrowKey, downArrowKey, leftArrowKey, rightArrowKey;
         public KeyControl spaceKey, escapeKey, tabKey, leftShiftKey, enterKey;
         public KeyControl f1Key, f2Key, f3Key, digit1Key, digit2Key, digit3Key;

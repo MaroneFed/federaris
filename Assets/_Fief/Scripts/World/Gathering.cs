@@ -50,7 +50,7 @@ namespace Fief
         public static void MakeLogHarvestable(GameObject log, GameConfig cfg)
         {
             ResourceNode node = log.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 2;
+            node.yieldPerHarvest = 4;
             node.harvestDuration = cfg != null ? cfg.harvestDuration : 1.15f;
             node.respawnDelay = 150f;
             // Pas de visuel a faire fondre : un tronc ne retrecit pas quand on en casse
@@ -130,9 +130,11 @@ namespace Fief
             }
             Proto.EndVisualOnly();
 
+            // UN SEUL GESTE pour tout le fagot (Martin detestait ramasser le bois
+            // brindille par brindille) : un peu plus long, mais on repart avec les six.
             ResourceNode node = go.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 2;
-            node.harvestDuration = cfg != null ? cfg.harvestDuration : 1.15f;
+            node.yieldPerHarvest = 6;
+            node.harvestDuration = (cfg != null ? cfg.harvestDuration : 1.15f) * 1.3f;
             node.respawnDelay = 150f;
             node.Initialise(ResourceType.Deadwood, 6, visual.transform);
             FagotCount++;
@@ -320,7 +322,7 @@ namespace Fief
             Proto.EndVisualOnly();
 
             ResourceNode node = go.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 1;
+            node.yieldPerHarvest = 2;         // une grappe se prend en deux gestes, pas quatre
             node.harvestDuration = (cfg != null ? cfg.harvestDuration : 1.15f) * 1.4f;
             node.respawnDelay = 180f;
             node.Initialise(ResourceType.Moonstone, 4, visual.transform);

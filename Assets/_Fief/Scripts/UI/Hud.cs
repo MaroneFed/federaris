@@ -98,8 +98,10 @@ namespace Fief
                 }
                 return;
             }
-            // La vie remonte apres huit secondes sans coup.
-            if (me.Alive && Time.time - me.LastHurt > 8f) me.Heal(3f * Time.deltaTime);
+            // La vie remonte apres huit secondes sans coup -- et vite, pres de sa stele
+            // (le seul endroit ou l'on est chez soi).
+            if (me.Alive && Stele.NearOwn(me, 8f) && Time.time - me.LastHurt > 2f) me.Heal(18f * Time.deltaTime);
+            else if (me.Alive && Time.time - me.LastHurt > 8f) me.Heal(3f * Time.deltaTime);
         }
 
         void DrawLife()
@@ -882,7 +884,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(340);
-            float h = UiStyle.S(362);
+            float h = UiStyle.S(384);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -912,6 +914,7 @@ namespace Fief
                 { "Tab", "ta besace" },
                 { "1 / 2 + clic", "outil : abattre, frapper, poser un piege" },
                 { "F", "grimper dans un arbre" },
+                { "H", "tendre l'oreille : ta stele chante" },
                 { "F3", "diagnostic" },
                 { "Echap", "pause" }
             };

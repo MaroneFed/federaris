@@ -53,6 +53,7 @@ namespace Fief
             }
 
             if (FiefInput.CampPressed) TryCamp();
+            if (FiefInput.ListenPressed) Listen();
 
             if (FiefInput.DigPressed) BeginDigging();
             if (Digging) ContinueDigging();
@@ -111,6 +112,43 @@ namespace Fief
                 return true;
             }
             return false;
+        }
+
+        // ------------------------------------------------------------------ ecouter
+
+        static float listenReady;
+
+        /// <summary>
+        /// H : TENDRE L'OREILLE. Ta stele repond : trois notes claires, jouees depuis
+        /// elle, qu'on entend a quatre cents metres. On sait de quel cote elle est --
+        /// pas a quelle distance, pas par ou passer. Une fois par minute.
+        /// C'est le filet de securite de la boussole vide : on peut se perdre, pas
+        /// pour toujours.
+        /// </summary>
+        void Listen()
+        {
+            Stele stele = Stele.Of(Game.Me);
+            if (stele == null) return;
+            if (Time.time < listenReady)
+            {
+                Refuse("Ta stele se tait encore " + Mathf.CeilToInt(listenReady - Time.time) + " s.");
+                return;
+            }
+            listenReady = Time.time + 60f;
+            GameObject go = new GameObject("Appel de la stele");
+            go.transform.position = stele.transform.position + Vector3.up * 1.5f;
+            AudioSource src = go.AddComponent<AudioSource>();
+            src.clip = Sfx.SteleCall();
+            src.spatialBlend = 1f;
+            src.rolloffMode = AudioRolloffMode.Linear;
+            src.minDistance = 30f;
+            src.maxDistance = 450f;
+            src.dopplerLevel = 0f;
+            src.volume = Sfx.Muted ? 0f : 1f;
+            src.Play();
+            Destroy(go, src.clip.length + 0.2f);
+            OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 0.3f);
+            Toasts.Show("Tu tends l'oreille... ta stele repond, quelque part.", Stele.RuneBlue);
         }
 
         // ------------------------------------------------------------------ les caches

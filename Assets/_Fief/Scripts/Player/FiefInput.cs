@@ -100,6 +100,9 @@ namespace Fief
         /// <summary>F : grimper dans un arbre, ou en redescendre.</summary>
         public static bool ClimbPressed { get { return KeyPressed(KeyCode.F); } }
 
+        /// <summary>H : tendre l'oreille -- ta stele chante fort quelques secondes.</summary>
+        public static bool ListenPressed { get { return KeyPressed(KeyCode.H); } }
+
         /// <summary>Clic gauche maintenu : frapper avec l'outil en main.</summary>
         public static bool UseHeld
         {
@@ -158,6 +161,7 @@ namespace Fief
                 case KeyCode.Alpha1: return k.digit1Key;
                 case KeyCode.Alpha2: return k.digit2Key;
                 case KeyCode.F: return k.fKey;
+                case KeyCode.H: return k.hKey;
             }
             return null;
         }

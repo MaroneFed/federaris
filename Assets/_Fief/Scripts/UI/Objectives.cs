@@ -27,7 +27,7 @@ namespace Fief
             new Step { text = "Ramasse du bois mort",
                        hint = "Au pied des arbres morts (gris, sans feuilles) : des fagots. Maintiens E." },
             new Step { text = "Depose-le dans ta stele (E)",
-                       hint = "Ta stele est la ou tu es ne. Retiens le chemin : rien ne te la montrera. La Malediction devore les sacs, pas les steles." },
+                       hint = "Ta stele est la ou tu es ne. Retiens le chemin. Perdu ? H : elle chante, et tu sais de quel cote aller." },
             new Step { text = "Ramasse de la pierre-lune",
                        hint = "Dans les creux ou des pierres bleues luisent. Suis les lucioles, ou un feu-follet." },
             new Step { text = "Porte ton sac au mage",

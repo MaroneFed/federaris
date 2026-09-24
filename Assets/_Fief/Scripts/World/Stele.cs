@@ -119,6 +119,15 @@ namespace Fief
             All.Remove(this);
         }
 
+        /// <summary>Ce chercheur est-il a moins de "metres" de sa propre stele ?</summary>
+        public static bool NearOwn(Seeker s, float metres)
+        {
+            if (s == null || s.Body == null || !s.Hoard.StelePlanted) return false;
+            Vector3 d = s.Body.position - s.Hoard.StelePosition;
+            d.y = 0f;
+            return d.magnitude < metres;
+        }
+
         public static Stele Of(Seeker s)
         {
             for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].owner == s) return All[i];

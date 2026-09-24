@@ -739,6 +739,35 @@ namespace Fief
             return drone;
         }
 
+        static AudioClip steleCall;
+
+        /// <summary>
+        /// L'APPEL DE LA STELE (touche H) : trois notes de cloche claire qui
+        /// descendent, longues. Joue DEPUIS la stele, en 3D : on l'entend de loin et
+        /// on sait de quel cote elle est -- sans rien sur la boussole.
+        /// </summary>
+        public static AudioClip SteleCall()
+        {
+            if (steleCall != null) return steleCall;
+            const float duration = 3.6f;
+            int count = Mathf.RoundToInt(Rate * duration);
+            float[] data = new float[count];
+            float[] notes = { 880f, 659.25f, 587.33f };
+            for (int n = 0; n < notes.Length; n++)
+            {
+                int start = Mathf.RoundToInt(Rate * n * 0.42f);
+                for (int i = start; i < count; i++)
+                {
+                    float t = (float)(i - start) / Rate;
+                    float env = Mathf.Min(1f, t * 200f) * Mathf.Exp(-1.6f * t);
+                    data[i] += (Mathf.Sin(2f * Mathf.PI * notes[n] * t) + Mathf.Sin(2f * Mathf.PI * notes[n] * 2.76f * t) * 0.2f) * env * 0.3f;
+                }
+            }
+            Normalize(data, 0.9f);
+            steleCall = FromSamples("appel", data);
+            return steleCall;
+        }
+
         static AudioClip stash;
 
         /// <summary>
