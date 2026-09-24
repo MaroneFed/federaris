@@ -89,6 +89,7 @@ namespace Fief
                 if (what.Length > 0) what += ", ";
                 what += lost[i] + " " + ResourceInfo.Name((ResourceType)i);
             }
+            Stats.CurseLost += total;
             if (Game.Hud == null) return;
             if (total == 0)
             {

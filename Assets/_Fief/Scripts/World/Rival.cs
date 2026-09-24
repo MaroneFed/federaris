@@ -636,6 +636,7 @@ namespace Fief
                 if (taken != null && seeker.Hoard.TryTakeTrophy(taken, me)) took = "ta relique (puissance " + taken.Power + ")";
             }
             int units = mine.RequestLoot(seeker.Bag);
+            Stats.Robbed += units;
             if (units > 0) took += (took.Length > 0 ? " et " : "") + units + " ressources de ta reserve";
             me.SyncWeight();
             seeker.SyncWeight();

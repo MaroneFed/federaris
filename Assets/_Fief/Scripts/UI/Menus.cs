@@ -560,8 +560,8 @@ namespace Fief
         void DrawPause()
         {
             DrawEmbers(0.6f);
-            float w = UiStyle.S(440);
-            float h = UiStyle.S(360);
+            float w = UiStyle.S(620);
+            float h = UiStyle.S(380);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             UiStyle.Frame(box);
 
@@ -577,6 +577,19 @@ namespace Fief
             y += UiStyle.S(48);
             UiStyle.Rule(new Rect(x, y, bw, UiStyle.S(8)));
             y += UiStyle.S(30);
+
+            // Ou en est la Saison : on met en pause pour souffler, pas pour oublier.
+            Season s = Game.Season;
+            if (s != null)
+            {
+                string mage = s.MagePresent ? "Le mage chante encore " + Hud.Clock(s.MageTimeLeft)
+                            : s.NextMageIn >= 0f ? "Le mage dans " + Hud.Clock(s.NextMageIn) : "Le mage ne reviendra plus";
+                float c = s.NextCurseIn;
+                string curse = c >= 0f ? "la Malediction dans " + Hud.Clock(c) : "plus de Malediction";
+                UiStyle.Tinted(new Rect(box.x, y - UiStyle.S(14), w, UiStyle.S(20)),
+                               "Cloche dans " + Hud.Clock(s.Remaining) + "   --   " + mage + "   --   " + curse, UiStyle.CenteredSmall, UiStyle.InkDim);
+                y += UiStyle.S(16);
+            }
 
             if (Entry(new Rect(x, y, bw, UiStyle.S(44)), "Reprendre", true, 1f)) Resume();
             y += UiStyle.S(52);
@@ -612,7 +625,7 @@ namespace Fief
             GUI.color = new Color(1f, 1f, 1f, ease);
 
             float w = UiStyle.S(560);
-            float h = UiStyle.S(520);
+            float h = UiStyle.S(580);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f + (1f - ease) * UiStyle.S(20), w, h);
             UiStyle.Frame(box);
 
@@ -666,7 +679,20 @@ namespace Fief
             }
             y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, bw, UiStyle.S(20)),
-                      "Talismans trouves : " + hoard.TalismanCount + " / " + TalismanInfo.Count, UiStyle.Small);
+                      "Talismans trouves : " + hoard.TalismanCount + " / " + TalismanInfo.Count
+                      + "      Ta reserve : " + Stele.StoreSummary(hoard), UiStyle.Small);
+            y += UiStyle.S(20);
+            // Le journal : pourquoi ca s'est passe comme ca.
+            string journal = (Stats.Deaths == 0 ? "Jamais tombe" : "Tombe " + Stats.Deaths + " fois (la derniere " + Stats.LastDeath + ")")
+                           + "   --   Malediction : -" + Stats.CurseLost
+                           + "   --   Pille : -" + Stats.Robbed + " / +" + Stats.Looted
+                           + "   --   Abattus : " + Stats.RivalsDowned + " rivaux, " + Stats.BeastsDowned + " betes, " + Stats.TrapKills + " au piege";
+            GUIStyle small = UiStyle.Tiny;
+            bool wrapJ = small.wordWrap;
+            small.wordWrap = true;
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(34)), journal, small);
+            small.wordWrap = wrapJ;
+            y += UiStyle.S(14);
             y += UiStyle.S(22);
 
             float bh = UiStyle.S(42);

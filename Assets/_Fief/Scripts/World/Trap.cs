@@ -196,6 +196,7 @@ namespace Fief
             sprung = true;
             Snap();
             if (victim.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.6f);
+            if (owner == Game.Me) Stats.TrapKills++;
             Combat.Kill(victim, owner, "dans un piege de " + (owner != null ? owner.Name : "quelqu'un"));
             if (owner == Game.Me && !victim.IsPlayer)
             {

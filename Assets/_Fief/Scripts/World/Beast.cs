@@ -436,6 +436,7 @@ namespace Fief
         {
             if (state == State.Dead) return;
             state = State.Dead;
+            if (killer != null && killer.IsPlayer) Stats.BeastsDowned++;
             deadTimer = respawn;
             prey = null;
             Ambiance.Burst(null, transform.position + Vector3.up * 0.8f, kind == Kind.Loup ? new Color(0.5f, 0.12f, 0.1f) : GhostEyes);

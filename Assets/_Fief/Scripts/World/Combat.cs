@@ -147,12 +147,15 @@ namespace Fief
 
             if (victim.IsPlayer)
             {
+                Stats.Deaths++;
+                Stats.LastDeath = how;
                 if (Game.Hud != null) Game.Hud.ShowDeath(how);
             }
             else
             {
                 Rival r = Rival.Of(victim);
                 if (r != null) r.Die();
+                if (killer != null && killer.IsPlayer) Stats.RivalsDowned++;
                 if (killer != null && killer.IsPlayer)
                     Toasts.Show(victim.Name + " est tombe. Sa depouille est a toi -- fouille-la (E).", victim.Colour);
             }

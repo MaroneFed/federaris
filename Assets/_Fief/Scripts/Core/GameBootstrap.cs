@@ -39,6 +39,7 @@ namespace Fief
             Victories.Reset();
             Objectives.Reset();
             Secrets.Reset();
+            Stats.Reset();
 
             Game.Config = config;
             Game.Inventory = new Inventory();

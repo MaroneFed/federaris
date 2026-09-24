@@ -416,6 +416,7 @@ namespace Fief
                     relicLine = "Sa relique (puissance " + taken.Power + ") : porte-la a TA stele pour la fondre.";
             }
             int units = o.RequestLoot(me.Bag);
+            Stats.Looted += units;
             me.SyncWeight();
             owner.SyncWeight();
             if (relicLine.Length == 0 && units == 0)
