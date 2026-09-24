@@ -540,6 +540,7 @@ namespace Fief
             { "C", "Planter ton camp (une fois)" },
             { "G (maintenir)", "Creuser une cache (trois)" },
             { "P", "Planter ta stele (une fois)" },
+            { "Tab", "Ta besace : tes talismans" },
             { "Echap", "Pause" },
             { "F1", "Aide a l'ecran" },
             { "F3", "Diagnostic" }

@@ -52,6 +52,31 @@ namespace Fief
             cardLine2 = line2;
             cardTint = tint;
             cardTimer = CardDuration;
+            cardItem = -1;
+        }
+
+        int cardItem = -1;
+        float flash;
+        Color flashTint;
+        float slowMo;
+
+        /// <summary>
+        /// LA TROUVAILLE D'UN TALISMAN : l'ecran flashe a sa couleur, le temps ralentit
+        /// une seconde, et la carte montre l'objet EN 3D qui tourne (voir Showcase).
+        /// </summary>
+        public void ShowItem(Talisman t, int count)
+        {
+            ShowDiscovery("TALISMAN  " + count + " / " + TalismanInfo.Count, TalismanInfo.Name(t),
+                          TalismanInfo.Effect(t), TalismanInfo.Lore(t), TalismanInfo.Tint(t));
+            cardItem = (int)t;
+            cardTimer = CardDuration + 2f;
+            flash = 1f;
+            flashTint = TalismanInfo.Tint(t);
+            if (menus != null && !menus.Blocking)
+            {
+                slowMo = 1.1f;
+                Time.timeScale = 0.3f;
+            }
         }
 
         public void OpenPanel(IPanel newPanel) { panel = newPanel; }
@@ -61,6 +86,19 @@ namespace Fief
         {
             Toasts.Tick(Time.unscaledDeltaTime);
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
+            if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.3f);
+            if (slowMo > 0f)
+            {
+                slowMo -= Time.unscaledDeltaTime;
+                // On ne rend le temps normal que s'il est toujours ralenti par nous
+                // (la pause, elle, le met a zero : on n'y touche pas).
+                if (slowMo <= 0f && Mathf.Approximately(Time.timeScale, 0.3f)) Time.timeScale = 1f;
+            }
+            if (FiefInput.SatchelPressed && menus != null && !menus.Blocking)
+            {
+                if (panel is TalismanPanel) ClosePanel();
+                else if (panel == null) OpenPanel(new TalismanPanel());
+            }
 
             bool brewed = Game.Brewed;
             if (wasBrewed && !brewed) Toasts.Show("L'infusion de l'Ermite ne fait plus effet.", new Color(0.66f, 0.84f, 0.56f));
@@ -324,12 +362,44 @@ namespace Fief
             float alpha = Mathf.Clamp01(age / 0.4f) * Mathf.Clamp01(cardTimer / 0.8f);
             bool detailed = !string.IsNullOrEmpty(cardLine1);
 
-            float w = UiStyle.S(520);
-            float h = UiStyle.S(detailed ? 150 : 86);
+            bool item = cardItem >= 0;
+            float w = UiStyle.S(item ? 620 : 520);
+            float h = UiStyle.S(item ? 200 : detailed ? 150 : 86);
             Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(156) - (1f - Mathf.Clamp01(age / 0.4f)) * UiStyle.S(12), w, h);
+
+            // L'eclair de la trouvaille : tout l'ecran, a la couleur de l'objet.
+            if (flash > 0f) UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height),
+                                         new Color(flashTint.r, flashTint.g, flashTint.b, flash * flash * 0.45f));
 
             Color was = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, alpha);
+            if (item)
+            {
+                // L'objet en 3D, a gauche ; les mots a droite.
+                Showcase.Show((Talisman)cardItem, 0.2f);
+                UiStyle.Frame(box);
+                UiStyle.Fill(new Rect(box.x + UiStyle.S(10), box.y, box.width - UiStyle.S(20), 2f), cardTint);
+                float pic = h - UiStyle.S(24);
+                Rect frame = new Rect(box.x + UiStyle.S(14), box.y + UiStyle.S(12), pic, pic);
+                GUI.Box(frame, GUIContent.none, UiStyle.CardBox);
+                if (Showcase.Image != null) GUI.DrawTexture(frame, Showcase.Image, ScaleMode.ScaleToFit, true);
+                float tx = frame.xMax + UiStyle.S(18);
+                float tw = box.xMax - tx - UiStyle.S(18);
+                float ty = box.y + UiStyle.S(16);
+                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(16)), cardKicker, UiStyle.Small, UiStyle.InkDim);
+                ty += UiStyle.S(22);
+                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(40)), cardTitle, UiStyle.Title, cardTint);
+                ty += UiStyle.S(46);
+                GUIStyle body = UiStyle.Label;
+                bool wrap = body.wordWrap;
+                body.wordWrap = true;
+                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(44)), cardLine1, body, UiStyle.Ink);
+                body.wordWrap = wrap;
+                ty += UiStyle.S(48);
+                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(18)), cardLine2, UiStyle.Tiny, UiStyle.InkFaint);
+                GUI.color = was;
+                return;
+            }
             UiStyle.Frame(box);
             UiStyle.Fill(new Rect(box.x + UiStyle.S(10), box.y, box.width - UiStyle.S(20), 2f), cardTint);
 
@@ -624,7 +694,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(300);
-            float h = UiStyle.S(277);
+            float h = UiStyle.S(319);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -651,6 +721,8 @@ namespace Fief
                 { "E", "recolter, interagir" },
                 { "C", "planter le camp" },
                 { "G", "creuser une cache" },
+                { "P", "planter ta stele" },
+                { "Tab", "ta besace" },
                 { "F3", "diagnostic" },
                 { "Echap", "pause" }
             };

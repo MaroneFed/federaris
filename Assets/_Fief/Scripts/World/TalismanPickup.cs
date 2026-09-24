@@ -17,6 +17,8 @@ namespace Fief
 
         Transform model;
         Light halo;
+        LightBeam beam;
+        Transform[] runes = new Transform[0];
         float baseY;
         bool taken;
 
@@ -51,6 +53,28 @@ namespace Fief
             pickup.halo.shadows = LightShadows.None;
 
             Ambiance.Sparkles(root.transform, Vector3.zero, TalismanInfo.Tint(t));
+
+            // Une colonne de lumiere de sa couleur, qui perce la brume jusqu'a
+            // cinquante metres : on voit qu'il y a QUELQUE CHOSE la-bas, entre les
+            // troncs. Pas projetee plus loin : il faut s'approcher pour la voir.
+            pickup.beam = LightBeam.Build(root.transform, root.transform.position, TalismanInfo.Tint(t), 1.3f, 9f);
+            if (pickup.beam != null)
+            {
+                pickup.beam.projectFar = false;
+                pickup.beam.targetAlpha = 0.45f;
+            }
+
+            // Trois runes qui tournent autour de lui.
+            Material glow = MaterialFactory.GetGlow(TalismanInfo.Tint(t), 2f);
+            pickup.runes = new Transform[3];
+            Proto.BeginVisualOnly();
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject r = Proto.Cube(root.transform, Vector3.zero, new Vector3(0.09f, 0.14f, 0.02f), TalismanInfo.Tint(t), "Rune");
+                r.GetComponent<Renderer>().sharedMaterial = glow;
+                pickup.runes[i] = r.transform;
+            }
+            Proto.EndVisualOnly();
             return pickup;
         }
 
@@ -68,6 +92,12 @@ namespace Fief
             p.y = baseY + Mathf.Sin(t * 1.4f) * 0.12f;
             model.localPosition = p;
             if (halo != null) halo.intensity = 1.25f + Mathf.Sin(t * 2.1f) * 0.25f;
+            for (int i = 0; i < runes.Length; i++)
+            {
+                float a = t * 1.3f + i * 2.094f;
+                runes[i].localPosition = new Vector3(Mathf.Cos(a) * 0.75f, Mathf.Sin(t * 1.7f + i) * 0.2f, Mathf.Sin(a) * 0.75f);
+                runes[i].localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
+            }
         }
 
         // ------------------------------------------------------------------ IInteractable
@@ -88,10 +118,9 @@ namespace Fief
             taken = true;
             TalismanEffects.Apply(talisman);
             Sfx.Discovery();
-            if (Game.Hud != null)
-                Game.Hud.ShowDiscovery("TALISMAN  " + Game.Hoard.TalismanCount + " / " + TalismanInfo.Count,
-                                       TalismanInfo.Name(talisman), TalismanInfo.Effect(talisman),
-                                       TalismanInfo.Lore(talisman), TalismanInfo.Tint(talisman));
+            if (Game.Hud != null) Game.Hud.ShowItem(talisman, Game.Hoard.TalismanCount);
+            if (beam != null) { beam.targetAlpha = 0f; beam.fadeSpeed = 0.4f; }
+            for (int i = 0; i < runes.Length; i++) if (runes[i] != null) runes[i].gameObject.SetActive(false);
 
             // L'objet disparait ; les paillettes s'eteignent d'elles-memes.
             if (model != null) model.gameObject.SetActive(false);

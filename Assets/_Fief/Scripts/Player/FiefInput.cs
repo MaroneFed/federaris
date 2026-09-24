@@ -95,6 +95,9 @@ namespace Fief
         public static bool DigHeld { get { return KeyHeld(KeyCode.G); } }
         public static bool DigPressed { get { return KeyPressed(KeyCode.G); } }
 
+        /// <summary>Tab : ouvrir sa besace (les talismans trouves).</summary>
+        public static bool SatchelPressed { get { return KeyPressed(KeyCode.Tab); } }
+
         /// <summary>P : planter ta stele. Une seule fois, la ou tu te tiens.</summary>
         public static bool StelePressed { get { return KeyPressed(KeyCode.P); } }
 
@@ -134,6 +137,7 @@ namespace Fief
                 case KeyCode.C: return k.cKey;
                 case KeyCode.G: return k.gKey;
                 case KeyCode.P: return k.pKey;
+                case KeyCode.Tab: return k.tabKey;
             }
             return null;
         }

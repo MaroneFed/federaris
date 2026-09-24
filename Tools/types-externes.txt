@@ -126,3 +126,6 @@ GradientAlphaKey
 ParticleSystemCollisionType
 ParticleSystemCollisionQuality
 ParticleSystemStopAction
+RenderTexture
+RenderTextureFormat
+Texture
