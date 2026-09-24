@@ -137,6 +137,25 @@ temps mort. Il devient de l'exploration.
 
 ---
 
+## Les habitants (ajoutés le 24/09/2026)
+
+Martin : « je veux des PNJ incroyables ». Les PNJ de la Phase 1 **ne se battent pas** (le
+combat est en Phase 2) : ils parlent, guident, et donnent de la valeur à ce qui en
+manquait.
+
+| Qui | Où | Ce qu'il apporte |
+|---|---|---|
+| **Le mage** | au hasard, six fois | la forge (inchangé) |
+| **Le Veilleur** | ronde autour de la stèle | dit où chante le mage, où dorment les talismans manquants, si ta relique compte. Et : « On me payait, avant. » — il annonce les gardes soudoyables de la Phase 2 |
+| **L'Ermite** | la Tour effondrée | indique le lieu-dit le plus proche jamais visité et le creux le plus proche. **Infusion** : 12 bois mort → 3 minutes où le poids du sac ne ralentit plus les gestes. C'est ce qui donne du prix au bois mort |
+| **Les feux-follets** | neuf, dans la sylve | approche-toi : ils s'éloignent, t'attendent, et te mènent au creux à pierres-lune le plus proche |
+| **Le cerf blanc** | devant toi, à la limite de la brume | aucune utilité. Il te regarde, puis s'enfuit. C'est ce dont on se souvient |
+
+Les gardes, le rôdeur qui pille les caches et les pièges restent en Phase 2 : ils
+n'ont de sens qu'avec quelqu'un à arrêter.
+
+---
+
 ## Ce qui est dans la Phase 1 (solo) — et ce qui n'y est pas
 
 **Porte 1 redéfinie :** *une Saison solo de 30 minutes est-elle haletante du début à

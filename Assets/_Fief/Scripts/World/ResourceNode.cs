@@ -84,6 +84,7 @@ namespace Fief
                 if (Game.Inventory.SpaceFor(type) <= 0) return 0f;
 
                 float penalty = Game.Config != null ? Game.Config.actionPenaltyFull : 2.4f;
+                if (Game.Brewed) penalty = 1f;      // l'infusion de l'Ermite
                 return harvestDuration * Mathf.Lerp(1f, penalty, Game.Inventory.Load01);
             }
         }

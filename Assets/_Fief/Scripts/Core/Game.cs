@@ -33,6 +33,15 @@ namespace Fief
         public static string BuildError;
         public static long BuildMilliseconds;
 
+        /// <summary>
+        /// Vrai tant que l'infusion de l'Ermite fait effet : le poids du sac ne
+        /// ralentit plus les gestes (recolter, creuser).
+        /// </summary>
+        public static bool Brewed
+        {
+            get { return Hoard != null && Season != null && Hoard.BrewActive(Season.Elapsed); }
+        }
+
         public static bool Ready
         {
             get { return Config != null && Inventory != null && Season != null && Hoard != null; }

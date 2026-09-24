@@ -36,6 +36,7 @@ namespace Fief
         string cardKicker, cardTitle, cardLine1, cardLine2;
         Color cardTint;
         float cardTimer;
+        bool wasBrewed;
         const float CardDuration = 6.5f;
 
         /// <summary>
@@ -60,6 +61,10 @@ namespace Fief
         {
             Toasts.Tick(Time.unscaledDeltaTime);
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
+
+            bool brewed = Game.Brewed;
+            if (wasBrewed && !brewed) Toasts.Show("L'infusion de l'Ermite ne fait plus effet.", new Color(0.66f, 0.84f, 0.56f));
+            wasBrewed = brewed;
             FloatingTexts.Tick(Time.unscaledDeltaTime);
 
             if (panel != null && !panel.IsStillValid) panel = null;
@@ -270,6 +275,16 @@ namespace Fief
                 tint = hoard.RelicOnStele ? new Color(0.62f, 0.78f, 0.95f) : Palette.Gold;
             }
             UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), relic, UiStyle.Small, tint);
+
+            // L'infusion de l'Ermite, tant qu'elle agit.
+            if (Game.Brewed)
+            {
+                right.alignment = TextAnchor.MiddleRight;
+                UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)),
+                               "infusion " + Clock(hoard.BrewUntil - Game.Season.Elapsed), right,
+                               new Color(0.66f, 0.84f, 0.56f));
+                right.alignment = previous;
+            }
 
             // --- les talismans : six pastilles, allumees quand on les a.
             y += UiStyle.S(24);

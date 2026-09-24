@@ -1,0 +1,257 @@
+using UnityEngine;
+
+namespace Fief
+{
+    /// <summary>
+    /// L'ERMITE, dans la Tour effondree. Voute, barbu, un baton, un feu, une marmite.
+    ///
+    /// Il connait la foret. Il te dit ou est le lieu-dit que tu n'as pas encore vu,
+    /// et ou est le creux a pierres-lune le plus proche. Et il fait une INFUSION :
+    /// douze bois mort, et pendant trois minutes, le poids de ton sac ne ralentit
+    /// plus tes gestes. C'est la seule chose au monde qui donne du prix au bois mort
+    /// au-dela de ce que le mage en fait -- et ca change la facon de jouer : on
+    /// garde du bois pour le moment ou l'on va remplir son sac a ras bord.
+    ///
+    /// Il ne bouge pas. Il se tourne vers toi quand tu approches, vers son feu
+    /// quand tu t'en vas.
+    /// </summary>
+    public class Ermite : MonoBehaviour, IInteractable, IDialogue
+    {
+        static readonly Color Cloak = new Color(0.25f, 0.27f, 0.19f);
+        static readonly Color CloakDark = new Color(0.18f, 0.19f, 0.14f);
+        static readonly Color Skin = new Color(0.52f, 0.44f, 0.38f);
+        static readonly Color Beard = new Color(0.74f, 0.72f, 0.68f);
+        static readonly Color Wood = new Color(0.26f, 0.20f, 0.14f);
+        static readonly Color Voice = new Color(0.66f, 0.84f, 0.56f);
+
+        Transform figure;
+        Vector3 fireWorld;
+        int page;
+        bool met;
+        bool firstTime;
+
+        public static Ermite Build(Transform tower)
+        {
+            // Dans la tour (rayon interieur ~3,3 m), porte au sud : le feu au milieu,
+            // l'ermite de l'autre cote, face a la porte.
+            Vector3 fire = new Vector3(-0.3f, 0f, -0.6f);
+            GameObject root = new GameObject("L'ERMITE");
+            root.transform.SetParent(tower, false);
+            root.transform.localPosition = new Vector3(0.6f, 0f, 1.5f);
+
+            CapsuleCollider capsule = root.AddComponent<CapsuleCollider>();
+            capsule.center = new Vector3(0f, 0.9f, 0f);
+            capsule.height = 1.8f;
+            capsule.radius = 0.45f;
+
+            Ermite e = root.AddComponent<Ermite>();
+            e.fireWorld = tower.TransformPoint(fire);
+
+            Proto.BeginVisualOnly();
+            Figures.Body f = Figures.Robed(root.transform, 1.9f, 1.05f, Cloak, CloakDark, Skin, true);
+            // Voute : toute la silhouette penche en avant.
+            f.root.localRotation = Quaternion.Euler(12f, 0f, 0f);
+            e.figure = f.root;
+            float face = f.shoulders + 0.27f * (1.9f / 2.6f);
+            Proto.Cube(f.root, new Vector3(0f, face - 0.24f, 0.2f), new Vector3(0.24f, 0.46f, 0.08f), Beard, "Barbe");
+            GameObject staff = Proto.Cube(f.root, new Vector3(0.5f, 1.0f, 0.3f), new Vector3(0.06f, 2.2f, 0.06f), Wood, "Baton");
+            staff.transform.localRotation = Quaternion.Euler(-8f, 0f, -6f);
+            Proto.EndVisualOnly();
+
+            Campfire(tower, fire);
+            e.transform.rotation = Quaternion.LookRotation(Flat(e.fireWorld - e.transform.position), Vector3.up);
+            return e;
+        }
+
+        /// <summary>Un feu allume : pierres, buches, flammes, marmite sur trepied, et sa lumiere.</summary>
+        static void Campfire(Transform t, Vector3 at)
+        {
+            Proto.BeginVisualOnly();
+            for (int k = 0; k < 7; k++)
+            {
+                float a = k / 7f * Mathf.PI * 2f;
+                Proto.Cube(t, at + new Vector3(Mathf.Cos(a) * 0.55f, 0.08f, Mathf.Sin(a) * 0.55f),
+                           new Vector3(0.24f, 0.16f, 0.2f), new Color(0.26f, 0.26f, 0.27f), "Pierre");
+            }
+            for (int k = 0; k < 3; k++)
+            {
+                GameObject log = Proto.Cube(t, at + new Vector3(0f, 0.12f, 0f), new Vector3(0.12f, 0.12f, 0.8f), Wood, "Buche");
+                log.transform.localRotation = Quaternion.Euler(8f, k * 60f, 0f);
+            }
+            Material flame = MaterialFactory.GetGlow(new Color(1f, 0.56f, 0.2f), 2.4f);
+            for (int k = 0; k < 3; k++)
+            {
+                GameObject f = Proto.Cube(t, at + new Vector3((k - 1) * 0.12f, 0.35f, (k % 2) * 0.1f),
+                                          new Vector3(0.18f, 0.4f - k * 0.06f, 0.18f), Color.white, "Flamme");
+                f.GetComponent<Renderer>().sharedMaterial = flame;
+                f.AddComponent<Flame>();
+            }
+            // Le trepied et la marmite.
+            for (int k = 0; k < 3; k++)
+            {
+                float a = k / 3f * 360f;
+                Vector3 dir = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
+                GameObject leg = Proto.Cube(t, at + dir * 0.45f + new Vector3(0f, 0.6f, 0f), new Vector3(0.04f, 1.3f, 0.04f),
+                                            new Color(0.12f, 0.12f, 0.13f), "Trepied");
+                leg.transform.localRotation = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(20f, 0f, 0f);
+            }
+            Proto.Cylinder(t, at + new Vector3(0f, 0.72f, 0f), new Vector3(0.46f, 0.18f, 0.46f), new Color(0.1f, 0.1f, 0.11f), "Marmite");
+            Proto.EndVisualOnly();
+            Proto.Blocker(t, at + new Vector3(0f, 0.4f, 0f), new Vector3(1.2f, 0.8f, 1.2f), "Feu");
+
+            GameObject lightGo = new GameObject("Feu de l'ermite");
+            lightGo.transform.SetParent(t, false);
+            lightGo.transform.localPosition = at + new Vector3(0f, 0.9f, 0f);
+            Light light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.6f, 0.3f);
+            light.intensity = 1.6f;
+            light.range = 10f;
+            light.shadows = LightShadows.None;
+            lightGo.AddComponent<LampFlicker>();
+            Ambiance.Embers(t, at + new Vector3(0f, 0.5f, 0f));
+        }
+
+        void Update()
+        {
+            Figures.Breathe(figure, 2.1f);
+            Transform player = Game.PlayerTransform;
+            bool near = player != null && Flat(player.position - transform.position).magnitude < 6f;
+            Figures.Face(transform, near ? player.position : fireWorld, 60f);
+        }
+
+        // ================================================================== IInteractable
+
+        public Transform Anchor { get { return transform; } }
+        public bool CanInteract { get { return true; } }
+        public string Prompt { get { return "Parler a l'Ermite"; } }
+        public float HoldDuration { get { return 0f; } }
+
+        public void Interact()
+        {
+            if (Game.Hud == null) return;
+            page = 0;
+            firstTime = !met;
+            met = true;
+            Game.Hud.OpenPanel(new DialoguePanel(this));
+            Sfx.Pop();
+        }
+
+        // ================================================================== IDialogue
+
+        public string Speaker { get { return "L'ERMITE"; } }
+        public Color Tint { get { return Voice; } }
+
+        public string Body
+        {
+            get
+            {
+                if (page == 1) return HollowLine();
+
+                string hello = firstTime
+                    ? "Ah. Quelqu'un qui marche au lieu de courir. Assieds-toi, le feu est pour tout le monde."
+                    : "Te revoila. Le feu t'attendait.";
+
+                string brew;
+                if (Game.Brewed)
+                    brew = "Mon infusion te tient encore " + Hud.Clock(Game.Hoard.BrewUntil - Game.Season.Elapsed) + ".";
+                else
+                    brew = "Mon infusion : " + Hoard.BrewCost + " bois mort, et pendant trois minutes ton sac ne pesera "
+                         + "plus sur tes gestes. Tu recolteras charge comme si tu etais leger.";
+                return hello + "\n\n" + LandmarkLine() + "\n\n" + brew;
+            }
+        }
+
+        public int ChoiceCount { get { return page == 0 ? 3 : 2; } }
+
+        public string ChoiceLabel(int index)
+        {
+            if (page == 0)
+            {
+                if (index == 0) return "Donner " + Hoard.BrewCost + " bois mort pour l'infusion";
+                if (index == 1) return "Ou trouver des pierres-lune ?";
+                return "Adieu";
+            }
+            return index == 0 ? "Revenir" : "Adieu";
+        }
+
+        public bool ChoiceEnabled(int index)
+        {
+            if (page != 0 || index != 0) return true;
+            return Game.Hoard != null && Game.Inventory != null && Game.Season != null && Game.Season.Running
+                   && !Game.Brewed && Game.Inventory.Get(ResourceType.Deadwood) >= Hoard.BrewCost;
+        }
+
+        public bool Choose(int index)
+        {
+            if (page == 0)
+            {
+                if (index == 0)
+                {
+                    if (Game.Hoard.RequestBrew(Game.Inventory, Game.Season.Elapsed))
+                    {
+                        Sfx.Build();
+                        Toasts.Show("L'infusion est amere et brulante. Pendant trois minutes, ton sac ne pese plus sur tes gestes.",
+                                    Voice);
+                    }
+                    return false;
+                }
+                if (index == 1) { page = 1; return false; }
+                return true;
+            }
+            if (index == 0) { page = 0; return false; }
+            return true;
+        }
+
+        // ------------------------------------------------------------------ ce qu'il sait
+
+        /// <summary>Le lieu-dit le plus proche que tu n'as pas encore vu.</summary>
+        string LandmarkLine()
+        {
+            Transform player = Game.PlayerTransform;
+            if (player == null) return "";
+            Landmark best = null;
+            float bestDistance = float.MaxValue;
+            for (int i = 0; i < Landmarks.All.Count; i++)
+            {
+                Landmark m = Landmarks.All[i];
+                if (m == null || m.Discovered || m.transform == transform.parent) continue;
+                float d = Flat(m.transform.position - player.position).magnitude;
+                if (d < bestDistance) { bestDistance = d; best = m; }
+            }
+            if (best == null) return "Tu connais la sylve mieux que moi, maintenant. Ca arrive rarement.";
+            return Landmarks.Name(best.kind) + " est " + Hud.Direction(player.position, best.transform.position)
+                   + ", a " + Paces(bestDistance) + " pas d'ici. Tu n'y es jamais alle, ca se voit.";
+        }
+
+        static string HollowLine()
+        {
+            Transform player = Game.PlayerTransform;
+            if (player == null || Gathering.HollowSpotCount == 0) return "Je ne sais pas.";
+            Vector2 me = new Vector2(player.position.x, player.position.z);
+            float best = float.MaxValue;
+            Vector2 spot = me;
+            for (int i = 0; i < Gathering.HollowSpotCount; i++)
+            {
+                Vector2 h = Gathering.HollowSpot(i);
+                float d = (h - me).magnitude;
+                if (d < best) { best = d; spot = h; }
+            }
+            return "Le creux le plus proche est " + Hud.Direction(player.position, new Vector3(spot.x, 0f, spot.y))
+                   + ", a " + Paces(best) + " pas. Les pierres y luisent, tu ne peux pas le rater.\n\n"
+                   + "Et si tu croises un feu-follet, suis-le. Ils vont toujours la ou les pierres chantent.";
+        }
+
+        /// <summary>Un pas, c'est trois quarts de metre. On compte en pas dans la sylve.</summary>
+        static int Paces(float metres)
+        {
+            return Mathf.RoundToInt(metres / 0.75f / 10f) * 10;
+        }
+
+        static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v.sqrMagnitude > 0.0001f ? v : Vector3.forward;
+        }
+    }
+}

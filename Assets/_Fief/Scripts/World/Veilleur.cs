@@ -1,0 +1,254 @@
+using UnityEngine;
+
+namespace Fief
+{
+    /// <summary>
+    /// LE VEILLEUR : le dernier garde du chateau.
+    ///
+    /// Il fait sa ronde autour de la stele, lentement, sa lanterne a la main. Quand
+    /// on s'approche, il s'arrete et se tourne vers toi. Il sait des choses : ou
+    /// chante le mage, ou dorment les talismans qu'il te manque, si ta relique
+    /// compte. Il ne se bat pas, il ne vend rien. Il parle.
+    ///
+    /// ET IL PREPARE LA PHASE 2 : "On me payait, avant." Un garde qu'on ne paie
+    /// plus, c'est exactement le differenciateur du jeu (voir CLAUDE.md). Le
+    /// premier PNJ du chateau en parle deja -- quand les gardes arriveront, le
+    /// joueur saura pourquoi ils se laissent acheter.
+    ///
+    /// Concept Unity : il bouge sans physique ("kinematic") : c'est le code qui le
+    /// deplace, image par image, et le Rigidbody cinematique previent le moteur
+    /// physique qu'il bouge -- le joueur le heurte au lieu de le traverser.
+    /// </summary>
+    public class Veilleur : MonoBehaviour, IInteractable, IDialogue
+    {
+        static readonly Vector3[] Route =
+        {
+            new Vector3(-6.5f, 0f, -4f), new Vector3(-6.5f, 0f, 5f),
+            new Vector3(6.5f, 0f, 5f), new Vector3(6.5f, 0f, -4f)
+        };
+
+        static readonly Color Cloak = new Color(0.30f, 0.29f, 0.27f);
+        static readonly Color CloakDark = new Color(0.21f, 0.20f, 0.19f);
+        static readonly Color Skin = new Color(0.58f, 0.50f, 0.44f);
+        static readonly Color Steel = new Color(0.38f, 0.39f, 0.41f);
+        static readonly Color Wood = new Color(0.25f, 0.19f, 0.13f);
+        static readonly Color Voice = new Color(0.90f, 0.80f, 0.60f);
+
+        Transform figure;
+        int next = 1;
+        float pause;
+        int talks;
+        int page;               // 0 : l'essentiel, 1 : les talismans, 2 : qui il est
+
+        // ================================================================== construction
+
+        public static Veilleur Build(Transform parent)
+        {
+            GameObject root = new GameObject("LE VEILLEUR");
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = Route[0];
+
+            CapsuleCollider capsule = root.AddComponent<CapsuleCollider>();
+            capsule.center = new Vector3(0f, 1.05f, 0f);
+            capsule.height = 2.1f;
+            capsule.radius = 0.42f;
+            Rigidbody body = root.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+
+            Veilleur v = root.AddComponent<Veilleur>();
+
+            Proto.BeginVisualOnly();
+            Figures.Body f = Figures.Robed(root.transform, 2.15f, 1.0f, Cloak, CloakDark, Skin, false);
+            v.figure = f.root;
+            float head = f.shoulders + 0.3f * (2.15f / 2.6f);
+
+            // Le casque : une calotte d'acier et un nasal.
+            Proto.Cube(f.root, new Vector3(0f, head + 0.13f, 0f), new Vector3(0.32f, 0.12f, 0.32f), Steel, "Casque");
+            Proto.Cone(f.root, new Vector3(0f, head + 0.19f, 0f), 0.2f, 0.18f, Steel, "Timbre", 6);
+            Proto.Cube(f.root, new Vector3(0f, head, 0.16f), new Vector3(0.04f, 0.16f, 0.03f), Steel, "Nasal");
+            // Une barbe grise.
+            Proto.Cube(f.root, new Vector3(0f, head - 0.2f, 0.12f), new Vector3(0.22f, 0.22f, 0.1f), new Color(0.62f, 0.60f, 0.56f), "Barbe");
+
+            // La hallebarde, dans la main droite.
+            Proto.Cube(f.root, new Vector3(0.46f, 1.5f, 0.18f), new Vector3(0.06f, 3.1f, 0.06f), Wood, "Hampe");
+            Proto.Cube(f.root, new Vector3(0.46f, 2.95f, 0.26f), new Vector3(0.04f, 0.42f, 0.24f), Steel, "Fer");
+            Proto.Cone(f.root, new Vector3(0.46f, 3.05f, 0.18f), 0.05f, 0.35f, Steel, "Pique", 4);
+
+            // La lanterne, dans la main gauche.
+            Vector3 lantern = new Vector3(-0.44f, 0.95f, 0.22f);
+            Proto.Cube(f.root, lantern + new Vector3(0f, 0.16f, 0f), new Vector3(0.2f, 0.04f, 0.2f), Steel, "Lanterne");
+            Proto.Cube(f.root, lantern - new Vector3(0f, 0.14f, 0f), new Vector3(0.2f, 0.04f, 0.2f), Steel, "Lanterne");
+            GameObject flame = Proto.Cube(f.root, lantern, new Vector3(0.1f, 0.16f, 0.1f), Color.white, "Flamme");
+            flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.35f), 2.6f);
+            flame.AddComponent<Flame>();
+            Proto.EndVisualOnly();
+
+            GameObject lightGo = new GameObject("Lanterne du Veilleur");
+            lightGo.transform.SetParent(f.root, false);
+            lightGo.transform.localPosition = lantern + new Vector3(0f, 0.1f, 0f);
+            Light light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.78f, 0.5f);
+            light.intensity = 1.2f;
+            light.range = 8f;
+            light.shadows = LightShadows.None;
+            lightGo.AddComponent<LampFlicker>();
+
+            return v;
+        }
+
+        // ================================================================== la ronde
+
+        void Update()
+        {
+            Transform player = Game.PlayerTransform;
+            float near = 99f;
+            if (player != null)
+            {
+                Vector3 d = player.position - transform.position;
+                d.y = 0f;
+                near = d.magnitude;
+            }
+
+            Figures.Breathe(figure, 0.7f);
+
+            // Quelqu'un approche : il s'arrete et le regarde.
+            if (near < 4.5f)
+            {
+                Figures.Face(transform, player.position, 90f);
+                return;
+            }
+
+            if (pause > 0f)
+            {
+                pause -= Time.deltaTime;
+                return;
+            }
+
+            Vector3 goal = Route[next];
+            Vector3 to = goal - transform.localPosition;
+            to.y = 0f;
+            if (to.magnitude < 0.15f)
+            {
+                next = (next + 1) % Route.Length;
+                pause = 5f;
+                return;
+            }
+            Vector3 step = to.normalized * Mathf.Min(1.0f * Time.deltaTime, to.magnitude);
+            transform.localPosition += step;
+            Figures.Face(transform, transform.position + step, 120f);
+        }
+
+        // ================================================================== IInteractable
+
+        public Transform Anchor { get { return transform; } }
+        public bool CanInteract { get { return true; } }
+        public string Prompt { get { return "Parler au Veilleur"; } }
+        public float HoldDuration { get { return 0f; } }
+
+        public void Interact()
+        {
+            if (Game.Hud == null) return;
+            page = 0;
+            talks++;
+            Game.Hud.OpenPanel(new DialoguePanel(this));
+            Sfx.Pop();
+        }
+
+        // ================================================================== IDialogue
+
+        public string Speaker { get { return "LE VEILLEUR"; } }
+        public Color Tint { get { return Voice; } }
+
+        public string Body
+        {
+            get
+            {
+                if (page == 1) return TalismanLines();
+                if (page == 2)
+                    return "Je garde ce chateau depuis que le roi a perdu sa tete. On me payait, avant. "
+                         + "Plus personne ne me paie.\n\nUn garde qu'on ne paie plus finit toujours par ouvrir "
+                         + "la porte a quelqu'un. Souviens-t'en, le jour ou il y aura d'autres gardes que moi.";
+
+                string hello;
+                if (talks <= 1) hello = "Encore un. Ils viennent tous pour la stele, un jour ou l'autre.";
+                else if (talks % 3 == 0) hello = "La brume est plus epaisse ce soir. Ou alors ce sont mes yeux.";
+                else if (talks % 3 == 1) hello = "Tu reviens. C'est bien. Ceux qui ne reviennent pas, je ne les revois pas.";
+                else hello = "Parle. Je n'ai que ca a faire, ecouter.";
+                return hello + "\n\n" + MageLine() + "\n\n" + RelicLine();
+            }
+        }
+
+        public int ChoiceCount { get { return page == 0 ? 3 : 2; } }
+
+        public string ChoiceLabel(int index)
+        {
+            if (page == 0)
+            {
+                if (index == 0) return "Et les talismans ?";
+                if (index == 1) return "Qui es-tu ?";
+                return "Adieu";
+            }
+            return index == 0 ? "Revenir" : "Adieu";
+        }
+
+        public bool ChoiceEnabled(int index) { return true; }
+
+        public bool Choose(int index)
+        {
+            if (page == 0)
+            {
+                if (index == 0) { page = 1; return false; }
+                if (index == 1) { page = 2; return false; }
+                return true;
+            }
+            if (index == 0) { page = 0; return false; }
+            return true;
+        }
+
+        // ------------------------------------------------------------------ ce qu'il sait
+
+        static string MageLine()
+        {
+            Season season = Game.Season;
+            Mage mage = Game.Mage;
+            if (season == null) return "";
+            if (season.MagePresent && mage != null && Game.PlayerTransform != null)
+                return "Le mage chante en ce moment. Je l'entends " + Hud.Direction(Game.PlayerTransform.position, mage.transform.position)
+                       + ". Il repart dans " + Hud.Clock(season.MageTimeLeft) + ".";
+            if (season.NextMageIn >= 0f)
+                return "Le mage se taira encore " + Hud.Clock(season.NextMageIn) + ". Puis il chantera ailleurs.";
+            return "Le mage ne chantera plus. Pose ta relique avant la cloche.";
+        }
+
+        static string RelicLine()
+        {
+            Hoard h = Game.Hoard;
+            if (h == null || h.Relic == null)
+                return "Tu n'as pas de relique. Le mage la forge avec ce que tu portes. Seulement ce que tu portes.";
+            if (h.RelicOnStele)
+                return "Ta relique est sur la stele. Elle vaut " + h.FinalScore + ", pour l'instant.";
+            return "Ta relique pese dans ton sac. Tant qu'elle n'est pas sur la stele, elle ne compte pas.";
+        }
+
+        static string TalismanLines()
+        {
+            Hoard h = Game.Hoard;
+            if (h == null) return "";
+            if (h.TalismanCount >= TalismanInfo.Count)
+                return "Tu les as tous les six. Personne n'avait jamais fait ca. Le roi lui-meme n'en avait que quatre.";
+
+            string text = "Il y en a six. On dit :\n";
+            int told = 0;
+            for (int i = 0; i < TalismanInfo.Count && told < 4; i++)
+            {
+                Talisman t = TalismanInfo.All[i];
+                if (h.Has(t)) continue;
+                text += "\n  " + TalismanInfo.Name(t) + " -- " + TalismanInfo.Where(t) + ".";
+                told++;
+            }
+            return text;
+        }
+    }
+}

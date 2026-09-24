@@ -166,6 +166,7 @@ namespace Fief
             GameConfig cfg = Game.Config;
             float baseDuration = cfg != null ? cfg.digDuration : 3.5f;
             float penalty = cfg != null ? cfg.actionPenaltyFull : 2.4f;
+            if (Game.Brewed) penalty = 1f;          // l'infusion de l'Ermite
             float load = Game.Inventory != null ? Game.Inventory.Load01 : 0f;
             float duration = baseDuration * Mathf.Lerp(1f, penalty, load);
             // La Pelle d'os creuse trois fois plus vite.

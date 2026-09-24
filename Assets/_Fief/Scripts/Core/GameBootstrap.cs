@@ -73,6 +73,9 @@ namespace Fief
                 // la Saison qui le fait apparaitre. Il a besoin des colliders de la
                 // foret pour choisir une place libre, il vient donc apres elle.
                 Game.Mage = Mage.Build(worldRoot, config);
+
+                // Les autres habitants de la sylve.
+                BuildInhabitants();
             }
             catch (System.Exception error)
             {
@@ -114,6 +117,23 @@ namespace Fief
         void OnDestroy()
         {
             Game.Reset();
+        }
+
+        // ================================================================ habitants
+
+        /// <summary>
+        /// Le Veilleur au chateau, l'Ermite dans sa tour, neuf feux-follets, et le
+        /// cerf blanc. Chacun est optionnel : s'il manque, le jeu tourne quand meme.
+        /// </summary>
+        void BuildInhabitants()
+        {
+            GameObject folk = new GameObject("HABITANTS");
+            folk.transform.SetParent(worldRoot, false);
+
+            Veilleur.Build(folk.transform);
+            if (Landmarks.Tour != null) Ermite.Build(Landmarks.Tour);
+            Wisp.SpawnAll(folk.transform, config, 9);
+            WhiteStag.Build(folk.transform, config);
         }
 
         // ================================================================ joueur

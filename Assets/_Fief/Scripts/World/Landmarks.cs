@@ -35,8 +35,8 @@ namespace Fief
         static readonly List<Spot> Spots = new List<Spot>();
         public static readonly List<Landmark> All = new List<Landmark>();
 
-        /// <summary>La place de la Tour effondree : l'Ermite s'y installe.</summary>
-        public static Vector3 TourPosition { get; private set; }
+        /// <summary>La Tour effondree : l'Ermite s'y installe (null si elle n'a pas trouve de place).</summary>
+        public static Transform Tour { get; private set; }
 
         public static string Name(Kind kind)
         {
@@ -72,6 +72,7 @@ namespace Fief
         {
             Spots.Clear();
             All.Clear();
+            Tour = null;
             int seed = cfg != null ? cfg.worldSeed : 1;
             System.Random rng = new System.Random(seed * 13 + 5);
             // Pas dans le bourrelet du bord de carte (ou le sol remonte) : 80 m de marge.
@@ -154,8 +155,8 @@ namespace Fief
                     case Kind.Cabane: Cabane(go.transform, rng); break;
                     case Kind.Tertre: Tertre(go.transform, rng); break;
                     default:
-                        Tour(go.transform, rng);
-                        TourPosition = at;
+                        BuildTour(go.transform, rng);
+                        Tour = go.transform;
                         break;
                 }
             }
@@ -387,7 +388,7 @@ namespace Fief
 
         // ------------------------------------------------------------------ la Tour
 
-        static void Tour(Transform t, System.Random rng)
+        static void BuildTour(Transform t, System.Random rng)
         {
             Color stone = new Color(0.30f, 0.30f, 0.29f);
             Color moss = new Color(0.21f, 0.26f, 0.17f);

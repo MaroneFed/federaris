@@ -83,6 +83,32 @@ namespace Fief
             return cache;
         }
 
+        // ------------------------------------------------------------------ l'infusion
+
+        public const int BrewCost = 12;
+        public const float BrewSeconds = 180f;
+
+        /// <summary>Heure de la Saison (Season.Elapsed) a laquelle l'infusion cesse.</summary>
+        public float BrewUntil { get; private set; }
+
+        public bool BrewActive(float now) { return now < BrewUntil; }
+
+        /// <summary>
+        /// L'infusion de l'Ermite : douze bois mort, et pendant trois minutes le poids
+        /// du sac ne ralentit plus les gestes. C'est ce qui donne une vraie valeur au
+        /// bois mort, la ressource la plus commune.
+        /// Le bois sort du sac par Inventory.TryRemove : rien ne touche un inventaire
+        /// autrement.
+        /// </summary>
+        public bool RequestBrew(Inventory bag, float now)
+        {
+            if (bag == null || BrewActive(now)) return false;
+            if (bag.Get(ResourceType.Deadwood) < BrewCost) return false;
+            if (bag.TryRemove(ResourceType.Deadwood, BrewCost) < BrewCost) return false;
+            BrewUntil = now + BrewSeconds;
+            return true;
+        }
+
         /// <summary>Premiere forge : la relique nait. Les suivantes la renforcent.</summary>
         public Relic EnsureRelic()
         {
