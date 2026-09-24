@@ -31,7 +31,35 @@ namespace Fief
         public Relic Relic { get; private set; }
         public bool RelicOnStele { get; private set; }
 
+        readonly bool[] talismans = new bool[TalismanInfo.Count];
+
         public bool CanDig { get { return Caches.Count < MaxCaches; } }
+
+        public bool Has(Talisman t) { return talismans[(int)t]; }
+
+        public int TalismanCount
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < talismans.Length; i++) if (talismans[i]) n++;
+                return n;
+            }
+        }
+
+        /// <summary>
+        /// Prendre un talisman. Une seule fois chacun : en Phase 3, le premier arrive
+        /// l'emporte, et c'est le serveur qui tranche ici.
+        /// La Pelle d'os donne une cache de plus : c'est ici, pas dans l'objet du
+        /// monde, que la regle change.
+        /// </summary>
+        public bool TryTakeTalisman(Talisman t)
+        {
+            if (talismans[(int)t]) return false;
+            talismans[(int)t] = true;
+            if (t == Talisman.Pelle) MaxCaches++;
+            return true;
+        }
         public bool RelicInHand { get { return Relic != null && !RelicOnStele; } }
 
         /// <summary>
@@ -76,10 +104,18 @@ namespace Fief
             return true;
         }
 
-        /// <summary>Le score de fin : seule compte une relique POSEE sur la stele.</summary>
+        /// <summary>
+        /// Le score de fin : seule compte une relique POSEE sur la stele. La Couronne
+        /// sans tete la majore de 15 %.
+        /// </summary>
         public int FinalScore
         {
-            get { return Relic != null && RelicOnStele ? Relic.Power : 0; }
+            get
+            {
+                if (Relic == null || !RelicOnStele) return 0;
+                float bonus = Has(Talisman.Couronne) ? TalismanInfo.CouronneBonus : 1f;
+                return Mathf.RoundToInt(Relic.Power * bonus);
+            }
         }
     }
 }

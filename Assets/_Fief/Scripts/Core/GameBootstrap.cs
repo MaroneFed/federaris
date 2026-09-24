@@ -62,8 +62,12 @@ namespace Fief
                 // les laisse degages ; les pierres-lune y sont posees ensuite.
                 Gathering.Reset();
                 Gathering.FindHollows(config);
+                // Les lieux-dits choisissent leur place avant la foret, qui leur
+                // laisse une clairiere ; ils se construisent apres elle.
+                Landmarks.Find(config);
                 Forest.Plant(worldRoot, config, rng);
                 Gathering.PlaceMoonstones(worldRoot, config, rng);
+                Landmarks.Build(worldRoot, config);
 
                 // Le mage existe des le debut, invisible et muet : c'est l'agenda de
                 // la Saison qui le fait apparaitre. Il a besoin des colliders de la
@@ -133,6 +137,9 @@ namespace Fief
                 float r = Mathf.Lerp(220f, 290f, (i % 12) / 11f);
                 float x = Mathf.Cos(a) * r;
                 float z = Mathf.Sin(a) * r;
+
+                // Jamais au milieu d'un lieu-dit : on n'apparait pas dans une pierre.
+                if (Landmarks.Near(x, z, 12f)) continue;
 
                 float score = Forest.Canopy(x, z) + Ground.Slope(x, z) * 0.6f;
                 if (score < bestScore)

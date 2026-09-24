@@ -103,8 +103,11 @@ namespace Fief
                 return;
             }
 
+            // Le Coeur de lune double chaque pierre-lune ramassee -- sans vider le
+            // gisement plus vite : le double vient du talisman, pas de la pierre.
             int wanted = Mathf.Min(yieldPerHarvest, remaining);
-            int added = inv.TryAdd(type, wanted);
+            bool doubled = type == ResourceType.Moonstone && Game.Hoard != null && Game.Hoard.Has(Talisman.Coeur);
+            int added = inv.TryAdd(type, doubled ? wanted * 2 : wanted);
             if (added <= 0)
             {
                 Sfx.Deny();
@@ -116,7 +119,7 @@ namespace Fief
             FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f,
                                 "+" + added + " " + ResourceInfo.Name(type), ResourceInfo.Tint(type));
 
-            remaining -= added;
+            remaining -= Mathf.Min(added, wanted);
             if (remaining <= 0)
             {
                 remaining = 0;

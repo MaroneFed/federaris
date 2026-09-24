@@ -406,7 +406,7 @@ namespace Fief
             GUI.color = new Color(1f, 1f, 1f, ease);
 
             float w = UiStyle.S(560);
-            float h = UiStyle.S(420);
+            float h = UiStyle.S(444);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f + (1f - ease) * UiStyle.S(20), w, h);
             UiStyle.Frame(box);
 
@@ -439,7 +439,8 @@ namespace Fief
                 detail = "Forgee " + relic.Forgings + " fois : "
                          + relic.Get(ResourceType.Deadwood) + " bois mort, "
                          + relic.Get(ResourceType.Moonstone) + " pierre-lune, "
-                         + relic.Get(ResourceType.Iron) + " fer ancien.";
+                         + relic.Get(ResourceType.Iron) + " fer ancien."
+                         + (hoard.Has(Talisman.Couronne) ? "  La Couronne sans tete ajoute 15 %." : "");
             }
 
             GUIStyle big = UiStyle.Big;
@@ -455,6 +456,9 @@ namespace Fief
             wrapped.wordWrap = true;
             GUI.Label(new Rect(x, y, bw, UiStyle.S(40)), detail, wrapped);
             y += UiStyle.S(46);
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(20)),
+                      "Talismans trouves : " + hoard.TalismanCount + " / " + TalismanInfo.Count, UiStyle.Small);
+            y += UiStyle.S(22);
             GUI.Label(new Rect(x, y, bw, UiStyle.S(40)),
                       "Astuce : une cache pleine pres de l'endroit ou le mage chante, c'est deux voyages au lieu d'un.",
                       UiStyle.Tiny);

@@ -167,7 +167,10 @@ namespace Fief
             float baseDuration = cfg != null ? cfg.digDuration : 3.5f;
             float penalty = cfg != null ? cfg.actionPenaltyFull : 2.4f;
             float load = Game.Inventory != null ? Game.Inventory.Load01 : 0f;
-            return baseDuration * Mathf.Lerp(1f, penalty, load);
+            float duration = baseDuration * Mathf.Lerp(1f, penalty, load);
+            // La Pelle d'os creuse trois fois plus vite.
+            if (Game.Hoard != null && Game.Hoard.Has(Talisman.Pelle)) duration /= TalismanInfo.PelleSpeed;
+            return duration;
         }
 
         void StopDigging()

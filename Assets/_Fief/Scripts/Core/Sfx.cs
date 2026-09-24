@@ -94,6 +94,39 @@ namespace Fief
         public static void Pop() { Play(pop, 0.5f); }
         public static void Step() { Play(Pick(step), 0.22f); }
 
+        static AudioClip discovery;
+
+        /// <summary>
+        /// Une trouvaille : trois notes qui montent (do, mi, sol, une octave au-dessus
+        /// de la cloche), chacune avec ses partiels de clochette. Court, clair, et
+        /// reconnaissable entre tous : on l'entend, on sait qu'on a trouve quelque chose.
+        /// </summary>
+        public static void Discovery()
+        {
+            if (discovery == null)
+            {
+                const float duration = 2.2f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                float[] notes = { 523.25f, 659.25f, 783.99f };
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    int start = Mathf.RoundToInt(Rate * n * 0.13f);
+                    for (int i = start; i < count; i++)
+                    {
+                        float t = (float)(i - start) / Rate;
+                        float env = Mathf.Min(1f, t * 300f) * Mathf.Exp(-2.6f * t);
+                        float v = Mathf.Sin(2f * Mathf.PI * notes[n] * t)
+                                + Mathf.Sin(2f * Mathf.PI * notes[n] * 2.76f * t) * 0.25f * Mathf.Exp(-4f * t)
+                                + Mathf.Sin(2f * Mathf.PI * notes[n] * 5.4f * t) * 0.1f * Mathf.Exp(-7f * t);
+                        data[i] += v * env * 0.22f;
+                    }
+                }
+                discovery = FromSamples("trouvaille", data);
+            }
+            Play(discovery, 0.9f);
+        }
+
         static AudioClip bell;
 
         /// <summary>

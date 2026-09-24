@@ -111,6 +111,32 @@ entrer dans la forêt. Fini, il devient une course : qui vide les réserves le p
 
 ---
 
+## Les talismans et les lieux-dits (ajoutés le 24/09/2026)
+
+Martin : « je veux des items incroyables ». Six **talismans**, uniques, qu'on trouve une
+fois par Saison. Ce ne sont **pas des ressources** : on ne les récolte pas, ils ne
+pèsent rien, la règle des trois ressources tient.
+
+| Talisman | Où | Ce qu'il fait |
+|---|---|---|
+| Lanterne ardente | sur le trône, dans le donjon | la lanterne éclaire jusqu'à 21 m |
+| Corne d'appel | le Grand Chêne | quand le mage chante, la boussole le montre |
+| Cœur de lune | le Cercle de pierres | chaque pierre-lune ramassée en donne deux |
+| Besace cirée | la cabane du braconnier | +15 kg dans le sac |
+| Pelle d'os | le Tertre | creuser 3× plus vite, et une cache de plus |
+| Couronne sans tête | l'allée des rois | la relique posée vaut +15 % |
+
+Les **lieux-dits** sont cinq endroits de la sylve (le Grand Chêne, le Cercle de
+pierres, la cabane du braconnier, le Tertre, la Tour effondrée), placés par la graine,
+à 150 m au moins les uns des autres. Une fois découverts, ils restent affichés comme
+repères : dans une forêt où tout se ressemble à vingt mètres, c'est ce qui permet de
+dire « ma cache est entre le Chêne et le Cercle ».
+
+Pourquoi c'est bon pour la Porte 1 : entre deux apparitions du mage, il y avait un
+temps mort. Il devient de l'exploration.
+
+---
+
 ## Ce qui est dans la Phase 1 (solo) — et ce qui n'y est pas
 
 **Porte 1 redéfinie :** *une Saison solo de 30 minutes est-elle haletante du début à

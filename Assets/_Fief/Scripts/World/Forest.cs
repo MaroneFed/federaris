@@ -298,6 +298,9 @@ namespace Fief
                     // un tronc plante au milieu des eclats.
                     if (Gathering.NearHollow(px, pz, 9f)) continue;
 
+                    // Les lieux-dits (le Grand Chene, le Cercle...) ont leur clairiere.
+                    if (Landmarks.Near(px, pz, 0f)) continue;
+
                     if (rng.NextDouble() < cover * density)
                         PlaceTree(root.transform, px, pz, cover, rng, cfg);
 

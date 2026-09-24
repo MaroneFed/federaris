@@ -32,12 +32,34 @@ namespace Fief
 
         public bool PanelOpen { get { return panel != null; } }
 
+        // --- la carte de trouvaille (talisman, lieu-dit)
+        string cardKicker, cardTitle, cardLine1, cardLine2;
+        Color cardTint;
+        float cardTimer;
+        const float CardDuration = 6.5f;
+
+        /// <summary>
+        /// Une grande carte au milieu du haut de l'ecran, pour les moments qui
+        /// comptent : un talisman trouve, un lieu-dit decouvert. Un toast se rate ;
+        /// ca, non.
+        /// </summary>
+        public void ShowDiscovery(string kicker, string title, string line1, string line2, Color tint)
+        {
+            cardKicker = kicker;
+            cardTitle = title;
+            cardLine1 = line1;
+            cardLine2 = line2;
+            cardTint = tint;
+            cardTimer = CardDuration;
+        }
+
         public void OpenPanel(IPanel newPanel) { panel = newPanel; }
         public void ClosePanel() { panel = null; }
 
         void Update()
         {
             Toasts.Tick(Time.unscaledDeltaTime);
+            if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
             FloatingTexts.Tick(Time.unscaledDeltaTime);
 
             if (panel != null && !panel.IsStillValid) panel = null;
@@ -69,6 +91,7 @@ namespace Fief
             DrawPack();
             DrawPrompt();
             DrawDigging();
+            DrawDiscovery();
             Toasts.Draw();
             DrawHelp();
             DrawBuildError();
@@ -158,6 +181,26 @@ namespace Fief
             }
             UiStyle.Fill(new Rect(band.center.x - 1f, band.yMax, 2f, UiStyle.S(4)),
                          new Color(1f, 1f, 1f, 0.35f));
+
+            // La Corne d'appel : quand le mage chante, sa direction s'affiche sur la
+            // boussole. Un losange bleu, et rien d'autre -- pas de distance.
+            Mage mage = Game.Mage;
+            if (Game.Hoard != null && Game.Hoard.Has(Talisman.Corne) && mage != null && mage.Present
+                && Game.PlayerTransform != null)
+            {
+                Vector3 to = mage.transform.position - Game.PlayerTransform.position;
+                float bearing = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                float delta = Mathf.Clamp(Mathf.DeltaAngle(heading, bearing), -75f, 75f);
+                float px = band.center.x + delta / 75f * band.width * 0.5f;
+                float s = UiStyle.S(9);
+                Color blue = new Color(0.62f, 0.78f, 1f, 0.95f);
+                Matrix4x4 saved = GUI.matrix;
+                GUIUtility.RotateAroundPivot(45f, new Vector2(px, band.center.y));
+                UiStyle.Fill(new Rect(px - s * 0.5f, band.center.y - s * 0.5f, s, s), blue);
+                GUI.matrix = saved;
+                UiStyle.Tinted(new Rect(px - UiStyle.S(30), band.yMax + UiStyle.S(2), UiStyle.S(60), UiStyle.S(14)),
+                               "mage", UiStyle.CenteredSmall, blue);
+            }
         }
 
         // ---------------------------------------------------------------- le sac
@@ -169,7 +212,7 @@ namespace Fief
 
             float pad = UiStyle.S(16);
             float w = UiStyle.S(270);
-            float h = UiStyle.S(172);
+            float h = UiStyle.S(198);
             Rect box = new Rect(pad, Screen.height - h - pad, w, h);
             UiStyle.Frame(box);
 
@@ -227,6 +270,23 @@ namespace Fief
                 tint = hoard.RelicOnStele ? new Color(0.62f, 0.78f, 0.95f) : Palette.Gold;
             }
             UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), relic, UiStyle.Small, tint);
+
+            // --- les talismans : six pastilles, allumees quand on les a.
+            y += UiStyle.S(24);
+            float chip = UiStyle.S(14);
+            for (int i = 0; i < TalismanInfo.Count; i++)
+            {
+                Talisman tal = TalismanInfo.All[i];
+                bool owned = hoard != null && hoard.Has(tal);
+                Rect r = new Rect(x + i * (chip + UiStyle.S(6)), y + UiStyle.S(3), chip, chip);
+                if (owned) UiStyle.Chip(r, TalismanInfo.Tint(tal));
+                else UiStyle.Fill(r, new Color(1f, 1f, 1f, 0.07f));
+            }
+            int count = hoard != null ? hoard.TalismanCount : 0;
+            right.alignment = TextAnchor.MiddleRight;
+            UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), "talismans " + count + " / " + TalismanInfo.Count,
+                           right, count > 0 ? UiStyle.Ink : UiStyle.InkFaint);
+            right.alignment = previous;
         }
 
         // ---------------------------------------------------------------- invite
@@ -264,6 +324,44 @@ namespace Fief
                                     box.width - UiStyle.S(12), UiStyle.S(4));
                 UiStyle.Bar(bar, interactor.HoldProgress01, Palette.Gold, new Color(0f, 0f, 0f, 0.5f));
             }
+        }
+
+        // ---------------------------------------------------------------- trouvaille
+
+        void DrawDiscovery()
+        {
+            if (cardTimer <= 0f || string.IsNullOrEmpty(cardTitle)) return;
+
+            // Entree en 0,4 s, sortie en 0,8 s.
+            float age = CardDuration - cardTimer;
+            float alpha = Mathf.Clamp01(age / 0.4f) * Mathf.Clamp01(cardTimer / 0.8f);
+            bool detailed = !string.IsNullOrEmpty(cardLine1);
+
+            float w = UiStyle.S(520);
+            float h = UiStyle.S(detailed ? 150 : 86);
+            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(96) - (1f - Mathf.Clamp01(age / 0.4f)) * UiStyle.S(12), w, h);
+
+            Color was = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+            UiStyle.Frame(box);
+            UiStyle.Fill(new Rect(box.x + UiStyle.S(10), box.y, box.width - UiStyle.S(20), 2f), cardTint);
+
+            float y = box.y + UiStyle.S(12);
+            UiStyle.Tinted(new Rect(box.x, y, w, UiStyle.S(16)), cardKicker, UiStyle.CenteredSmall, UiStyle.InkDim);
+            y += UiStyle.S(18);
+            GUIStyle title = UiStyle.Title;
+            TextAnchor previous = title.alignment;
+            title.alignment = TextAnchor.MiddleCenter;
+            UiStyle.Tinted(new Rect(box.x, y, w, UiStyle.S(40)), cardTitle, title, cardTint);
+            title.alignment = previous;
+            y += UiStyle.S(44);
+            if (detailed)
+            {
+                UiStyle.Tinted(new Rect(box.x, y, w, UiStyle.S(22)), cardLine1, UiStyle.Centered, UiStyle.Ink);
+                y += UiStyle.S(26);
+                UiStyle.Tinted(new Rect(box.x, y, w, UiStyle.S(18)), cardLine2, UiStyle.CenteredSmall, UiStyle.InkFaint);
+            }
+            GUI.color = was;
         }
 
         // ---------------------------------------------------------------- creusage
@@ -305,6 +403,16 @@ namespace Fief
 
             if (hoard.CampPlanted && FlatDistance(me, hoard.CampPosition) > 6f)
                 DrawMarker(cam, hoard.CampPosition + Vector3.up * 2.2f, "CAMP", new Color(0.78f, 0.86f, 0.62f));
+
+            // Les lieux-dits deja decouverts : des reperes pour ne plus se perdre.
+            for (int i = 0; i < Landmarks.All.Count; i++)
+            {
+                Landmark mark = Landmarks.All[i];
+                if (mark == null || !mark.Discovered) continue;
+                if (FlatDistance(me, mark.transform.position) < 22f) continue;
+                DrawMarker(cam, mark.transform.position + Vector3.up * 3f, Landmarks.Name(mark.kind),
+                           new Color(0.70f, 0.68f, 0.60f));
+            }
 
             for (int i = 0; i < hoard.Caches.Count; i++)
             {

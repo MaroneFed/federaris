@@ -123,6 +123,13 @@ namespace Fief
             ps.Play();
         }
 
+        /// <summary>Un essaim de lucioles, pour un creux ou un lieu-dit.</summary>
+        public static void Fireflies(Transform parent, Vector3 at, int index)
+        {
+            if (!EnsureMaterials()) return;
+            BuildFireflies(parent, at, index);
+        }
+
         static void BuildFireflies(Transform parent, Vector3 at, int index)
         {
             ParticleSystem ps = NewSystem("Lucioles", parent, Vector3.zero, additive);
@@ -209,6 +216,38 @@ namespace Fief
 
             FadeInOut(ps, 1f);
             ps.randomSeed = (uint)localPosition.GetHashCode();
+            ps.Play();
+        }
+
+        /// <summary>
+        /// Des paillettes qui tombent lentement d'un talisman, de sa couleur. Elles
+        /// se voient de plus loin que l'objet : on s'approche pour savoir ce que c'est.
+        /// </summary>
+        public static void Sparkles(Transform parent, Vector3 localPosition, Color tint)
+        {
+            if (!EnsureMaterials()) return;
+            ParticleSystem ps = NewSystem("Paillettes", parent, localPosition, additive);
+
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = 5f;
+            main.loop = true;
+            main.prewarm = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.5f, 4f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.12f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.07f);
+            main.startColor = new ParticleSystem.MinMaxGradient(tint, Color.Lerp(tint, Color.white, 0.6f));
+            main.gravityModifier = 0.015f;
+            main.maxParticles = 50;
+
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 11f;
+
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.55f;
+
+            FadeInOut(ps, 1f);
+            ps.randomSeed = (uint)localPosition.GetHashCode() + (uint)parent.GetInstanceID();
             ps.Play();
         }
 

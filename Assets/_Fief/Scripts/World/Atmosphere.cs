@@ -154,8 +154,17 @@ namespace Fief
         void Start()
         {
             lamp = GetComponent<Light>();
-            if (lamp != null) baseIntensity = lamp.intensity;
+            if (lamp != null && baseIntensity <= 0f) baseIntensity = lamp.intensity;
             seed = Random.Range(0f, 100f);
+        }
+
+        /// <summary>
+        /// Change l'intensite de reference. Sans ca, ecrire lamp.intensity ne servirait
+        /// a rien : a l'image suivante, le vacillement repartirait de l'ancienne valeur.
+        /// </summary>
+        public void Rebase(float intensity)
+        {
+            baseIntensity = intensity;
         }
 
         void Update()
