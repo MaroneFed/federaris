@@ -396,11 +396,44 @@ namespace Fief
         {
             Collider c = tree.GetComponent<Collider>();
             Vector3 foot = c != null ? new Vector3(c.bounds.center.x, tree.transform.position.y, c.bounds.center.z) : tree.transform.position;
+            float radius = c != null ? Mathf.Min(c.bounds.extents.x, c.bounds.extents.z) : 0.3f;
             if (c != null) Destroy(c);
+            Stump(foot, Mathf.Clamp(radius, 0.18f, 0.6f));
             TreeFall f = tree.AddComponent<TreeFall>();
             f.pivot = foot;
             f.axis = Vector3.Cross(Vector3.up, away).normalized;
             Sfx.Creak3D(foot + Vector3.up * 2f);
+        }
+
+        /// <summary>
+        /// La souche : ce qui reste debout quand l'arbre est tombe. Ecorce autour,
+        /// bois clair a cru sur le dessus, cernes, et elle garde un collider -- on ne
+        /// traverse pas une souche.
+        /// </summary>
+        static void Stump(Vector3 foot, float radius)
+        {
+            GameObject go = new GameObject("Souche");
+            go.transform.position = foot;
+            CapsuleCollider col = go.AddComponent<CapsuleCollider>();
+            col.radius = radius;
+            col.height = 1f;
+            col.center = new Vector3(0f, 0.3f, 0f);
+            Proto.BeginVisualOnly();
+            GameObject trunk = Proto.Cylinder(go.transform, new Vector3(0f, 0.2f, 0f), new Vector3(radius * 2.1f, 0.35f, radius * 2.1f), Palette.DarkBarks[0], "Ecorce");
+            trunk.GetComponent<Renderer>().sharedMaterial = Surfaces.Bark(Palette.DarkBarks[0]);
+            GameObject top = Proto.Cylinder(go.transform, new Vector3(0f, 0.55f, 0f), new Vector3(radius * 1.9f, 0.012f, radius * 1.9f), new Color(0.62f, 0.5f, 0.34f), "Bois a cru");
+            top.transform.localRotation = Quaternion.Euler(4f, 0f, 3f);
+            Proto.Cylinder(go.transform, new Vector3(0f, 0.565f, 0f), new Vector3(radius * 1.2f, 0.01f, radius * 1.2f), new Color(0.52f, 0.4f, 0.26f), "Cerne");
+            Proto.Cylinder(go.transform, new Vector3(0f, 0.572f, 0f), new Vector3(radius * 0.5f, 0.01f, radius * 0.5f), new Color(0.44f, 0.32f, 0.2f), "Coeur");
+            // Des echardes dressees, la ou le tronc a cede.
+            for (int i = 0; i < 4; i++)
+            {
+                float a = i * 1.7f;
+                GameObject splinter = Proto.Cube(go.transform, new Vector3(Mathf.Cos(a) * radius * 0.6f, 0.68f, Mathf.Sin(a) * radius * 0.6f),
+                                                 new Vector3(0.05f, 0.26f, 0.03f), new Color(0.58f, 0.46f, 0.3f), "Echarde");
+                splinter.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * 15f, a * 57f, Mathf.Cos(a) * 15f);
+            }
+            Proto.EndVisualOnly();
         }
 
         void Update()

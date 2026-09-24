@@ -429,6 +429,11 @@ namespace Fief
         /// </summary>
         static Mesh Finish(Shape s, string name, float height)
         {
+            return Finish(s, name, height, false);
+        }
+
+        static Mesh Finish(Shape s, string name, float height, bool lying)
+        {
             List<int> shade = new List<int>();
             List<int> mid = new List<int>();
             List<int> lit = new List<int>();
@@ -458,11 +463,47 @@ namespace Fief
             mesh.SetTriangles(lit, LitPart);
             mesh.SetTriangles(s.fungus, FungusPart);
 
+            // L'ECORCE : des coordonnees de texture qui s'enroulent autour du fut
+            // (trois tours de texture par tour de tronc, une repetition par 1,2 m de
+            // haut). Couche (une souche), l'axe est X au lieu de Y.
+            mesh.SetUVs(0, BarkUVs(s, lying));
+
             // Aucun sommet n'est partage entre deux faces : chaque face garde sa
             // propre normale et l'arbre reste facette, comme le reste du jeu.
             mesh.RecalculateNormals();
+            mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        static List<Vector2> BarkUVs(Shape s, bool lying)
+        {
+            List<Vector2> uv = new List<Vector2>(s.points.Count);
+            for (int i = 0; i < s.points.Count; i++)
+            {
+                Vector3 p = s.points[i];
+                float angle = lying ? Mathf.Atan2(p.y, p.z) : Mathf.Atan2(p.x, p.z);
+                float along = lying ? p.x : p.y;
+                uv.Add(new Vector2((angle / (2f * Mathf.PI) + 0.5f) * 3f, along / 1.2f));
+            }
+            // La couture : une face a cheval sur l'arriere du tronc verrait toute la
+            // texture defiler a l'envers. On ramene ses sommets du bon cote.
+            List<int>[] parts = { s.bark, s.moss, s.fungus };
+            for (int k = 0; k < parts.Length; k++)
+            {
+                List<int> t = parts[k];
+                for (int i = 0; i + 2 < t.Count; i += 3)
+                {
+                    float a = uv[t[i]].x, b = uv[t[i + 1]].x, c = uv[t[i + 2]].x;
+                    if (Mathf.Max(a, Mathf.Max(b, c)) - Mathf.Min(a, Mathf.Min(b, c)) < 1.5f) continue;
+                    for (int j = 0; j < 3; j++)
+                    {
+                        Vector2 v = uv[t[i + j]];
+                        if (v.x < 1.5f) uv[t[i + j]] = new Vector2(v.x + 3f, v.y);
+                    }
+                }
+            }
+            return uv;
         }
 
         static void Fir(Shape s, System.Random rng, ref TreeInfo info)
@@ -618,7 +659,7 @@ namespace Fief
             s.bark.Clear();
             s.bark.AddRange(bark);
 
-            return Finish(s, "Souche_" + seed, radius * 2f);
+            return Finish(s, "Souche_" + seed, radius * 2f, true);
         }
     }
 }

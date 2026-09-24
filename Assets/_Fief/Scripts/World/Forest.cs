@@ -112,8 +112,8 @@ namespace Fief
             Color lit = Color.Lerp(Palette.Shade(foliage, 1.5f), new Color(0.36f, 0.40f, 0.22f), 0.18f);
             return new Material[]
             {
-                MaterialFactory.Get(bark),
-                MaterialFactory.Get(moss),
+                Surfaces.Bark(bark),
+                Surfaces.Ground(moss),
                 MaterialFactory.Get(shade),
                 MaterialFactory.Get(foliage),
                 MaterialFactory.Get(lit),
@@ -279,13 +279,25 @@ namespace Fief
             mesh.SetVertices(v);
             mesh.SetTriangles(t, 0);
             mesh.RecalculateNormals();
+            // Des coordonnees de texture projetees sur chaque face (la roche a son grain).
+            Vector3[] vn = mesh.normals;
+            Vector2[] stoneUv = new Vector2[v.Count];
+            for (int k = 0; k < v.Count; k++)
+            {
+                Vector3 n = vn[k];
+                Vector3 p = v[k];
+                stoneUv[k] = Mathf.Abs(n.y) > 0.6f ? new Vector2(p.x, p.z) : Mathf.Abs(n.x) > Mathf.Abs(n.z) ? new Vector2(p.z, p.y) : new Vector2(p.x, p.y);
+                stoneUv[k] *= 0.8f;
+            }
+            mesh.uv = stoneUv;
+            mesh.RecalculateTangents();
             mesh.RecalculateBounds();
 
             Model m = new Model();
             m.mesh = mesh;
             m.height = 1f;
             m.blocker = Blocker.Box;
-            m.materials = new Material[] { MaterialFactory.Get(Palette.Pick(Palette.WetRocks, pick)) };
+            m.materials = new Material[] { Surfaces.Rock(Palette.Pick(Palette.WetRocks, pick)) };
             return m;
         }
 

@@ -400,7 +400,14 @@ namespace Fief
             mesh.SetVertices(vertices);
             mesh.subMeshCount = Bands;
             for (int i = 0; i < Bands; i++) mesh.SetTriangles(bands[i], i);
+            // Le grain du sol : des coordonnees de texture en metres (une repetition
+            // tous les 3,5 m), prises a la verticale. Un triangle de 9 m n'est plus un
+            // aplat : il a des cailloux, des aiguilles, des plaques de mousse.
+            Vector2[] groundUv = new Vector2[vertices.Count];
+            for (int k = 0; k < vertices.Count; k++) groundUv[k] = new Vector2(vertices[k].x, vertices[k].z) / 3.5f;
+            mesh.uv = groundUv;
             mesh.RecalculateNormals();
+            mesh.RecalculateTangents();
             mesh.RecalculateBounds();
 
             GameObject go = new GameObject("Terrain");
@@ -413,15 +420,15 @@ namespace Fief
             // aurait fait une moquette vert vif.
             go.AddComponent<MeshRenderer>().sharedMaterials = new Material[]
             {
-                MaterialFactory.Get(new Color(0.11f, 0.13f, 0.11f)),   // 0 fond de vallon, detrempe
-                MaterialFactory.Get(Palette.Moss[0]),
-                MaterialFactory.Get(Palette.Moss[1]),
-                MaterialFactory.Get(Palette.Moss[2]),
-                MaterialFactory.Get(Palette.Moss[3]),
-                MaterialFactory.Get(Palette.Litter[0]),
-                MaterialFactory.Get(Palette.Litter[1]),
-                MaterialFactory.Get(Palette.Litter[2]),
-                MaterialFactory.Get(Palette.WetRocks[2])               // 8 devers, roche a nu
+                Surfaces.Ground(new Color(0.11f, 0.13f, 0.11f)),   // 0 fond de vallon, detrempe
+                Surfaces.Ground(Palette.Moss[0]),
+                Surfaces.Ground(Palette.Moss[1]),
+                Surfaces.Ground(Palette.Moss[2]),
+                Surfaces.Ground(Palette.Moss[3]),
+                Surfaces.Ground(Palette.Litter[0]),
+                Surfaces.Ground(Palette.Litter[1]),
+                Surfaces.Ground(Palette.Litter[2]),
+                Surfaces.Rock(Palette.WetRocks[2])               // 8 devers, roche a nu
             };
 
             go.AddComponent<MeshCollider>().sharedMesh = collisionMesh;
