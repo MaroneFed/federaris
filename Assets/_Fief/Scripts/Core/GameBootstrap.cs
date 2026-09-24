@@ -352,6 +352,7 @@ namespace Fief
             Game.Player = player;
             Game.PlayerTransform = go.transform;
             if (Game.Me != null) Game.Me.Body = go.transform;
+            RelicGlow.Attach(go.transform, Game.Me);
 
             // Les sons sont synthetises par le code et joues depuis le joueur.
             Sfx.Init(go);

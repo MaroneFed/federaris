@@ -739,6 +739,33 @@ namespace Fief
             return drone;
         }
 
+        static AudioClip stash;
+
+        /// <summary>
+        /// Deposer a sa stele : un bruit sourd de bois pose (le sac qu'on vide) puis
+        /// deux notes basses qui se repondent -- "c'est a l'abri".
+        /// </summary>
+        public static void Stash()
+        {
+            if (stash == null)
+            {
+                const float duration = 1.4f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float knock = Mathf.Sin(2f * Mathf.PI * 120f * t) * Mathf.Exp(-22f * t);
+                    float n1 = t > 0.12f ? Mathf.Sin(2f * Mathf.PI * 293.7f * (t - 0.12f)) * Mathf.Exp(-3.5f * (t - 0.12f)) * 0.35f : 0f;
+                    float n2 = t > 0.3f ? Mathf.Sin(2f * Mathf.PI * 440f * (t - 0.3f)) * Mathf.Exp(-3f * (t - 0.3f)) * 0.3f : 0f;
+                    data[i] = knock + n1 + n2;
+                }
+                Normalize(data, 0.8f);
+                stash = FromSamples("depot", data);
+            }
+            Play(stash, 0.85f);
+        }
+
         static AudioClip whoosh, thud;
 
         /// <summary>Un coup dans le vide : un souffle bref dont le filtre monte puis descend.</summary>

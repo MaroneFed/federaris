@@ -113,6 +113,7 @@ namespace Fief
             r.taunts = taunts;
             r.rng = new System.Random(seed);
             r.lastPosition = spawn;
+            RelicGlow.Attach(root.transform, seeker);
 
             // LE CORPS : exactement celui du joueur -- poncho, capuche, baton. Un rival
             // joue avec les memes regles que toi ; en multijoueur, ce sera un joueur.

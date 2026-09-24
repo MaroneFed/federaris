@@ -479,6 +479,17 @@ namespace Fief
                             (float)t.Durability / t.Max, new Color(0.7f, 0.72f, 0.75f), UiStyle.BarBg);
             }
 
+            // Une relique dans les mains : on ne peut pas frapper, et ca se voit.
+            Hoard carried = me.Hoard;
+            if (carried.RelicInHand || carried.Trophy != null)
+            {
+                Color blue = Stele.RuneBlue;
+                blue.a = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
+                string what = carried.Trophy != null ? "LA RELIQUE DE " + carried.TrophyFrom.Name.ToUpperInvariant() : "TA RELIQUE EN MAIN";
+                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(30), Screen.width, UiStyle.S(22)),
+                               what + "  --  tu ne peux pas frapper, et on te voit venir", UiStyle.CenteredSmall, blue);
+            }
+
             if (ToolUser.Aiming)
             {
                 float d = UiStyle.S(4);

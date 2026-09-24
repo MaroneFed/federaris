@@ -144,7 +144,7 @@ namespace Fief
                 }
                 if (total > 0)
                 {
-                    Sfx.Pop();
+                    Sfx.Stash();
                     Toasts.Show("Depose " + total + " unites. Le sac respire.", Palette.Gold);
                 }
                 else

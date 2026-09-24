@@ -162,6 +162,8 @@ namespace Fief
         void Update()
         {
             Watch();
+            pileTimer -= Time.deltaTime;
+            if (pileTimer <= 0f) { pileTimer = 1f; RefreshPiles(); }
             Hoard h = owner != null ? owner.Hoard : null;
             bool lit = h != null && h.RelicOnStele && h.Relic != null;
 
@@ -279,8 +281,9 @@ namespace Fief
                 {
                     Hoard h = me.Hoard;
                     if (h.Trophy != null) return "Ta stele  --  fondre la relique de " + h.TrophyFrom.Name;
-                    if (h.RelicInHand) return "Ta stele  --  poser ta relique, deposer ton sac";
-                    return "Ta stele  --  reserve, relique, ameliorations";
+                    string sack = me.Bag.IsEmpty ? "" : "deposer ton sac, ";
+                    if (h.RelicInHand) return "Ta stele  --  " + sack + "poser ta relique";
+                    return "Ta stele  --  " + sack + "reserve : " + StoreSummary(h);
                 }
                 Hoard o = owner.Hoard;
                 string what = o.RelicOnStele && o.Relic != null ? "sa relique (" + o.FinalScore + ")" : "";
@@ -299,6 +302,15 @@ namespace Fief
 
             if (Mine)
             {
+                // D'abord, ce qu'on est venu faire neuf fois sur dix : vider son sac.
+                int stored = me.Hoard.RequestStoreAll(me.Bag);
+                me.SyncWeight();
+                if (stored > 0)
+                {
+                    Sfx.Stash();
+                    Toasts.Show("Depose a ta stele : " + stored + " ressources. Reserve : " + StoreSummary(me.Hoard) + ".", Palette.Gold);
+                    RefreshPiles();
+                }
                 // Une relique volee ou la sienne en main : l'onglet Relique d'abord.
                 int first = me.Hoard.Trophy != null || me.Hoard.RelicInHand ? 1 : 0;
                 if (Game.Hud != null) Game.Hud.OpenPanel(new StelePanel(this, first));
@@ -306,6 +318,80 @@ namespace Fief
                 return;
             }
             Loot(me);
+        }
+
+        /// <summary>"34 bois, 6 lune, 2 fer" -- ou "vide".</summary>
+        public static string StoreSummary(Hoard h)
+        {
+            if (h == null || h.Store == null || h.Store.Contents.IsEmpty) return "vide";
+            Inventory c = h.Store.Contents;
+            string s = "";
+            string[] shortNames = { "bois", "lune", "fer" };
+            for (int i = 0; i < ResourceInfo.Count; i++)
+            {
+                int n = c.Get((ResourceType)i);
+                if (n <= 0) continue;
+                if (s.Length > 0) s += ", ";
+                s += n + " " + (i < shortNames.Length ? shortNames[i] : ResourceInfo.Name((ResourceType)i));
+            }
+            return s;
+        }
+
+        // ------------------------------------------------------------------ la reserve, visible
+
+        // Ce qui dort dans la reserve SE VOIT autour de la pierre : un tas de bois,
+        // des cristaux, des lingots. On sait d'un coup d'oeil ou on en est -- et
+        // les pillards aussi. Une stele pleine, ca attire.
+        Transform piles;
+        int[] shownPiles = new int[3];
+        float pileTimer;
+
+        void RefreshPiles()
+        {
+            Hoard h = owner != null ? owner.Hoard : null;
+            if (h == null || h.Store == null) return;
+            Inventory c = h.Store.Contents;
+            int wood = Mathf.Min(12, (c.Get(ResourceType.Deadwood) + 3) / 4);
+            int moon = Mathf.Min(9, (c.Get(ResourceType.Moonstone) + 1) / 2);
+            int iron = Mathf.Min(10, (c.Get(ResourceType.Iron) + 1) / 2);
+            if (wood == shownPiles[0] && moon == shownPiles[1] && iron == shownPiles[2]) return;
+            shownPiles[0] = wood; shownPiles[1] = moon; shownPiles[2] = iron;
+
+            if (piles != null) Destroy(piles.gameObject);
+            GameObject go = new GameObject("Reserve");
+            go.transform.SetParent(transform, false);
+            piles = go.transform;
+            Proto.BeginVisualOnly();
+            // Le bois : des buches empilees en pyramide, a gauche de la pierre.
+            Color[] barks = { new Color(0.42f, 0.34f, 0.24f), new Color(0.34f, 0.27f, 0.19f), new Color(0.5f, 0.44f, 0.36f) };
+            for (int i = 0; i < wood; i++)
+            {
+                int row = i < 5 ? 0 : i < 9 ? 1 : 2;
+                int inRow = row == 0 ? i : row == 1 ? i - 5 : i - 9;
+                float x = -1.1f + (inRow - (row == 0 ? 2f : row == 1 ? 1.5f : 1f)) * 0.15f;
+                GameObject log = Proto.Cylinder(piles, new Vector3(x, 0.07f + row * 0.13f, 0.5f), new Vector3(0.14f, 0.36f, 0.14f), barks[i % 3], "Buche");
+                log.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            }
+            // La pierre-lune : des cristaux plantes a droite, qui luisent.
+            Material glow = MaterialFactory.GetGlow(new Color(0.62f, 0.8f, 1f), 1.4f);
+            for (int i = 0; i < moon; i++)
+            {
+                float a = i * 1.1f;
+                GameObject shard = Proto.Cone(piles, new Vector3(0.95f + Mathf.Cos(a) * 0.22f, 0f, 0.4f + Mathf.Sin(a) * 0.22f),
+                                              0.05f, 0.22f + (i % 3) * 0.06f, new Color(0.62f, 0.8f, 1f), "Cristal", 6);
+                shard.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * 18f, a * 40f, Mathf.Cos(a) * 18f);
+                shard.GetComponent<Renderer>().sharedMaterial = glow;
+            }
+            // Le fer : des lingots croises, derriere.
+            Color ingot = ResourceInfo.Tint(ResourceType.Iron);
+            for (int i = 0; i < iron; i++)
+            {
+                int layer = i / 3;
+                GameObject bar = Proto.Cube(piles, new Vector3((i % 3 - 1) * 0.13f, 0.04f + layer * 0.07f, -0.6f),
+                                            new Vector3(0.1f, 0.06f, 0.3f), ingot, "Lingot");
+                bar.transform.localRotation = Quaternion.Euler(0f, layer % 2 == 0 ? 0f : 90f, 0f);
+            }
+            Proto.EndVisualOnly();
         }
 
         /// <summary>Piller la stele d'un autre : sa relique posee (en trophee), et sa reserve.</summary>

@@ -179,14 +179,57 @@ namespace Fief
             victim.Kit.Clear();
             victim.SyncWeight();
 
+            // LA DEPOUILLE : une cape etalee a sa couleur, le sac eventre, la lanterne
+            // renversee qui brule encore un peu (c'est ce qu'on voit de loin), et ce
+            // qu'il portait, repandu : des buches, des eclats bleus, des lingots.
             Color cloth = Palette.Shade(victim.Colour, 0.5f);
+            Transform body = go.transform;
             Proto.BeginVisualOnly();
-            GameObject sack = Proto.Cube(go.transform, new Vector3(0f, 0.18f, 0f), new Vector3(0.7f, 0.36f, 0.5f), cloth, "Sac eventre");
-            sack.transform.localRotation = Quaternion.Euler(0f, 30f, 12f);
-            Proto.Cube(go.transform, new Vector3(0.5f, 0.05f, 0.3f), new Vector3(0.9f, 0.06f, 0.6f), Palette.Shade(cloth, 0.8f), "Cape");
-            GameObject lamp = Proto.Cube(go.transform, new Vector3(-0.5f, 0.1f, -0.2f), new Vector3(0.18f, 0.2f, 0.18f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
+            GameObject cape = Proto.Cube(body, new Vector3(0.2f, 0.02f, 0.1f), new Vector3(1.3f, 0.03f, 0.9f), cloth, "Cape");
+            cape.transform.localRotation = Quaternion.Euler(0f, 23f, 2f);
+            Proto.Cube(body, new Vector3(0.75f, 0.03f, 0.4f), new Vector3(0.3f, 0.03f, 0.2f), Palette.Shade(victim.Colour, 0.85f), "Bord");
+            GameObject sack = Proto.Sphere(body, new Vector3(-0.1f, 0.16f, -0.05f), new Vector3(0.55f, 0.32f, 0.42f), new Color(0.36f, 0.3f, 0.22f), "Sac eventre");
+            sack.transform.localRotation = Quaternion.Euler(0f, 30f, 20f);
+            Proto.Cube(body, new Vector3(0.12f, 0.1f, -0.1f), new Vector3(0.22f, 0.04f, 0.3f), new Color(0.26f, 0.21f, 0.15f), "Rabat");
+            GameObject lamp = Proto.Cube(body, new Vector3(-0.55f, 0.1f, -0.25f), new Vector3(0.16f, 0.2f, 0.16f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
             lamp.transform.localRotation = Quaternion.Euler(0f, 0f, 80f);
+            GameObject ember = Proto.Cube(body, new Vector3(-0.5f, 0.1f, -0.25f), new Vector3(0.06f, 0.06f, 0.06f), Color.white, "Braise");
+            ember.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.55f, 0.2f), 2.2f);
+            System.Random rng = new System.Random(victim.Name.Length * 31 + Mathf.RoundToInt(at.x));
+            int wood = Mathf.Min(6, r.contents.Get(ResourceType.Deadwood) / 2);
+            for (int i = 0; i < wood; i++)
+            {
+                GameObject stick = Proto.Cylinder(body, new Vector3(0.4f + (float)rng.NextDouble() * 0.5f, 0.04f, -0.5f + (float)rng.NextDouble() * 0.6f),
+                                                  new Vector3(0.07f, 0.22f, 0.07f), new Color(0.42f, 0.34f, 0.24f), "Buche");
+                stick.transform.localRotation = Quaternion.Euler(90f, (float)rng.NextDouble() * 180f, 0f);
+            }
+            int moon = Mathf.Min(5, r.contents.Get(ResourceType.Moonstone));
+            Material shine = MaterialFactory.GetGlow(new Color(0.62f, 0.8f, 1f), 1.4f);
+            for (int i = 0; i < moon; i++)
+            {
+                GameObject chip = Proto.Cone(body, new Vector3(-0.3f + (float)rng.NextDouble() * 0.5f, 0.02f, 0.35f + (float)rng.NextDouble() * 0.3f),
+                                             0.05f, 0.14f, new Color(0.62f, 0.8f, 1f), "Eclat", 6);
+                chip.transform.localRotation = Quaternion.Euler(70f, (float)rng.NextDouble() * 360f, 0f);
+                chip.GetComponent<Renderer>().sharedMaterial = shine;
+            }
+            int iron = Mathf.Min(4, r.contents.Get(ResourceType.Iron));
+            for (int i = 0; i < iron; i++)
+            {
+                GameObject bar = Proto.Cube(body, new Vector3(-0.6f + i * 0.14f, 0.03f, 0.3f), new Vector3(0.1f, 0.05f, 0.26f),
+                                            ResourceInfo.Tint(ResourceType.Iron), "Lingot");
+                bar.transform.localRotation = Quaternion.Euler(0f, i * 25f, 0f);
+            }
             Proto.EndVisualOnly();
+            GameObject lightGo = new GameObject("Braise");
+            lightGo.transform.SetParent(body, false);
+            lightGo.transform.localPosition = new Vector3(-0.45f, 0.3f, -0.25f);
+            Light glow = lightGo.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.55f, 0.25f);
+            glow.range = 3.5f;
+            glow.intensity = 0.7f;
+            glow.shadows = LightShadows.None;
+            lightGo.AddComponent<LampFlicker>();
             if (r.relic != null)
                 Ambiance.Sparkles(go.transform, new Vector3(0f, 0.4f, 0f), Stele.RuneBlue);
         }

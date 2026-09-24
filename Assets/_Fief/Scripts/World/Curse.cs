@@ -91,9 +91,12 @@ namespace Fief
             }
             if (Game.Hud == null) return;
             if (total == 0)
-                Game.Hud.ShowDiscovery("LA MALEDICTION", "est passee",
-                                       "Ton sac etait vide : elle repart bredouille.",
-                                       "Ce qui dort dans ta stele ne craint rien.", Violet);
+            {
+                Sfx.Discovery();
+                Game.Hud.ShowDiscovery("LA MALEDICTION", "repart bredouille",
+                                       "Ton sac etait vide. Bien joue.",
+                                       "Ta reserve est intacte : " + Stele.StoreSummary(Game.Hoard) + ".", Violet);
+            }
             else
                 Game.Hud.ShowDiscovery("LA MALEDICTION", "a devore ton sac",
                                        "Perdu : " + what + ".",
