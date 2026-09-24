@@ -65,10 +65,12 @@ namespace Fief
         {
             if (entries.Count == 0) return;
 
-            float width = UiStyle.S(420);
-            float height = UiStyle.S(26);
+            // Sous la carte de trouvaille, au tiers de l'ecran : ni sur la boussole,
+            // ni sur l'invite du bas.
+            float width = Mathf.Min(UiStyle.S(640), Screen.width - UiStyle.S(40));
+            float height = UiStyle.S(28);
             float x = (Screen.width - width) * 0.5f;
-            float y = UiStyle.S(70);
+            float y = Screen.height * 0.36f;
 
             for (int i = 0; i < entries.Count; i++)
             {
@@ -76,9 +78,10 @@ namespace Fief
                 float alpha = Mathf.Clamp01(e.life / 0.8f);
 
                 Rect row = new Rect(x, y + i * (height + UiStyle.S(4)), width, height);
-                UiStyle.Fill(row, new Color(0f, 0f, 0f, 0.42f * alpha));
-                UiStyle.Fill(new Rect(row.x, row.y, UiStyle.S(4), row.height),
-                             new Color(e.color.r, e.color.g, e.color.b, alpha));
+                UiStyle.FadeBand(row, new Color(0.03f, 0.025f, 0.02f, 0.7f * alpha));
+                float d = UiStyle.S(7);
+                UiStyle.Icon(new Rect(row.center.x - d * 0.5f, row.y - d * 0.5f, d, d), UiStyle.Shape.Diamond,
+                             new Color(e.color.r, e.color.g, e.color.b, alpha * 0.8f));
 
                 GUIStyle style = UiStyle.Centered;
                 Color previous = style.normal.textColor;
@@ -86,6 +89,7 @@ namespace Fief
                 GUI.Label(row, e.text, style);
                 style.normal.textColor = previous;
             }
+        }
         }
     }
 }

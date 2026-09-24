@@ -304,77 +304,144 @@ namespace Fief
             if (curtain > 0.001f) UiStyle.Fill(screen, new Color(0f, 0f, 0f, curtain));
         }
 
+        // ------------------------------------------------------------------ les braises
+
+        /// <summary>
+        /// Des braises qui montent lentement devant l'ecran-titre et la pause, comme
+        /// d'un feu hors champ. Dessinees a la main par l'interface : ce ne sont pas
+        /// des particules du monde, elles vivent meme quand le temps est fige.
+        /// </summary>
+        static readonly Vector3[] Embers = new Vector3[70];     // x, y (0-1), graine
+        static bool embersReady;
+
+        static void DrawEmbers(float strength)
+        {
+            if (strength <= 0.01f) return;
+            if (!embersReady)
+            {
+                System.Random r = new System.Random(3);
+                for (int i = 0; i < Embers.Length; i++)
+                    Embers[i] = new Vector3((float)r.NextDouble(), (float)r.NextDouble(), (float)r.NextDouble() * 100f);
+                embersReady = true;
+            }
+            float t = Time.unscaledTime;
+            for (int i = 0; i < Embers.Length; i++)
+            {
+                Vector3 e = Embers[i];
+                float speed = 0.018f + (e.z % 7f) * 0.004f;
+                float y = Mathf.Repeat(e.y - t * speed, 1f);
+                float x = e.x + Mathf.Sin(t * 0.6f + e.z) * 0.012f;
+                float life = Mathf.Sin(y * Mathf.PI);                   // naissent en bas, meurent en haut
+                float flicker = 0.6f + 0.4f * Mathf.Sin(t * (3f + e.z % 5f) + e.z);
+                float size = UiStyle.S(2f + (e.z % 3f));
+                Color c = Color.Lerp(new Color(1f, 0.45f, 0.15f), new Color(1f, 0.8f, 0.45f), (e.z % 10f) / 10f);
+                c.a = life * flicker * 0.75f * strength;
+                UiStyle.Icon(new Rect(x * Screen.width, y * Screen.height, size, size), UiStyle.Shape.Dot, c);
+            }
+        }
+
+        // ------------------------------------------------------------------ les entrees
+
+        /// <summary>
+        /// Une entree de menu : du texte, pas une boite. Au survol, elle s'eclaire en
+        /// or, un losange apparait a gauche et un filet se dessine dessous. Renvoie
+        /// vrai quand on clique.
+        /// </summary>
+        static bool Entry(Rect r, string text, bool primary, float alpha)
+        {
+            bool hover = r.Contains(Event.current.mousePosition);
+            GUIStyle style = primary ? UiStyle.Title : UiStyle.Head;
+            int previous = style.fontSize;
+            if (!primary) style.fontSize = UiStyle.S(21);
+            Color c = hover ? new Color(1f, 0.86f, 0.52f, alpha) : primary ? new Color(0.94f, 0.88f, 0.74f, alpha) : new Color(0.74f, 0.69f, 0.6f, alpha);
+            float indent = hover ? UiStyle.S(26) : UiStyle.S(18);
+            UiStyle.Tinted(new Rect(r.x + indent, r.y, r.width - indent, r.height), text, style, c);
+            style.fontSize = previous;
+            if (hover)
+            {
+                float d = UiStyle.S(9);
+                UiStyle.Icon(new Rect(r.x + UiStyle.S(4), r.center.y - d * 0.5f, d, d), UiStyle.Shape.Diamond, new Color(0.92f, 0.36f, 0.26f, alpha));
+                UiStyle.FadeBand(new Rect(r.x, r.yMax - UiStyle.S(4), r.width * 0.8f, 1f), new Color(0.86f, 0.7f, 0.36f, alpha * 0.8f));
+            }
+            return GUI.Button(r, GUIContent.none, GUIStyle.none);
+        }
+
         void DrawTitle()
         {
             // Le texte monte doucement pendant que la foret sort du noir.
             float ease = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((appear - 0.15f) / 0.85f));
             float late = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((appear - 0.45f) / 0.55f));
+            DrawEmbers(ease);
 
-            float x = UiStyle.S(96);
-            float w = Mathf.Min(UiStyle.S(620), Screen.width - x * 2f);
-            float y = Screen.height - UiStyle.S(430) + (1f - ease) * UiStyle.S(18);
+            float x = UiStyle.S(110);
+            float w = Mathf.Min(UiStyle.S(640), Screen.width - x * 2f);
+            float y = Screen.height - UiStyle.S(500) + (1f - ease) * UiStyle.S(18);
 
+            // Le titre : grave, espace, avec un halo sombre derriere.
             GUIStyle big = UiStyle.Big;
             int previous = big.fontSize;
-            big.fontSize = UiStyle.S(92);
+            big.fontSize = UiStyle.S(112);
             Color was = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, ease);
-            UiStyle.Shadowed(new Rect(x, y, w, UiStyle.S(110)), "F I E F", big);
+            UiStyle.Tinted(new Rect(x + 4f, y + 5f, w, UiStyle.S(130)), UiStyle.Spaced("FIEF"), big, new Color(0f, 0f, 0f, 0.8f));
+            UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(130)), UiStyle.Spaced("FIEF"), big, new Color(0.93f, 0.78f, 0.45f));
             GUI.color = was;
             big.fontSize = previous;
-            y += UiStyle.S(112);
+            y += UiStyle.S(132);
 
-            UiStyle.Fill(new Rect(x + UiStyle.S(4), y, UiStyle.S(150) * ease, 2f),
-                         new Color(Palette.Gold.r, Palette.Gold.g, Palette.Gold.b, ease));
-            y += UiStyle.S(18);
+            GUI.color = new Color(1f, 1f, 1f, ease);
+            UiStyle.Rule(new Rect(x, y, UiStyle.S(420) * ease, UiStyle.S(8)));
+            GUI.color = was;
+            y += UiStyle.S(22);
 
             UiStyle.Tinted(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)),
                            "Ce que tu caches, un autre le cherche.", UiStyle.Head,
-                           new Color(UiStyle.Ink.r, UiStyle.Ink.g, UiStyle.Ink.b, ease));
-            y += UiStyle.S(58);
+                           new Color(UiStyle.InkDim.r, UiStyle.InkDim.g, UiStyle.InkDim.b, ease));
+            y += UiStyle.S(64);
 
-            GUI.color = new Color(1f, 1f, 1f, late);
-            float bw = UiStyle.S(300);
-            float bh = UiStyle.S(46);
-            if (GUI.Button(new Rect(x, y, bw, bh), "ENTRER DANS LA SYLVE", UiStyle.ButtonPrimary) && late > 0.9f)
+            float bw = UiStyle.S(420);
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(48)), "Entrer dans la sylve", true, late) && late > 0.9f)
                 StartSeason();
-            y += bh + UiStyle.S(10);
-            if (GUI.Button(new Rect(x, y, bw, bh * 0.8f), "Commandes", UiStyle.Button) && late > 0.9f)
+            y += UiStyle.S(54);
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Commandes", false, late) && late > 0.9f)
                 showControls = true;
-            y += bh * 0.8f + UiStyle.S(8);
-            if (GUI.Button(new Rect(x, y, bw, bh * 0.8f), "Quitter", UiStyle.Button) && late > 0.9f)
+            y += UiStyle.S(40);
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Quitter", false, late) && late > 0.9f)
                 Quit();
-            GUI.color = Color.white;
 
             UiStyle.Tinted(new Rect(UiStyle.S(24), Screen.height - UiStyle.S(34), UiStyle.S(700), UiStyle.S(24)),
-                           "Prototype   |   la sylve   |   Unity 6", UiStyle.Tiny,
+                           "Prototype   --   la sylve, le chateau, trois rivaux   --   Unity 6", UiStyle.Tiny,
                            new Color(UiStyle.InkFaint.r, UiStyle.InkFaint.g, UiStyle.InkFaint.b, late));
         }
 
         void DrawPause()
         {
-            float w = UiStyle.S(400);
-            float h = UiStyle.S(300);
+            DrawEmbers(0.6f);
+            float w = UiStyle.S(440);
+            float h = UiStyle.S(360);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             UiStyle.Frame(box);
 
-            float x = box.x + UiStyle.S(30);
-            float y = box.y + UiStyle.S(26);
-            float bw = w - UiStyle.S(60);
+            float x = box.x + UiStyle.S(40);
+            float y = box.y + UiStyle.S(30);
+            float bw = w - UiStyle.S(80);
 
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), "EN PAUSE", UiStyle.Title);
+            GUIStyle title = UiStyle.Title;
+            TextAnchor previous = title.alignment;
+            title.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(box.x, y, w, UiStyle.S(40)), UiStyle.Spaced("EN PAUSE"), title);
+            title.alignment = previous;
+            y += UiStyle.S(48);
+            UiStyle.Rule(new Rect(x, y, bw, UiStyle.S(8)));
+            y += UiStyle.S(30);
+
+            if (Entry(new Rect(x, y, bw, UiStyle.S(44)), "Reprendre", true, 1f)) Resume();
+            y += UiStyle.S(52);
+            if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Commandes", false, 1f)) showControls = true;
             y += UiStyle.S(40);
-            UiStyle.Rule(new Rect(x, y, bw, 1f));
-            y += UiStyle.S(22);
-
-            float bh = UiStyle.S(42);
-            if (GUI.Button(new Rect(x, y, bw, bh), "REPRENDRE", UiStyle.ButtonPrimary)) Resume();
-            y += bh + UiStyle.S(9);
-            if (GUI.Button(new Rect(x, y, bw, bh * 0.85f), "Commandes", UiStyle.Button)) showControls = true;
-            y += bh * 0.85f + UiStyle.S(7);
-            if (GUI.Button(new Rect(x, y, bw, bh * 0.85f), "Recommencer", UiStyle.Button)) Restart();
-            y += bh * 0.85f + UiStyle.S(7);
-            if (GUI.Button(new Rect(x, y, bw, bh * 0.85f), "Quitter le jeu", UiStyle.Button)) Quit();
+            if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Recommencer la Saison", false, 1f)) Restart();
+            y += UiStyle.S(40);
+            if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Quitter le jeu", false, 1f)) Quit();
         }
 
         /// <summary>
@@ -410,7 +477,7 @@ namespace Fief
             float y = box.y + UiStyle.S(26);
             float bw = w - UiStyle.S(64);
 
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), "LA CLOCHE A SONNE", UiStyle.Title);
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), UiStyle.Spaced("LA CLOCHE"), UiStyle.Title);
             y += UiStyle.S(42);
             UiStyle.Rule(new Rect(x, y, bw, 1f));
             y += UiStyle.S(20);
@@ -490,7 +557,7 @@ namespace Fief
             float y = box.y + UiStyle.S(26);
             float bw = w - UiStyle.S(64);
 
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), "COMMANDES", UiStyle.Title);
+            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), UiStyle.Spaced("COMMANDES"), UiStyle.Title);
             y += UiStyle.S(42);
             UiStyle.Rule(new Rect(x, y, bw, 1f));
             y += UiStyle.S(16);
@@ -499,13 +566,16 @@ namespace Fief
             {
                 if (i % 2 == 0) UiStyle.Fill(new Rect(x - UiStyle.S(8), y - UiStyle.S(2), bw + UiStyle.S(16), UiStyle.S(26)),
                                              new Color(1f, 1f, 1f, 0.03f));
-                UiStyle.Tinted(new Rect(x, y, UiStyle.S(160), UiStyle.S(24)), Controls[i, 0], UiStyle.Label, Palette.Gold);
+                Rect key = new Rect(x, y + UiStyle.S(1), UiStyle.S(150), UiStyle.S(22));
+                UiStyle.Pill(key);
+                GUIStyle keyStyle = UiStyle.CenteredSmall;
+                UiStyle.Tinted(key, Controls[i, 0], keyStyle, Palette.Gold);
                 GUI.Label(new Rect(x + UiStyle.S(170), y, bw - UiStyle.S(170), UiStyle.S(24)), Controls[i, 1], UiStyle.Small);
                 y += UiStyle.S(26);
             }
 
             y = box.yMax - UiStyle.S(58);
-            if (GUI.Button(new Rect(x, y, bw, UiStyle.S(40)), "RETOUR", UiStyle.ButtonPrimary)) showControls = false;
+            if (GUI.Button(new Rect(x, y, bw, UiStyle.S(40)), "Retour", UiStyle.ButtonPrimary)) showControls = false;
         }
     }
 }

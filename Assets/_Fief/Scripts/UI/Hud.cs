@@ -124,30 +124,40 @@ namespace Fief
             return names[Mathf.RoundToInt(angle / 45f) % 8];
         }
 
+        /// <summary>
+        /// Le haut de l'ecran : la boussole, puis l'horloge de la Saison dans son
+        /// cartouche, puis une ligne sur le mage.
+        /// </summary>
         void DrawSeason()
         {
             Season season = Game.Season;
             if (season == null) return;
 
-            float w = UiStyle.S(360);
-            float x = (Screen.width - w) * 0.5f;
-            float y = UiStyle.S(14);
+            Transform eye = viewCamera != null ? viewCamera.transform : null;
+            float bandW = Mathf.Min(UiStyle.S(620), Screen.width - UiStyle.S(40));
+            Rect band = new Rect((Screen.width - bandW) * 0.5f, UiStyle.S(14), bandW, UiStyle.S(30));
+            if (eye != null && Game.PlayerTransform != null) Compass.Draw(band, eye, Game.PlayerTransform.position);
 
-            DrawCompass(new Rect((Screen.width - UiStyle.S(300)) * 0.5f, y, UiStyle.S(300), UiStyle.S(18)));
-            y += UiStyle.S(22);
-
-            // La cloche approche : l'horloge rougit dans les trois dernieres minutes.
+            // --- le cartouche de l'horloge
             float left = season.Remaining;
-            Color clock = left < 180f ? new Color(0.92f, 0.45f, 0.32f) : UiStyle.Ink;
-            UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(26)), Clock(left), UiStyle.Centered, clock);
-            y += UiStyle.S(24);
+            bool late = left < 180f;
+            float cw = UiStyle.S(128), ch = UiStyle.S(38);
+            Rect plate = new Rect((Screen.width - cw) * 0.5f, band.yMax + UiStyle.S(34), cw, ch);
+            GUI.Box(plate, GUIContent.none, UiStyle.CardBox);
+            GUIStyle clockStyle = UiStyle.Value;
+            TextAnchor previous = clockStyle.alignment;
+            clockStyle.alignment = TextAnchor.MiddleCenter;
+            Color clock = late ? Color.Lerp(new Color(0.95f, 0.42f, 0.3f), UiStyle.Ink, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f)) : UiStyle.Ink;
+            UiStyle.Tinted(plate, Clock(left), clockStyle, clock);
+            clockStyle.alignment = previous;
 
+            // --- le mage
             string mage;
             Color tint;
             if (season.MagePresent)
             {
-                mage = "Le mage chante quelque part.  Il repart dans " + Clock(season.MageTimeLeft);
-                tint = new Color(0.62f, 0.72f, 1f);
+                mage = "Le mage chante  --  il repart dans " + Clock(season.MageTimeLeft);
+                tint = new Color(0.62f, 0.76f, 1f);
             }
             else if (season.NextMageIn >= 0f)
             {
@@ -156,56 +166,10 @@ namespace Fief
             }
             else
             {
-                mage = "Le mage ne reviendra plus.  Pose ta relique.";
+                mage = "Le mage ne reviendra plus. Pose ta relique.";
                 tint = new Color(0.92f, 0.62f, 0.32f);
             }
-            UiStyle.Tinted(new Rect(x - UiStyle.S(100), y, w + UiStyle.S(200), UiStyle.S(20)),
-                           mage, UiStyle.CenteredSmall, tint);
-        }
-
-        /// <summary>
-        /// Une bande de boussole : sans elle, "le mage chante au nord-est" ne sert a
-        /// rien dans une foret sans horizon.
-        /// </summary>
-        void DrawCompass(Rect band)
-        {
-            Transform eye = viewCamera != null ? viewCamera.transform : null;
-            if (eye == null) return;
-
-            float heading = eye.eulerAngles.y;
-            string[] names = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" };
-            for (int i = 0; i < 8; i++)
-            {
-                float delta = Mathf.DeltaAngle(heading, i * 45f);
-                if (Mathf.Abs(delta) > 75f) continue;
-                float px = band.center.x + delta / 75f * band.width * 0.5f;
-                float alpha = 1f - Mathf.Abs(delta) / 75f;
-                Color c = i == 0 ? Palette.Gold : UiStyle.InkDim;
-                UiStyle.Tinted(new Rect(px - UiStyle.S(20), band.y, UiStyle.S(40), band.height),
-                               names[i], UiStyle.CenteredSmall, new Color(c.r, c.g, c.b, alpha));
-            }
-            UiStyle.Fill(new Rect(band.center.x - 1f, band.yMax, 2f, UiStyle.S(4)),
-                         new Color(1f, 1f, 1f, 0.35f));
-
-            // La Corne d'appel : quand le mage chante, sa direction s'affiche sur la
-            // boussole. Un losange bleu, et rien d'autre -- pas de distance.
-            Mage mage = Game.Mage;
-            if (Game.Hoard != null && Game.Hoard.Has(Talisman.Corne) && mage != null && mage.Present
-                && Game.PlayerTransform != null)
-            {
-                Vector3 to = mage.transform.position - Game.PlayerTransform.position;
-                float bearing = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
-                float delta = Mathf.Clamp(Mathf.DeltaAngle(heading, bearing), -75f, 75f);
-                float px = band.center.x + delta / 75f * band.width * 0.5f;
-                float s = UiStyle.S(9);
-                Color blue = new Color(0.62f, 0.78f, 1f, 0.95f);
-                Matrix4x4 saved = GUI.matrix;
-                GUIUtility.RotateAroundPivot(45f, new Vector2(px, band.center.y));
-                UiStyle.Fill(new Rect(px - s * 0.5f, band.center.y - s * 0.5f, s, s), blue);
-                GUI.matrix = saved;
-                UiStyle.Tinted(new Rect(px - UiStyle.S(30), band.yMax + UiStyle.S(2), UiStyle.S(60), UiStyle.S(14)),
-                               "mage", UiStyle.CenteredSmall, blue);
-            }
+            UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(4), Screen.width, UiStyle.S(20)), mage, UiStyle.CenteredSmall, tint);
         }
 
         // ---------------------------------------------------------------- le sac
@@ -362,7 +326,7 @@ namespace Fief
 
             float w = UiStyle.S(520);
             float h = UiStyle.S(detailed ? 150 : 86);
-            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(96) - (1f - Mathf.Clamp01(age / 0.4f)) * UiStyle.S(12), w, h);
+            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(156) - (1f - Mathf.Clamp01(age / 0.4f)) * UiStyle.S(12), w, h);
 
             Color was = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, alpha);
@@ -415,17 +379,9 @@ namespace Fief
             if (cam == null || Game.PlayerTransform == null) return;
             Vector3 me = Game.PlayerTransform.position;
 
-            // Le chateau : le seul lieu que tout le monde connait. On le cache quand
-            // on y est -- a quoi bon un repere sur le lieu ou l'on se tient.
-            Vector3 castle = Game.CastleCentre + Vector3.up * 14f;
-            if (FlatDistance(me, Game.CastleCentre) > Castle.HalfSize + 20f)
-                DrawMarker(cam, castle, "CHATEAU", new Color(0.92f, 0.72f, 0.42f));
-
-            Hoard hoard = Game.Hoard;
-            if (hoard == null) return;
-
-            if (hoard.CampPlanted && FlatDistance(me, hoard.CampPosition) > 6f)
-                DrawMarker(cam, hoard.CampPosition + Vector3.up * 2.2f, "CAMP", new Color(0.78f, 0.86f, 0.62f));
+            // Le chateau, le camp, les caches, les steles et les lieux-dits sont sur
+            // la BOUSSOLE (Compass.cs). Ici ne restent que les gens : les gardes, les
+            // rivaux, et le voleur qu'on poursuit.
 
             // Les gardes : "?" quand ils se doutent, "!" quand ils courent.
             for (int i = 0; i < Guard.All.Count; i++)
@@ -449,36 +405,6 @@ namespace Fief
                     DrawMarker(cam, r.transform.position + Vector3.up * 2.4f, "VOLEUR : " + r.seeker.Name, new Color(1f, 0.4f, 0.3f));
                 else if (d < 16f)
                     DrawMarker(cam, r.transform.position + Vector3.up * 2.4f, r.seeker.Name, r.seeker.Colour);
-            }
-
-            // Ta stele, et celles des rivaux que tu as trouvees.
-            for (int i = 0; i < Stele.All.Count; i++)
-            {
-                Stele st = Stele.All[i];
-                if (st == null || st.owner == null) continue;
-                bool mine = st.owner == Game.Me;
-                if (!mine && (Game.Me == null || !Game.Me.Knows(st.owner))) continue;
-                if (FlatDistance(me, st.transform.position) < 12f) continue;
-                DrawMarker(cam, st.transform.position + Vector3.up * 4.2f,
-                           mine ? "TA STELE" : "stele de " + st.owner.Name, mine ? Stele.RuneBlue : st.owner.Colour);
-            }
-
-            // Les lieux-dits deja decouverts : des reperes pour ne plus se perdre.
-            for (int i = 0; i < Landmarks.All.Count; i++)
-            {
-                Landmark mark = Landmarks.All[i];
-                if (mark == null || !mark.Discovered) continue;
-                if (FlatDistance(me, mark.transform.position) < 22f) continue;
-                DrawMarker(cam, mark.transform.position + Vector3.up * 3f, Landmarks.Name(mark.kind),
-                           new Color(0.70f, 0.68f, 0.60f));
-            }
-
-            for (int i = 0; i < hoard.Caches.Count; i++)
-            {
-                Cache cache = hoard.Caches[i];
-                if (FlatDistance(me, cache.Position) < 5f) continue;
-                DrawMarker(cam, cache.Position + Vector3.up * 1.2f, "CACHE " + cache.Number,
-                           new Color(0.80f, 0.66f, 0.46f));
             }
         }
 

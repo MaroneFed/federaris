@@ -4,16 +4,22 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// La bibliotheque graphique de l'interface.
+    /// LE STYLE DE FIEF. Toute l'interface du jeu sort d'ici.
     ///
-    /// Tout est fabrique par le code : les panneaux arrondis, leurs ombres, les boutons
-    /// et leurs etats (normal / survol / appuye), les jauges, les pastilles. Aucune image
-    /// importee, aucun Canvas a configurer.
+    /// L'idee : un manuscrit relie de fer. Des panneaux de cuir presque noir, un
+    /// double filet de bronze, un petit losange a chaque coin ; des titres en
+    /// capitales a empattements (Palatino, Book Antiqua...), du texte couleur
+    /// parchemin ; des boutons comme des plaques gravees, et un seul rouge -- le
+    /// cramoisi du chateau -- pour ce qui compte.
     ///
-    /// Concept Unity : une Texture2D est une grille de pixels qu'on peut ecrire a la main.
-    /// Un GUIStyle etire cette texture en "9 tranches" (les 4 coins restent intacts,
-    /// les bords et le centre s'etirent) : un seul petit carre arrondi sert donc de fond
-    /// a un bouton de n'importe quelle taille.
+    /// Tout est DESSINE par le code, pixel par pixel : pas une image importee.
+    /// Changer une couleur ici change tout le jeu.
+    ///
+    /// Concept Unity : une Texture2D est une grille de pixels qu'on peut ecrire a la
+    /// main. Un GUIStyle etire cette texture en "9 tranches" (les 4 coins restent
+    /// intacts, les bords et le centre s'etirent) : un seul petit carre orne sert
+    /// donc de cadre a un panneau de n'importe quelle taille, sans deformer les
+    /// losanges des coins.
     /// </summary>
     public static class UiStyle
     {
@@ -37,25 +43,29 @@ namespace Fief
         public static GUIStyle PanelBox;
         public static GUIStyle CardBox;
 
-        // --- couleurs
-        public static readonly Color Ink = new Color(0.95f, 0.94f, 0.90f);
-        public static readonly Color InkDim = new Color(0.69f, 0.68f, 0.64f);
-        public static readonly Color InkFaint = new Color(0.47f, 0.47f, 0.44f);
-        public static readonly Color Panel = new Color(0.075f, 0.077f, 0.092f, 0.97f);
-        public static readonly Color Card = new Color(0.115f, 0.118f, 0.138f, 0.98f);
-        public static readonly Color Edge = new Color(0.30f, 0.29f, 0.33f, 1f);
-        public static readonly Color EdgeGold = new Color(0.74f, 0.61f, 0.30f, 1f);
-        public static readonly Color BarBg = new Color(0.02f, 0.02f, 0.03f, 0.75f);
-        public static readonly Color Scrim = new Color(0.03f, 0.03f, 0.045f, 0.82f);
+        // --- couleurs : parchemin, bronze, cuir, cramoisi
+        public static readonly Color Ink = new Color(0.94f, 0.90f, 0.81f);
+        public static readonly Color InkDim = new Color(0.70f, 0.65f, 0.56f);
+        public static readonly Color InkFaint = new Color(0.48f, 0.45f, 0.40f);
+        public static readonly Color Panel = new Color(0.075f, 0.066f, 0.058f, 0.96f);
+        public static readonly Color Card = new Color(0.12f, 0.105f, 0.09f, 0.97f);
+        public static readonly Color Edge = new Color(0.55f, 0.44f, 0.26f, 1f);
+        public static readonly Color EdgeGold = new Color(0.86f, 0.70f, 0.36f, 1f);
+        public static readonly Color Crimson = new Color(0.52f, 0.12f, 0.09f, 1f);
+        public static readonly Color BarBg = new Color(0.02f, 0.018f, 0.015f, 0.8f);
+        public static readonly Color Scrim = new Color(0.02f, 0.018f, 0.015f, 0.84f);
 
         // --- ancien nom conserve pour compatibilite
-        public static readonly Color PanelBg = new Color(0.075f, 0.077f, 0.092f, 0.97f);
-        public static readonly Color PanelEdge = new Color(0.74f, 0.61f, 0.30f, 1f);
+        public static readonly Color PanelBg = Panel;
+        public static readonly Color PanelEdge = EdgeGold;
+
+        public enum Shape { Dot, Diamond, Triangle, Square }
 
         static readonly Dictionary<Color, Texture2D> Solids = new Dictionary<Color, Texture2D>();
         static Texture2D panelTex, cardTex, shadowTex, btnTex, btnHoverTex, btnActiveTex;
         static Texture2D primaryTex, primaryHoverTex, ghostHoverTex, pillTex;
-        static Font uiFont;
+        static Texture2D dotTex, diamondTex, triangleTex, fadeTex;
+        static Font titleFont, bodyFont;
         static float builtScale = -1f;
 
         public static int S(float v) { return Mathf.RoundToInt(v * Scale); }
@@ -71,27 +81,32 @@ namespace Fief
             builtScale = Scale;
 
             BuildTextures();
-            BuildFont();
+            BuildFonts();
             BuildStyles();
         }
 
-        static void BuildFont()
+        /// <summary>
+        /// Deux polices systeme : une a empattements pour les titres (le cote
+        /// "manuscrit"), une plus sobre pour lire. Unity prend la premiere qui existe
+        /// sur la machine ; si aucune n'existe, il garde sa police interne.
+        /// </summary>
+        static void BuildFonts()
         {
-            if (uiFont != null) return;
-            // Une police systeme plus soignee que celle par defaut. Si aucune n'existe,
-            // Unity retombe sur sa police interne : on ne risque rien.
-            string[] wanted = { "Trebuchet MS", "Optima", "Georgia", "Segoe UI", "Helvetica Neue", "Arial" };
-            for (int i = 0; i < wanted.Length; i++)
+            if (titleFont == null)
+                titleFont = TryFont(new[] { "Palatino Linotype", "Book Antiqua", "Palatino", "Constantia", "Georgia", "Times New Roman" });
+            if (bodyFont == null)
+                bodyFont = TryFont(new[] { "Constantia", "Georgia", "Palatino Linotype", "Cambria", "Segoe UI", "Arial" });
+        }
+
+        static Font TryFont(string[] names)
+        {
+            try
             {
-                try
-                {
-                    Font f = Font.CreateDynamicFontFromOSFont(wanted[i], 16);
-                    if (f != null) { uiFont = f; return; }
-                }
-                catch (System.Exception)
-                {
-                    // Police absente de ce systeme : on essaie la suivante.
-                }
+                return Font.CreateDynamicFontFromOSFont(names, 16);
+            }
+            catch (System.Exception)
+            {
+                return null;   // aucune de ces polices : on garde celle d'Unity
             }
         }
 
@@ -99,56 +114,83 @@ namespace Fief
         {
             if (panelTex != null) return;
 
-            int r = 10;
-            panelTex = Rounded(r, Panel, Edge, 1.4f);
-            cardTex = Rounded(r, Card, new Color(0.26f, 0.26f, 0.30f, 1f), 1.2f);
-            btnTex = Rounded(7, new Color(0.17f, 0.175f, 0.205f, 1f), new Color(0.33f, 0.33f, 0.38f, 1f), 1.2f);
-            btnHoverTex = Rounded(7, new Color(0.24f, 0.245f, 0.285f, 1f), new Color(0.55f, 0.50f, 0.36f, 1f), 1.4f);
-            btnActiveTex = Rounded(7, new Color(0.13f, 0.13f, 0.155f, 1f), new Color(0.74f, 0.61f, 0.30f, 1f), 1.4f);
-            primaryTex = Rounded(7, new Color(0.62f, 0.49f, 0.17f, 1f), new Color(0.88f, 0.74f, 0.36f, 1f), 1.4f);
-            primaryHoverTex = Rounded(7, new Color(0.78f, 0.63f, 0.24f, 1f), new Color(1f, 0.88f, 0.48f, 1f), 1.6f);
-            ghostHoverTex = Rounded(7, new Color(1f, 1f, 1f, 0.07f), new Color(0.6f, 0.55f, 0.4f, 0.8f), 1.2f);
-            pillTex = Rounded(9, new Color(1f, 1f, 1f, 0.06f), new Color(1f, 1f, 1f, 0.14f), 1f);
+            panelTex = Ornate(new Color(0.085f, 0.075f, 0.066f, 0.97f), new Color(0.06f, 0.052f, 0.045f, 0.97f), Edge, true);
+            cardTex = Ornate(new Color(0.14f, 0.12f, 0.1f, 0.97f), new Color(0.11f, 0.095f, 0.08f, 0.97f),
+                             new Color(0.38f, 0.31f, 0.2f, 1f), false);
+            btnTex = Plate(new Color(0.15f, 0.13f, 0.11f, 1f), new Color(0.40f, 0.33f, 0.21f, 1f));
+            btnHoverTex = Plate(new Color(0.22f, 0.19f, 0.15f, 1f), EdgeGold);
+            btnActiveTex = Plate(new Color(0.10f, 0.09f, 0.075f, 1f), EdgeGold);
+            primaryTex = Plate(Crimson, EdgeGold);
+            primaryHoverTex = Plate(new Color(0.66f, 0.17f, 0.12f, 1f), new Color(1f, 0.86f, 0.5f, 1f));
+            ghostHoverTex = Plate(new Color(1f, 0.9f, 0.7f, 0.06f), new Color(0.7f, 0.58f, 0.36f, 0.8f));
+            pillTex = Plate(new Color(1f, 0.95f, 0.85f, 0.06f), new Color(1f, 0.95f, 0.85f, 0.18f));
             shadowTex = Shadow(26);
+
+            dotTex = ShapeTex(32, Shape.Dot);
+            diamondTex = ShapeTex(32, Shape.Diamond);
+            triangleTex = ShapeTex(32, Shape.Triangle);
+            fadeTex = HorizontalFade(64);
         }
 
         /// <summary>
-        /// Un carre arrondi dessine pixel par pixel, avec bord et anticrenelage.
-        /// On mesure la distance de chaque pixel au rectangle arrondi : negative dedans,
-        /// positive dehors. Le bord est la fine bande autour de zero.
+        /// Le cadre des panneaux : cuir presque noir (un peu plus clair en haut), un
+        /// filet de bronze a l'exterieur, un second plus fin a quatre pixels dedans,
+        /// et un losange de bronze dans chaque coin. 48 x 48, coins de 16.
         /// </summary>
-        static Texture2D Rounded(int radius, Color fill, Color border, float borderWidth)
+        static Texture2D Ornate(Color top, Color bottom, Color edge, bool diamonds)
         {
-            int size = radius * 2 + 6;
-            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            tex.hideFlags = HideFlags.HideAndDontSave;
-            tex.filterMode = FilterMode.Bilinear;
-            tex.wrapMode = TextureWrapMode.Clamp;
-
-            float half = size * 0.5f;
-            float inner = half - radius;
-            Color[] pixels = new Color[size * size];
-
-            for (int y = 0; y < size; y++)
+            const int Size = 48;
+            Texture2D tex = NewTex(Size);
+            Color[] px = new Color[Size * Size];
+            Color innerLine = new Color(edge.r, edge.g, edge.b, 0.45f);
+            for (int y = 0; y < Size; y++)
             {
-                for (int x = 0; x < size; x++)
+                for (int x = 0; x < Size; x++)
                 {
-                    float px = x + 0.5f - half;
-                    float py = y + 0.5f - half;
-                    float dx = Mathf.Max(Mathf.Abs(px) - inner, 0f);
-                    float dy = Mathf.Max(Mathf.Abs(py) - inner, 0f);
-                    float d = Mathf.Sqrt(dx * dx + dy * dy) - radius;
-
-                    float shape = Mathf.Clamp01(0.5f - d);
-                    float edge = Mathf.Clamp01(0.5f - Mathf.Abs(d + borderWidth * 0.5f) + borderWidth * 0.5f);
-
-                    Color c = Color.Lerp(fill, border, Mathf.Clamp01(edge));
-                    c.a *= shape;
-                    pixels[y * size + x] = c;
+                    float fx = x + 0.5f, fy = y + 0.5f;
+                    float d = Mathf.Min(Mathf.Min(fx, Size - fx), Mathf.Min(fy, Size - fy));    // distance au bord
+                    Color c = Color.Lerp(bottom, top, (float)y / (Size - 1));
+                    // coins legerement arrondis
+                    float cx = Mathf.Max(0f, 3f - Mathf.Min(fx, Size - fx)), cy = Mathf.Max(0f, 3f - Mathf.Min(fy, Size - fy));
+                    float corner = Mathf.Sqrt(cx * cx + cy * cy);
+                    if (corner > 3f) { px[y * Size + x] = Color.clear; continue; }
+                    if (d < 1.6f) c = Color.Lerp(c, edge, 1f);
+                    else if (d > 4f && d < 5f) c = Color.Lerp(c, innerLine, innerLine.a);
+                    if (diamonds)
+                    {
+                        // un losange a (9, 9) de chaque coin
+                        float qx = Mathf.Min(fx, Size - fx) - 9f, qy = Mathf.Min(fy, Size - fy) - 9f;
+                        float m = Mathf.Abs(qx) + Mathf.Abs(qy);
+                        if (m < 2.6f) c = Color.Lerp(c, edge, Mathf.Clamp01(2.6f - m));
+                    }
+                    px[y * Size + x] = c;
                 }
             }
+            tex.SetPixels(px);
+            tex.Apply();
+            return tex;
+        }
 
-            tex.SetPixels(pixels);
+        /// <summary>Une plaque de bouton : fond uni, un filet, les coins coupes en biseau.</summary>
+        static Texture2D Plate(Color fill, Color edge)
+        {
+            const int Size = 24;
+            Texture2D tex = NewTex(Size);
+            Color[] px = new Color[Size * Size];
+            for (int y = 0; y < Size; y++)
+            {
+                for (int x = 0; x < Size; x++)
+                {
+                    float fx = Mathf.Min(x + 0.5f, Size - x - 0.5f);
+                    float fy = Mathf.Min(y + 0.5f, Size - y - 0.5f);
+                    if (fx + fy < 3f) { px[y * Size + x] = Color.clear; continue; }      // biseau
+                    bool border = fx < 1.5f || fy < 1.5f || fx + fy < 4.5f;
+                    Color c = border ? edge : fill;
+                    if (!border && y > Size * 0.55f) c = Color.Lerp(c, Color.white, 0.03f);
+                    px[y * Size + x] = c;
+                }
+            }
+            tex.SetPixels(px);
             tex.Apply();
             return tex;
         }
@@ -156,11 +198,7 @@ namespace Fief
         /// <summary>Un halo sombre et flou : pose sous un panneau, il le decolle du jeu.</summary>
         static Texture2D Shadow(int size)
         {
-            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            tex.hideFlags = HideFlags.HideAndDontSave;
-            tex.filterMode = FilterMode.Bilinear;
-            tex.wrapMode = TextureWrapMode.Clamp;
-
+            Texture2D tex = NewTex(size);
             float half = size * 0.5f;
             Color[] pixels = new Color[size * size];
             for (int y = 0; y < size; y++)
@@ -170,8 +208,7 @@ namespace Fief
                     float dx = (x + 0.5f - half) / half;
                     float dy = (y + 0.5f - half) / half;
                     float d = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
-                    float a = Mathf.Pow(1f - d, 2.4f) * 0.55f;
-                    pixels[y * size + x] = new Color(0f, 0f, 0f, a);
+                    pixels[y * size + x] = new Color(0f, 0f, 0f, Mathf.Pow(1f - d, 2.4f) * 0.6f);
                 }
             }
             tex.SetPixels(pixels);
@@ -179,39 +216,94 @@ namespace Fief
             return tex;
         }
 
+        /// <summary>Les petites formes de la boussole et des icones, anticrenelees.</summary>
+        static Texture2D ShapeTex(int size, Shape shape)
+        {
+            Texture2D tex = NewTex(size);
+            Color[] px = new Color[size * size];
+            float h = size * 0.5f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float u = (x + 0.5f - h) / h, v = (y + 0.5f - h) / h;
+                    float d;
+                    if (shape == Shape.Dot) d = Mathf.Sqrt(u * u + v * v) - 0.85f;
+                    else if (shape == Shape.Diamond) d = (Mathf.Abs(u) + Mathf.Abs(v)) - 0.92f;
+                    else
+                    {
+                        // triangle pointe en bas (comme une aiguille) : v de -1 (bas) a +1 (haut)
+                        float edge = Mathf.Abs(u) - (v + 0.9f) * 0.5f;
+                        d = Mathf.Max(edge, Mathf.Max(v - 0.85f, -0.9f - v));
+                    }
+                    float a = Mathf.Clamp01(0.5f - d * h);
+                    px[y * size + x] = new Color(1f, 1f, 1f, a);
+                }
+            }
+            tex.SetPixels(px);
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>Un degrade qui s'efface aux deux bouts : le fond de la boussole.</summary>
+        static Texture2D HorizontalFade(int width)
+        {
+            Texture2D tex = new Texture2D(width, 1, TextureFormat.RGBA32, false);
+            tex.hideFlags = HideFlags.HideAndDontSave;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            for (int x = 0; x < width; x++)
+            {
+                float u = (x + 0.5f) / width;
+                float a = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(Mathf.Min(u, 1f - u) * 4f));
+                tex.SetPixel(x, 0, new Color(1f, 1f, 1f, a));
+            }
+            tex.Apply();
+            return tex;
+        }
+
+        static Texture2D NewTex(int size)
+        {
+            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.hideFlags = HideFlags.HideAndDontSave;
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            return tex;
+        }
+
         static void BuildStyles()
         {
-            Title = Text(30, FontStyle.Bold, Palette.Gold);
-            Big = Text(46, FontStyle.Bold, Palette.Gold);
-            Head = Text(18, FontStyle.Bold, Ink);
-            Label = Text(15, FontStyle.Normal, Ink);
-            Small = Text(13, FontStyle.Normal, InkDim);
-            Tiny = Text(11, FontStyle.Normal, InkFaint);
-            Value = Text(22, FontStyle.Bold, Ink);
+            Title = Text(30, FontStyle.Normal, Palette.Gold, titleFont);
+            Big = Text(46, FontStyle.Normal, Palette.Gold, titleFont);
+            Head = Text(18, FontStyle.Normal, Ink, titleFont);
+            Label = Text(15, FontStyle.Normal, Ink, bodyFont);
+            Small = Text(13, FontStyle.Normal, InkDim, bodyFont);
+            Tiny = Text(11, FontStyle.Normal, InkFaint, bodyFont);
+            Value = Text(22, FontStyle.Normal, Ink, titleFont);
 
-            Centered = Text(15, FontStyle.Normal, Ink);
+            Centered = Text(15, FontStyle.Normal, Ink, bodyFont);
             Centered.alignment = TextAnchor.MiddleCenter;
-            CenteredSmall = Text(12, FontStyle.Normal, InkDim);
+            CenteredSmall = Text(12, FontStyle.Normal, InkDim, bodyFont);
             CenteredSmall.alignment = TextAnchor.MiddleCenter;
 
             Button = Widget(btnTex, btnHoverTex, btnActiveTex, 14, Ink);
-            ButtonPrimary = Widget(primaryTex, primaryHoverTex, primaryTex, 15, new Color(0.11f, 0.09f, 0.04f));
-            ButtonPrimary.fontStyle = FontStyle.Bold;
+            ButtonPrimary = Widget(primaryTex, primaryHoverTex, primaryTex, 15, new Color(1f, 0.93f, 0.8f));
             ButtonGhost = Widget(null, ghostHoverTex, ghostHoverTex, 14, InkDim);
+            ButtonGhost.alignment = TextAnchor.MiddleLeft;
+            ButtonGhost.padding = new RectOffset(S(14), S(10), S(6), S(6));
 
             PanelBox = new GUIStyle();
             PanelBox.normal.background = panelTex;
-            PanelBox.border = new RectOffset(11, 11, 11, 11);
+            PanelBox.border = new RectOffset(16, 16, 16, 16);
 
             CardBox = new GUIStyle();
             CardBox.normal.background = cardTex;
-            CardBox.border = new RectOffset(11, 11, 11, 11);
+            CardBox.border = new RectOffset(16, 16, 16, 16);
         }
 
-        static GUIStyle Text(int size, FontStyle style, Color color)
+        static GUIStyle Text(int size, FontStyle style, Color color, Font font)
         {
             GUIStyle s = new GUIStyle();
-            if (uiFont != null) s.font = uiFont;
+            if (font != null) s.font = font;
             s.fontSize = S(size);
             s.fontStyle = style;
             s.normal.textColor = color;
@@ -226,10 +318,10 @@ namespace Fief
         static GUIStyle Widget(Texture2D normal, Texture2D hover, Texture2D active, int size, Color color)
         {
             GUIStyle s = new GUIStyle();
-            if (uiFont != null) s.font = uiFont;
+            if (titleFont != null) s.font = titleFont;
             s.fontSize = S(size);
             s.alignment = TextAnchor.MiddleCenter;
-            s.border = new RectOffset(9, 9, 9, 9);
+            s.border = new RectOffset(7, 7, 7, 7);
             s.padding = new RectOffset(S(10), S(10), S(7), S(7));
             s.margin = new RectOffset(S(3), S(3), S(3), S(3));
             s.normal.background = normal;
@@ -237,7 +329,7 @@ namespace Fief
             s.active.background = active;
             s.focused.background = normal;
             s.normal.textColor = color;
-            s.hover.textColor = Color.Lerp(color, Color.white, 0.4f);
+            s.hover.textColor = Color.Lerp(color, new Color(1f, 0.92f, 0.7f), 0.6f);
             s.active.textColor = Palette.Gold;
             s.focused.textColor = color;
             s.clipping = TextClipping.Clip;
@@ -266,7 +358,7 @@ namespace Fief
             GUI.DrawTexture(rect, Solid(color));
         }
 
-        /// <summary>Panneau principal : ombre portee + fond arrondi + liseré.</summary>
+        /// <summary>Panneau principal : ombre portee + cuir + double filet de bronze.</summary>
         public static void Frame(Rect rect)
         {
             DropShadow(rect, S(22));
@@ -286,7 +378,7 @@ namespace Fief
                                      rect.width + spread * 2f, rect.height + spread * 2f), shadowTex);
         }
 
-        /// <summary>Une jauge arrondie : fond creuse, remplissage, fin reflet au-dessus.</summary>
+        /// <summary>Une jauge : fond creuse, remplissage, fin reflet, et deux butees de bronze.</summary>
         public static void Bar(Rect rect, float fill01, Color fill, Color background)
         {
             Fill(rect, background);
@@ -294,38 +386,79 @@ namespace Fief
             if (w > 1f)
             {
                 Fill(new Rect(rect.x, rect.y, w, rect.height), fill);
-                Fill(new Rect(rect.x, rect.y, w, Mathf.Max(1f, rect.height * 0.32f)),
-                     new Color(1f, 1f, 1f, 0.16f));
+                Fill(new Rect(rect.x, rect.y, w, Mathf.Max(1f, rect.height * 0.32f)), new Color(1f, 1f, 1f, 0.16f));
             }
-            Fill(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), new Color(0f, 0f, 0f, 0.35f));
+            Fill(new Rect(rect.x - 1f, rect.y - 1f, 1f, rect.height + 2f), Edge);
+            Fill(new Rect(rect.xMax, rect.y - 1f, 1f, rect.height + 2f), Edge);
         }
 
-        /// <summary>Pastille arrondie discrete (fond d'etiquette).</summary>
+        /// <summary>Pastille arrondie discrete (fond d'etiquette, touche de clavier).</summary>
         public static void Pill(Rect rect)
         {
             if (pillTex == null) { Fill(rect, new Color(1f, 1f, 1f, 0.06f)); return; }
-            GUI.DrawTexture(rect, pillTex, ScaleMode.StretchToFill, true);
+            GUI.Box(rect, GUIContent.none, PillStyle());
         }
 
-        /// <summary>Petit carre de couleur, utilise comme icone de ressource.</summary>
+        static GUIStyle pillStyle;
+        static GUIStyle PillStyle()
+        {
+            if (pillStyle == null)
+            {
+                pillStyle = new GUIStyle();
+                pillStyle.normal.background = pillTex;
+                pillStyle.border = new RectOffset(7, 7, 7, 7);
+            }
+            return pillStyle;
+        }
+
+        /// <summary>L'icone d'une ressource : un petit losange taille, colore, avec un reflet.</summary>
         public static void Chip(Rect rect, Color color)
         {
-            Fill(rect, new Color(0f, 0f, 0f, 0.45f));
-            Fill(new Rect(rect.x + 1f, rect.y + 1f, rect.width - 2f, rect.height - 2f), color);
-            Fill(new Rect(rect.x + 1f, rect.y + 1f, rect.width - 2f, Mathf.Max(1f, rect.height * 0.3f)),
-                 new Color(1f, 1f, 1f, 0.22f));
+            Icon(new Rect(rect.x - 1f, rect.y - 1f, rect.width + 2f, rect.height + 2f), Shape.Diamond, new Color(0f, 0f, 0f, 0.6f));
+            Icon(rect, Shape.Diamond, color);
+            Icon(new Rect(rect.x + rect.width * 0.25f, rect.y + rect.height * 0.12f, rect.width * 0.5f, rect.height * 0.4f),
+                 Shape.Diamond, new Color(1f, 1f, 1f, 0.28f));
         }
 
+        /// <summary>Dessine une forme (point, losange, triangle-aiguille, carre) teintee.</summary>
+        public static void Icon(Rect rect, Shape shape, Color color)
+        {
+            Texture2D tex = shape == Shape.Dot ? dotTex : shape == Shape.Diamond ? diamondTex
+                          : shape == Shape.Triangle ? triangleTex : Solid(Color.white);
+            if (tex == null) return;
+            Color was = GUI.color;
+            GUI.color = new Color(was.r * color.r, was.g * color.g, was.b * color.b, was.a * color.a);
+            GUI.DrawTexture(rect, tex, ScaleMode.StretchToFill, true);
+            GUI.color = was;
+        }
+
+        /// <summary>Le fond de la boussole : une bande qui s'efface aux deux bouts.</summary>
+        public static void FadeBand(Rect rect, Color color)
+        {
+            if (fadeTex == null) { Fill(rect, color); return; }
+            Color was = GUI.color;
+            GUI.color = new Color(was.r * color.r, was.g * color.g, was.b * color.b, was.a * color.a);
+            GUI.DrawTexture(rect, fadeTex, ScaleMode.StretchToFill, true);
+            GUI.color = was;
+        }
+
+        /// <summary>
+        /// Un filet de separation orne : deux traits de bronze qui s'effacent vers
+        /// les bords, et un losange au milieu.
+        /// </summary>
         public static void Rule(Rect rect)
         {
-            Fill(rect, new Color(1f, 1f, 1f, 0.07f));
+            float cy = rect.y + rect.height * 0.5f;
+            FadeBand(new Rect(rect.x, cy, rect.width, 1f), new Color(Edge.r, Edge.g, Edge.b, 0.8f));
+            float d = S(7);
+            Icon(new Rect(rect.center.x - d * 0.5f, cy - d * 0.5f, d, d), Shape.Diamond, Edge);
         }
 
         public static void Shadowed(Rect rect, string text, GUIStyle style)
         {
             Color original = style.normal.textColor;
             style.normal.textColor = new Color(0f, 0f, 0f, 0.75f);
-            GUI.Label(new Rect(rect.x + 1.5f, rect.y + 1.5f, rect.width, rect.height), text, style);
+            GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
             style.normal.textColor = original;
             GUI.Label(rect, text, style);
         }
@@ -337,6 +470,21 @@ namespace Fief
             style.normal.textColor = color;
             GUI.Label(rect, text, style);
             style.normal.textColor = original;
+        }
+
+        /// <summary>
+        /// Un titre ESPACE ("F I E F", "L A   C L O C H E") : c'est ce qui fait
+        /// "grave dans la pierre" plutot que "tape a la machine".
+        /// </summary>
+        public static string Spaced(string text)
+        {
+            System.Text.StringBuilder b = new System.Text.StringBuilder(text.Length * 2);
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (i > 0) b.Append(text[i] == ' ' ? "  " : " ");
+                if (text[i] != ' ') b.Append(text[i]);
+            }
+            return b.ToString();
         }
     }
 }
