@@ -98,6 +98,9 @@ namespace Fief
             string blocked = null;
             if (onStele) blocked = "Ta relique est sur ta stele. Va la reprendre : il ne renforce que ce que tu lui apportes.";
             else if (bag.IsEmpty) blocked = "Ton sac est vide. Il ne fond que ce que tu portes.";
+            else if (relic == null && BagValue(bag) < FirstRelicMinimum)
+                blocked = "\"Des miettes ?\" Pour une premiere relique, il lui faut au moins " + FirstRelicMinimum
+                        + " de valeur (tu portes " + BagValue(bag) + ").";
             if (blocked != null) UiStyle.Tinted(GUILayoutUtility.GetRect(w - pad * 2f, UiStyle.S(22)), blocked,
                                                 UiStyle.Small, new Color(0.92f, 0.62f, 0.32f));
 
@@ -116,6 +119,16 @@ namespace Fief
             GUILayout.EndHorizontal();
 
             GUILayout.EndArea();
+        }
+
+        /// <summary>Une relique ne nait pas de trois brindilles : il faut apporter un vrai sac.</summary>
+        public const int FirstRelicMinimum = 20;
+
+        static int BagValue(Inventory bag)
+        {
+            int v = 0;
+            for (int i = 0; i < ResourceInfo.Count; i++) v += bag.Get((ResourceType)i) * ResourceInfo.ForgeValue((ResourceType)i);
+            return v;
         }
 
         static int[] Carried(Inventory bag)
@@ -148,6 +161,8 @@ namespace Fief
                                              : "+" + (relic.Power - before) + "  --  " + Relic.TierName(Relic.Tier(relic.Power)),
                                        "Porte-la sur TA stele avant la cloche (P pour la planter).", Mage.Glow);
             Toasts.Show("Le mage fond " + melted + " morceaux dans la relique.", Mage.Glow);
+            // Et il murmure un secret : un talisman, une stele rivale, un tresor.
+            Toasts.Show("Le mage murmure : " + Secrets.Whisper(Game.Me), new Color(0.78f, 0.6f, 1f));
 
             // On ferme le panneau : le spectacle de la forge se passe DEVANT toi.
             if (Game.Hud != null) Game.Hud.ClosePanel();

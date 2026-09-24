@@ -38,6 +38,7 @@ namespace Fief
             Toasts.Clear();
             Victories.Reset();
             Objectives.Reset();
+            Secrets.Reset();
 
             Game.Config = config;
             Game.Inventory = new Inventory();

@@ -13,6 +13,12 @@ namespace Fief
     /// </summary>
     public class TalismanPickup : MonoBehaviour, IInteractable
     {
+        public static readonly System.Collections.Generic.List<TalismanPickup> All =
+            new System.Collections.Generic.List<TalismanPickup>();
+
+        void OnEnable() { All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+
         public Talisman talisman;
 
         Transform model;

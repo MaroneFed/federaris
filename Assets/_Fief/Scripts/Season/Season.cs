@@ -96,6 +96,21 @@ namespace Fief
             }
         }
 
+        /// <summary>
+        /// L'apparition qui va commencer dans moins de "lead" secondes (-1 sinon).
+        /// C'est l'ANNONCE : pendant ce temps, la colonne du mage monte deja.
+        /// </summary>
+        public int UpcomingAppearance(float lead)
+        {
+            if (!Running) return -1;
+            for (int k = 0; AppearanceHappens(k); k++)
+            {
+                float start = AppearanceStart(k);
+                if (start > Elapsed) return start - Elapsed <= lead ? k : -1;
+            }
+            return -1;
+        }
+
         public bool MagePresent
         {
             get { return CurrentAppearance >= 0; }

@@ -44,7 +44,18 @@ namespace Fief
         float shown;                // 0 -> 1 : fondu d'apparition
         bool warned;                // "il repart bientot" deja dit pour cette apparition
 
-        LightBeam beacon;           // la colonne bleue, les premieres secondes
+        LightBeam beacon;           // la colonne bleue : l'annonce, puis les premieres secondes
+        int announced = -1;         // l'apparition annoncee (la colonne est deja la)
+        Vector3 nextSpot;
+
+        public const float AnnounceLead = 45f;
+
+        /// <summary>Vrai pendant les 45 s ou la colonne annonce ou il va descendre.</summary>
+        public bool Announced { get { return announced >= 0 && !Present; } }
+        /// <summary>Ou il descendra (pendant l'annonce), ou ou il est.</summary>
+        public Vector3 Destination { get { return Present ? transform.position : nextSpot; } }
+        /// <summary>Vrai tant que sa position doit etre montree a TOUS (annonce + debut de sa visite).</summary>
+        public bool Beaconing { get { return Announced || Present && beaconTimer > 0f; } }
         float beaconTimer;
         float forgeGlow;            // 1 -> 0 : l'eclat de la forge
 
@@ -197,6 +208,27 @@ namespace Fief
             Season season = Game.Season;
             int wanted = season != null ? season.CurrentAppearance : -1;
 
+            // L'ANNONCE, comme un largage : 45 s avant sa venue, une colonne bleue
+            // monte la ou il descendra, visible de toute la foret. Tout le monde y court.
+            int upcoming = season != null ? season.UpcomingAppearance(AnnounceLead) : -1;
+            if (upcoming >= 0 && upcoming != announced && wanted < 0)
+            {
+                announced = upcoming;
+                nextSpot = ChooseSpot(upcoming);
+                if (beacon != null)
+                {
+                    beacon.source = nextSpot;
+                    beacon.targetAlpha = 0.9f;
+                    beacon.fadeSpeed = 0.5f;
+                }
+                string where = Game.PlayerTransform != null ? Hud.Direction(Game.PlayerTransform.position, nextSpot) : "quelque part";
+                Sfx.MageArrives();
+                if (Game.Hud != null)
+                    Game.Hud.ShowDiscovery("LA DESCENTE", "Le mage va descendre",
+                                           "Une colonne bleue s'eleve " + where + ". Il sera la dans " + Mathf.RoundToInt(AnnounceLead) + " secondes.",
+                                           "Tout le monde l'a vue. Cours-y avec ton sac.", Glow);
+            }
+
             if (wanted != appearance)
             {
                 if (appearance >= 0) Leave();
@@ -264,7 +296,8 @@ namespace Fief
 
         void Appear(int k)
         {
-            Vector3 spot = ChooseSpot(k);
+            Vector3 spot = announced == k ? nextSpot : ChooseSpot(k);
+            announced = -1;
             transform.position = spot;
             body.SetActive(true);
             warned = false;
@@ -273,19 +306,18 @@ namespace Fief
             string where = Game.PlayerTransform != null
                 ? Hud.Direction(Game.PlayerTransform.position, spot)
                 : "quelque part";
-            Toasts.Show("Le mage chante, " + where + ". Ecoute, et suis sa voix.", Glow);
+            Toasts.Show("Le mage est descendu, " + where + ". La colonne s'eteindra bientot : ensuite, suis sa voix.", Glow);
 
-            // Son arrivee se VOIT, une fois : une colonne bleue monte au-dessus des
-            // arbres dans sa direction, pendant quatorze secondes. Apres, il faut
-            // l'oreille.
+            // La colonne reste encore vingt secondes, puis s'eteint : apres, il faut l'oreille.
             if (beacon != null)
             {
                 beacon.source = spot;
-                beacon.targetAlpha = 0.85f;
+                beacon.targetAlpha = 0.9f;
                 beacon.fadeSpeed = 0.6f;
-                beaconTimer = 14f;
+                beaconTimer = 20f;
             }
-            Sfx.MageArrives();
+            Ambiance.Burst(transform, new Vector3(0f, 1.2f, 0f), Glow);
+            Sfx.Forge();
         }
 
         void Leave()

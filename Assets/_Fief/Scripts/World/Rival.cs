@@ -274,10 +274,12 @@ namespace Fief
                 goal = Goal.ToStele; target = h.StelePosition; return;
             }
 
-            // Le mage chante et il a de quoi forger : il y court.
-            if (season.MagePresent && mage != null && !seeker.Bag.IsEmpty && !h.RelicOnStele && season.MageTimeLeft > 12f)
+            // Le mage chante -- ou sa colonne annonce ou il descendra -- et il a de
+            // quoi forger : il y court, comme tout le monde.
+            if (mage != null && !seeker.Bag.IsEmpty && !h.RelicOnStele
+                && (season.MagePresent && season.MageTimeLeft > 12f || mage.Announced))
             {
-                goal = Goal.ToMage; target = mage.transform.position; return;
+                goal = Goal.ToMage; target = mage.Destination; return;
             }
 
             // Le mage va revenir : il va chercher sa relique sur sa stele pour la renforcer.
@@ -334,7 +336,7 @@ namespace Fief
             if (distance > reach)
             {
                 work = 0f;
-                if (goal == Goal.ToMage && Game.Mage != null) target = Game.Mage.transform.position;
+                if (goal == Goal.ToMage && Game.Mage != null) target = Game.Mage.Destination;
                 if (goal == Goal.Hunt && huntTarget != null && huntTarget.Body != null) target = huntTarget.Body.position;
                 if (goal == Goal.Fight && aggro != null && aggro.Body != null) target = aggro.Body.position;
                 Walk(target, speed, dt);

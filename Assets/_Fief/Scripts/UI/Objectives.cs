@@ -149,6 +149,8 @@ namespace Fief
             }
             if (h.Trophy != null) return "Tu portes la relique de " + h.TrophyFrom.Name + " : cours a ta stele pour la fondre.";
             if (season.Remaining < 120f && h.RelicInHand) return "La cloche approche : pose ta relique sur ta stele, vite.";
+            if (Game.Mage != null && Game.Mage.Announced)
+                return "Le mage descend dans " + Hud.Clock(season.NextMageIn) + " (colonne bleue, point bleu sur la boussole). Cours-y avec ton sac !";
             if (season.MagePresent && !Game.Inventory.IsEmpty) return "Le mage chante (" + Hud.Clock(season.MageTimeLeft) + ") : porte-lui ton sac.";
             if (h.RelicInHand) return "Ta relique est en main : pose-la sur ta stele (E), sinon elle ne compte pas.";
             if (season.NextMageIn >= 0f && season.NextMageIn < 40f) return "Le mage arrive dans " + Hud.Clock(season.NextMageIn) + " : prepare ton sac.";

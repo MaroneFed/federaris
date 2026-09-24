@@ -164,9 +164,19 @@ namespace Fief
                     Add(r.transform.position, UiStyle.Shape.Diamond, new Color(1f, 0.3f, 0.22f), 16f, "VOLEUR " + r.seeker.Name, true);
             }
 
+            // Le mage : pendant la descente et ses premieres secondes, TOUT LE MONDE le
+            // voit (c'est le largage). Ensuite, seulement avec la Corne d'appel.
             Mage mage = Game.Mage;
-            if (h != null && h.Has(Talisman.Corne) && mage != null && mage.Present)
-                Add(mage.transform.position, UiStyle.Shape.Dot, new Color(0.62f, 0.8f, 1f), 14f, "Le mage", true);
+            if (mage != null && (mage.Beaconing || h != null && h.Has(Talisman.Corne) && mage.Present))
+                Add(mage.Destination, UiStyle.Shape.Dot, new Color(0.62f, 0.8f, 1f), 16f, mage.Present ? "Le mage" : "Le mage descend", true);
+
+            // Ce que le mage t'a murmure apres une forge.
+            for (int i = 0; i < Secrets.All.Count; i++)
+            {
+                Secrets.Secret s = Secrets.All[i];
+                if (s.Resolved) continue;
+                Add(s.at, UiStyle.Shape.Diamond, new Color(0.78f, 0.6f, 1f), 12f, s.label, false);
+            }
         }
 
         static void Add(Vector3 at, UiStyle.Shape shape, Color color, float size, string label, bool pulse)
