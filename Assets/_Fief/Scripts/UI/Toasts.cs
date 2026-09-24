@@ -90,6 +90,5 @@ namespace Fief
                 style.normal.textColor = previous;
             }
         }
-        }
     }
 }
