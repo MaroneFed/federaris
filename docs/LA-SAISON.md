@@ -189,6 +189,11 @@ et c'est tout : ni ta stèle, ni le château, ni le mage. On se repère au Grand
 chant de sa stèle (15 m), aux torches du château, à la colonne du mage au-dessus des
 arbres. Le mage dit ses secrets **en mots** (« à cent quarante pas au nord-est »).
 
+**Le filet de sécurité (26/09)** : touche **H**, « tendre l'oreille ». Ta stèle joue trois
+notes claires, en 3D, audibles à 400 m : on sait de quel côté elle est, pas à quelle
+distance. Une fois par minute. Et près de sa stèle (8 m), la vie remonte six fois plus
+vite : c'est le seul endroit où l'on est chez soi.
+
 ## Les améliorations (décidé par Martin le 25/09/2026)
 
 Payées avec la **réserve** de la stèle (pas le sac), et parfois de l'or :
