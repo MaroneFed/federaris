@@ -165,7 +165,7 @@ namespace Fief
                 new[] { 130.81f, 174.61f, 220.00f, 261.63f },   // fa (renversement)
                 new[] { 130.81f, 164.81f, 196.00f, 261.63f }    // do
             };
-            return Pads("foret (fabriquee)", chords, 6f, 0.9f);
+            return Pads("forêt (fabriquée)", chords, 6f, 0.9f);
         }
 
         /// <summary>La tension : un bourdon grave, une seconde mineure aigue, un coeur qui bat.</summary>
@@ -187,7 +187,7 @@ namespace Fief
                               * (beat > 0.22f ? 1f : 0f);
                 data[i] = drone * 0.5f + high + heart * 0.9f;
             }
-            return Finish("tension (fabriquee)", data);
+            return Finish("tension (fabriquée)", data);
         }
 
         static AudioClip Pads(string name, float[][] chords, float chordSeconds, float level)

@@ -79,8 +79,8 @@ namespace Fief
             for (int k = 0; k < 4; k++)
                 Proto.Cube(w.Hips, new Vector3(-0.2f, -0.06f - k * 0.07f, 0.1f), new Vector3(0.06f, 0.05f, 0.06f), new Color(0.6f, 0.5f, 0.36f), "Champignon");
 
-            Transform staff = w.Holder(w.HandR, "Baton");
-            GameObject shaft = Proto.Cube(staff, new Vector3(0f, -0.05f, 0f), new Vector3(0.06f, 2.0f, 0.06f), Wood, "Baton");
+            Transform staff = w.Holder(w.HandR, "Bâton");
+            GameObject shaft = Proto.Cube(staff, new Vector3(0f, -0.05f, 0f), new Vector3(0.06f, 2.0f, 0.06f), Wood, "Bâton");
             shaft.transform.localRotation = Quaternion.Euler(0f, 0f, -3f);
             GameObject knot = Proto.Cube(staff, new Vector3(-0.04f, 0.96f, 0f), new Vector3(0.14f, 0.12f, 0.12f), Palette.Shade(Wood, 0.8f), "Noeud");
             knot.transform.localRotation = Quaternion.Euler(20f, 30f, 10f);
@@ -103,7 +103,7 @@ namespace Fief
             }
             for (int k = 0; k < 3; k++)
             {
-                GameObject log = Proto.Cube(t, at + new Vector3(0f, 0.12f, 0f), new Vector3(0.12f, 0.12f, 0.8f), Wood, "Buche");
+                GameObject log = Proto.Cube(t, at + new Vector3(0f, 0.12f, 0f), new Vector3(0.12f, 0.12f, 0.8f), Wood, "Bûche");
                 log.transform.localRotation = Quaternion.Euler(8f, k * 60f, 0f);
             }
             Material flame = MaterialFactory.GetGlow(new Color(1f, 0.56f, 0.2f), 2.4f);
@@ -120,14 +120,14 @@ namespace Fief
                 float a = k / 3f * 360f;
                 Vector3 dir = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
                 GameObject leg = Proto.Cube(t, at + dir * 0.45f + new Vector3(0f, 0.6f, 0f), new Vector3(0.04f, 1.3f, 0.04f),
-                                            new Color(0.12f, 0.12f, 0.13f), "Trepied");
+                                            new Color(0.12f, 0.12f, 0.13f), "Trépied");
                 leg.transform.localRotation = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(20f, 0f, 0f);
             }
             Proto.Cylinder(t, at + new Vector3(0f, 0.72f, 0f), new Vector3(0.46f, 0.18f, 0.46f), new Color(0.1f, 0.1f, 0.11f), "Marmite");
             Proto.EndVisualOnly();
             Proto.Blocker(t, at + new Vector3(0f, 0.4f, 0f), new Vector3(1.2f, 0.8f, 1.2f), "Feu");
 
-            GameObject lightGo = new GameObject("Feu de l'ermite");
+            GameObject lightGo = new GameObject("Feu de l'Ermite");
             lightGo.transform.SetParent(t, false);
             lightGo.transform.localPosition = at + new Vector3(0f, 0.9f, 0f);
             Light light = lightGo.AddComponent<Light>();
@@ -152,7 +152,7 @@ namespace Fief
 
         public Transform Anchor { get { return transform; } }
         public bool CanInteract { get { return true; } }
-        public string Prompt { get { return "Parler a l'Ermite"; } }
+        public string Prompt { get { return "Parler à l'Ermite"; } }
         public float HoldDuration { get { return 0f; } }
 
         public void Interact()
@@ -178,14 +178,14 @@ namespace Fief
 
                 string hello = firstTime
                     ? "Ah. Quelqu'un qui marche au lieu de courir. Assieds-toi, le feu est pour tout le monde."
-                    : "Te revoila. Le feu t'attendait.";
+                    : "Te revoilà. Le feu t'attendait.";
 
                 string brew;
                 if (Game.Brewed)
                     brew = "Mon infusion te tient encore " + Hud.Clock(Game.Hoard.BrewUntil - Game.Season.Elapsed) + ".";
                 else
-                    brew = "Mon infusion : " + Hoard.BrewCost + " bois mort, et pendant trois minutes ton sac ne pesera "
-                         + "plus sur tes gestes. Tu recolteras charge comme si tu etais leger.";
+                    brew = "Mon infusion : " + Hoard.BrewCost + " bois mort, et pendant trois minutes ton sac ne pèsera "
+                         + "plus sur tes gestes. Tu récolteras charge comme si tu étais léger.";
                 return hello + "\n\n" + LandmarkLine() + "\n\n" + brew;
             }
         }
@@ -219,7 +219,7 @@ namespace Fief
                     if (Game.Hoard.RequestBrew(Game.Inventory, Game.Season.Elapsed))
                     {
                         Sfx.Build();
-                        Toasts.Show("L'infusion est amere et brulante. Pendant trois minutes, ton sac ne pese plus sur tes gestes.",
+                        Toasts.Show("L'infusion est amère et brûlante. Pendant trois minutes, ton sac ne pèse plus sur tes gestes.",
                                     Voice);
                     }
                     return false;
@@ -247,9 +247,9 @@ namespace Fief
                 float d = Flat(m.transform.position - player.position).magnitude;
                 if (d < bestDistance) { bestDistance = d; best = m; }
             }
-            if (best == null) return "Tu connais la sylve mieux que moi, maintenant. Ca arrive rarement.";
+            if (best == null) return "Tu connais la sylve mieux que moi, maintenant. Ça arrive rarement.";
             return Landmarks.Name(best.kind) + " est " + Hud.Direction(player.position, best.transform.position)
-                   + ", a " + Paces(bestDistance) + " pas d'ici. Tu n'y es jamais alle, ca se voit.";
+                   + ", a " + Paces(bestDistance) + " pas d'ici. Tu n'y es jamais allé, ça se voit.";
         }
 
         static string HollowLine()
@@ -267,7 +267,7 @@ namespace Fief
             }
             return "Le creux le plus proche est " + Hud.Direction(player.position, new Vector3(spot.x, 0f, spot.y))
                    + ", a " + Paces(best) + " pas. Les pierres y luisent, tu ne peux pas le rater.\n\n"
-                   + "Et si tu croises un feu-follet, suis-le. Ils vont toujours la ou les pierres chantent.";
+                   + "Et si tu croises un feu-follet, suis-le. Ils vont toujours là où les pierres chantent.";
         }
 
         /// <summary>Un pas, c'est trois quarts de metre. On compte en pas dans la sylve.</summary>

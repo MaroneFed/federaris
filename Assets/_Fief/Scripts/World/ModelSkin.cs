@@ -68,7 +68,7 @@ namespace Fief
             try
             {
                 model = Instantiate(prefab, body.transform.parent, false);
-                model.name = "Modele " + prefab.name;
+                model.name = "Modèle " + prefab.name;
                 model.transform.localPosition = Vector3.zero;
                 model.transform.localRotation = Quaternion.identity;
                 Fit(model, height);
@@ -88,7 +88,7 @@ namespace Fief
             }
             catch (System.Exception error)
             {
-                Debug.LogWarning("[FIEF] Modele " + prefab.name + " ignore : " + error.Message);
+                Debug.LogWarning("[FIEF] Modèle " + prefab.name + " ignore : " + error.Message);
                 if (model != null) Destroy(model);
                 return false;
             }
@@ -100,7 +100,7 @@ namespace Fief
             if (Found.TryGetValue(folder, out list)) return list;
             list = Resources.LoadAll<GameObject>("Modeles/" + folder);
             Found[folder] = list;
-            if (list.Length > 0) Debug.Log("[FIEF] Modeles/" + folder + " : " + list.Length + " modele(s).");
+            if (list.Length > 0) Debug.Log("[FIEF] Modeles/" + folder + " : " + list.Length + " modèle(s).");
             return list;
         }
 

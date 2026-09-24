@@ -103,7 +103,7 @@ namespace Fief
             swingTimer -= Time.deltaTime;
             if (kit.Holding(ToolKind.Piege))
             {
-                Hint = "Clic : poser le piege devant toi   (" + Trap.CountOf(me) + " / " + Trap.MaxFor(me) + " poses)";
+                Hint = "Clic : poser le piège devant toi   (" + Trap.CountOf(me) + " / " + Trap.MaxFor(me) + " posés)";
                 if (FiefInput.UseHeld && swingTimer <= 0f)
                 {
                     swingTimer = 0.8f;
@@ -154,7 +154,7 @@ namespace Fief
             if (kit.Wear(1))
             {
                 Sfx.Deny();
-                Toasts.Show("Ta hache s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
+                Toasts.Show("Ta hache s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
             }
 
             if (done < ChopsNeeded(c)) return;
@@ -184,7 +184,7 @@ namespace Fief
             kit.Wear(1);                 // le piege quitte la main : l'emplacement se libere
             Sfx.Build();
             OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
-            Toasts.Show("Piege pose, sous les feuilles. De loin, toi seul sais qu'il est la.", new Color(0.95f, 0.62f, 0.35f));
+            Toasts.Show("Piège pose, sous les feuilles. De loin, toi seul sais qu'il est la.", new Color(0.95f, 0.62f, 0.35f));
         }
 
         // ================================================================== grimper
@@ -353,10 +353,10 @@ namespace Fief
                 {
                     float a = i / 8f * Mathf.PI * 2f;
                     GameObject seg = Proto.Cube(go.transform, new Vector3(Mathf.Cos(a) * 0.09f, Mathf.Sin(a) * 0.09f, 0f),
-                                                new Vector3(0.05f, 0.02f, 0.02f), Trap.Iron, "Machoire");
+                                                new Vector3(0.05f, 0.02f, 0.02f), Trap.Iron, "Mâchoire");
                     seg.transform.localRotation = Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg + 90f);
                 }
-                Proto.Cube(go.transform, new Vector3(0f, -0.14f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Trap.Iron, "Chaine");
+                Proto.Cube(go.transform, new Vector3(0f, -0.14f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Trap.Iron, "Chaîne");
             }
             else if (kind == ToolKind.Hache)
             {
@@ -395,7 +395,7 @@ namespace Fief
                     q.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
                 }
                 Proto.Cube(t, new Vector3(0f, 0.22f, 0f), new Vector3(0.046f, 0.5f, 0.01f), steel, "Lame");
-                Proto.Cube(t, new Vector3(0f, 0.2f, 0f), new Vector3(0.012f, 0.42f, 0.012f), new Color(0.36f, 0.37f, 0.4f), "Gouttiere");
+                Proto.Cube(t, new Vector3(0f, 0.2f, 0f), new Vector3(0.012f, 0.42f, 0.012f), new Color(0.36f, 0.37f, 0.4f), "Gouttière");
                 GameObject tip = Proto.Cone(t, new Vector3(0f, 0.47f, 0f), 0.033f, 0.1f, steel, "Pointe", 4);
                 tip.transform.localScale = new Vector3(0.033f, 0.1f, 0.008f);
             }
@@ -483,18 +483,18 @@ namespace Fief
             col.height = 1f;
             col.center = new Vector3(0f, 0.3f, 0f);
             Proto.BeginVisualOnly();
-            GameObject trunk = Proto.Cylinder(go.transform, new Vector3(0f, 0.2f, 0f), new Vector3(radius * 2.1f, 0.35f, radius * 2.1f), Palette.DarkBarks[0], "Ecorce");
+            GameObject trunk = Proto.Cylinder(go.transform, new Vector3(0f, 0.2f, 0f), new Vector3(radius * 2.1f, 0.35f, radius * 2.1f), Palette.DarkBarks[0], "Écorce");
             trunk.GetComponent<Renderer>().sharedMaterial = Surfaces.Bark(Palette.DarkBarks[0]);
-            GameObject top = Proto.Cylinder(go.transform, new Vector3(0f, 0.55f, 0f), new Vector3(radius * 1.9f, 0.012f, radius * 1.9f), new Color(0.62f, 0.5f, 0.34f), "Bois a cru");
+            GameObject top = Proto.Cylinder(go.transform, new Vector3(0f, 0.55f, 0f), new Vector3(radius * 1.9f, 0.012f, radius * 1.9f), new Color(0.62f, 0.5f, 0.34f), "Bois à cru");
             top.transform.localRotation = Quaternion.Euler(4f, 0f, 3f);
             Proto.Cylinder(go.transform, new Vector3(0f, 0.565f, 0f), new Vector3(radius * 1.2f, 0.01f, radius * 1.2f), new Color(0.52f, 0.4f, 0.26f), "Cerne");
             Proto.Cylinder(go.transform, new Vector3(0f, 0.572f, 0f), new Vector3(radius * 0.5f, 0.01f, radius * 0.5f), new Color(0.44f, 0.32f, 0.2f), "Coeur");
-            // Des echardes dressees, la ou le tronc a cede.
+            // Des echardes dressees, là où le tronc a cede.
             for (int i = 0; i < 4; i++)
             {
                 float a = i * 1.7f;
                 GameObject splinter = Proto.Cube(go.transform, new Vector3(Mathf.Cos(a) * radius * 0.6f, 0.68f, Mathf.Sin(a) * radius * 0.6f),
-                                                 new Vector3(0.05f, 0.26f, 0.03f), new Color(0.58f, 0.46f, 0.3f), "Echarde");
+                                                 new Vector3(0.05f, 0.26f, 0.03f), new Color(0.58f, 0.46f, 0.3f), "Écharde");
                 splinter.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * 15f, a * 57f, Mathf.Cos(a) * 15f);
             }
             Proto.EndVisualOnly();

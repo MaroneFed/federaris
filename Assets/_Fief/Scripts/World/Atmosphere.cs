@@ -92,7 +92,7 @@ namespace Fief
         {
             if (Sun == null)
             {
-                GameObject go = new GameObject("LUMIERE RASANTE");
+                GameObject go = new GameObject("LUMIÈRE RASANTE");
                 Sun = go.AddComponent<Light>();
             }
             Sun.type = LightType.Directional;
@@ -123,7 +123,7 @@ namespace Fief
                 go.transform.SetParent(player, false);
 
                 // A hauteur de hanche et legerement devant : la flaque de lumiere
-                // tombe la ou on pose les pieds, et les troncs proches se detachent.
+                // tombe là où on pose les pieds, et les troncs proches se detachent.
                 go.transform.localPosition = new Vector3(0.18f, 1.15f, 0.30f);
                 Lamp = go.AddComponent<Light>();
                 go.AddComponent<LampFlicker>();

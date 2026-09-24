@@ -87,8 +87,8 @@ namespace Fief
             Transform f = b.figure;
             Proto.Cube(f, new Vector3(0f, 0.62f, -0.05f), new Vector3(0.36f, 0.34f, 0.95f), Fur, "Corps");
             Proto.Cube(f, new Vector3(0f, 0.7f, 0.36f), new Vector3(0.42f, 0.42f, 0.36f), FurLight, "Poitrail");
-            Proto.Cube(f, new Vector3(0f, 0.8f, 0.2f), new Vector3(0.3f, 0.12f, 0.5f), Palette.Shade(Fur, 0.8f), "Echine");
-            Proto.Cube(f, new Vector3(0f, 0.86f, 0.66f), new Vector3(0.3f, 0.28f, 0.3f), Fur, "Tete");
+            Proto.Cube(f, new Vector3(0f, 0.8f, 0.2f), new Vector3(0.3f, 0.12f, 0.5f), Palette.Shade(Fur, 0.8f), "Échine");
+            Proto.Cube(f, new Vector3(0f, 0.86f, 0.66f), new Vector3(0.3f, 0.28f, 0.3f), Fur, "Tête");
             Proto.Cube(f, new Vector3(0f, 0.8f, 0.88f), new Vector3(0.16f, 0.14f, 0.24f), FurLight, "Museau");
             Proto.Cube(f, new Vector3(0f, 0.83f, 1.0f), new Vector3(0.07f, 0.06f, 0.04f), new Color(0.05f, 0.05f, 0.05f), "Truffe");
             for (int side = -1; side <= 1; side += 2)
@@ -411,7 +411,7 @@ namespace Fief
             if (kind == Kind.Loup) AudioSource.PlayClipAtPoint(Sfx.Howl(), transform.position + Vector3.up, 0.9f);
             else Sfx.CurseToll();
             if (prey == Game.Me)
-                Toasts.Show(kind == Kind.Loup ? "Des yeux jaunes dans la brume. Les loups t'ont senti." : "Un revenant se leve et marche vers toi.",
+                Toasts.Show(kind == Kind.Loup ? "Des yeux jaunes dans la brume. Les loups t'ont senti." : "Un revenant se lève et marche vers toi.",
                             new Color(0.95f, 0.5f, 0.35f));
         }
 
@@ -443,7 +443,7 @@ namespace Fief
             if (killer != null && goldCarried > 0)
             {
                 killer.Money.Add(goldCarried);
-                if (killer.IsPlayer) { Sfx.Coin(); Toasts.Show("Le revenant retombe en poussiere. " + goldCarried + " or dans ses haillons.", Palette.Gold); }
+                if (killer.IsPlayer) { Sfx.Coin(); Toasts.Show("Le revenant retombe en poussière. " + goldCarried + " or dans ses haillons.", Palette.Gold); }
             }
             else if (killer != null && killer.IsPlayer)
                 Toasts.Show("Le loup s'effondre.", UiStyle.InkDim);

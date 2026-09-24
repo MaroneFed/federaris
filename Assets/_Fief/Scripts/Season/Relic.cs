@@ -62,10 +62,10 @@ namespace Fief
             {
                 case 0: return "rien";
                 case 1: return "une babiole";
-                case 2: return "un fetiche";
+                case 2: return "un fétiche";
                 case 3: return "une relique";
-                case 4: return "un tresor de mage";
-                default: return "une legende";
+                case 4: return "un trésor de mage";
+                default: return "une légende";
             }
         }
 

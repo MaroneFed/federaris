@@ -12,75 +12,75 @@ namespace Fief
     public class GameConfig : MonoBehaviour
     {
         [Header("Monde")]
-        [Tooltip("Cote de la carte en metres. 700 m se traverse en 90 s a pied -- " +
-                 "mais avec 14 m de visibilite, on n'en a jamais l'impression.")]
+        [Tooltip("Côté de la carte en mètres. 700 m se traverse en 90 s à pied -- " +
+                 "mais avec 14 m de visibilité, on n'en a jamais l'impression.")]
         public float mapSize = 700f;
-        [Tooltip("Graine du generateur aleatoire : meme graine = meme map.")]
+        [Tooltip("Graine du générateur aléatoire : même graine = même map.")]
         public int worldSeed = 1337;
 
         [Header("La sylve")]
-        [Tooltip("Distance a laquelle la brume efface tout, en metres. C'est le reglage " +
-                 "le plus important du jeu : il decide de l'enfermement. A 14 m un tronc " +
-                 "est a moitie efface a 7 m -- on ne voit jamais ce qu'il y a deux arbres " +
-                 "plus loin. Remonte a 20 ou 30 pour respirer.")]
+        [Tooltip("Distance à laquelle la brume efface tout, en mètres. C'est le réglage " +
+                 "le plus important du jeu : il décide de l'enfermement. À 14 m un tronc " +
+                 "est à moitié effacé à 7 m -- on ne voit jamais ce qu'il y a deux arbres " +
+                 "plus loin. Remonte à 20 ou 30 pour respirer.")]
         public float sightDistance = 14f;
 
         [Tooltip("Couleur de la brume et du fond. Gris-vert, et PLUS CLAIRE que les " +
-                 "troncs proches : c'est ce qui les decoupe en silhouettes. Une brume plus " +
-                 "sombre que les arbres donne un vide noir, pas une foret.")]
+                 "troncs proches : c'est ce qui les découpe en silhouettes. Une brume plus " +
+                 "sombre que les arbres donne un vide noir, pas une forêt.")]
         public Color hazeColor = new Color(0.17f, 0.19f, 0.17f);
 
-        [Tooltip("Hauteur de la lumiere au-dessus de l'horizon, en degres. Sous un couvert " +
-                 "la lumiere tombe d'en haut : en dessous de 35 elle eclaire les troncs de " +
-                 "cote, comme un projecteur, et plus rien n'a l'air naturel.")]
+        [Tooltip("Hauteur de la lumière au-dessus de l'horizon, en degrés. Sous un couvert " +
+                 "la lumière tombe d'en haut : en dessous de 35 elle éclaire les troncs de " +
+                 "côté, comme un projecteur, et plus rien n'a l'air naturel.")]
         public float sunElevation = 52f;
 
-        [Tooltip("Force de la lumiere du ciel. Faible : c'est un temps couvert.")]
+        [Tooltip("Force de la lumière du ciel. Faible : c'est un temps couvert.")]
         public float sunIntensity = 0.45f;
 
         [Tooltip("Force de la lanterne que tu portes. Sans elle, sombre veut dire " +
-                 "'on ne voit rien' et le jeu devient penible. Trop forte, elle repeint " +
-                 "la foret en orange.")]
+                 "'on ne voit rien' et le jeu devient pénible. Trop forte, elle repeint " +
+                 "la forêt en orange.")]
         public float lampIntensity = 1.0f;
 
-        [Tooltip("Portee de la lanterne, en metres.")]
+        [Tooltip("Portée de la lanterne, en mètres.")]
         public float lampRange = 13f;
 
-        [Tooltip("Ecart moyen entre deux emplacements d'arbre, en metres. Plus petit = " +
-                 "plus dense, mais aussi plus long a construire.")]
+        [Tooltip("Écart moyen entre deux emplacements d'arbre, en mètres. Plus petit = " +
+                 "plus dense, mais aussi plus long à construire.")]
         public float treeSpacing = 4.6f;
 
-        [Tooltip("Proportion des emplacements reellement plantes, module par le couvert. " +
+        [Tooltip("Proportion des emplacements réellement plantes, module par le couvert. " +
                  "Monte-le pour un fourre, descends-le pour une futaie claire.")]
         public float treeDensity = 0.80f;
 
-        [Tooltip("Densite des touffes et blocs au sol. Ils poussent la ou le couvert " +
-                 "s'ouvre, donc ils remplissent les clairieres au lieu de les vider.")]
+        [Tooltip("Densité des touffes et blocs au sol. Ils poussent là où le couvert " +
+                 "s'ouvre, donc ils remplissent les clairières au lieu de les vider.")]
         public float undergrowthDensity = 0.55f;
 
-        [Header("Deplacement")]
+        [Header("Déplacement")]
         public float moveSpeedEmpty = 7.6f;
-        [Tooltip("Vitesse a 100% de charge. Volontairement PROCHE de la vitesse a vide : "
-               + "etre charge doit couter, pas enliser. Le vrai cout est sur les gestes (voir plus bas).")]
+        [Tooltip("Vitesse à 100% de charge. Volontairement PROCHE de la vitesse à vide : "
+               + "être charge doit coûter, pas enliser. Le vrai coût est sur les gestes (voir plus bas).")]
         public float moveSpeedFull = 5.6f;
-        [Tooltip("Courbure du ralentissement : 1 = lineaire, >1 = on ne sent la charge que tard.")]
+        [Tooltip("Courbure du ralentissement : 1 = linéaire, >1 = on ne sent la charge que tard.")]
         public float loadCurve = 1.15f;
         [Tooltip("Vitesse x N en courant.")]
         public float sprintMultiplier = 1.55f;
-        [Tooltip("Charge (0-1) au-dela de laquelle on ne peut plus courir. Un joueur tres charge "
-               + "reste donc rattrapable : c'est ce qui le rend vulnerable en Phase 2.")]
+        [Tooltip("Charge (0-1) au-delà de laquelle on ne peut plus courir. Un joueur très charge "
+               + "reste donc rattrapable : c'est ce qui le rend vulnérable en Phase 2.")]
         public float sprintMaxLoad = 0.75f;
         public float turnSpeed = 720f;
         public float jumpSpeed = 5.0f;
         public float gravity = -22f;
 
-        [Header("Camera")]
-        [Tooltip("Hauteur des yeux, en metres.")]
+        [Header("Caméra")]
+        [Tooltip("Hauteur des yeux, en mètres.")]
         public float eyeHeight = 1.78f;
-        [Tooltip("Avancee des yeux. Doit rester sous le rayon de l'encolure du poncho (0,145) "
+        [Tooltip("Avancée des yeux. Doit rester sous le rayon de l'encolure du poncho (0,145) "
                + "pour qu'on voie le tissu autour de soi en baissant les yeux.")]
         public float eyeForward = 0.13f;
-        [Tooltip("Amplitude du balancement de tete a la marche.")]
+        [Tooltip("Amplitude du balancement de tête à la marche.")]
         public float headBob = 0.045f;
         public float cameraDistance = 10f;
         public float cameraMinDistance = 3.5f;
@@ -90,35 +90,35 @@ namespace Fief
         [Header("Inventaire")]
         [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, la relique = 5.")]
         public float maxWeight = 60f;
-        [Tooltip("L'or au depart. Il ne sert qu'a SOUDOYER les gardes du chateau. On en trouve " +
-                 "d'autre dans les bourses perdues de la foret.")]
+        [Tooltip("L'or au départ. Il ne sert qu'a SOUDOYER les gardes du château. On en trouve " +
+                 "d'autre dans les bourses perdues de la forêt.")]
         public int startingGold = 40;
 
-        [Header("Recolte")]
+        [Header("Récolte")]
         public float interactRadius = 3.6f;
-        [Tooltip("Duree d'un coup, sac VIDE.")]
+        [Tooltip("Durée d'un coup, sac VIDE.")]
         public float harvestDuration = 1.15f;
-        [Tooltip("Multiplicateur de duree quand le sac est PLEIN. C'est la nouvelle mecanique de "
+        [Tooltip("Multiplicateur de durée quand le sac est PLEIN. C'est la nouvelle mécanique de "
                + "poids : plus tu es charge, plus tes gestes sont lourds et lents. "
-               + "Tu restes mobile, mais tu deviens lent a l'ouvrage.")]
+               + "Tu restes mobile, mais tu deviens lent à l'ouvrage.")]
         public float actionPenaltyFull = 2.4f;
         public int harvestYield = 2;
         public int nodeCapacity = 30;
         public float nodeRespawnDelay = 55f;
 
         [Header("La Saison (voir docs/LA-SAISON.md)")]
-        [Tooltip("Duree d'une Saison, en minutes. A la cloche, seule compte la relique posee sur la stele.")]
+        [Tooltip("Durée d'une Saison, en minutes. À la cloche, seule compte la relique posée sur la stèle.")]
         public float seasonMinutes = 30f;
-        [Tooltip("Premiere apparition du mage, en secondes. Assez tot pour qu'on le rencontre " +
-                 "avant d'avoir oublie qu'il existe.")]
+        [Tooltip("Première apparition du mage, en secondes. Assez tôt pour qu'on le rencontre " +
+                 "avant d'avoir oublié qu'il existe.")]
         public float mageFirstAppearance = 120f;
-        [Tooltip("Ecart entre deux apparitions, en secondes. Le rater, c'est attendre ca.")]
+        [Tooltip("Écart entre deux apparitions, en secondes. Le rater, c'est attendre ça.")]
         public float mageInterval = 270f;
-        [Tooltip("Duree d'une apparition, en secondes. Il faut le trouver avant qu'il parte.")]
+        [Tooltip("Durée d'une apparition, en secondes. Il faut le trouver avant qu'il parte.")]
         public float mageStay = 150f;
-        [Tooltip("Le mage apparait au moins a cette distance de toi : il faut marcher.")]
+        [Tooltip("Le mage apparaît au moins à cette distance de toi : il faut marcher.")]
         public float mageMinDistance = 110f;
-        [Tooltip("Et au plus a celle-ci : il doit rester atteignable dans le temps imparti.")]
+        [Tooltip("Et au plus à celle-ci : il doit rester atteignable dans le temps imparti.")]
         public float mageMaxDistance = 260f;
         [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
                  "tente se voit.")]

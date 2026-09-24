@@ -37,7 +37,7 @@ namespace Fief
                 slice.transform.localRotation = Quaternion.Euler(0f, i * 45f, 0f);
             }
             float shoulders = 1.95f * k;
-            Proto.Cube(f, new Vector3(0f, shoulders, 0f), new Vector3(0.78f * width, 0.22f * k, 0.46f * width), clothDark, "Epaules");
+            Proto.Cube(f, new Vector3(0f, shoulders, 0f), new Vector3(0.78f * width, 0.22f * k, 0.46f * width), clothDark, "Épaules");
 
             if (hooded)
             {
@@ -47,7 +47,7 @@ namespace Fief
             }
             else
             {
-                Proto.Cube(f, new Vector3(0f, shoulders + 0.3f * k, 0f), new Vector3(0.3f * k, 0.36f * k, 0.3f * k), skin, "Tete");
+                Proto.Cube(f, new Vector3(0f, shoulders + 0.3f * k, 0f), new Vector3(0.3f * k, 0.36f * k, 0.3f * k), skin, "Tête");
             }
 
             // Les bras, pendants, legerement en avant.

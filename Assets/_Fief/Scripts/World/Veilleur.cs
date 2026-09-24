@@ -81,7 +81,7 @@ namespace Fief
             // Le casque : une calotte d'acier et un nasal.
             Proto.Sphere(head, new Vector3(0f, 0.2f, -0.01f), new Vector3(0.27f, 0.22f, 0.28f), Steel, "Casque");
             Proto.Cube(head, new Vector3(0f, 0.12f, 0.135f), new Vector3(0.035f, 0.13f, 0.025f), Steel, "Nasal");
-            Proto.Cube(head, new Vector3(0f, 0.3f, 0f), new Vector3(0.03f, 0.05f, 0.24f), Palette.Shade(Steel, 1.2f), "Crete");
+            Proto.Cube(head, new Vector3(0f, 0.3f, 0f), new Vector3(0.03f, 0.05f, 0.24f), Palette.Shade(Steel, 1.2f), "Crête");
             // Une barbe grise, courte et carree.
             Proto.Cube(head, new Vector3(0f, -0.01f, 0.1f), new Vector3(0.2f, 0.18f, 0.1f), new Color(0.62f, 0.60f, 0.56f), "Barbe");
             // Une cape agrafee sur l'epaule, un cor en bandouliere.
@@ -190,15 +190,15 @@ namespace Fief
             {
                 if (page == 1) return TalismanLines();
                 if (page == 2)
-                    return "Je garde ce chateau depuis que le roi a perdu sa tete. On me payait, avant. "
+                    return "Je garde ce château depuis que le roi a perdu sa tête. On me payait, avant. "
                          + "Plus personne ne me paie.\n\nUn garde qu'on ne paie plus finit toujours par ouvrir "
-                         + "la porte a quelqu'un. Souviens-t'en, le jour ou il y aura d'autres gardes que moi.";
+                         + "la porte à quelqu'un. Souviens-t'en, le jour où il y aura d'autres gardes que moi.";
 
                 string hello;
-                if (talks <= 1) hello = "Encore un. Ils viennent tous pour la stele, un jour ou l'autre.";
-                else if (talks % 3 == 0) hello = "La brume est plus epaisse ce soir. Ou alors ce sont mes yeux.";
+                if (talks <= 1) hello = "Encore un. Ils viennent tous pour la stèle, un jour ou l'autre.";
+                else if (talks % 3 == 0) hello = "La brume est plus épaisse ce soir. Ou alors ce sont mes yeux.";
                 else if (talks % 3 == 1) hello = "Tu reviens. C'est bien. Ceux qui ne reviennent pas, je ne les revois pas.";
-                else hello = "Parle. Je n'ai que ca a faire, ecouter.";
+                else hello = "Parle. Je n'ai que ça à faire, écouter.";
                 return hello + "\n\n" + MageLine() + "\n\n" + RelicLine();
             }
         }
@@ -251,10 +251,10 @@ namespace Fief
             if (h == null || h.Relic == null)
                 return "Tu n'as pas de relique. Le mage la forge avec ce que tu portes. Seulement ce que tu portes.";
             if (!h.StelePlanted)
-                return "Tu n'as pas de stele. C'est etrange. Tout le monde en a une.";
+                return "Tu n'as pas de stèle. C'est étrange. Tout le monde en a une.";
             if (h.RelicOnStele)
-                return "Ta relique est sur ta stele. Elle vaut " + h.FinalScore + ", pour l'instant. Si personne ne l'a trouvee.";
-            return "Ta relique pese dans ton sac. Tant qu'elle n'est pas sur ta stele, elle ne compte pas.";
+                return "Ta relique est sur ta stèle. Elle vaut " + h.FinalScore + ", pour l'instant. Si personne ne l'a trouvée.";
+            return "Ta relique pèse dans ton sac. Tant qu'elle n'est pas sur ta stèle, elle ne compte pas.";
         }
 
         static string TalismanLines()
@@ -262,7 +262,7 @@ namespace Fief
             Hoard h = Game.Hoard;
             if (h == null) return "";
             if (h.TalismanCount >= TalismanInfo.Count)
-                return "Tu les as tous les six. Personne n'avait jamais fait ca. Le roi lui-meme n'en avait que quatre.";
+                return "Tu les as tous les six. Personne n'avait jamais fait ça. Le roi lui-même n'en avait que quatre.";
 
             string text = "Il y en a six. On dit :\n";
             int told = 0;

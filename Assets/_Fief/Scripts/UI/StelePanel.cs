@@ -17,7 +17,7 @@ namespace Fief
     public class StelePanel : IPanel
     {
         const float Reach = 4.5f;
-        static readonly string[] Tabs = { "RESERVE", "RELIQUE", "AMELIORATIONS" };
+        static readonly string[] Tabs = { "RÉSERVE", "RELIQUE", "AMÉLIORATIONS" };
 
         readonly Stele stele;
         int tab;
@@ -53,7 +53,7 @@ namespace Fief
 
             float pad = UiStyle.S(18);
             GUILayout.BeginArea(new Rect(box.x + pad, box.y + pad, box.width - pad * 2f, box.height - pad * 2f));
-            GUILayout.Label("TA STELE", UiStyle.Title);
+            GUILayout.Label("TA STÈLE", UiStyle.Title);
 
             // --- les onglets
             GUILayout.BeginHorizontal();
@@ -84,7 +84,7 @@ namespace Fief
                 GUI.enabled = true;
             }
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Fermer  (Echap)", UiStyle.Button, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(160))))
+            if (GUILayout.Button("Fermer  (Échap)", UiStyle.Button, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(160))))
             {
                 if (Game.Hud != null) Game.Hud.ClosePanel();
             }
@@ -96,15 +96,15 @@ namespace Fief
         {
             Season season = Game.Season;
             float curse = season != null ? season.NextCurseIn : -1f;
-            string when = curse >= 0f ? "La prochaine Malediction tombe dans " + Hud.Clock(curse) + "." : "Plus de Malediction avant la cloche.";
+            string when = curse >= 0f ? "La prochaine Malédiction tombe dans " + Hud.Clock(curse) + "." : "Plus de Malédiction avant la cloche.";
             UiStyle.Tinted(GUILayoutUtility.GetRect(width, UiStyle.S(20)),
-                           "Ce qui dort ici echappe a la Malediction. Pas aux pillards.  " + when, UiStyle.Small, Curse.Violet);
+                           "Ce qui dort ici échappe à la Malédiction. Pas aux pillards.  " + when, UiStyle.Small, Curse.Violet);
             GUILayout.Space(UiStyle.S(8));
-            StashPanel.Rows(store, bag, "STELE");
+            StashPanel.Rows(store, bag, "STÈLE");
             GUILayout.Space(UiStyle.S(6));
             Rect gauges = GUILayoutUtility.GetRect(width, UiStyle.S(38));
             StashPanel.Gauge(new Rect(gauges.x, gauges.y, gauges.width * 0.47f, gauges.height), "Sac", bag);
-            StashPanel.Gauge(new Rect(gauges.x + gauges.width * 0.53f, gauges.y, gauges.width * 0.47f, gauges.height), "Reserve", store.Contents);
+            StashPanel.Gauge(new Rect(gauges.x + gauges.width * 0.53f, gauges.y, gauges.width * 0.47f, gauges.height), "Réserve", store.Contents);
         }
 
         static void DrawRelic(Seeker me)
@@ -113,15 +113,15 @@ namespace Fief
             string state;
             if (h.Trophy != null) state = "Tu portes la relique de " + h.TrophyFrom.Name + " (puissance " + h.Trophy.Power + "). Fonds-la dans la tienne : 60 % passent.";
             else if (h.Relic == null) state = "Tu n'as pas encore de relique. Le mage la forge avec ce que tu lui portes.";
-            else if (h.RelicOnStele) state = "Ta relique repose ici : puissance " + h.FinalScore + ". Elle comptera a la cloche -- si personne ne la vole.";
-            else state = "Ta relique est dans tes mains (puissance " + h.Relic.Power + "). Tant qu'elle n'est pas posee, elle ne compte pas.";
+            else if (h.RelicOnStele) state = "Ta relique repose ici : puissance " + h.FinalScore + ". Elle comptera à la cloche -- si personne ne la vole.";
+            else state = "Ta relique est dans tes mains (puissance " + h.Relic.Power + "). Tant qu'elle n'est pas posée, elle ne compte pas.";
             GUILayout.Label(state, UiStyle.Label);
             GUILayout.Space(UiStyle.S(12));
 
             GUILayout.BeginHorizontal();
             if (h.Trophy != null)
             {
-                if (GUILayout.Button("Fondre la relique volee", UiStyle.ButtonPrimary, GUILayout.Height(UiStyle.S(34)), GUILayout.Width(UiStyle.S(260))))
+                if (GUILayout.Button("Fondre la relique volée", UiStyle.ButtonPrimary, GUILayout.Height(UiStyle.S(34)), GUILayout.Width(UiStyle.S(260))))
                     Stele.AbsorbTrophy(me);
             }
             if (h.RelicInHand)

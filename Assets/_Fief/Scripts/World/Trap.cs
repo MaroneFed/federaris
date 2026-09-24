@@ -50,17 +50,17 @@ namespace Fief
         /// <summary>Null si l'endroit convient, sinon pourquoi.</summary>
         public static string WhyNot(Seeker owner, Vector3 at)
         {
-            if (CountOf(owner) >= MaxFor(owner)) return "Tu as deja " + MaxFor(owner) + " pieges poses.";
-            if (Castle.Covers(at.x, at.z, 2f)) return "Pas dans le chateau : les gardes les verraient.";
+            if (CountOf(owner) >= MaxFor(owner)) return "Tu as déjà " + MaxFor(owner) + " pièges posés.";
+            if (Castle.Covers(at.x, at.z, 2f)) return "Pas dans le château : les gardes les verraient.";
             if (Ground.Slope(at.x, at.z) > 0.5f) return "Le sol est trop en pente.";
             for (int i = 0; i < All.Count; i++)
-                if (All[i] != null && Flat(All[i].transform.position - at).magnitude < 1.5f) return "Trop pres d'un autre piege.";
+                if (All[i] != null && Flat(All[i].transform.position - at).magnitude < 1.5f) return "Trop près d'un autre piège.";
             return null;
         }
 
         public static Trap Place(Seeker owner, Vector3 at, float yaw)
         {
-            GameObject go = new GameObject("PIEGE de " + owner.Name);
+            GameObject go = new GameObject("PIÈGE de " + owner.Name);
             go.transform.position = Ground.Place(at.x, at.z, 0.02f);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             Trap trap = go.AddComponent<Trap>();
@@ -116,7 +116,7 @@ namespace Fief
         /// <summary>Une machoire : un demi-cercle de fer herisse de dents, pivotant sur l'axe du ressort.</summary>
         static Transform Jaw(Transform parent, float side)
         {
-            GameObject pivot = new GameObject("Machoire");
+            GameObject pivot = new GameObject("Mâchoire");
             pivot.transform.SetParent(parent, false);
             pivot.transform.localPosition = new Vector3(0f, 0.03f, 0f);
             Transform p = pivot.transform;
@@ -197,11 +197,11 @@ namespace Fief
             Snap();
             if (victim.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.6f);
             if (owner == Game.Me) Stats.TrapKills++;
-            Combat.Kill(victim, owner, "dans un piege de " + (owner != null ? owner.Name : "quelqu'un"));
+            Combat.Kill(victim, owner, "dans un piège de " + (owner != null ? owner.Name : "quelqu'un"));
             if (owner == Game.Me && !victim.IsPlayer)
             {
                 string where = Game.PlayerTransform != null ? Hud.Direction(Game.PlayerTransform.position, transform.position) : "";
-                Toasts.Show(victim.Name + " est tombe dans ton piege, " + where + ". Sa depouille t'attend.", new Color(0.95f, 0.55f, 0.3f));
+                Toasts.Show(victim.Name + " est tombé dans ton piège, " + where + ". Sa dépouille t'attend.", new Color(0.95f, 0.55f, 0.3f));
             }
             Destroy(gameObject, 25f);
         }

@@ -37,11 +37,11 @@ namespace Fief
         {
             switch (k)
             {
-                case UpgradeKind.Besace: return "Besace renforcee";
+                case UpgradeKind.Besace: return "Besace renforcée";
                 case UpgradeKind.Amulette: return "Amulette du glas";
                 case UpgradeKind.Sentinelle: return "Sentinelle";
                 case UpgradeKind.Lanterne: return "Verre poli";
-                case UpgradeKind.Lame: return "Lame trempee";
+                case UpgradeKind.Lame: return "Lame trempée";
                 case UpgradeKind.Bottes: return "Bottes de cerf";
                 default: return "Collets";
             }
@@ -52,12 +52,12 @@ namespace Fief
             switch (k)
             {
                 case UpgradeKind.Besace: return "+" + Mathf.RoundToInt(BesaceKilos) + " kg dans le sac.";
-                case UpgradeKind.Amulette: return "La Malediction te laisse la moitie de ton sac.";
-                case UpgradeKind.Sentinelle: return "Ta stele sonne le glas quand un etranger s'en approche.";
-                case UpgradeKind.Lanterne: return "Ta lanterne eclaire un tiers plus loin.";
-                case UpgradeKind.Lame: return "Tes coups d'epee font 40 % de degats en plus.";
+                case UpgradeKind.Amulette: return "La Malédiction te laisse la moitié de ton sac.";
+                case UpgradeKind.Sentinelle: return "Ta stèle sonne le glas quand un étranger s'en approche.";
+                case UpgradeKind.Lanterne: return "Ta lanterne éclaire un tiers plus loin.";
+                case UpgradeKind.Lame: return "Tes coups d'épée font 40 % de dégâts en plus.";
                 case UpgradeKind.Bottes: return "Tu marches 10 % plus vite.";
-                default: return "Deux pieges de plus poses en meme temps.";
+                default: return "Deux pièges de plus posés en même temps.";
             }
         }
 

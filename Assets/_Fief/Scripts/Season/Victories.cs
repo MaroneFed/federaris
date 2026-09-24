@@ -71,10 +71,10 @@ namespace Fief
         {
             switch (kind)
             {
-                case VictoryKind.Relique: return "A la cloche, la plus puissante relique posee sur sa stele.";
-                case VictoryKind.Trahison: return "Acheter le serment des six gardes : le chateau est a toi.";
-                case VictoryKind.Couronne: return "Reunir les six talismans, puis s'asseoir sur le trone.";
-                case VictoryKind.Offrande: return "Deposer au Registre 60 bois mort, 20 pierres-lune, 10 fer ancien.";
+                case VictoryKind.Relique: return "A la cloche, la plus puissante relique posée sur sa stèle.";
+                case VictoryKind.Trahison: return "Acheter le serment des six gardes : le château est à toi.";
+                case VictoryKind.Couronne: return "Réunir les six talismans, puis s'asseoir sur le trône.";
+                case VictoryKind.Offrande: return "Déposer au Registre 60 bois mort, 20 pierres-lune, 10 fer ancien.";
                 default: return "";
             }
         }

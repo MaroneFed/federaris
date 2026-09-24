@@ -91,7 +91,7 @@ namespace Fief
 
         /// <summary>C : planter le camp. Une seule fois par Saison.</summary>
         public static bool CampPressed { get { return KeyPressed(KeyCode.C); } }
-        /// <summary>G maintenu : creuser une cache la ou l'on se tient.</summary>
+        /// <summary>G maintenu : creuser une cache là où l'on se tient.</summary>
         public static bool DigHeld { get { return KeyHeld(KeyCode.G); } }
         public static bool DigPressed { get { return KeyPressed(KeyCode.G); } }
 

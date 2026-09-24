@@ -121,21 +121,21 @@ namespace Fief
                 // Le classement : du plus puissant au plus faible.
                 System.Collections.Generic.List<Seeker> order = new System.Collections.Generic.List<Seeker>(Game.Seekers);
                 order.Sort((a, b) => b.Score.CompareTo(a.Score));
-                string text = "Les noms sont graves dans la pierre, et changent tout seuls.\n";
+                string text = "Les noms sont gravés dans la pierre, et changent tout seuls.\n";
                 for (int i = 0; i < order.Count; i++)
                 {
                     Seeker s = order[i];
                     string what;
-                    if (!s.Hoard.StelePlanted) what = "n'a pas encore plante sa stele";
-                    else if (s.Score <= 0) what = "sa stele est vide";
+                    if (!s.Hoard.StelePlanted) what = "n'a pas encore plante sa stèle";
+                    else if (s.Score <= 0) what = "sa stèle est vide";
                     else what = s.Score + "  --  " + Relic.TierName(Relic.Tier(s.Score));
-                    string known = s.IsPlayer ? "" : (Game.Me != null && Game.Me.Knows(s) ? "   (tu sais ou est sa stele)" : "");
+                    string known = s.IsPlayer ? "" : (Game.Me != null && Game.Me.Knows(s) ? "   (tu sais où est sa stèle)" : "");
                     text += "\n" + (i + 1) + ".  " + s.Name + " : " + what + known;
                 }
                 Hoard mine = Game.Hoard;
                 if (mine != null)
                 {
-                    text += "\n\nL'OFFRANDE (victoire immediate) : ";
+                    text += "\n\nL'OFFRANDE (victoire immédiate) : ";
                     for (int i = 0; i < ResourceInfo.Count; i++)
                         text += (i > 0 ? ",  " : "") + ResourceInfo.Name((ResourceType)i) + " " + mine.Offered[i] + "/" + Victories.Offering[i];
                 }
@@ -144,7 +144,7 @@ namespace Fief
         }
 
         public int ChoiceCount { get { return 2; } }
-        public string ChoiceLabel(int index) { return index == 0 ? "Deposer ce que je porte en offrande" : "Fermer"; }
+        public string ChoiceLabel(int index) { return index == 0 ? "Déposer ce que je porte en offrande" : "Fermer"; }
 
         public bool ChoiceEnabled(int index)
         {

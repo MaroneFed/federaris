@@ -140,7 +140,7 @@ namespace Fief
                                               rng.NextDouble() < 0.2 ? Moss : (i % 2 == 0 ? StatueStone : StatueShade), "Robe");
                 slice.transform.localRotation = Quaternion.Euler(0f, i * 45f, 0f);
             }
-            Proto.Cube(f, new Vector3(0f, 2.0f * k, 0f), new Vector3(0.8f * k, 0.22f * k, 0.52f * k), StatueShade, "Epaules");
+            Proto.Cube(f, new Vector3(0f, 2.0f * k, 0f), new Vector3(0.8f * k, 0.22f * k, 0.52f * k), StatueShade, "Épaules");
             if (state != StatueState.Headless)
             {
                 GameObject hood = Proto.Cube(f, new Vector3(0f, 2.3f * k, 0f), new Vector3(0.46f * k, 0.5f * k, 0.46f * k), StatueStone, "Capuche");
@@ -152,7 +152,7 @@ namespace Fief
             else
             {
                 // La tete est par terre, devant le socle.
-                GameObject head = Proto.Cube(r, new Vector3(-0.8f, 0.4f, 1.6f), new Vector3(0.8f, 0.9f, 0.8f), StatueStone, "Tete tombee");
+                GameObject head = Proto.Cube(r, new Vector3(-0.8f, 0.4f, 1.6f), new Vector3(0.8f, 0.9f, 0.8f), StatueStone, "Tête tombée");
                 head.transform.localRotation = Quaternion.Euler(20f, 50f, 74f);
             }
 
@@ -221,7 +221,7 @@ namespace Fief
         /// </summary>
         static void Banner(Transform t, Vector3 top, float yaw)
         {
-            GameObject root = new GameObject("Etendard");
+            GameObject root = new GameObject("Étendard");
             root.transform.SetParent(t, false);
             root.transform.localPosition = top;
             root.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
@@ -307,7 +307,7 @@ namespace Fief
                 Vector3 from = hub + new Vector3(Mathf.Cos(a) * 1.4f, 0f, Mathf.Sin(a) * 1.4f);
                 Vector3 to = new Vector3(hub.x, ceiling, hub.z);
                 Vector3 mid = (from + to) * 0.5f;
-                GameObject chain = Proto.Cube(t, mid, new Vector3(0.05f, (to - from).magnitude, 0.05f), Iron, "Chaine");
+                GameObject chain = Proto.Cube(t, mid, new Vector3(0.05f, (to - from).magnitude, 0.05f), Iron, "Chaîne");
                 chain.transform.localRotation = Quaternion.FromToRotation(Vector3.up, (to - from).normalized);
             }
             Proto.EndVisualOnly();
@@ -317,7 +317,7 @@ namespace Fief
         static void ThroneSeat(Transform t, Vector3 seatBase)
         {
             Proto.BeginVisualOnly();
-            Proto.Cube(t, seatBase + new Vector3(0f, 0.45f, 0f), new Vector3(1.3f, 0.2f, 1.0f), TimberDark, "Siege");
+            Proto.Cube(t, seatBase + new Vector3(0f, 0.45f, 0f), new Vector3(1.3f, 0.2f, 1.0f), TimberDark, "Siège");
             Proto.Cube(t, seatBase + new Vector3(0f, 0.2f, 0f), new Vector3(1.2f, 0.4f, 0.9f), Timber, "Coffre");
             Proto.Cube(t, seatBase + new Vector3(0f, 1.9f, 0.42f), new Vector3(1.3f, 3.2f, 0.2f), TimberDark, "Dossier");
             Proto.Cube(t, seatBase + new Vector3(-0.72f, 0.85f, 0f), new Vector3(0.16f, 0.6f, 1.0f), Timber, "Accoudoir");
@@ -328,7 +328,7 @@ namespace Fief
             Proto.Cone(t, seatBase + new Vector3(-0.55f, 3.5f, 0.42f), 0.16f, 0.7f, FadedGold, "Pinacle", 4);
             Proto.Cone(t, seatBase + new Vector3(0.55f, 3.5f, 0.42f), 0.16f, 0.7f, FadedGold, "Pinacle", 4);
             Proto.Cone(t, seatBase + new Vector3(0f, 3.5f, 0.42f), 0.22f, 1.1f, FadedGold, "Pinacle", 4);
-            Proto.Blocker(t, seatBase + new Vector3(0f, 1.7f, 0.1f), new Vector3(1.6f, 3.4f, 1.2f), "Trone");
+            Proto.Blocker(t, seatBase + new Vector3(0f, 1.7f, 0.1f), new Vector3(1.6f, 3.4f, 1.2f), "Trône");
             Throne.Build(t, seatBase + new Vector3(0f, 0.6f, -0.9f));
         }
 
@@ -428,7 +428,7 @@ namespace Fief
             }
             GameObject wheel = Proto.Cylinder(c, new Vector3(-1.05f, 0.62f, -0.4f), new Vector3(1.25f, 0.06f, 1.25f), TimberDark, "Roue");
             wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            GameObject lost = Proto.Cylinder(c, new Vector3(1.9f, 0.05f, 0.9f), new Vector3(1.25f, 0.05f, 1.25f), TimberDark, "Roue tombee");
+            GameObject lost = Proto.Cylinder(c, new Vector3(1.9f, 0.05f, 0.9f), new Vector3(1.25f, 0.05f, 1.25f), TimberDark, "Roue tombée");
             lost.transform.localRotation = Quaternion.Euler(4f, 0f, 2f);
             GameObject shaft = Proto.Cube(c, new Vector3(0.3f, 0.3f, 2.3f), new Vector3(0.1f, 0.1f, 2.2f), Timber, "Brancard");
             shaft.transform.localRotation = Quaternion.Euler(-12f, 6f, 0f);

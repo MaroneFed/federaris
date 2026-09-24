@@ -22,7 +22,7 @@ namespace Fief
     /// Chaque module se lit dans une variable, puis se modifie : c'est une "vue" sur
     /// le composant, pas une copie.
     ///
-    /// simulationSpace = World : une particule nee reste la ou elle est nee, meme si
+    /// simulationSpace = World : une particule nee reste là où elle est nee, meme si
     /// l'emetteur (accroche au joueur) s'en va. Sans ca, toute la poussiere suivrait
     /// le joueur comme une bulle.
     /// </summary>
@@ -56,7 +56,7 @@ namespace Fief
 
         static void BuildMotes(Transform player)
         {
-            ParticleSystem ps = NewSystem("Poussieres", player, new Vector3(0f, 1.6f, 0f), additive);
+            ParticleSystem ps = NewSystem("Poussières", player, new Vector3(0f, 1.6f, 0f), additive);
 
             ParticleSystem.MainModule main = ps.main;
             main.duration = 10f;
@@ -188,7 +188,7 @@ namespace Fief
         public static void Embers(Transform parent, Vector3 localPosition)
         {
             if (!EnsureMaterials()) return;
-            ParticleSystem ps = NewSystem("Etincelles", parent, localPosition, additive);
+            ParticleSystem ps = NewSystem("Étincelles", parent, localPosition, additive);
 
             ParticleSystem.MainModule main = ps.main;
             main.duration = 4f;

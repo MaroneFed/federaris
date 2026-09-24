@@ -323,16 +323,16 @@ namespace Fief
                 if (Game.Hud != null)
                 {
                     Game.Hud.ClosePanel();
-                    Game.Hud.ShowDiscovery("LA GARDE", info.Name + " t'a jete dehors",
-                                           taken > 0 ? "Il garde tes " + taken + " fer ancien." : "Tu n'avais rien a lui prendre. Cette fois.",
-                                           "Les gardes sont mal payes. Parle-leur avant de voler.", ConeAlarm);
+                    Game.Hud.ShowDiscovery("LA GARDE", info.Name + " t'a jeté dehors",
+                                           taken > 0 ? "Il garde tes " + taken + " fer ancien." : "Tu n'avais rien à lui prendre. Cette fois.",
+                                           "Les gardes sont mal payés. Parle-leur avant de voler.", ConeAlarm);
                 }
             }
             else
             {
                 Rival r = Rival.Of(s);
                 if (r != null) r.Teleport(outside);
-                if (NearPlayer(35f)) Toasts.Show("La garde jette " + s.Name + " hors du chateau.", s.Colour);
+                if (NearPlayer(35f)) Toasts.Show("La garde jette " + s.Name + " hors du château.", s.Colour);
             }
             GiveUp();
         }
@@ -405,18 +405,18 @@ namespace Fief
             get
             {
                 if (info.SwornTo == Game.Me && Game.Me != null)
-                    return "\"Je suis ton homme. Ce chateau aussi, bientot.\"\n\nIl a prete serment. Gardes a toi : "
+                    return "\"Je suis ton homme. Ce château aussi, bientôt.\"\n\nIl a prête serment. Gardes à toi : "
                          + Game.Garrison.SwornCount(Game.Me) + " sur " + Game.Garrison.Guards.Count + ".";
                 if (info.Bribed(Now))
                     return "\"Je ne t'ai pas vu. Je ne te vois pas. Et dans " + Hud.Clock(info.BribedUntil - Now)
-                         + ", je recommencerai a te voir. File.\"";
+                         + ", je recommencerai à te voir. File.\"";
 
-                string mood = info.Loyalty < 0.3f ? "Il crache par terre en parlant du chateau."
-                            : info.Loyalty < 0.6f ? "Il hesite avant de repondre, et regarde derriere lui."
-                            : "Il se tient droit. Il croit encore a quelque chose.";
+                string mood = info.Loyalty < 0.3f ? "Il crache par terre en parlant du château."
+                            : info.Loyalty < 0.6f ? "Il hésite avant de répondre, et regarde derrière lui."
+                            : "Il se tient droit. Il croit encore à quelque chose.";
                 string wage = "\"On m'a promis " + info.Wage + " deniers par jour. "
                             + (info.MonthsUnpaid > 0 ? "Je n'ai rien vu depuis " + info.MonthsUnpaid + " mois.\"" : "Et on me paie. Pour l'instant.\"");
-                string rule = "\"Tu peux traverser la cour. Mais du fer sur toi, ou un pied dans une reserve, et je te jette dehors.\"";
+                string rule = "\"Tu peux traverser la cour. Mais du fer sur toi, ou un pied dans une réserve, et je te jette dehors.\"";
                 string gold = "\n\nTu as " + (Game.Wallet != null ? Game.Wallet.Gold : 0) + " or.";
                 string posterne = Game.Garrison != null && Game.Garrison.PosterneOpen
                     ? "\n\nLa poterne du mur nord est ouverte. " + Game.Garrison.PosterneOpenedBy + " a tire le verrou."
@@ -450,7 +450,7 @@ namespace Fief
             if (index == 0 && Game.Garrison.RequestLookAway(Game.Wallet, info, Now))
             {
                 Sfx.Coin();
-                Toasts.Show(info.Name + " empoche les pieces et se tourne vers le mur.", new Color(0.95f, 0.8f, 0.4f));
+                Toasts.Show(info.Name + " empoche les pièces et se tourne vers le mur.", new Color(0.95f, 0.8f, 0.4f));
                 return false;
             }
             if (index == 2 && Game.Garrison.RequestOath(Game.Me, info))
@@ -464,9 +464,9 @@ namespace Fief
                     return true;
                 }
                 if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("SERMENT", info.Name + " est a toi",
+                    Game.Hud.ShowDiscovery("SERMENT", info.Name + " est à toi",
                                            "Gardes qui t'ont jure : " + sworn + " sur " + all + ".",
-                                           "Quand les six auront jure, le chateau t'appartiendra.", new Color(0.95f, 0.8f, 0.4f));
+                                           "Quand les six auront jure, le château t'appartiendra.", new Color(0.95f, 0.8f, 0.4f));
                 return false;
             }
             if (index == 1 && Game.Garrison.RequestPosterne(Game.Wallet, info))
@@ -476,7 +476,7 @@ namespace Fief
                 if (Game.Hud != null)
                     Game.Hud.ShowDiscovery("LA POTERNE", "est ouverte",
                                            info.Name + " a tire le verrou pour " + info.PosternePrice + " or.",
-                                           "Une porte derobee ne se force pas. Elle s'achete.", new Color(0.95f, 0.8f, 0.4f));
+                                           "Une porte dérobée ne se force pas. Elle s'achète.", new Color(0.95f, 0.8f, 0.4f));
                 return true;
             }
             return true;

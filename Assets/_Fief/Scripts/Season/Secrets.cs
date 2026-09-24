@@ -8,10 +8,10 @@ namespace Fief
     ///
     ///   1re forge   ou dort un talisman qui te manque ;
     ///   2e forge    ou se cache la stele d'un rival (tu la connais desormais) ;
-    ///   3e forge    ou est enterre un tresor d'or (60 pieces) ;
+    ///   3e forge    ou est enterré un tresor d'or (60 pieces) ;
     ///   puis        on recommence la ronde.
     ///
-    /// Il le dit EN MOTS, une fois (direction et distance, depuis la ou tu te
+    /// Il le dit EN MOTS, une fois (direction et distance, depuis là où tu te
     /// tiens) : rien n'apparait sur la boussole (Martin, 25/09). A toi de retenir.
     /// </summary>
     public static class Secrets
@@ -56,7 +56,7 @@ namespace Fief
                 string said = kind == 0 ? TalismanSecret(me) : kind == 1 ? SteleSecret(me) : TreasureSecret(me);
                 if (!string.IsNullOrEmpty(said)) return said;
             }
-            return "\"Je n'ai plus rien a te dire. Pour l'instant.\"";
+            return "\"Je n'ai plus rien à te dire. Pour l'instant.\"";
         }
 
         static string TalismanSecret(Seeker me)
@@ -78,7 +78,7 @@ namespace Fief
             s.isTalisman = true;
             All.Add(s);
             return "\"Un talisman -- " + TalismanInfo.Name(best.talisman) + " -- dort " + Hud.Direction(me.Body.position, s.at)
-                   + ". Retiens-le : je ne le repeterai pas.\"";
+                   + ". Retiens-le : je ne le répéterai pas.\"";
         }
 
         static bool Known(Talisman t)
@@ -94,7 +94,7 @@ namespace Fief
                 Seeker other = Game.Seekers[i];
                 if (other == me || !other.Hoard.StelePlanted || me.Knows(other)) continue;
                 me.Discover(other);
-                return "\"La stele de " + other.Name + " est " + Hud.Direction(me.Body.position, other.Hoard.StelePosition)
+                return "\"La stèle de " + other.Name + " est " + Hud.Direction(me.Body.position, other.Hoard.StelePosition)
                        + ". Tu la connais, maintenant. Fais-en ce que tu veux.\"";
             }
             return null;
@@ -113,11 +113,11 @@ namespace Fief
                 if (Mathf.Abs(p.x) > half || Mathf.Abs(p.z) > half || Castle.Covers(p.x, p.z, 5f)) continue;
                 Secret s = new Secret();
                 s.at = Ground.Place(p.x, p.z, 0f);
-                s.label = "Tresor";
+                s.label = "Trésor";
                 s.treasure = Purse.Build(null, s.at, 60, rng.Next(360));
                 s.isTreasure = true;
                 All.Add(s);
-                return "\"Un tresor d'or est enterre " + Hud.Direction(me.Body.position, s.at) + ". Soixante pieces. Les gardes aiment l'or.\"";
+                return "\"Un trésor d'or est enterré " + Hud.Direction(me.Body.position, s.at) + ". Soixante pièces. Les gardes aiment l'or.\"";
             }
             return null;
         }

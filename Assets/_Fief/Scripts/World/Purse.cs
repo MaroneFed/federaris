@@ -52,7 +52,7 @@ namespace Fief
                 for (int i = 0; i < n; i++)
                 {
                     GameObject c = Proto.Cylinder(root.transform, new Vector3(0.24f + stack * 0.1f, 0.008f + i * 0.016f, 0.1f - stack * 0.18f),
-                                                  new Vector3(0.09f, 0.008f, 0.09f), gold, "Piece");
+                                                  new Vector3(0.09f, 0.008f, 0.09f), gold, "Pièce");
                     c.transform.localRotation = Quaternion.Euler(0f, i * 23f, (i % 2) * 3f);
                     c.GetComponent<Renderer>().sharedMaterial = coin;
                 }
@@ -62,7 +62,7 @@ namespace Fief
                 float a = i * 1.1f + 0.4f;
                 float d = 0.18f + (i % 3) * 0.09f;
                 GameObject c = Proto.Cylinder(root.transform, new Vector3(0.12f + Mathf.Cos(a) * d, 0.01f, Mathf.Sin(a) * d),
-                                              new Vector3(0.09f, 0.008f, 0.09f), gold, "Piece");
+                                              new Vector3(0.09f, 0.008f, 0.09f), gold, "Pièce");
                 c.transform.localRotation = Quaternion.Euler(i % 2 == 0 ? 0f : 60f, i * 40f, 0f);
                 c.GetComponent<Renderer>().sharedMaterial = coin;
             }

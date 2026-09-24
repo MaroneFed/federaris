@@ -60,7 +60,7 @@ namespace Fief
             GameObject neckMesh = Proto.Cube(s.neck, new Vector3(0f, 0.3f, 0.1f), new Vector3(0.24f, 0.7f, 0.26f), Coat, "Cou");
             neckMesh.transform.localRotation = Quaternion.Euler(28f, 0f, 0f);
             Paint(neckMesh, coat);
-            Paint(Proto.Cube(s.neck, new Vector3(0f, 0.68f, 0.32f), new Vector3(0.22f, 0.24f, 0.46f), Coat, "Tete"), coat);
+            Paint(Proto.Cube(s.neck, new Vector3(0f, 0.68f, 0.32f), new Vector3(0.22f, 0.24f, 0.46f), Coat, "Tête"), coat);
             Proto.Cube(s.neck, new Vector3(0f, 0.62f, 0.56f), new Vector3(0.12f, 0.12f, 0.08f), new Color(0.1f, 0.1f, 0.1f), "Mufle");
             for (int side = -1; side <= 1; side += 2)
             {

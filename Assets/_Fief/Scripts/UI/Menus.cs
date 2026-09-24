@@ -277,7 +277,7 @@ namespace Fief
                              i == beat ? Palette.Gold : i < beat ? UiStyle.InkDim : UiStyle.InkFaint);
             }
             UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(48), Screen.width - UiStyle.S(30), UiStyle.S(20)),
-                           "Clic ou Espace : continuer        Echap : passer le recit", RightTiny(), UiStyle.InkFaint);
+                           "Clic ou Espace : continuer        Échap : passer le récit", RightTiny(), UiStyle.InkFaint);
         }
 
         static GUIStyle rightTiny;
@@ -310,7 +310,7 @@ namespace Fief
             if (Game.Season != null) Game.Season.Begin();
 
             Toasts.Clear();
-            Toasts.Show("La brume se referme derriere toi.", Palette.Gold);
+            Toasts.Show("La brume se referme derrière toi.", Palette.Gold);
             Toasts.Show("F1 pour les commandes.", UiStyle.Ink);
         }
 
@@ -321,7 +321,7 @@ namespace Fief
             if (bellWarnings == 0 && left <= 300f)
             {
                 bellWarnings = 1;
-                Toasts.Show("La cloche sonnera dans cinq minutes. Seule une relique posee sur la stele comptera.",
+                Toasts.Show("La cloche sonnera dans cinq minutes. Seule une relique posée sur la stèle comptera.",
                             new Color(0.92f, 0.62f, 0.32f));
             }
             else if (bellWarnings == 1 && left <= 60f)
@@ -363,7 +363,7 @@ namespace Fief
             }
             else
             {
-                Toasts.Show("Ajoute la scene au Build Settings pour relancer.", Palette.Iron);
+                Toasts.Show("Ajoute la scène au Build Settings pour relancer.", Palette.Iron);
                 if (Current == State.Paused) Resume();
             }
         }
@@ -585,7 +585,7 @@ namespace Fief
                 string mage = s.MagePresent ? "Le mage chante encore " + Hud.Clock(s.MageTimeLeft)
                             : s.NextMageIn >= 0f ? "Le mage dans " + Hud.Clock(s.NextMageIn) : "Le mage ne reviendra plus";
                 float c = s.NextCurseIn;
-                string curse = c >= 0f ? "la Malediction dans " + Hud.Clock(c) : "plus de Malediction";
+                string curse = c >= 0f ? "la Malédiction dans " + Hud.Clock(c) : "plus de Malédiction";
                 UiStyle.Tinted(new Rect(box.x, y - UiStyle.S(14), w, UiStyle.S(20)),
                                "Cloche dans " + Hud.Clock(s.Remaining) + "   --   " + mage + "   --   " + curse, UiStyle.CenteredSmall, UiStyle.InkDim);
                 y += UiStyle.S(16);
@@ -648,7 +648,7 @@ namespace Fief
                            won ? Palette.Gold : new Color(0.9f, 0.5f, 0.4f));
             y += UiStyle.S(28);
             string verdict;
-            if (Victories.Winner == null) verdict = "Aucune relique posee, aucun serment, aucune couronne.";
+            if (Victories.Winner == null) verdict = "Aucune relique posée, aucun serment, aucune couronne.";
             else if (won) verdict = "C'est toi. " + Victories.How(Victories.Kind);
             else verdict = Victories.Winner.Name + " l'emporte. " + (hoard.RelicOnStele ? "Ta relique : " + Rank(hoard.FinalScore) + "." : "");
             GUIStyle wrappedVerdict = UiStyle.Small;
@@ -672,21 +672,21 @@ namespace Fief
                 GUIStyle right = UiStyle.Label;
                 TextAnchor previous = right.alignment;
                 right.alignment = TextAnchor.MiddleRight;
-                string what = sk.Score > 0 ? sk.Score + "   " + Relic.TierName(Relic.Tier(sk.Score)) : "rien sur sa stele";
+                string what = sk.Score > 0 ? sk.Score + "   " + Relic.TierName(Relic.Tier(sk.Score)) : "rien sur sa stèle";
                 GUI.Label(new Rect(row.x, row.y, row.width - UiStyle.S(16), row.height), what, right);
                 right.alignment = previous;
                 y += rowH;
             }
             y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, bw, UiStyle.S(20)),
-                      "Talismans trouves : " + hoard.TalismanCount + " / " + TalismanInfo.Count
-                      + "      Ta reserve : " + Stele.StoreSummary(hoard), UiStyle.Small);
+                      "Talismans trouvés : " + hoard.TalismanCount + " / " + TalismanInfo.Count
+                      + "      Ta réserve : " + Stele.StoreSummary(hoard), UiStyle.Small);
             y += UiStyle.S(20);
             // Le journal : pourquoi ca s'est passe comme ca.
-            string journal = (Stats.Deaths == 0 ? "Jamais tombe" : "Tombe " + Stats.Deaths + " fois (la derniere " + Stats.LastDeath + ")")
-                           + "   --   Malediction : -" + Stats.CurseLost
-                           + "   --   Pille : -" + Stats.Robbed + " / +" + Stats.Looted
-                           + "   --   Abattus : " + Stats.RivalsDowned + " rivaux, " + Stats.BeastsDowned + " betes, " + Stats.TrapKills + " au piege";
+            string journal = (Stats.Deaths == 0 ? "Jamais tombé" : "Tombé " + Stats.Deaths + " fois (la dernière " + Stats.LastDeath + ")")
+                           + "   --   Malédiction : -" + Stats.CurseLost
+                           + "   --   Pillé : -" + Stats.Robbed + " / +" + Stats.Looted
+                           + "   --   Abattus : " + Stats.RivalsDowned + " rivaux, " + Stats.BeastsDowned + " bêtes, " + Stats.TrapKills + " au piège";
             GUIStyle small = UiStyle.Tiny;
             bool wrapJ = small.wordWrap;
             small.wordWrap = true;
@@ -708,20 +708,20 @@ namespace Fief
         /// <summary>La liste des commandes. A tenir a jour a chaque nouvelle action.</summary>
         public static readonly string[,] Controls =
         {
-            { "ZQSD / WASD", "Se deplacer" },
+            { "ZQSD / WASD", "Se déplacer" },
             { "Souris", "Regarder" },
             { "Maj", "Courir (sac pas trop lourd)" },
             { "Espace", "Sauter" },
-            { "E", "Interagir, ramasser -- devant ta stele : reserve, relique, ameliorations" },
+            { "E", "Interagir, ramasser -- devant ta stèle : réserve, relique, améliorations" },
             { "C", "Planter ton camp (une fois)" },
             { "G (maintenir)", "Creuser une cache (trois)" },
             { "Tab", "Ta besace : victoires, artisanat, talismans" },
-            { "1 / 2", "Prendre en main un outil (hache, epee, piege)" },
-            { "Clic gauche", "Abattre un arbre, frapper, poser un piege" },
+            { "1 / 2", "Prendre en main un outil (hache, épée, piège)" },
+            { "Clic gauche", "Abattre un arbre, frapper, poser un piège" },
             { "F", "Grimper dans un arbre / redescendre" },
-            { "H", "Tendre l'oreille : ta stele chante, une fois par minute" },
-            { "Echap", "Pause" },
-            { "F1", "Aide a l'ecran" },
+            { "H", "Tendre l'oreille : ta stèle chante, une fois par minute" },
+            { "Échap", "Pause" },
+            { "F1", "Aide à l'écran" },
             { "F3", "Diagnostic" }
         };
 

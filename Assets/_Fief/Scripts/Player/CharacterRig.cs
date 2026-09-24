@@ -132,16 +132,16 @@ namespace Fief
             // --- torse, largement cache par le poncho
             torso = Node(hips, new Vector3(0f, 0.12f, 0f), "Torse");
             Proto.Cube(torso, new Vector3(0f, 0.26f, 0f), new Vector3(0.44f, 0.52f, 0.28f), underCloth, "Buste");
-            Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.50f, 0.14f, 0.30f), underCloth, "Epaules");
+            Proto.Cube(torso, new Vector3(0f, 0.46f, 0f), new Vector3(0.50f, 0.14f, 0.30f), underCloth, "Épaules");
             Proto.Cube(torso, new Vector3(0f, 0.30f, 0.15f), new Vector3(0.26f, 0.20f, 0.04f),
-                       Palette.Shade(rag, 0.85f), "Piece");
+                       Palette.Shade(rag, 0.85f), "Pièce");
 
             // --- tete et CAPUCHE profonde : le visage reste dans l'ombre
-            head = Node(torso, new Vector3(0f, 0.60f, 0f), "Tete");
+            head = Node(torso, new Vector3(0f, 0.60f, 0f), "Tête");
             // Crane volontairement etroit en profondeur (0,20) : en premiere personne
             // l'oeil est pose a 13 cm devant l'axe, il doit rester DEHORS meme quand
             // la tete bouge. Une tete trop profonde et on se retrouve dedans.
-            Proto.Cube(head, new Vector3(0f, 0.09f, 0f), new Vector3(0.24f, 0.28f, 0.20f), skin, "Crane");
+            Proto.Cube(head, new Vector3(0f, 0.09f, 0f), new Vector3(0.24f, 0.28f, 0.20f), skin, "Crâne");
             Proto.Cube(head, new Vector3(0f, -0.02f, 0.06f), new Vector3(0.20f, 0.12f, 0.16f),
                        Palette.Shade(skin, 0.72f), "Barbe");
             Proto.Cube(head, new Vector3(0f, 0.06f, 0.12f), new Vector3(0.17f, 0.10f, 0.05f),
@@ -149,7 +149,7 @@ namespace Fief
 
             hood = Node(head, new Vector3(0f, 0.10f, -0.02f), "Capuche");
             Proto.Cube(hood, new Vector3(0f, 0.11f, -0.02f), new Vector3(0.34f, 0.24f, 0.36f), cloth, "Coiffe");
-            GameObject peak = Proto.Cube(hood, new Vector3(0f, 0.16f, 0.13f), new Vector3(0.30f, 0.16f, 0.22f), cloth, "Visiere");
+            GameObject peak = Proto.Cube(hood, new Vector3(0f, 0.16f, 0.13f), new Vector3(0.30f, 0.16f, 0.22f), cloth, "Visière");
             peak.transform.localRotation = Quaternion.Euler(24f, 0f, 0f);
             GameObject nape = Proto.Cube(hood, new Vector3(0f, -0.04f, -0.20f), new Vector3(0.30f, 0.30f, 0.16f),
                                          Palette.Shade(cloth, 0.84f), "Nuque");
@@ -183,7 +183,7 @@ namespace Fief
             strap.transform.localRotation = Quaternion.Euler(0f, 0f, 21f);
 
             // --- le baton : une branche tordue ramassee en chemin, pas une canne
-            staffPivot = Node(elbowR, new Vector3(0f, -0.36f, 0.04f), "Baton");
+            staffPivot = Node(elbowR, new Vector3(0f, -0.36f, 0.04f), "Bâton");
             GameObject shaft = Proto.Cube(staffPivot, new Vector3(0f, 0.30f, 0f),
                                           new Vector3(0.062f, 1.05f, 0.062f), wood, "Hampe");
             shaft.transform.localRotation = Quaternion.Euler(2f, 0f, -3f);

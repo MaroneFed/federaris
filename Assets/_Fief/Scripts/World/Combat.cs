@@ -44,7 +44,7 @@ namespace Fief
                 Vector3 to = r.transform.position - me.Body.position;
                 to.y = 0f;
                 if (to.magnitude > Reach || Vector3.Angle(flatForward, to) > 55f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
+                if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
                 Hit(r.seeker, me, damage);
                 Punch.Apply(r.Figure, me.Body.position);
                 return;                             // un coup, une cible
@@ -57,7 +57,7 @@ namespace Fief
                 Vector3 to = b.transform.position - me.Body.position;
                 to.y = 0f;
                 if (to.magnitude > Reach + 0.4f || Vector3.Angle(flatForward, to) > 60f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
+                if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
                 b.Hurt(damage, me);
                 return;
             }
@@ -93,7 +93,7 @@ namespace Fief
         /// <summary>Un coup porte. Tout passe par ici : degats, cris, mort.</summary>
         public static void Hit(Seeker victim, Seeker attacker, float damage)
         {
-            Hit(victim, attacker, damage, "sous les coups de " + (attacker != null ? attacker.Name : "la foret"));
+            Hit(victim, attacker, damage, "sous les coups de " + (attacker != null ? attacker.Name : "la forêt"));
         }
 
         /// <summary>Un coup porte, en disant de quoi on meurt s'il est mortel.</summary>
@@ -157,11 +157,11 @@ namespace Fief
                 if (r != null) r.Die();
                 if (killer != null && killer.IsPlayer) Stats.RivalsDowned++;
                 if (killer != null && killer.IsPlayer)
-                    Toasts.Show(victim.Name + " est tombe. Sa depouille est a toi -- fouille-la (E).", victim.Colour);
+                    Toasts.Show(victim.Name + " est tombé. Sa dépouille est à toi -- fouille-la (E).", victim.Colour);
             }
         }
 
-        /// <summary>Se relever : a sa stele, sinon a son camp, sinon la ou l'on est tombe.</summary>
+        /// <summary>Se relever : a sa stele, sinon a son camp, sinon là où l'on est tombe.</summary>
         public static Vector3 RespawnPoint(Seeker s, Vector3 fallback)
         {
             Hoard h = s.Hoard;
@@ -185,7 +185,7 @@ namespace Fief
 
         public static void Drop(Seeker victim, Vector3 at)
         {
-            GameObject go = new GameObject("DEPOUILLE de " + victim.Name);
+            GameObject go = new GameObject("DÉPOUILLE de " + victim.Name);
             go.transform.position = Ground.Place(at.x, at.z, 0f);
             BoxCollider trigger = go.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
@@ -218,7 +218,7 @@ namespace Fief
             GameObject cape = Proto.Cube(body, new Vector3(0.2f, 0.02f, 0.1f), new Vector3(1.3f, 0.03f, 0.9f), cloth, "Cape");
             cape.transform.localRotation = Quaternion.Euler(0f, 23f, 2f);
             Proto.Cube(body, new Vector3(0.75f, 0.03f, 0.4f), new Vector3(0.3f, 0.03f, 0.2f), Palette.Shade(victim.Colour, 0.85f), "Bord");
-            GameObject sack = Proto.Sphere(body, new Vector3(-0.1f, 0.16f, -0.05f), new Vector3(0.55f, 0.32f, 0.42f), new Color(0.36f, 0.3f, 0.22f), "Sac eventre");
+            GameObject sack = Proto.Sphere(body, new Vector3(-0.1f, 0.16f, -0.05f), new Vector3(0.55f, 0.32f, 0.42f), new Color(0.36f, 0.3f, 0.22f), "Sac éventré");
             sack.transform.localRotation = Quaternion.Euler(0f, 30f, 20f);
             Proto.Cube(body, new Vector3(0.12f, 0.1f, -0.1f), new Vector3(0.22f, 0.04f, 0.3f), new Color(0.26f, 0.21f, 0.15f), "Rabat");
             GameObject lamp = Proto.Cube(body, new Vector3(-0.55f, 0.1f, -0.25f), new Vector3(0.16f, 0.2f, 0.16f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
@@ -230,7 +230,7 @@ namespace Fief
             for (int i = 0; i < wood; i++)
             {
                 GameObject stick = Proto.Cylinder(body, new Vector3(0.4f + (float)rng.NextDouble() * 0.5f, 0.04f, -0.5f + (float)rng.NextDouble() * 0.6f),
-                                                  new Vector3(0.07f, 0.22f, 0.07f), new Color(0.42f, 0.34f, 0.24f), "Buche");
+                                                  new Vector3(0.07f, 0.22f, 0.07f), new Color(0.42f, 0.34f, 0.24f), "Bûche");
                 stick.transform.localRotation = Quaternion.Euler(90f, (float)rng.NextDouble() * 180f, 0f);
             }
             int moon = Mathf.Min(5, r.contents.Get(ResourceType.Moonstone));
@@ -238,7 +238,7 @@ namespace Fief
             for (int i = 0; i < moon; i++)
             {
                 GameObject chip = Proto.Cone(body, new Vector3(-0.3f + (float)rng.NextDouble() * 0.5f, 0.02f, 0.35f + (float)rng.NextDouble() * 0.3f),
-                                             0.05f, 0.14f, new Color(0.62f, 0.8f, 1f), "Eclat", 6);
+                                             0.05f, 0.14f, new Color(0.62f, 0.8f, 1f), "Éclat", 6);
                 chip.transform.localRotation = Quaternion.Euler(70f, (float)rng.NextDouble() * 360f, 0f);
                 chip.GetComponent<Renderer>().sharedMaterial = shine;
             }
@@ -275,7 +275,7 @@ namespace Fief
         {
             get
             {
-                string who = owner == Game.Me ? "ta depouille" : "la depouille de " + owner.Name;
+                string who = owner == Game.Me ? "ta dépouille" : "la dépouille de " + owner.Name;
                 return "Fouiller " + who + (relic != null ? "  (une relique !)" : "");
             }
         }
@@ -308,7 +308,7 @@ namespace Fief
             }
             me.SyncWeight();
             Sfx.HarvestTap(ResourceType.Deadwood);
-            Toasts.Show(Empty ? "Tu as tout repris." : "Ton sac est plein : il reste des choses dans la depouille.", UiStyle.InkDim);
+            Toasts.Show(Empty ? "Tu as tout repris." : "Ton sac est plein : il reste des choses dans la dépouille.", UiStyle.InkDim);
             if (Empty) Destroy(gameObject, 0.1f);
         }
     }

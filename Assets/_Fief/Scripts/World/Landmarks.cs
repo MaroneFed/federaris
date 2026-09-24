@@ -42,11 +42,11 @@ namespace Fief
         {
             switch (kind)
             {
-                case Kind.GrandChene: return "Le Grand Chene";
+                case Kind.GrandChene: return "Le Grand Chêne";
                 case Kind.Cercle: return "Le Cercle de pierres";
                 case Kind.Cabane: return "La cabane du braconnier";
                 case Kind.Tertre: return "Le Tertre";
-                default: return "La Tour effondree";
+                default: return "La Tour effondrée";
             }
         }
 
@@ -178,7 +178,7 @@ namespace Fief
             const float scale = 3.4f;
             TreeInfo info;
             Mesh mesh = TreeMesh.Build(TreeKind.Beech, 777, out info);
-            GameObject tree = new GameObject("Grand Chene");
+            GameObject tree = new GameObject("Grand Chêne");
             tree.transform.SetParent(t, false);
             tree.transform.localPosition = new Vector3(0f, -0.4f, 0f);
             tree.transform.localScale = Vector3.one * scale;
@@ -231,7 +231,7 @@ namespace Fief
                 Vector3 dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
                 float h = 3f + (float)rng.NextDouble() * 1.4f;
                 GameObject s = Proto.Cube(t, dir * radius + new Vector3(0f, h * 0.5f - 0.3f, 0f),
-                                          new Vector3(1.1f, h, 0.7f), i % 2 == 0 ? stone : stoneDark, "Pierre dressee");
+                                          new Vector3(1.1f, h, 0.7f), i % 2 == 0 ? stone : stoneDark, "Pierre dressée");
                 s.transform.localRotation = Quaternion.LookRotation(-dir, Vector3.up)
                                             * Quaternion.Euler(R(rng, -5f, 5f), R(rng, -8f, 8f), R(rng, -4f, 4f));
                 if (i % 3 == 0)
@@ -313,7 +313,7 @@ namespace Fief
                     plank.transform.localRotation = Quaternion.Euler(0f, 0f, side * -26f);
                 }
             }
-            GameObject fallen = Proto.Cube(t, new Vector3(0.6f, 1.0f, 0.8f), new Vector3(2.6f, 0.08f, 0.7f), straw, "Planche tombee");
+            GameObject fallen = Proto.Cube(t, new Vector3(0.6f, 1.0f, 0.8f), new Vector3(2.6f, 0.08f, 0.7f), straw, "Planche tombée");
             fallen.transform.localRotation = Quaternion.Euler(8f, 20f, 38f);
 
             // La table, le tabouret, les peaux pendues au mur, des bois de cerf.
@@ -416,7 +416,7 @@ namespace Fief
                 Vector3 p = new Vector3(R(rng, -7f, 7f), 0f, R(rng, -7f, 2f));
                 if (p.magnitude < radius + 0.8f) continue;
                 float s = R(rng, 0.3f, 0.8f);
-                GameObject block = Proto.Cube(t, p + new Vector3(0f, s * 0.35f, 0f), new Vector3(s * 1.3f, s * 0.7f, s), stone, "Eboulis");
+                GameObject block = Proto.Cube(t, p + new Vector3(0f, s * 0.35f, 0f), new Vector3(s * 1.3f, s * 0.7f, s), stone, "Éboulis");
                 block.transform.localRotation = Quaternion.Euler(R(rng, -20f, 20f), R(rng, 0f, 180f), R(rng, -20f, 20f));
             }
             Proto.EndVisualOnly();

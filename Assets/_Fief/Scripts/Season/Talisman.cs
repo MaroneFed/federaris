@@ -56,9 +56,9 @@ namespace Fief
                 case Talisman.Lanterne: return "Lanterne ardente";
                 case Talisman.Corne: return "Corne d'appel";
                 case Talisman.Coeur: return "Coeur de lune";
-                case Talisman.Besace: return "Besace ciree";
+                case Talisman.Besace: return "Besace cirée";
                 case Talisman.Pelle: return "Pelle d'os";
-                default: return "Couronne sans tete";
+                default: return "Couronne sans tête";
             }
         }
 
@@ -67,12 +67,12 @@ namespace Fief
         {
             switch (t)
             {
-                case Talisman.Lanterne: return "Ta lanterne eclaire bien plus loin.";
-                case Talisman.Corne: return "Tant que le mage chante, sa colonne de lumiere reste allumee pour toi.";
-                case Talisman.Coeur: return "Chaque pierre-lune ramassee en donne deux.";
+                case Talisman.Lanterne: return "Ta lanterne éclaire bien plus loin.";
+                case Talisman.Corne: return "Tant que le mage chante, sa colonne de lumière reste allumée pour toi.";
+                case Talisman.Coeur: return "Chaque pierre-lune ramassée en donne deux.";
                 case Talisman.Besace: return "Ton sac porte " + Mathf.RoundToInt(BesaceKilos) + " kg de plus.";
                 case Talisman.Pelle: return "Tu creuses trois fois plus vite, et une cache de plus.";
-                default: return "Ta relique posee sur la stele vaut 15 % de plus.";
+                default: return "Ta relique posée sur la stèle vaut 15 % de plus.";
             }
         }
 
@@ -81,12 +81,12 @@ namespace Fief
         {
             switch (t)
             {
-                case Talisman.Lanterne: return "Le dernier roi ne dormait qu'avec elle allumee.";
-                case Talisman.Corne: return "Taillee dans la corne d'un cerf que personne n'a jamais vu.";
+                case Talisman.Lanterne: return "Le dernier roi ne dormait qu'avec elle allumée.";
+                case Talisman.Corne: return "Taillée dans la corne d'un cerf que personne n'a jamais vu.";
                 case Talisman.Coeur: return "Les pierres du cercle la gardaient. Elles ont cesse.";
                 case Talisman.Besace: return "Le braconnier est parti sans elle. Il n'est pas revenu la chercher.";
-                case Talisman.Pelle: return "Ceux du tertre l'ont laissee pour qu'on les enterre bien.";
-                default: return "Il l'avait encore quand ils lui ont pris la tete.";
+                case Talisman.Pelle: return "Ceux du tertre l'ont laissée pour qu'on les enterre bien.";
+                default: return "Il l'avait encore quand ils lui ont pris la tête.";
             }
         }
 
@@ -95,12 +95,12 @@ namespace Fief
         {
             switch (t)
             {
-                case Talisman.Lanterne: return "sur le trone, dans le donjon";
-                case Talisman.Corne: return "dans le creux du Grand Chene";
+                case Talisman.Lanterne: return "sur le trône, dans le donjon";
+                case Talisman.Corne: return "dans le creux du Grand Chêne";
                 case Talisman.Coeur: return "sur l'autel du Cercle de pierres";
                 case Talisman.Besace: return "dans la cabane du braconnier";
-                case Talisman.Pelle: return "a l'entree du Tertre";
-                default: return "aux pieds du roi sans tete, dans l'allee";
+                case Talisman.Pelle: return "à l'entrée du Tertre";
+                default: return "aux pieds du roi sans tête, dans l'allée";
             }
         }
 

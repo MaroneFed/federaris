@@ -47,7 +47,7 @@ namespace Fief
 
             UiStyle.Tinted(GUILayoutUtility.GetRect(w - pad * 2f, UiStyle.S(38)), "LE MAGE", UiStyle.Title, Mage.Glow);
             GUILayout.Label(relic == null
-                                ? "\"Apporte-moi ce que la foret cache. J'en ferai une chose qui dure.\""
+                                ? "\"Apporte-moi ce que la forêt cache. J'en ferai une chose qui dure.\""
                                 : "\"Encore ? Donne. Elle n'a pas fini de grandir.\"",
                             UiStyle.Small);
             GUILayout.Space(UiStyle.S(12));
@@ -66,7 +66,7 @@ namespace Fief
                                UiStyle.Label, carried > 0 ? ResourceInfo.Tint(type) : UiStyle.InkFaint);
                 GUILayout.Label("x " + carried, UiStyle.Label, GUILayout.Width(UiStyle.S(70)));
                 GUILayout.Label("vaut " + ResourceInfo.ForgeValue(type) + " chacun", UiStyle.Small, GUILayout.Width(UiStyle.S(130)));
-                GUILayout.Label(already > 0 ? "deja fondu : " + already : "", UiStyle.Tiny);
+                GUILayout.Label(already > 0 ? "déjà fondu : " + already : "", UiStyle.Tiny);
                 GUILayout.EndHorizontal();
             }
 
@@ -84,22 +84,22 @@ namespace Fief
                             UiStyle.Head, GUILayout.Width(UiStyle.S(260)));
             if (!bag.IsEmpty && !onStele)
                 UiStyle.Tinted(GUILayoutUtility.GetRect(UiStyle.S(260), UiStyle.S(24)),
-                               "apres la forge : " + after + "   (+" + (after - now) + ")", UiStyle.Head, Palette.Gold);
+                               "après la forge : " + after + "   (+" + (after - now) + ")", UiStyle.Head, Palette.Gold);
             GUILayout.EndHorizontal();
 
             string variety = kinds >= 3 ? "Les trois ressources : puissance x1,6."
                            : kinds == 2 ? "Deux ressources : x1,25.  Les trois donneraient x1,6."
-                           : "Une seule ressource : x1.  Melange-les : deux x1,25, trois x1,6.";
+                           : "Une seule ressource : x1.  Mélange-les : deux x1,25, trois x1,6.";
             GUILayout.Label(variety, UiStyle.Small);
 
             GUILayout.FlexibleSpace();
 
             // --- la raison pour laquelle on ne peut pas forger, s'il y en a une
             string blocked = null;
-            if (onStele) blocked = "Ta relique est sur ta stele. Va la reprendre : il ne renforce que ce que tu lui apportes.";
+            if (onStele) blocked = "Ta relique est sur ta stèle. Va la reprendre : il ne renforce que ce que tu lui apportes.";
             else if (bag.IsEmpty) blocked = "Ton sac est vide. Il ne fond que ce que tu portes.";
             else if (relic == null && BagValue(bag) < FirstRelicMinimum)
-                blocked = "\"Des miettes ?\" Pour une premiere relique, il lui faut au moins " + FirstRelicMinimum
+                blocked = "\"Des miettes ?\" Pour une première relique, il lui faut au moins " + FirstRelicMinimum
                         + " de valeur (tu portes " + BagValue(bag) + ").";
             if (blocked != null) UiStyle.Tinted(GUILayoutUtility.GetRect(w - pad * 2f, UiStyle.S(22)), blocked,
                                                 UiStyle.Small, new Color(0.92f, 0.62f, 0.32f));
@@ -112,7 +112,7 @@ namespace Fief
             GUI.enabled = true;
 
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Fermer  (Echap)", UiStyle.Button, GUILayout.Height(UiStyle.S(34)), GUILayout.Width(UiStyle.S(160))))
+            if (GUILayout.Button("Fermer  (Échap)", UiStyle.Button, GUILayout.Height(UiStyle.S(34)), GUILayout.Width(UiStyle.S(160))))
             {
                 if (Game.Hud != null) Game.Hud.ClosePanel();
             }
@@ -155,11 +155,11 @@ namespace Fief
 
             if (Game.Mage != null) Game.Mage.PlayForge();
             if (Game.Hud != null)
-                Game.Hud.ShowDiscovery(first ? "LA RELIQUE EST NEE" : "LA FORGE",
+                Game.Hud.ShowDiscovery(first ? "LA RELIQUE EST NÉE" : "LA FORGE",
                                        "Puissance " + relic.Power,
                                        first ? Relic.TierName(Relic.Tier(relic.Power)) + ", pour commencer."
                                              : "+" + (relic.Power - before) + "  --  " + Relic.TierName(Relic.Tier(relic.Power)),
-                                       "Porte-la sur TA stele avant la cloche (P pour la planter).", Mage.Glow);
+                                       "Porte-la sur TA stèle avant la cloche (P pour la planter).", Mage.Glow);
             Toasts.Show("Le mage fond " + melted + " morceaux dans la relique.", Mage.Glow);
             // Et il murmure un secret : un talisman, une stele rivale, un tresor.
             Toasts.Show("Le mage murmure : " + Secrets.Whisper(Game.Me), new Color(0.78f, 0.6f, 1f));

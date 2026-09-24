@@ -86,7 +86,7 @@ namespace Fief
         public void Interact()
         {
             Sfx.Deny();
-            Toasts.Show("Fermee de l'interieur. Aucune force ne l'ouvrira. Un garde, peut-etre, contre de l'or.",
+            Toasts.Show("Fermée de l'intérieur. Aucune force ne l'ouvrira. Un garde, peut-être, contre de l'or.",
                         new Color(0.95f, 0.8f, 0.4f));
         }
     }

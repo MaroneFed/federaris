@@ -123,7 +123,7 @@ namespace Fief
             Torso = Node(Hips, new Vector3(0f, 0.12f, 0f), "Torse");
             Proto.Cube(Torso, new Vector3(0f, 0.14f, 0f), new Vector3(0.38f * b, 0.28f, 0.24f * b), shirtDark, "Ventre");
             Proto.Cube(Torso, new Vector3(0f, 0.38f, 0f), new Vector3(0.46f * b, 0.24f, 0.27f * b), l.shirt, "Poitrine");
-            Proto.Cube(Torso, new Vector3(0f, 0.5f, 0f), new Vector3(0.54f * b, 0.1f, 0.28f * b), l.shirt, "Epaules");
+            Proto.Cube(Torso, new Vector3(0f, 0.5f, 0f), new Vector3(0.54f * b, 0.1f, 0.28f * b), l.shirt, "Épaules");
             Proto.Cube(Torso, new Vector3(0f, 0.02f, 0f), new Vector3(0.4f * b, 0.07f, 0.27f * b),
                        new Color(0.16f, 0.12f, 0.09f), "Ceinture");
             Proto.Cube(Torso, new Vector3(0.08f, 0.02f, 0.14f * b), new Vector3(0.08f, 0.06f, 0.02f),
@@ -132,8 +132,8 @@ namespace Fief
             // --- cou et tete : une sphere, pas un cube -- c'est ce qui humanise le plus
             Neck = Node(Torso, new Vector3(0f, 0.56f, 0f), "Cou");
             Proto.Cube(Neck, new Vector3(0f, 0.04f, 0f), new Vector3(0.12f, 0.1f, 0.12f), Palette.Shade(l.skin, 0.85f), "Nuque");
-            Head = Node(Neck, new Vector3(0f, 0.1f, 0f), "Tete");
-            Proto.Sphere(Head, new Vector3(0f, 0.12f, 0f), new Vector3(0.23f, 0.27f, 0.25f), l.skin, "Crane");
+            Head = Node(Neck, new Vector3(0f, 0.1f, 0f), "Tête");
+            Proto.Sphere(Head, new Vector3(0f, 0.12f, 0f), new Vector3(0.23f, 0.27f, 0.25f), l.skin, "Crâne");
             Proto.Cube(Head, new Vector3(0f, 0.1f, 0.12f), new Vector3(0.05f, 0.07f, 0.05f), Palette.Shade(l.skin, 0.9f), "Nez");
             for (int side = -1; side <= 1; side += 2)
                 Proto.Cube(Head, new Vector3(side * 0.055f, 0.155f, 0.115f), new Vector3(0.045f, 0.022f, 0.02f),

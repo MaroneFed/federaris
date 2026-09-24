@@ -132,7 +132,7 @@ namespace Fief
     /// Ce que chaque talisman change dans le MONDE (la lanterne, la taille du sac).
     /// Les effets purement "regle" (la cache de plus, le bonus de score) vivent dans
     /// Hoard ; ceux qui se lisent au moment d'agir (creuser, ramasser, la boussole)
-    /// sont testes la ou l'on agit, avec Game.Hoard.Has(...).
+    /// sont testes là où l'on agit, avec Game.Hoard.Has(...).
     /// </summary>
     public static class TalismanEffects
     {
@@ -249,7 +249,7 @@ namespace Fief
         static void Spade(Transform t)
         {
             Proto.Cube(t, new Vector3(0f, 0.18f, 0f), new Vector3(0.05f, 0.7f, 0.05f), Bone, "Manche");
-            Proto.Cube(t, new Vector3(0f, 0.55f, 0f), new Vector3(0.2f, 0.05f, 0.05f), Bone, "Poignee");
+            Proto.Cube(t, new Vector3(0f, 0.55f, 0f), new Vector3(0.2f, 0.05f, 0.05f), Bone, "Poignée");
             Proto.Cube(t, new Vector3(0f, -0.26f, 0f), new Vector3(0.26f, 0.3f, 0.03f), Bone, "Lame");
             Proto.Cone(t, new Vector3(0f, -0.41f, 0f), 0.13f, 0.12f, Bone, "Pointe", 4)
                  .transform.localRotation = Quaternion.Euler(180f, 45f, 0f);

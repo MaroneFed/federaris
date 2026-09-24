@@ -130,11 +130,11 @@ namespace Fief
             // Ce qui flotte dans l'air : poussieres, brume rasante, lucioles des creux.
             // Rate, il n'y a pas de particules -- jamais de monde a moitie construit.
             try { Ambiance.Build(worldRoot, player != null ? player.transform : null, config); }
-            catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignoree : " + error.Message); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignorée : " + error.Message); }
 
             // Le tapis de la foret : feuilles mortes, brindilles, champignons, autour de toi.
             try { if (player != null) GroundCover.Build(worldRoot, player.transform, config); }
-            catch (System.Exception error) { Debug.LogWarning("[FIEF] Tapis de foret ignore : " + error.Message); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Tapis de forêt ignore : " + error.Message); }
 
             BuildHud(player);
 
@@ -142,12 +142,12 @@ namespace Fief
             Curse.Build();
 
             try { MusicDirector.Build(); }
-            catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignoree : " + error.Message); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignorée : " + error.Message); }
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
                       + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs, "
-                      + Gathering.FagotCount + " fagots, " + Gathering.LogSourceCount + " troncs a bois mort, "
+                      + Gathering.FagotCount + " fagots, " + Gathering.LogSourceCount + " troncs à bois mort, "
                       + Gathering.MoonstoneCount + " pierres-lune dans " + Gathering.HollowCount + " creux.");
 
             // Les messages d'accueil sont affiches par Menus, a l'entree en jeu : ici
@@ -205,24 +205,24 @@ namespace Fief
             // fer du chateau, Guerin reste dans ses creux et ne vole presque jamais.
             BuildRival(folk.transform, 0, "Mahaut la Rousse", new Color(0.86f, 0.36f, 0.26f), 0.7f, 0.25f, new[]
             {
-                "Ne traine pas dans mes pattes.",
+                "Ne traîne pas dans mes pattes.",
                 "J'ai vu ta lanterne. Tout le monde l'a vue.",
                 "Le mage m'aime bien. Il me le dit en chantant.",
-                "Ta stele ? Je sais ou elle est. Peut-etre."
+                "Ta stèle ? Je sais où elle est. Peut-être."
             });
             BuildRival(folk.transform, 1, "Oswin le Borgne", new Color(0.36f, 0.58f, 0.88f), 0.35f, 0.6f, new[]
             {
-                "Le fer du chateau, c'est pour ceux qui osent.",
+                "Le fer du château, c'est pour ceux qui osent.",
                 "Un oeil me suffit pour te voir venir.",
                 "Les gardes ? Ils me connaissent.",
-                "Ta relique pese combien ? Pas assez."
+                "Ta relique pèse combien ? Pas assez."
             });
             BuildRival(folk.transform, 2, "Guerin des Marais", new Color(0.46f, 0.76f, 0.36f), 0.15f, 0.1f, new[]
             {
                 "Chut. Tu entends ? Non ? Tant mieux.",
-                "Je ne prends que ce que la foret donne.",
-                "Les pierres-lune chantent, la nuit. Tu les as ecoutees ?",
-                "Laisse ma stele tranquille, et je laisserai la tienne."
+                "Je ne prends que ce que la forêt donne.",
+                "Les pierres-lune chantent, la nuit. Tu les as écoutées ?",
+                "Laisse ma stèle tranquille, et je laisserai la tienne."
             });
 
             // Et ce qu'on entend : le vent, les betes, la cloche du chateau.
@@ -317,7 +317,7 @@ namespace Fief
 
 
             // La camera. AudioListener dessus : c'est l'oreille du jeu.
-            GameObject camGo = new GameObject("CAMERA");
+            GameObject camGo = new GameObject("CAMÉRA");
             Camera cam = camGo.AddComponent<Camera>();
             cam.clearFlags = RenderSettings.skybox != null
                 ? CameraClearFlags.Skybox

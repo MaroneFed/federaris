@@ -289,7 +289,7 @@ namespace Fief
                 data[i] = v * breath;
             }
             Normalize(data, 0.6f);
-            steleHum = AudioClip.Create("chant de stele", count, 1, Rate, false);
+            steleHum = AudioClip.Create("chant de stèle", count, 1, Rate, false);
             steleHum.SetData(data, 0);
             return steleHum;
         }
@@ -376,7 +376,7 @@ namespace Fief
                     data[i] = (Mathf.Sin(phase) + Mathf.Sin(phase2) * 0.4f + low * 2f) * env;
                 }
                 Normalize(data, 0.7f);
-                arrival = FromSamples("arrivee", data);
+                arrival = FromSamples("arrivée", data);
             }
             Play(arrival, 0.8f);
         }
@@ -789,7 +789,7 @@ namespace Fief
                 data[i] = (voice * 0.6f + low * 0.8f) * swell;
             }
             Normalize(data, 0.6f);
-            moan = AudioClip.Create("rale", count, 1, Rate, false);
+            moan = AudioClip.Create("râle", count, 1, Rate, false);
             moan.SetData(data, 0);
             return moan;
         }
@@ -870,7 +870,7 @@ namespace Fief
                     data[i] = knock + n1 + n2;
                 }
                 Normalize(data, 0.8f);
-                stash = FromSamples("depot", data);
+                stash = FromSamples("dépôt", data);
             }
             Play(stash, 0.85f);
         }
@@ -960,7 +960,7 @@ namespace Fief
                     data[i] = clack + ring;
                 }
                 Normalize(data, 0.9f);
-                trapSnap = FromSamples("piege", data);
+                trapSnap = FromSamples("piège", data);
             }
         }
 
@@ -1018,7 +1018,7 @@ namespace Fief
                     data[i] = low * swell * 1.6f + thud;
                 }
                 Normalize(data, 0.85f);
-                curseStrike = FromSamples("malediction", data);
+                curseStrike = FromSamples("malédiction", data);
             }
             Play(curseStrike, 1f);
         }

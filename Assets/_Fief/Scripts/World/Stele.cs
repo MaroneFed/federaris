@@ -50,7 +50,7 @@ namespace Fief
         /// </summary>
         public static Stele Build(Transform parent, Vector3 at, float yaw, Seeker owner)
         {
-            GameObject root = new GameObject("STELE de " + owner.Name);
+            GameObject root = new GameObject("STÈLE de " + owner.Name);
             root.transform.SetParent(parent, false);
             root.transform.position = at;
             root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
@@ -61,7 +61,7 @@ namespace Fief
             stele.owner = owner;
 
             Proto.BeginVisualOnly();
-            GameObject top = Proto.Cube(t, new Vector3(0.04f, 1.38f, 0f), new Vector3(0.5f, 0.16f, 0.3f), StoneBlack, "Tete");
+            GameObject top = Proto.Cube(t, new Vector3(0.04f, 1.38f, 0f), new Vector3(0.5f, 0.16f, 0.3f), StoneBlack, "Tête");
             top.transform.localRotation = Quaternion.Euler(0f, 0f, 9f);
             Proto.Cube(t, new Vector3(-0.2f, 0.25f, -0.17f), new Vector3(0.3f, 0.5f, 0.04f), new Color(0.2f, 0.26f, 0.16f), "Mousse");
             // Une rune de la couleur de son proprietaire : eteinte, elle se confond avec la pierre.
@@ -155,9 +155,9 @@ namespace Fief
                 sentinelCooldown = 40f;
                 Sfx.Alarm();
                 if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("SENTINELLE", r.seeker.Name + " rode a ta stele",
+                    Game.Hud.ShowDiscovery("SENTINELLE", r.seeker.Name + " rôde à ta stèle",
                                            "Elle est " + Hud.Direction(me.Body.position, transform.position) + ".",
-                                           "Il vient pour ta reserve. Ou pour ta relique.", r.seeker.Colour);
+                                           "Il vient pour ta réserve. Ou pour ta relique.", r.seeker.Colour);
                 return;
             }
         }
@@ -189,7 +189,7 @@ namespace Fief
                     {
                         announcedToPlayer = true;
                         Sfx.Discovery();
-                        Game.Hud.ShowDiscovery("TU AS TROUVE", "La stele de " + owner.Name,
+                        Game.Hud.ShowDiscovery("TU AS TROUVE", "La stèle de " + owner.Name,
                                                lit ? "Une relique y flotte. Puissance " + h.FinalScore + "." : "Rien dessus. Pour l'instant.",
                                                "Retiens le chemin : rien ne te la montrera.", owner.Colour);
                     }
@@ -289,16 +289,16 @@ namespace Fief
                 if (Mine)
                 {
                     Hoard h = me.Hoard;
-                    if (h.Trophy != null) return "Ta stele  --  fondre la relique de " + h.TrophyFrom.Name;
-                    string sack = me.Bag.IsEmpty ? "" : "deposer ton sac, ";
-                    if (h.RelicInHand) return "Ta stele  --  " + sack + "poser ta relique";
-                    return "Ta stele  --  " + sack + "reserve : " + StoreSummary(h);
+                    if (h.Trophy != null) return "Ta stèle  --  fondre la relique de " + h.TrophyFrom.Name;
+                    string sack = me.Bag.IsEmpty ? "" : "déposer ton sac, ";
+                    if (h.RelicInHand) return "Ta stèle  --  " + sack + "poser ta relique";
+                    return "Ta stèle  --  " + sack + "réserve : " + StoreSummary(h);
                 }
                 Hoard o = owner.Hoard;
                 string what = o.RelicOnStele && o.Relic != null ? "sa relique (" + o.FinalScore + ")" : "";
                 if (o.Store != null && !o.Store.Contents.IsEmpty)
-                    what += (what.Length > 0 ? " et " : "") + "sa reserve (" + o.Store.Contents.TotalUnits + ")";
-                return "PILLER la stele de " + owner.Name + " : " + what;
+                    what += (what.Length > 0 ? " et " : "") + "sa réserve (" + o.Store.Contents.TotalUnits + ")";
+                return "PILLER la stèle de " + owner.Name + " : " + what;
             }
         }
 
@@ -317,7 +317,7 @@ namespace Fief
                 if (stored > 0)
                 {
                     Sfx.Stash();
-                    Toasts.Show("Depose a ta stele : " + stored + " ressources. Reserve : " + StoreSummary(me.Hoard) + ".", Palette.Gold);
+                    Toasts.Show("Déposé à ta stèle : " + stored + " ressources. Réserve : " + StoreSummary(me.Hoard) + ".", Palette.Gold);
                     RefreshPiles();
                 }
                 // Une relique volee ou la sienne en main : l'onglet Relique d'abord.
@@ -367,7 +367,7 @@ namespace Fief
             shownPiles[0] = wood; shownPiles[1] = moon; shownPiles[2] = iron;
 
             if (piles != null) Destroy(piles.gameObject);
-            GameObject go = new GameObject("Reserve");
+            GameObject go = new GameObject("Réserve");
             go.transform.SetParent(transform, false);
             piles = go.transform;
             Proto.BeginVisualOnly();
@@ -378,7 +378,7 @@ namespace Fief
                 int row = i < 5 ? 0 : i < 9 ? 1 : 2;
                 int inRow = row == 0 ? i : row == 1 ? i - 5 : i - 9;
                 float x = -1.1f + (inRow - (row == 0 ? 2f : row == 1 ? 1.5f : 1f)) * 0.15f;
-                GameObject log = Proto.Cylinder(piles, new Vector3(x, 0.07f + row * 0.13f, 0.5f), new Vector3(0.14f, 0.36f, 0.14f), barks[i % 3], "Buche");
+                GameObject log = Proto.Cylinder(piles, new Vector3(x, 0.07f + row * 0.13f, 0.5f), new Vector3(0.14f, 0.36f, 0.14f), barks[i % 3], "Bûche");
                 log.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             }
             // La pierre-lune : des cristaux plantes a droite, qui luisent.
@@ -413,7 +413,7 @@ namespace Fief
             {
                 Relic taken = o.TrySurrenderRelic();
                 if (taken != null && h.TryTakeTrophy(taken, owner))
-                    relicLine = "Sa relique (puissance " + taken.Power + ") : porte-la a TA stele pour la fondre.";
+                    relicLine = "Sa relique (puissance " + taken.Power + ") : porte-la à TA stèle pour la fondre.";
             }
             int units = o.RequestLoot(me.Bag);
             Stats.Looted += units;
@@ -427,9 +427,9 @@ namespace Fief
             }
             Sfx.Discovery();
             if (Game.Hud != null)
-                Game.Hud.ShowDiscovery("STELE PILLEE", "celle de " + owner.Name,
-                                       relicLine.Length > 0 ? relicLine : units + " ressources emportees de sa reserve.",
-                                       relicLine.Length > 0 && units > 0 ? "Et " + units + " ressources de sa reserve." : "Il saura que c'est toi.",
+                Game.Hud.ShowDiscovery("STÈLE PILLÉE", "celle de " + owner.Name,
+                                       relicLine.Length > 0 ? relicLine : units + " ressources emportées de sa réserve.",
+                                       relicLine.Length > 0 && units > 0 ? "Et " + units + " ressources de sa réserve." : "Il saura que c'est toi.",
                                        owner.Colour);
             Rival.NotifyTheft(owner, me);
         }
@@ -444,7 +444,7 @@ namespace Fief
             if (me == null || !me.Hoard.TryPlaceOnStele()) return;
             me.SyncWeight();
             Sfx.Build();
-            Toasts.Show("Ta relique repose sur ta stele. Elle comptera a la cloche -- si personne ne la vole.", RuneBlue);
+            Toasts.Show("Ta relique repose sur ta stèle. Elle comptera à la cloche -- si personne ne la vole.", RuneBlue);
         }
 
         public static void TakeRelic(Seeker me)
@@ -452,7 +452,7 @@ namespace Fief
             if (me == null || !me.Hoard.TryTakeFromStele()) return;
             me.SyncWeight();
             Sfx.Pop();
-            Toasts.Show("Tu reprends ta relique. Elle ne compte plus tant qu'elle n'est pas reposee.", Palette.Gold);
+            Toasts.Show("Tu reprends ta relique. Elle ne compte plus tant qu'elle n'est pas reposée.", Palette.Gold);
         }
 
         public static void AbsorbTrophy(Seeker me)
@@ -526,7 +526,7 @@ namespace Fief
             {
                 float a = k / (float)shards * Mathf.PI * 2f;
                 Vector3 p = new Vector3(Mathf.Cos(a), Mathf.Sin(a * 2f) * 0.3f, Mathf.Sin(a)) * (size * 3.2f);
-                GameObject shard = Proto.Cone(parent, p, 0.07f, 0.26f, accent, "Eclat", 4);
+                GameObject shard = Proto.Cone(parent, p, 0.07f, 0.26f, accent, "Éclat", 4);
                 shard.transform.localRotation = Quaternion.Euler(k * 37f, k * 53f, 0f);
                 shard.GetComponent<Renderer>().sharedMaterial = gold;
             }

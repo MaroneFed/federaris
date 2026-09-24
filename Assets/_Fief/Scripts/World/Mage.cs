@@ -44,7 +44,7 @@ namespace Fief
 
         int appearance = -1;        // l'apparition dont on occupe la place, -1 = absent
         float shown;                // 0 -> 1 : fondu d'apparition
-        bool warned;                // "il repart bientot" deja dit pour cette apparition
+        bool warned;                // "il repart bientôt" deja dit pour cette apparition
 
         LightBeam beacon;           // la colonne bleue : l'annonce, puis les premieres secondes
         int announced = -1;         // l'apparition annoncee (la colonne est deja la)
@@ -105,7 +105,7 @@ namespace Fief
             {
                 float a = i / (float)heights.Length * Mathf.PI * 2f + 0.3f;
                 GameObject s = Proto.Cube(b, new Vector3(Mathf.Cos(a) * 3.3f, heights[i] * 0.5f - 0.1f, Mathf.Sin(a) * 3.3f),
-                                          new Vector3(0.45f, heights[i], 0.32f), RuneStone, "Pierre dressee");
+                                          new Vector3(0.45f, heights[i], 0.32f), RuneStone, "Pierre dressée");
                 s.transform.localRotation = Quaternion.Euler(Mathf.Sin(i * 2.1f) * 6f, -a * Mathf.Rad2Deg, Mathf.Cos(i * 1.7f) * 5f);
             }
 
@@ -141,7 +141,7 @@ namespace Fief
             Proto.Cube(head, new Vector3(-0.16f, 0.13f, -0.01f), new Vector3(0.06f, 0.34f, 0.34f), Robe, "Capuche");
             Proto.Cube(head, new Vector3(0.16f, 0.13f, -0.01f), new Vector3(0.06f, 0.34f, 0.34f), Robe, "Capuche");
             Proto.Cube(head, new Vector3(0f, 0.13f, -0.16f), new Vector3(0.32f, 0.36f, 0.08f), RobeDark, "Capuche");
-            Proto.Cube(head, new Vector3(0f, 0.25f, 0.16f), new Vector3(0.34f, 0.08f, 0.07f), RobeDark, "Visiere");
+            Proto.Cube(head, new Vector3(0f, 0.25f, 0.16f), new Vector3(0.34f, 0.08f, 0.07f), RobeDark, "Visière");
             GameObject peak = Proto.Cone(head, new Vector3(0f, 0.32f, -0.06f), 0.14f, 0.34f, Robe, "Pointe", 5);
             peak.transform.localRotation = Quaternion.Euler(-24f, 0f, 0f);
             Proto.Cube(w.Torso, new Vector3(0f, 0.5f, -0.1f), new Vector3(0.62f, 0.16f, 0.2f), RobeDark, "Collet");
@@ -157,13 +157,13 @@ namespace Fief
             eyeR.GetComponent<Renderer>().sharedMaterial = eyes;
 
             // --- le baton, tenu droit, et sa pierre qui eclaire
-            Transform staffHold = w.Holder(w.HandR, "Baton");
+            Transform staffHold = w.Holder(w.HandR, "Bâton");
             Proto.Cube(staffHold, new Vector3(0f, -0.05f, 0f), new Vector3(0.06f, 2.15f, 0.06f), Wood, "Hampe");
             GameObject fork = Proto.Cube(staffHold, new Vector3(0.06f, 1.08f, 0f), new Vector3(0.04f, 0.3f, 0.04f), Wood, "Fourche");
             fork.transform.localRotation = Quaternion.Euler(0f, 0f, -24f);
             GameObject fork2 = Proto.Cube(staffHold, new Vector3(-0.06f, 1.08f, 0f), new Vector3(0.04f, 0.3f, 0.04f), Wood, "Fourche");
             fork2.transform.localRotation = Quaternion.Euler(0f, 0f, 24f);
-            GameObject crystal = Proto.Cube(staffHold, new Vector3(0f, 1.18f, 0f), new Vector3(0.13f, 0.19f, 0.13f), Glow, "Pierre du baton");
+            GameObject crystal = Proto.Cube(staffHold, new Vector3(0f, 1.18f, 0f), new Vector3(0.13f, 0.19f, 0.13f), Glow, "Pierre du bâton");
             crystal.transform.localRotation = Quaternion.Euler(45f, 20f, 45f);
             crystal.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Glow, 3.2f);
             mage.crystal = crystal.transform;
@@ -236,7 +236,7 @@ namespace Fief
             int wanted = season != null ? season.CurrentAppearance : -1;
 
             // L'ANNONCE, comme un largage : 45 s avant sa venue, une colonne bleue
-            // monte la ou il descendra, visible de toute la foret. Tout le monde y court.
+            // monte là où il descendra, visible de toute la foret. Tout le monde y court.
             int upcoming = season != null ? season.UpcomingAppearance(AnnounceLead) : -1;
             if (upcoming >= 0 && upcoming != announced && wanted < 0)
             {
@@ -252,7 +252,7 @@ namespace Fief
                 Sfx.MageArrives();
                 if (Game.Hud != null)
                     Game.Hud.ShowDiscovery("LA DESCENTE", "Le mage va descendre",
-                                           "Une colonne bleue s'eleve " + where + ". Il sera la dans " + Mathf.RoundToInt(AnnounceLead) + " secondes.",
+                                           "Une colonne bleue s'élève " + where + ". Il sera là dans " + Mathf.RoundToInt(AnnounceLead) + " secondes.",
                                            "Tout le monde l'a vue. Cours-y avec ton sac.", Glow);
             }
 
@@ -283,7 +283,7 @@ namespace Fief
             if (Present && !warned && season.MageTimeLeft < 30f)
             {
                 warned = true;
-                Toasts.Show("La voix du mage faiblit. Il va bientot repartir.", Glow);
+                Toasts.Show("La voix du mage faiblit. Il va bientôt repartir.", Glow);
             }
         }
 
@@ -339,7 +339,7 @@ namespace Fief
             string where = Game.PlayerTransform != null
                 ? Hud.Direction(Game.PlayerTransform.position, spot)
                 : "quelque part";
-            Toasts.Show("Le mage est descendu, " + where + ". La colonne s'eteindra bientot : ensuite, suis sa voix.", Glow);
+            Toasts.Show("Le mage est descendu, " + where + ". La colonne s'éteindra bientôt : ensuite, suis sa voix.", Glow);
 
             // La colonne reste encore vingt secondes, puis s'eteint : apres, il faut l'oreille.
             if (beacon != null)
@@ -365,7 +365,7 @@ namespace Fief
         ///  - a bonne distance de toi (110 a 260 m) : il faut MARCHER, charge ;
         ///  - pas dans le chateau, pas dans un creux a pierres-lune ;
         ///  - sur un sol presque plat, sans tronc ni rocher dans son cercle ;
-        ///  - de preference la ou la foret est claire.
+        ///  - de preference là où la foret est claire.
         /// Le hasard est tire de la graine du monde et du numero d'apparition : en
         /// Phase 3, toutes les machines pourront en tirer les memes candidats.
         /// </summary>

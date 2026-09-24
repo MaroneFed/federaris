@@ -49,7 +49,7 @@ namespace Fief
 
         public static GroundCover Build(Transform parent, Transform player, GameConfig cfg)
         {
-            GameObject go = new GameObject("TAPIS DE FORET");
+            GameObject go = new GameObject("TAPIS DE FORÊT");
             go.transform.SetParent(parent, false);
             GroundCover g = go.AddComponent<GroundCover>();
             g.player = player;

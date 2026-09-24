@@ -70,12 +70,12 @@ namespace Fief
 
         public static string Name(Kind k)
         {
-            return k == Kind.Or ? "Autel de l'Or" : k == Kind.Bucheron ? "Autel du Bucheron" : "Autel de la Lune";
+            return k == Kind.Or ? "Autel de l'Or" : k == Kind.Bucheron ? "Autel du Bûcheron" : "Autel de la Lune";
         }
 
         static string Gift(Kind k)
         {
-            return k == Kind.Or ? "5 or" : k == Kind.Bucheron ? "4 bois mort dans ta stele" : "2 pierres-lune dans ta stele";
+            return k == Kind.Or ? "5 or" : k == Kind.Bucheron ? "4 bois mort dans ta stèle" : "2 pierres-lune dans ta stèle";
         }
 
         /// <summary>La foret, les steles, les creux laissent la place aux autels.</summary>
@@ -131,7 +131,7 @@ namespace Fief
                 float a = k / 8f * Mathf.PI * 2f + 0.2f;
                 float h = 1.6f + Mathf.Abs(Mathf.Sin(k * 2.3f + index)) * 1.4f;
                 GameObject s = Proto.Cube(t, new Vector3(Mathf.Cos(a) * (Radius + 0.4f), h * 0.5f - 0.1f, Mathf.Sin(a) * (Radius + 0.4f)),
-                                          new Vector3(0.6f, h, 0.4f), stone, "Pierre levee");
+                                          new Vector3(0.6f, h, 0.4f), stone, "Pierre levée");
                 s.transform.localRotation = Quaternion.Euler(Mathf.Sin(k * 1.7f) * 5f, -a * Mathf.Rad2Deg, Mathf.Cos(k) * 4f);
             }
             // L'autel : un bloc, une vasque, un feu qui prend la couleur du maitre.
@@ -183,7 +183,7 @@ namespace Fief
             Material glow = MaterialFactory.GetGlow(tint, 1.2f);
             if (kind == Kind.Or)
             {
-                GameObject coin = Proto.Cylinder(t, face, new Vector3(0.4f, 0.02f, 0.4f), tint, "Piece");
+                GameObject coin = Proto.Cylinder(t, face, new Vector3(0.4f, 0.02f, 0.4f), tint, "Pièce");
                 coin.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 coin.GetComponent<Renderer>().sharedMaterial = glow;
             }
@@ -306,7 +306,7 @@ namespace Fief
             else if (before == Game.Me)
                 Toasts.Show(s.Name + " t'a pris ton " + Name(kind) + ".", s.Colour);
             else
-                Toasts.Show(s.Name + " tient desormais l'" + Name(kind) + ".", s.Colour);
+                Toasts.Show(s.Name + " tient désormais l'" + Name(kind) + ".", s.Colour);
         }
 
         void Paint(Color c)
@@ -355,7 +355,7 @@ namespace Fief
             string state;
             Color tint = Tint(kind);
             if (Guarded) state = "Ses gardiens veillent : abats les revenants.";
-            else if (Owner == Game.Me) state = "Il est a toi. Il te donne " + Gift(kind) + ".";
+            else if (Owner == Game.Me) state = "Il est à toi. Il te donne " + Gift(kind) + ".";
             else if (Taker == Game.Me) state = "Tu le prends...  " + Mathf.RoundToInt(Progress * 100f) + " %";
             else if (Taker != null && Progress > 0f) state = "Tu effaces la marque de " + Taker.Name + "...";
             else state = "Reste seul dans le cercle pour le prendre.";

@@ -187,7 +187,7 @@ namespace Fief
         }
 
         /// <summary>Un mat avec une banniere de couleur : sert a reperer les fiefs de loin.</summary>
-        public static GameObject Banner(Transform parent, Vector3 pos, Color color, float height, string name = "Banniere")
+        public static GameObject Banner(Transform parent, Vector3 pos, Color color, float height, string name = "Bannière")
         {
             GameObject root = new GameObject(name);
             root.transform.SetParent(parent, false);

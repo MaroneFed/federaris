@@ -4,7 +4,7 @@ namespace Fief
 {
     /// <summary>
     /// LE CAMP : une tente, une couverture, un feu eteint. Plante une seule fois par
-    /// Saison, avec la touche C, la ou l'on se tient.
+    /// Saison, avec la touche C, là où l'on se tient.
     ///
     /// La tente est un depot : on y laisse ce qu'on ne peut plus porter. Plus grande
     /// qu'une cache (60 kg contre 40), mais elle se VOIT -- en Phase 2, c'est la
@@ -42,7 +42,7 @@ namespace Fief
             left.transform.localRotation = Quaternion.Euler(0f, 0f, -34f);
             GameObject right = Proto.Cube(t, new Vector3(0.55f, 0.72f, 0f), new Vector3(0.05f, 1.75f, 2.5f), CanvasShade, "Toile");
             right.transform.localRotation = Quaternion.Euler(0f, 0f, 34f);
-            Proto.Cube(t, new Vector3(0f, 1.46f, 0f), new Vector3(0.07f, 0.07f, 2.9f), Pole, "Faitiere");
+            Proto.Cube(t, new Vector3(0f, 1.46f, 0f), new Vector3(0.07f, 0.07f, 2.9f), Pole, "Faîtière");
             Proto.Cube(t, new Vector3(0f, 0.72f, 1.3f), new Vector3(0.06f, 1.5f, 0.06f), Pole, "Mat");
             Proto.Cube(t, new Vector3(0f, 0.72f, -1.3f), new Vector3(0.06f, 1.5f, 0.06f), Pole, "Mat");
             Proto.Cube(t, new Vector3(0f, 0.02f, 0f), new Vector3(2.3f, 0.03f, 2.7f), CanvasShade, "Tapis");

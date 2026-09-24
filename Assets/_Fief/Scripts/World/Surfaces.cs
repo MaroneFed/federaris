@@ -25,7 +25,7 @@ namespace Fief
         static readonly Dictionary<string, Material> Made = new Dictionary<string, Material>();
 
         public static Material Ground(Color c) { Ensure(); return Make("sol", c, groundTex, groundBump, 0.8f); }
-        public static Material Bark(Color c) { Ensure(); return Make("ecorce", c, barkTex, barkBump, 1.2f); }
+        public static Material Bark(Color c) { Ensure(); return Make("écorce", c, barkTex, barkBump, 1.2f); }
         public static Material Rock(Color c) { Ensure(); return Make("roche", c, rockTex, rockBump, 1.0f); }
 
         static Material Make(string kind, Color c, Texture2D albedo, Texture2D bump, float bumpScale)
@@ -87,8 +87,8 @@ namespace Fief
                 }
             // Quelques noeuds.
             for (int i = 0; i < 5; i++) Pebble(c, h, rng.Next(Size), rng.Next(Size), 5 + rng.Next(4), 0.62f);
-            barkTex = Albedo("ecorce", c);
-            barkBump = Bump("ecorce_relief", h, 4.5f);
+            barkTex = Albedo("écorce", c);
+            barkBump = Bump("écorce_relief", h, 4.5f);
 
             // --- la roche : grain, fissures, lichen
             for (int y = 0; y < Size; y++)

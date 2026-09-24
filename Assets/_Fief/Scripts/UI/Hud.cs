@@ -94,7 +94,7 @@ namespace Fief
                     Vector3 at = Combat.RespawnPoint(me, me.Body != null ? me.Body.position : Vector3.zero);
                     if (Game.Player != null) Game.Player.Teleport(at, Game.PlayerTransform.eulerAngles.y);
                     me.Health = Seeker.MaxHealth;
-                    Toasts.Show("Tu te releves pres de ta stele. Ta depouille est la ou tu es tombe.", UiStyle.InkDim);
+                    Toasts.Show("Tu te relèves près de ta stèle. Ta dépouille est là où tu es tombé.", UiStyle.InkDim);
                 }
                 return;
             }
@@ -118,11 +118,11 @@ namespace Fief
                 GUIStyle big = UiStyle.Big;
                 TextAnchor previous = big.alignment;
                 big.alignment = TextAnchor.MiddleCenter;
-                UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f, Screen.width, UiStyle.S(70)), UiStyle.Spaced("TU ES TOMBE"), big,
+                UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f, Screen.width, UiStyle.S(70)), UiStyle.Spaced("TU ES TOMBÉ"), big,
                                new Color(0.85f, 0.3f, 0.25f, a));
                 big.alignment = previous;
                 UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f + UiStyle.S(76), Screen.width, UiStyle.S(24)),
-                               killedBy + ". Tout ce que tu portais est reste la-bas.", UiStyle.Centered,
+                               killedBy + ". Tout ce que tu portais est reste là-bas.", UiStyle.Centered,
                                new Color(0.9f, 0.85f, 0.78f, a));
                 return;
             }
@@ -242,8 +242,8 @@ namespace Fief
             Vector3 d = to - from;
             float angle = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
             if (angle < 0f) angle += 360f;
-            string[] names = { "au nord", "au nord-est", "a l'est", "au sud-est",
-                               "au sud", "au sud-ouest", "a l'ouest", "au nord-ouest" };
+            string[] names = { "au nord", "au nord-est", "à l'est", "au sud-est",
+                               "au sud", "au sud-ouest", "à l'ouest", "au nord-ouest" };
             return names[Mathf.RoundToInt(angle / 45f) % 8];
         }
 
@@ -302,7 +302,7 @@ namespace Fief
                 Color quiet = Curse.Violet;
                 quiet.a = 0.55f;
                 UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(24), Screen.width, UiStyle.S(18)),
-                               "Malediction dans " + Clock(curse), UiStyle.CenteredSmall, quiet);
+                               "Malédiction dans " + Clock(curse), UiStyle.CenteredSmall, quiet);
             }
             if (curse >= 0f && curse < 120f && !season.MagePresent)
             {
@@ -310,8 +310,8 @@ namespace Fief
                 float pulse = urgent ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 8f) : 1f;
                 Color c = Curse.Violet;
                 c.a = pulse;
-                string line = "LA MALEDICTION dans " + Clock(curse)
-                              + (Game.Inventory != null && !Game.Inventory.IsEmpty ? "  --  vide ton sac a ta stele" : "  --  ton sac est vide");
+                string line = "LA MALÉDICTION dans " + Clock(curse)
+                              + (Game.Inventory != null && !Game.Inventory.IsEmpty ? "  --  vide ton sac à ta stèle" : "  --  ton sac est vide");
                 UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(24), Screen.width, UiStyle.S(20)), line,
                                urgent ? UiStyle.Centered : UiStyle.CenteredSmall, c);
             }
@@ -383,7 +383,7 @@ namespace Fief
             {
                 // Plein : la jauge clignote, et le dit.
                 fill = Color.Lerp(fill, Color.white, 0.35f + 0.35f * Mathf.Sin(Time.unscaledTime * 8f));
-                UiStyle.Tinted(new Rect(x, y - UiStyle.S(24), inner, UiStyle.S(20)), "PLEIN  --  va vider ton sac a ta stele", RightSmall(),
+                UiStyle.Tinted(new Rect(x, y - UiStyle.S(24), inner, UiStyle.S(20)), "PLEIN  --  va vider ton sac à ta stèle", RightSmall(),
                                new Color(0.95f, 0.45f, 0.35f));
             }
             UiStyle.Bar(new Rect(x, y, inner, UiStyle.S(10)), load, fill, UiStyle.BarBg);
@@ -395,7 +395,7 @@ namespace Fief
             Color tint;
             if (hoard != null && hoard.Trophy != null)
             {
-                relic = "Relique VOLEE a " + hoard.TrophyFrom.Name + " : cours a ta stele";
+                relic = "Relique VOLÉE a " + hoard.TrophyFrom.Name + " : cours à ta stèle";
                 tint = new Color(1f, 0.55f, 0.4f);
             }
             else if (hoard == null || hoard.Relic == null)
@@ -405,7 +405,7 @@ namespace Fief
             }
             else
             {
-                relic = "Relique  " + hoard.Relic.Power + (hoard.RelicOnStele ? "   sur ta stele" : "   en main");
+                relic = "Relique  " + hoard.Relic.Power + (hoard.RelicOnStele ? "   sur ta stèle" : "   en main");
                 tint = hoard.RelicOnStele ? new Color(0.62f, 0.78f, 0.95f) : Palette.Gold;
             }
             UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), relic, UiStyle.Small, tint);
@@ -739,7 +739,7 @@ namespace Fief
 
             float x = box.x + UiStyle.S(16);
             UiStyle.Tinted(new Rect(x, box.y + UiStyle.S(10), w, UiStyle.S(26)),
-                           "LA CONSTRUCTION DU MONDE A ECHOUE", UiStyle.Head, new Color(1f, 0.55f, 0.45f));
+                           "LA CONSTRUCTION DU MONDE A ÉCHOUÉ", UiStyle.Head, new Color(1f, 0.55f, 0.45f));
 
             GUIStyle wrapped = UiStyle.Small;
             bool previousWrap = wrapped.wordWrap;
@@ -777,9 +777,9 @@ namespace Fief
             // Tout le reglage de la lumiere depend de cet espace, et le depot ne le
             // versionne pas : c'est Unity qui le choisit sur chaque machine.
             y = Line(x, y, inner, "Espace colorimetrique",
-                     QualitySettings.activeColorSpace == ColorSpace.Linear ? "lineaire" : "gamma");
+                     QualitySettings.activeColorSpace == ColorSpace.Linear ? "linéaire" : "gamma");
             y = Line(x, y, inner, "Vue",
-                     orbitCamera != null && orbitCamera.ThroughEyes ? "premiere personne" : "ecran-titre");
+                     orbitCamera != null && orbitCamera.ThroughEyes ? "première personne" : "écran-titre");
 
             if (Game.PlayerTransform != null)
             {
@@ -849,8 +849,8 @@ namespace Fief
                             nearest += ",  " + secondName + " a " + Mathf.RoundToInt(secondDist * 100f) + " cm";
                     }
                 }
-                y = Line(x, y, inner, "Camera a l'interieur de", inside);
-                y = Line(x, y, inner, "Colle a l'oeil", nearest);
+                y = Line(x, y, inner, "Caméra à l'intérieur de", inside);
+                y = Line(x, y, inner, "Colle à l'oeil", nearest);
 
                 Collider[] touching = Physics.OverlapSphere(c, 0.25f, ~0, QueryTriggerInteraction.Ignore);
                 y = Line(x, y, inner, "Solides autour de l'oeil",
@@ -858,7 +858,7 @@ namespace Fief
                              + (touching.Length > 1 ? " +" + (touching.Length - 1) : ""));
 
                 RaycastHit hit;
-                string ahead = "rien a moins de 40 m";
+                string ahead = "rien à moins de 40 m";
                 if (Physics.Raycast(c, cam.transform.forward, out hit, 40f, ~0, QueryTriggerInteraction.Ignore))
                     ahead = hit.collider.gameObject.name + " a " + hit.distance.ToString("0.0") + " m";
                 y = Line(x, y, inner, "Devant toi", ahead);
@@ -866,7 +866,7 @@ namespace Fief
 
             y += UiStyle.S(6);
             GUI.Label(new Rect(x, y, inner, UiStyle.S(34)),
-                      "Lis-moi \"Colle a l'oeil\" : c'est ce qui est devant la camera.", UiStyle.Tiny);
+                      "Lis-moi \"Colle à l'oeil\" : c'est ce qui est devant la caméra.", UiStyle.Tiny);
         }
 
         float Line(float x, float y, float width, string label, string value)
@@ -905,18 +905,18 @@ namespace Fief
 
             string[,] rows =
             {
-                { "ZQSD", "se deplacer" },
+                { "ZQSD", "se déplacer" },
                 { "Maj", "courir" },
-                { "Souris", "camera" },
-                { "E", "recolter, interagir, ta stele" },
+                { "Souris", "caméra" },
+                { "E", "récolter, interagir, ta stèle" },
                 { "C", "planter le camp" },
                 { "G", "creuser une cache" },
                 { "Tab", "ta besace" },
-                { "1 / 2 + clic", "outil : abattre, frapper, poser un piege" },
+                { "1 / 2 + clic", "outil : abattre, frapper, poser un piège" },
                 { "F", "grimper dans un arbre" },
-                { "H", "tendre l'oreille : ta stele chante" },
+                { "H", "tendre l'oreille : ta stèle chante" },
                 { "F3", "diagnostic" },
-                { "Echap", "pause" }
+                { "Échap", "pause" }
             };
 
             for (int i = 0; i < rows.GetLength(0); i++)

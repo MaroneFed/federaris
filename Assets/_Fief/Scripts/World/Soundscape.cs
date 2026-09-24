@@ -67,7 +67,7 @@ namespace Fief
             }
 
             // La cloche, en haut du donjon.
-            GameObject tower = new GameObject("Cloche du chateau");
+            GameObject tower = new GameObject("Cloche du château");
             tower.transform.SetParent(go.transform, false);
             tower.transform.position = Game.CastleCentre + new Vector3(0f, 30f, Castle.KeepCentre.z);
             s.bellTower = tower.AddComponent<AudioSource>();
@@ -141,7 +141,7 @@ namespace Fief
                 tollsLeft = due;
                 tollTimer = 0f;
                 int minutesLeft = Mathf.RoundToInt(season.Remaining / 60f);
-                Toasts.Show(due + (due > 1 ? " coups" : " coup") + " de cloche au chateau. Encore " + minutesLeft + " minutes.",
+                Toasts.Show(due + (due > 1 ? " coups" : " coup") + " de cloche au château. Encore " + minutesLeft + " minutes.",
                             new Color(0.86f, 0.80f, 0.64f));
             }
 

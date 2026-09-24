@@ -38,8 +38,8 @@ namespace Fief
         /// <summary>Ce qui garde sa couleur unie : statues, bois, fer, objets.</summary>
         static readonly string[] Keep =
         {
-            "Roi de pierre", "Sainte", "Mannequin", "Caisse de fer", "Charrette", "Etendard",
-            "TRONE", "POTERNE", "LE REGISTRE", "Vantail", "Cage", "Arbre mort"
+            "Roi de pierre", "Sainte", "Mannequin", "Caisse de fer", "Charrette", "Étendard",
+            "TRÔNE", "POTERNE", "LE REGISTRE", "Vantail", "Cage", "Arbre mort"
         };
 
         public static int Apply(Transform root)

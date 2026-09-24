@@ -4,7 +4,7 @@ namespace Fief
 {
     /// <summary>
     /// Les deux gestes qui font de la foret TON territoire :
-    ///   C  -- planter le camp (une seule fois par Saison, la ou l'on se tient) ;
+    ///   C  -- planter le camp (une seule fois par Saison, là où l'on se tient) ;
     ///   G  -- creuser une cache (maintenir, trois au maximum).
     ///
     /// Pourquoi C ne se maintient pas et G si : planter le camp est une DECISION,
@@ -68,7 +68,7 @@ namespace Fief
 
             if (hoard.CampPlanted)
             {
-                Refuse("Ton camp est deja plante, " + Hud.Direction(transform.position, hoard.CampPosition) + ".");
+                Refuse("Ton camp est déjà plante, " + Hud.Direction(transform.position, hoard.CampPosition) + ".");
                 return;
             }
 
@@ -131,11 +131,11 @@ namespace Fief
             if (stele == null) return;
             if (Time.time < listenReady)
             {
-                Refuse("Ta stele se tait encore " + Mathf.CeilToInt(listenReady - Time.time) + " s.");
+                Refuse("Ta stèle se tait encore " + Mathf.CeilToInt(listenReady - Time.time) + " s.");
                 return;
             }
             listenReady = Time.time + 60f;
-            GameObject go = new GameObject("Appel de la stele");
+            GameObject go = new GameObject("Appel de la stèle");
             go.transform.position = stele.transform.position + Vector3.up * 1.5f;
             AudioSource src = go.AddComponent<AudioSource>();
             src.clip = Sfx.SteleCall();
@@ -148,7 +148,7 @@ namespace Fief
             src.Play();
             Destroy(go, src.clip.length + 0.2f);
             OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 0.3f);
-            Toasts.Show("Tu tends l'oreille... ta stele repond, quelque part.", Stele.RuneBlue);
+            Toasts.Show("Tu tends l'oreille... ta stèle répond, quelque part.", Stele.RuneBlue);
         }
 
         // ------------------------------------------------------------------ les caches
@@ -158,7 +158,7 @@ namespace Fief
             if (Digging || Game.Hoard == null) return;
 
             Vector3 at = CacheSpotAhead();
-            string why = Game.Hoard.CanDig ? WhyNotHere(at, 4f) : "Tu as deja creuse tes " + Game.Hoard.MaxCaches + " caches.";
+            string why = Game.Hoard.CanDig ? WhyNotHere(at, 4f) : "Tu as déjà creuse tes " + Game.Hoard.MaxCaches + " caches.";
             if (why == null) why = TooClose(at);
             if (why != null) { Refuse(why); return; }
 
@@ -199,8 +199,8 @@ namespace Fief
             CacheSpot.Build(cache, Random.Range(0f, 360f));
             Sfx.Harvest(ResourceType.Moonstone);
             int left = Game.Hoard.MaxCaches - Game.Hoard.Caches.Count;
-            Toasts.Show("Cache " + cache.Number + " creusee. Toi seul sais qu'elle est la."
-                        + (left > 0 ? "  (encore " + left + ")" : "  (c'etait la derniere)"),
+            Toasts.Show("Cache " + cache.Number + " creusée. Toi seul sais qu'elle est là."
+                        + (left > 0 ? "  (encore " + left + ")" : "  (c'était la dernière)"),
                         new Color(0.80f, 0.66f, 0.46f));
         }
 
@@ -235,9 +235,9 @@ namespace Fief
             Hoard hoard = Game.Hoard;
             for (int i = 0; i < hoard.Caches.Count; i++)
                 if (Flat(hoard.Caches[i].Position - at).magnitude < MinCacheSpacing)
-                    return "Trop pres de ta cache " + hoard.Caches[i].Number + ".";
+                    return "Trop près de ta cache " + hoard.Caches[i].Number + ".";
             if (hoard.CampPlanted && Flat(hoard.CampPosition - at).magnitude < MinCacheSpacing)
-                return "Trop pres de ta tente.";
+                return "Trop près de ta tente.";
             return null;
         }
 
@@ -246,7 +246,7 @@ namespace Fief
         /// <summary>Null si l'endroit convient, sinon la raison, dite au joueur.</summary>
         static string WhyNotHere(Vector3 at, float castleMargin)
         {
-            if (Castle.Covers(at.x, at.z, castleMargin)) return "Pas au pied du chateau : on te verrait.";
+            if (Castle.Covers(at.x, at.z, castleMargin)) return "Pas au pied du château : on te verrait.";
             if (Ground.Slope(at.x, at.z) > MaxSlope) return "Le sol est trop en pente ici.";
             return null;
         }

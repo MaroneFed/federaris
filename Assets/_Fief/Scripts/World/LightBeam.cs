@@ -38,7 +38,7 @@ namespace Fief
         public static LightBeam Build(Transform parent, Vector3 source, Color color, float width, float height)
         {
             if (!EnsureMaterial()) return null;
-            GameObject root = new GameObject("Colonne de lumiere");
+            GameObject root = new GameObject("Colonne de lumière");
             root.transform.SetParent(parent, false);
             LightBeam beam = root.AddComponent<LightBeam>();
             beam.source = source;

@@ -133,7 +133,7 @@ namespace Fief
             }
 
             cells.Clear();
-            Debug.Log("[FIEF] " + name + " : " + shapeCount + " formes fusionnees en " + meshes + " maillages.");
+            Debug.Log("[FIEF] " + name + " : " + shapeCount + " formes fusionnées en " + meshes + " maillages.");
             return root;
         }
     }

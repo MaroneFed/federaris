@@ -26,16 +26,16 @@ namespace Fief
         {
             new Step { text = "Ramasse du bois mort",
                        hint = "Au pied des arbres morts (gris, sans feuilles) : des fagots. Maintiens E." },
-            new Step { text = "Depose-le dans ta stele (E)",
-                       hint = "Ta stele est la ou tu es ne. Retiens le chemin. Perdu ? H : elle chante, et tu sais de quel cote aller." },
+            new Step { text = "Déposé-le dans ta stèle (E)",
+                       hint = "Ta stèle est là où tu es né. Retiens le chemin. Perdu ? H : elle chante, et tu sais de quel côté aller." },
             new Step { text = "Ramasse de la pierre-lune",
                        hint = "Dans les creux ou des pierres bleues luisent. Suis les lucioles, ou un feu-follet." },
             new Step { text = "Porte ton sac au mage",
-                       hint = "Quand une colonne bleue monte au-dessus des arbres, reprends ta reserve et cours-y. Il fond ce que tu portes." },
-            new Step { text = "Pose ta relique sur ta stele",
-                       hint = "E devant ta stele, onglet Relique. Seule une relique posee compte a la cloche." },
-            new Step { text = "Achete une amelioration",
-                       hint = "Ta stele, onglet Ameliorations : paye avec ta reserve. Puis Tab pour les quatre victoires." }
+                       hint = "Quand une colonne bleue monte au-dessus des arbres, reprends ta réserve et cours-y. Il fond ce que tu portes." },
+            new Step { text = "Pose ta relique sur ta stèle",
+                       hint = "E devant ta stèle, onglet Relique. Seule une relique posée compte à la cloche." },
+            new Step { text = "Achète une amélioration",
+                       hint = "Ta stèle, onglet Améliorations : paye avec ta réserve. Puis Tab pour les quatre victoires." }
         };
 
         static int done;
@@ -179,16 +179,16 @@ namespace Fief
             }
             float curse = season.NextCurseIn;
             if (curse >= 0f && curse < 75f && !Game.Inventory.IsEmpty && !season.MagePresent)
-                return "La Malediction frappe dans " + Hud.Clock(curse) + " : rentre deposer ton sac a ta stele !";
-            if (h.Trophy != null) return "Tu portes la relique de " + h.TrophyFrom.Name + " : cours a ta stele pour la fondre.";
-            if (season.Remaining < 120f && h.RelicInHand) return "La cloche approche : pose ta relique sur ta stele, vite.";
+                return "La Malédiction frappe dans " + Hud.Clock(curse) + " : rentre déposer ton sac à ta stèle !";
+            if (h.Trophy != null) return "Tu portes la relique de " + h.TrophyFrom.Name + " : cours à ta stèle pour la fondre.";
+            if (season.Remaining < 120f && h.RelicInHand) return "La cloche approche : pose ta relique sur ta stèle, vite.";
             if (Game.Mage != null && Game.Mage.Announced)
-                return "Le mage descend dans " + Hud.Clock(season.NextMageIn) + " (la colonne bleue au-dessus des arbres). Prends ta reserve et cours-y !";
+                return "Le mage descend dans " + Hud.Clock(season.NextMageIn) + " (la colonne bleue au-dessus des arbres). Prends ta réserve et cours-y !";
             if (season.MagePresent && !Game.Inventory.IsEmpty) return "Le mage chante (" + Hud.Clock(season.MageTimeLeft) + ") : porte-lui ton sac.";
-            if (h.RelicInHand) return "Ta relique est en main : pose-la sur ta stele (E), sinon elle ne compte pas.";
-            if (season.NextMageIn >= 0f && season.NextMageIn < 40f) return "Le mage arrive dans " + Hud.Clock(season.NextMageIn) + " : prepare ton sac.";
-            if (season.NextMageIn >= 0f) return "Prochain mage dans " + Hud.Clock(season.NextMageIn) + ". Remplis ta reserve, ameliore-toi a ta stele, ou pose des pieges.";
-            return "Le mage ne reviendra plus. Defends ta stele jusqu'a la cloche.";
+            if (h.RelicInHand) return "Ta relique est en main : pose-la sur ta stèle (E), sinon elle ne compte pas.";
+            if (season.NextMageIn >= 0f && season.NextMageIn < 40f) return "Le mage arrive dans " + Hud.Clock(season.NextMageIn) + " : prépare ton sac.";
+            if (season.NextMageIn >= 0f) return "Prochain mage dans " + Hud.Clock(season.NextMageIn) + ". Remplis ta réserve, améliore-toi à ta stèle, ou pose des pièges.";
+            return "Le mage ne reviendra plus. Défends ta stèle jusqu'a la cloche.";
         }
     }
 }

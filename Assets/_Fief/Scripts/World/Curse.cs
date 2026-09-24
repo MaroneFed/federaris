@@ -26,7 +26,7 @@ namespace Fief
 
         public static Curse Build()
         {
-            GameObject go = new GameObject("MALEDICTION");
+            GameObject go = new GameObject("MALÉDICTION");
             return go.AddComponent<Curse>();
         }
 
@@ -48,7 +48,7 @@ namespace Fief
                         lastWarned = marks[i];
                         Sfx.CurseToll();
                         if (marks[i] >= 60f && Game.Inventory != null && !Game.Inventory.IsEmpty)
-                            Toasts.Show("Le glas. Dans une minute, la Malediction devore ce que tu portes. Rentre a ta stele.", Violet);
+                            Toasts.Show("Le glas. Dans une minute, la Malédiction dévore ce que tu portes. Rentre à ta stèle.", Violet);
                     }
                 }
             }
@@ -94,14 +94,14 @@ namespace Fief
             if (total == 0)
             {
                 Sfx.Discovery();
-                Game.Hud.ShowDiscovery("LA MALEDICTION", "repart bredouille",
-                                       "Ton sac etait vide. Bien joue.",
-                                       "Ta reserve est intacte : " + Stele.StoreSummary(Game.Hoard) + ".", Violet);
+                Game.Hud.ShowDiscovery("LA MALÉDICTION", "repart bredouille",
+                                       "Ton sac était vide. Bien joue.",
+                                       "Ta réserve est intacte : " + Stele.StoreSummary(Game.Hoard) + ".", Violet);
             }
             else
-                Game.Hud.ShowDiscovery("LA MALEDICTION", "a devore ton sac",
+                Game.Hud.ShowDiscovery("LA MALÉDICTION", "a dévoré ton sac",
                                        "Perdu : " + what + ".",
-                                       "La prochaine fois, depose tout a ta stele avant le glas.", Violet);
+                                       "La prochaine fois, dépose tout à ta stèle avant le glas.", Violet);
         }
 
         void OnGUI()

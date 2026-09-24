@@ -131,19 +131,19 @@ namespace Fief
             int mine = me != null ? me.Score : 0;
             int best = leader != null ? leader.Score : 0;
             string reliqueState = best <= 0 ? "Personne n'a encore pose de relique."
-                                : leader == me ? "Tu menes : " + mine + "."
-                                : "Ta relique : " + mine + ".  En tete : " + leader.Name + ", " + best + ".";
+                                : leader == me ? "Tu mènes : " + mine + "."
+                                : "Ta relique : " + mine + ".  En tête : " + leader.Name + ", " + best + ".";
             Card(x, ref y, width, cardH, VictoryKind.Relique, reliqueState, best > 0 ? (float)mine / best : 0f, Stele.RuneBlue);
 
             int sworn = Game.Garrison != null && me != null ? Game.Garrison.SwornCount(me) : 0;
             int guards = Game.Garrison != null ? Game.Garrison.Guards.Count : 6;
             Card(x, ref y, width, cardH, VictoryKind.Trahison,
-                 "Gardes a toi : " + sworn + " / " + guards + ".   Ta bourse : " + (Game.Wallet != null ? Game.Wallet.Gold : 0) + " or.",
+                 "Gardes à toi : " + sworn + " / " + guards + ".   Ta bourse : " + (Game.Wallet != null ? Game.Wallet.Gold : 0) + " or.",
                  (float)sworn / guards, new Color(0.95f, 0.78f, 0.35f));
 
             int found = h != null ? h.TalismanCount : 0;
             Card(x, ref y, width, cardH, VictoryKind.Couronne,
-                 "Talismans : " + found + " / " + TalismanInfo.Count + (found >= TalismanInfo.Count ? ".  Va au trone !" : "."),
+                 "Talismans : " + found + " / " + TalismanInfo.Count + (found >= TalismanInfo.Count ? ".  Va au trône !" : "."),
                  (float)found / TalismanInfo.Count, new Color(0.9f, 0.5f, 0.4f));
 
             string offer = "";
@@ -168,10 +168,10 @@ namespace Fief
             ToolKind[] kinds = { ToolKind.Hache, ToolKind.Epee, ToolKind.Piege };
             string[] uses =
             {
-                "Abat les arbres (clic, face a un tronc) : 14 bois mort d'un coup. Se brise apres 12 coups.",
-                "Pour se battre : quatre coups tuent. Qui porte une relique ne peut pas frapper. Se brise apres 25 coups.",
-                "Clic : le poser devant toi. Qui marche dessus meurt et lache tout. Toi, tu ne crains rien. "
-                + Trap.MaxFor(me) + " poses au plus."
+                "Abat les arbres (clic, face à un tronc) : 14 bois mort d'un coup. Se brise après 12 coups.",
+                "Pour se battre : quatre coups tuent. Qui porte une relique ne peut pas frapper. Se brise après 25 coups.",
+                "Clic : le poser devant toi. Qui marche dessus meurt et lâche tout. Toi, tu ne crains rien. "
+                + Trap.MaxFor(me) + " posés au plus."
             };
             for (int k = 0; k < kinds.Length; k++)
             {

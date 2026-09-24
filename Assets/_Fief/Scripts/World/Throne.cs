@@ -13,7 +13,7 @@ namespace Fief
     {
         public static void Build(Transform parent, Vector3 seat)
         {
-            GameObject go = new GameObject("TRONE");
+            GameObject go = new GameObject("TRÔNE");
             go.transform.SetParent(parent, false);
             go.transform.localPosition = seat;
             BoxCollider trigger = go.AddComponent<BoxCollider>();
@@ -31,8 +31,8 @@ namespace Fief
             get
             {
                 int n = Game.Hoard != null ? Game.Hoard.TalismanCount : 0;
-                return n >= TalismanInfo.Count ? "S'asseoir sur le trone du roi sans tete"
-                                               : "Le trone du roi sans tete  (" + n + " / " + TalismanInfo.Count + " talismans)";
+                return n >= TalismanInfo.Count ? "S'asseoir sur le trône du roi sans tête"
+                                               : "Le trône du roi sans tête  (" + n + " / " + TalismanInfo.Count + " talismans)";
             }
         }
 

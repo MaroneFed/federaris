@@ -43,7 +43,7 @@ namespace Fief
 
         public static string Name(ToolKind k)
         {
-            return k == ToolKind.Hache ? "Hache" : k == ToolKind.Epee ? "Epee" : k == ToolKind.Piege ? "Piege" : "";
+            return k == ToolKind.Hache ? "Hache" : k == ToolKind.Epee ? "Épée" : k == ToolKind.Piege ? "Piège" : "";
         }
 
         public static int MaxDurability(ToolKind k)

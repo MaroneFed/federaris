@@ -415,7 +415,7 @@ namespace Fief
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             // LE SOL DE LA SYLVE. Neuf teintes, toutes entre 10 % et 27 % de clarte :
             // mousses dans les creux humides, litiere de feuilles sur les replats,
-            // terre nue la ou la pente lessive, roche mouillee sur les devers.
+            // terre nue là où la pente lessive, roche mouillee sur les devers.
             // L'ancien nuancier allait du sable a la neige -- sous cette brume il
             // aurait fait une moquette vert vif.
             go.AddComponent<MeshRenderer>().sharedMaterials = new Material[]

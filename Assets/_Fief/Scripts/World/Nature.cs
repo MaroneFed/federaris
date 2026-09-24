@@ -102,7 +102,7 @@ namespace Fief
                 if (i == 1 && !arch)
                 {
                     // Couchee dans l'herbe.
-                    GameObject fallen = Proto.Cube(t, p + new Vector3(0.4f, 0.3f, -1.4f), new Vector3(0.6f, 0.6f, 3.2f), stone, "Colonne tombee");
+                    GameObject fallen = Proto.Cube(t, p + new Vector3(0.4f, 0.3f, -1.4f), new Vector3(0.6f, 0.6f, 3.2f), stone, "Colonne tombée");
                     fallen.transform.localRotation = Quaternion.Euler(0f, 25f, 4f);
                     continue;
                 }
@@ -182,7 +182,7 @@ namespace Fief
                 b.transform.localPosition = c.rest;
                 b.transform.localRotation = Quaternion.Euler(0f, (float)f.rng.NextDouble() * 360f, 0f);
                 Proto.Cube(b.transform, new Vector3(0f, 0.16f, 0f), new Vector3(0.14f, 0.13f, 0.3f), Black, "Corps");
-                Proto.Cube(b.transform, new Vector3(0f, 0.26f, 0.15f), new Vector3(0.1f, 0.1f, 0.11f), Black, "Tete");
+                Proto.Cube(b.transform, new Vector3(0f, 0.26f, 0.15f), new Vector3(0.1f, 0.1f, 0.11f), Black, "Tête");
                 Proto.Cube(b.transform, new Vector3(0f, 0.25f, 0.24f), new Vector3(0.03f, 0.03f, 0.09f), Beak, "Bec");
                 Proto.Cube(b.transform, new Vector3(0f, 0.15f, -0.2f), new Vector3(0.1f, 0.03f, 0.14f), Black, "Queue");
                 GameObject wl = new GameObject("Aile");

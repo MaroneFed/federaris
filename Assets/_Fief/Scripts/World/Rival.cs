@@ -125,7 +125,7 @@ namespace Fief
 
             Proto.BeginVisualOnly();
             Transform neck = rig.HeadBone;
-            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Echarpe");
+            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Écharpe");
             GameObject tail = Proto.Cube(neck, new Vector3(0.08f, -0.24f, -0.17f), new Vector3(0.1f, 0.34f, 0.03f), Palette.Shade(colour, 0.85f), "Pan");
             tail.transform.localRotation = Quaternion.Euler(-12f, 0f, 8f);
 
@@ -191,7 +191,7 @@ namespace Fief
             r.huntTimer = 75f;
             r.goal = Goal.Hunt;
             if (thief == Game.Me)
-                Toasts.Show(victim.Name + " a vu sa stele pillee. Il te cherche.", victim.Colour);
+                Toasts.Show(victim.Name + " a vu sa stèle pillée. Il te cherche.", victim.Colour);
         }
 
         /// <summary>Vrai si le rival se tient pres de sa stele : on ne pille pas sous son nez.</summary>
@@ -348,7 +348,7 @@ namespace Fief
                 {
                     siegeTimer = 45f;
                     goal = Goal.Siege; target = siege.transform.position;
-                    Bark("L'autel. Il sera a moi.");
+                    Bark("L'autel. Il sera à moi.");
                     return;
                 }
             }
@@ -454,7 +454,7 @@ namespace Fief
                         int gained = h.RequestAbsorbTrophy();
                         if (h.RelicInHand) h.TryPlaceOnStele();
                         seeker.SyncWeight();
-                        Toasts.Show(seeker.Name + " a fondu une relique volee dans la sienne (+" + gained + ").", seeker.Colour);
+                        Toasts.Show(seeker.Name + " a fondu une relique volée dans la sienne (+" + gained + ").", seeker.Colour);
                     }
                     else if (h.RelicInHand) h.TryPlaceOnStele();
                     seeker.SyncWeight();
@@ -484,7 +484,7 @@ namespace Fief
                         if (Game.Rig != null && PlayerWithin(25f)) Sfx.HarvestTap(ResourceType.Iron);
                         if (seeker.Kit.Wear(1)) rearmTimer = 60f;
                         Combat.Hit(aggro, seeker, 20f * (h.Level(UpgradeKind.Lame) > 0 ? UpgradeInfo.LameFactor : 1f));
-                        if (!aggro.Alive) { aggro = null; Bark("Et voila."); }
+                        if (!aggro.Alive) { aggro = null; Bark("Et voilà."); }
                     }
                     if (aggro != null && aggro.Body != null) Figures.Face(transform, aggro.Body.position, 360f);
                     break;
@@ -516,7 +516,7 @@ namespace Fief
             {
                 if (!h.CanBuy(wishes[i], seeker.Money)) continue;
                 if (!h.TryBuyUpgrade(wishes[i], seeker.Bag, seeker.Money)) continue;
-                if (PlayerWithin(25f)) Bark("Voila qui aidera.");
+                if (PlayerWithin(25f)) Bark("Voilà qui aidera.");
                 return;                                 // une a la fois
             }
         }
@@ -637,7 +637,7 @@ namespace Fief
             }
             int units = mine.RequestLoot(seeker.Bag);
             Stats.Robbed += units;
-            if (units > 0) took += (took.Length > 0 ? " et " : "") + units + " ressources de ta reserve";
+            if (units > 0) took += (took.Length > 0 ? " et " : "") + units + " ressources de ta réserve";
             me.SyncWeight();
             seeker.SyncWeight();
             goal = seeker.Hoard.Trophy != null ? Goal.ToStele : Goal.Deposit;
@@ -647,10 +647,10 @@ namespace Fief
 
             Sfx.Deny();
             if (Game.Hud != null && me.Body != null)
-                Game.Hud.ShowDiscovery("ALERTE", seeker.Name + " a pille ta stele",
+                Game.Hud.ShowDiscovery("ALERTE", seeker.Name + " a pillé ta stèle",
                                        "Il emporte " + took + ". Il file " + Hud.Direction(me.Body.position, transform.position) + ".",
-                                       seeker.Hoard.Trophy != null ? "Rattrape-le avant qu'il la fonde a sa stele : E pour la reprendre."
-                                                                   : "Abats-le : tout ce qu'il porte tombera dans sa depouille.",
+                                       seeker.Hoard.Trophy != null ? "Rattrape-le avant qu'il la fonde à sa stèle : E pour la reprendre."
+                                                                   : "Abats-le : tout ce qu'il porte tombera dans sa dépouille.",
                                        new Color(1f, 0.4f, 0.3f));
         }
 
@@ -665,7 +665,7 @@ namespace Fief
             huntTarget = null;
             goal = Goal.ToStele;
             think = 0.7f;
-            Bark("C'est a moi.");
+            Bark("C'est à moi.");
             if (prey == Game.Me && Game.Hud != null)
                 Game.Hud.ShowDiscovery("RATTRAPE", seeker.Name + " reprend sa relique", "",
                                        "", seeker.Colour);
@@ -680,7 +680,7 @@ namespace Fief
             if (Flat(me.Hoard.StelePosition - transform.position).magnitude < 9f)
             {
                 seeker.Discover(me);
-                if (PlayerWithin(25f)) Bark("Tiens. Une stele.");
+                if (PlayerWithin(25f)) Bark("Tiens. Une stèle.");
             }
         }
 
@@ -710,7 +710,7 @@ namespace Fief
             siege = null;
             siegeTimer = 0f;
             think = 0f;
-            Bark("Au diable cette bete !");
+            Bark("Au diable cette bête !");
         }
 
         /// <summary>On vient de le frapper. S'il peut se battre, il se retourne ; sinon il fuit.</summary>
@@ -746,7 +746,7 @@ namespace Fief
             if (rng.NextDouble() > aggression * 0.08f) return;       // une chance par reflexion, selon son caractere
             aggro = me;
             aggroTimer = 20f;
-            Bark("Donne-moi ca.");
+            Bark("Donne-moi ça.");
         }
 
         public void Die()
@@ -861,7 +861,7 @@ namespace Fief
             get
             {
                 if (CarriesMine) return "REPRENDRE ta relique a " + seeker.Name;
-                if (Pickable) return "Detrousser " + seeker.Name + " (il a sa relique sur lui)";
+                if (Pickable) return "Détrousser " + seeker.Name + " (il a sa relique sur lui)";
                 return "Parler a " + seeker.Name;
             }
         }
@@ -883,7 +883,7 @@ namespace Fief
                 goal = Goal.Gather;
                 Sfx.Discovery();
                 if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("REPRISE", "Ta relique est a toi", "Repose-la vite sur ta stele.", "", Stele.RuneBlue);
+                    Game.Hud.ShowDiscovery("REPRISE", "Ta relique est à toi", "Repose-la vite sur ta stèle.", "", Stele.RuneBlue);
                 return;
             }
 
@@ -896,8 +896,8 @@ namespace Fief
                 NotifyTheft(seeker, me);
                 Sfx.Discovery();
                 if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("DETROUSSE", "La relique de " + seeker.Name,
-                                           "Puissance " + taken.Power + ". Cours a ta stele.", "Il est juste derriere toi.", seeker.Colour);
+                    Game.Hud.ShowDiscovery("DÉTROUSSÉ", "La relique de " + seeker.Name,
+                                           "Puissance " + taken.Power + ". Cours à ta stèle.", "Il est juste derrière toi.", seeker.Colour);
                 return;
             }
 
@@ -919,13 +919,13 @@ namespace Fief
                 int mine = Game.Me != null ? Game.Me.Score : 0;
                 int his = seeker.Score;
                 string compare;
-                if (his <= 0 && mine <= 0) compare = "\"Personne n'a rien pose. Ca ne durera pas.\"";
+                if (his <= 0 && mine <= 0) compare = "\"Personne n'a rien pose. Ça ne durera pas.\"";
                 else if (his > mine) compare = "\"Ma relique vaut " + his + ". La tienne ? Je ne la vois pas d'ici.\"";
-                else compare = "\"Tu menes. Profite. La nuit est longue.\"";
+                else compare = "\"Tu mènes. Profite. La nuit est longue.\"";
                 string doing = goal == Goal.Gather ? "Il ramasse, sans te quitter des yeux."
-                             : goal == Goal.Guard ? "Il garde sa stele, adosse a la pierre."
+                             : goal == Goal.Guard ? "Il garde sa stèle, adosse à la pierre."
                              : goal == Goal.ToMage ? "Il a l'air presse : il entend le mage."
-                             : "Il a l'air de savoir ou il va.";
+                             : "Il a l'air de savoir où il va.";
                 return "\"" + line + "\"\n\n" + compare + "\n\n" + doing;
             }
         }

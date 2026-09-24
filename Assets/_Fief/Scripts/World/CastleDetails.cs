@@ -106,7 +106,7 @@ namespace Fief
                     Vector3 p = side == 0 ? new Vector3(a, 0f, edge) : side == 1 ? new Vector3(a, 0f, -edge)
                               : side == 2 ? new Vector3(edge, 0f, a) : new Vector3(-edge, 0f, a);
                     if (side == 2 && a > Castle.BreachFrom - 2f && a < Castle.BreachTo + 2f) continue;   // la breche
-                    Proto.Cylinder(t, p + new Vector3(0f, Castle.WallHeight - 0.9f, 0f), new Vector3(0.5f, 0.1f, 0.5f), Iron, "Rechaud");
+                    Proto.Cylinder(t, p + new Vector3(0f, Castle.WallHeight - 0.9f, 0f), new Vector3(0.5f, 0.1f, 0.5f), Iron, "Réchaud");
                     GameObject flame = Proto.Cube(t, p + new Vector3(0f, Castle.WallHeight - 0.6f, 0f), new Vector3(0.25f, 0.45f, 0.25f), Color.white, "Feu");
                     flame.GetComponent<Renderer>().sharedMaterial = fire;
                     flame.AddComponent<Flame>();
@@ -121,7 +121,7 @@ namespace Fief
         {
             // Le foyer et sa hotte, contre rien : une forge a ciel ouvert.
             Proto.Cube(t, at + new Vector3(0f, 0.55f, 0f), new Vector3(2.2f, 1.1f, 1.5f), StoneDark, "Foyer");
-            Proto.Cube(t, at + new Vector3(0f, 2.8f, 0.35f), new Vector3(1.2f, 3.4f, 0.8f), Stone, "Cheminee");
+            Proto.Cube(t, at + new Vector3(0f, 2.8f, 0.35f), new Vector3(1.2f, 3.4f, 0.8f), Stone, "Cheminée");
             Proto.BeginVisualOnly();
             GameObject coals = Proto.Cube(t, at + new Vector3(0f, 1.12f, -0.2f), new Vector3(1.4f, 0.06f, 0.8f), Color.white, "Braises");
             coals.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.8f, 0.22f, 0.08f), 1.2f);
@@ -247,7 +247,7 @@ namespace Fief
             Proto.Cube(d, new Vector3(0f, 0.9f, 0f), new Vector3(0.12f, 1.8f, 0.12f), Wood, "Poteau");
             Proto.Cube(d, new Vector3(0f, 1.45f, 0f), new Vector3(1.1f, 0.1f, 0.1f), Wood, "Bras");
             Proto.Cube(d, new Vector3(0f, 1.25f, 0f), new Vector3(0.5f, 0.6f, 0.34f), Sack, "Sac");
-            Proto.Cube(d, new Vector3(0f, 1.78f, 0f), new Vector3(0.3f, 0.3f, 0.3f), Sack, "Tete");
+            Proto.Cube(d, new Vector3(0f, 1.78f, 0f), new Vector3(0.3f, 0.3f, 0.3f), Sack, "Tête");
             Proto.Cube(d, new Vector3(0f, 1.25f, 0.18f), new Vector3(0.3f, 0.3f, 0.02f), Crimson, "Cible");
             Proto.EndVisualOnly();
             Proto.Blocker(d, new Vector3(0f, 0.9f, 0f), new Vector3(0.6f, 1.8f, 0.5f), "Mannequin");
@@ -288,11 +288,11 @@ namespace Fief
                 for (int k = 0; k < 3; k++)
                 {
                     float z = c.z - 4f + k * 4f;
-                    Proto.Cube(t, new Vector3(wall, 4.2f, z), new Vector3(0.06f, 1.0f, 0.8f), k == 1 ? Gold : Crimson, "Ecu");
+                    Proto.Cube(t, new Vector3(wall, 4.2f, z), new Vector3(0.06f, 1.0f, 0.8f), k == 1 ? Gold : Crimson, "Écu");
                     Proto.Cube(t, new Vector3(wall - side * 0.02f, 4.25f, z), new Vector3(0.04f, 0.6f, 0.12f), k == 1 ? Crimson : Gold, "Pal");
-                    GameObject s1 = Proto.Cube(t, new Vector3(wall - side * 0.05f, 4.2f, z), new Vector3(0.03f, 1.6f, 0.06f), new Color(0.55f, 0.56f, 0.58f), "Epee");
+                    GameObject s1 = Proto.Cube(t, new Vector3(wall - side * 0.05f, 4.2f, z), new Vector3(0.03f, 1.6f, 0.06f), new Color(0.55f, 0.56f, 0.58f), "Épée");
                     s1.transform.localRotation = Quaternion.Euler(40f, 0f, 0f);
-                    GameObject s2 = Proto.Cube(t, new Vector3(wall - side * 0.05f, 4.2f, z), new Vector3(0.03f, 1.6f, 0.06f), new Color(0.55f, 0.56f, 0.58f), "Epee");
+                    GameObject s2 = Proto.Cube(t, new Vector3(wall - side * 0.05f, 4.2f, z), new Vector3(0.03f, 1.6f, 0.06f), new Color(0.55f, 0.56f, 0.58f), "Épée");
                     s2.transform.localRotation = Quaternion.Euler(-40f, 0f, 0f);
                 }
                 Proto.EndVisualOnly();
@@ -344,7 +344,7 @@ namespace Fief
             Proto.Cube(t, b + new Vector3(0.9f, 4.7f, 0f), new Vector3(2.0f, 0.2f, 0.2f), WoodDark, "Bras");
             GameObject brace = Proto.Cube(t, b + new Vector3(0.45f, 4.2f, 0f), new Vector3(0.12f, 1.2f, 0.12f), WoodDark, "Jambe");
             brace.transform.localRotation = Quaternion.Euler(0f, 0f, -45f);
-            Proto.Cube(t, b + new Vector3(1.7f, 4.3f, 0f), new Vector3(0.03f, 0.8f, 0.03f), Iron, "Chaine");
+            Proto.Cube(t, b + new Vector3(1.7f, 4.3f, 0f), new Vector3(0.03f, 0.8f, 0.03f), Iron, "Chaîne");
             GameObject cage = new GameObject("Cage");
             cage.transform.SetParent(t, false);
             cage.transform.localPosition = b + new Vector3(1.7f, 2.9f, 0f);

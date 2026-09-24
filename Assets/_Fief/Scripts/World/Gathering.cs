@@ -9,7 +9,7 @@ namespace Fief
     ///
     /// LE BOIS MORT n'a pas d'emplacements inventes. Il vient de ce que la foret a
     /// deja : chaque tronc couche est un gisement, et un fagot attend au pied d'un
-    /// arbre mort sur trois. On le trouve donc la ou on s'attend a le trouver, et il
+    /// arbre mort sur trois. On le trouve donc là où on s'attend a le trouver, et il
     /// y en a partout -- c'est la ressource commune.
     ///
     /// LA PIERRE-LUNE pousse dans les CREUX : les endroits plus bas que leur
@@ -116,7 +116,7 @@ namespace Fief
             for (int k = 0; k < 2; k++)
             {
                 GameObject loose = Proto.Cylinder(visual.transform, new Vector3(0.45f + k * 0.12f, 0.03f, ((float)rng.NextDouble() - 0.5f) * 0.6f),
-                                                  new Vector3(0.05f, 0.35f, 0.05f), Stick, "Branche tombee");
+                                                  new Vector3(0.05f, 0.35f, 0.05f), Stick, "Branche tombée");
                 loose.transform.localRotation = Quaternion.Euler(90f, 40f + k * 50f, 0f);
             }
             Color[] leaves = { new Color(0.42f, 0.31f, 0.14f), new Color(0.36f, 0.15f, 0.10f), new Color(0.30f, 0.21f, 0.13f) };
@@ -287,7 +287,7 @@ namespace Fief
             // UNE GRAPPE DE CRISTAUX : des prismes a six pans, pointus, qui sortent de
             // la roche en eventail -- un grand au centre, des plus petits autour --
             // et quelques eclats tombes a terre qui luisent aussi.
-            GameObject visual = new GameObject("Eclats");
+            GameObject visual = new GameObject("Éclats");
             visual.transform.SetParent(go.transform, false);
             Material shine = MaterialFactory.GetGlow(MoonGlow, 1.6f);
             Material deep = MaterialFactory.GetGlow(new Color(0.42f, 0.58f, 0.95f), 1.3f);
@@ -315,7 +315,7 @@ namespace Fief
             {
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
                 float d = 0.55f + (float)rng.NextDouble() * 0.3f;
-                GameObject chip = Proto.Cone(visual.transform, new Vector3(Mathf.Cos(a) * d, 0.02f, Mathf.Sin(a) * d), 0.04f, 0.1f, MoonGlow, "Eclat", 4);
+                GameObject chip = Proto.Cone(visual.transform, new Vector3(Mathf.Cos(a) * d, 0.02f, Mathf.Sin(a) * d), 0.04f, 0.1f, MoonGlow, "Éclat", 4);
                 chip.transform.localRotation = Quaternion.Euler(70f, (float)rng.NextDouble() * 360f, 0f);
                 chip.GetComponent<Renderer>().sharedMaterial = shine;
             }

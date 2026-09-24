@@ -66,7 +66,7 @@ namespace Fief
                 w.halo.intensity = 1.3f;
                 w.halo.shadows = LightShadows.None;
 
-                // La traine : les paillettes naissent la ou il passe et y restent.
+                // La traine : les paillettes naissent là où il passe et y restent.
                 Ambiance.Sparkles(go.transform, Vector3.zero, Glow);
 
                 w.Relocate();
@@ -185,7 +185,7 @@ namespace Fief
             if (found && !toldOnce)
             {
                 toldOnce = true;
-                Toasts.Show("Un feu-follet s'eloigne... et t'attend. Suis-le.", Glow);
+                Toasts.Show("Un feu-follet s'éloigne... et t'attend. Suis-le.", Glow);
             }
             return found;
         }

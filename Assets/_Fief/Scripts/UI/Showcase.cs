@@ -64,7 +64,7 @@ namespace Fief
 
         void AddLight(Transform parent, Vector3 at, Color color, float intensity)
         {
-            GameObject go = new GameObject("Lumiere");
+            GameObject go = new GameObject("Lumière");
             go.transform.SetParent(parent, false);
             go.transform.localPosition = at;
             Light l = go.AddComponent<Light>();

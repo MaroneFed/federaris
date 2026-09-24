@@ -54,8 +54,8 @@ namespace Fief
 
             GUILayout.Label(title, UiStyle.Title);
             GUILayout.Label(cache.Number == 0
-                                ? "Ta tente se voit de loin. Ce qui dort ici ne pese plus sur ton dos."
-                                : "Personne ne sait qu'elle est la. Ce qui dort ici ne pese plus sur ton dos.",
+                                ? "Ta tente se voit de loin. Ce qui dort ici ne pèse plus sur ton dos."
+                                : "Personne ne sait qu'elle est là. Ce qui dort ici ne pèse plus sur ton dos.",
                             UiStyle.Small);
             GUILayout.Space(UiStyle.S(10));
 
@@ -75,7 +75,7 @@ namespace Fief
             GUI.enabled = true;
 
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Fermer  (Echap)", UiStyle.Button, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(160))))
+            if (GUILayout.Button("Fermer  (Échap)", UiStyle.Button, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(160))))
             {
                 if (Game.Hud != null) Game.Hud.ClosePanel();
             }
@@ -114,8 +114,8 @@ namespace Fief
 
                 int canPut = Mathf.Min(inBag, hole.SpaceFor(type));
                 GUI.enabled = canPut > 0;
-                if (GUILayout.Button("Deposer " + canPut, UiStyle.Button, GUILayout.Height(btnH), GUILayout.Width(UiStyle.S(120))))
-                    Report(cache.RequestDeposit(bag, type, canPut), "Depose", type);
+                if (GUILayout.Button("Déposer " + canPut, UiStyle.Button, GUILayout.Height(btnH), GUILayout.Width(UiStyle.S(120))))
+                    Report(cache.RequestDeposit(bag, type, canPut), "Déposé", type);
 
                 int canTake = Mathf.Min(inHole, bag.SpaceFor(type));
                 GUI.enabled = canTake > 0;
@@ -134,7 +134,7 @@ namespace Fief
         public static void DepositAll(Cache cache, Inventory bag)
         {
             GUI.enabled = !bag.IsEmpty;
-            if (GUILayout.Button("Tout deposer", UiStyle.ButtonPrimary, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(180))))
+            if (GUILayout.Button("Tout déposer", UiStyle.ButtonPrimary, GUILayout.Height(UiStyle.S(32)), GUILayout.Width(UiStyle.S(180))))
             {
                 int total = 0;
                 for (int i = 0; i < ResourceInfo.All.Length; i++)
@@ -145,7 +145,7 @@ namespace Fief
                 if (total > 0)
                 {
                     Sfx.Stash();
-                    Toasts.Show("Depose " + total + " unites. Le sac respire.", Palette.Gold);
+                    Toasts.Show("Déposé " + total + " unités. Le sac respire.", Palette.Gold);
                 }
                 else
                 {

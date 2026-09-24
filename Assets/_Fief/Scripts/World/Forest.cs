@@ -206,7 +206,7 @@ namespace Fief
             }
 
             Mesh mesh = new Mesh();
-            mesh.name = "Fougere_" + seed;
+            mesh.name = "Fougère_" + seed;
             mesh.SetVertices(v);
             mesh.subMeshCount = 2;
             mesh.SetTriangles(leaf, 0);
@@ -374,13 +374,13 @@ namespace Fief
                     if (rng.NextDouble() < cover * density)
                         PlaceTree(root.transform, px, pz, cover, rng, cfg);
 
-                    // Le sous-bois prospere la ou le couvert s'ouvre : c'est l'inverse
+                    // Le sous-bois prospere là où le couvert s'ouvre : c'est l'inverse
                     // des arbres, et ca remplit les clairieres au lieu de les vider.
                     float floorChance = (1.05f - cover) * floorDensity;
                     if (rng.NextDouble() < floorChance)
                         PlaceGround(root.transform, px + step * 0.4f, pz - step * 0.4f, rng);
 
-                    // Le bois mort git sous le couvert, la ou des arbres sont tombes.
+                    // Le bois mort git sous le couvert, là où des arbres sont tombes.
                     if (cover > 0.35f && rng.NextDouble() < 0.022)
                         PlaceLog(root.transform, px - step * 0.3f, pz + step * 0.3f, rng, cfg);
                 }
