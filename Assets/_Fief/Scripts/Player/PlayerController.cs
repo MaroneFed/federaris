@@ -156,6 +156,21 @@ namespace Fief
         /// vraiment passe dessous, et on est repose juste au-dessus. Plus aucune
         /// altitude en dur, donc plus rien a recalibrer si le relief change.
         /// </summary>
+        /// <summary>
+        /// Deplacer le joueur d'un coup (les gardes le jettent dehors). Un
+        /// CharacterController ignore qu'on change sa position a la main : on le
+        /// coupe, on deplace, on le rallume.
+        /// </summary>
+        public void Teleport(Vector3 position, float yaw)
+        {
+            controller.enabled = false;
+            transform.position = position;
+            transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            verticalVelocity = 0f;
+            controller.enabled = true;
+            if (orbitCamera != null) orbitCamera.yaw = yaw;
+        }
+
         void KeepInsideMap(GameConfig cfg)
         {
             float limit = cfg.mapSize * 0.5f - 3f;

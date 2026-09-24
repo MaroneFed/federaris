@@ -135,6 +135,33 @@ rivaux PNJ** — les mêmes règles serviront telles quelles en multijoueur.
 
 ---
 
+## La garde du château et la poterne (le différenciateur, arrivé le 24/09/2026)
+
+Martin : « je veux vraiment des gardes au château ». Six gardes, six soldes :
+
+| Garde | Poste | Loyauté | « Regarde ailleurs » | « Ouvre la poterne » |
+|---|---|---|---|---|
+| Bertrand | grande porte | très faible (5 mois d'arriéré) | 8 or | 37 or |
+| Aubin | grande porte | forte | 46 or | 109 or |
+| Lambert | réserve ouest | faible | 23 or | 65 or |
+| Jehan | réserve est | incorruptible ou presque | 57 or | 128 or |
+| Thibaut | réserve nord | moyenne | 34 or | 84 or |
+| Enguerrand | ronde de la cour | faible | 16 or | 51 or |
+
+- **Ce qui les alerte** : du **fer ancien** sur toi, ou un pied **dans une réserve**. On
+  traverse la cour librement. Leur **cône de lanterne** est exactement ce qu'ils voient.
+  « ? » quand ils se doutent, « ! » quand ils courent.
+- **Rattrapé** : ils prennent tout ton fer et te jettent devant la grande porte. Chargé de
+  fer, tu cours moins vite qu'eux.
+- **Soudoyer** : 3 minutes d'aveuglement pour quelques pièces ; ou la **poterne** du mur
+  nord, qui ne s'ouvre **que** comme ça — jamais par la force. Une fois ouverte, elle le
+  reste : c'est un raccourci discret vers la forêt du nord.
+- **L'or** (40 au départ) ne sert qu'à ça. On en trouve dans les **bourses perdues** : une
+  près de chaque lieu-dit, une quinzaine dans la forêt.
+- Les rivaux volent du fer aussi : les gardes les jettent dehors pareil.
+
+---
+
 ## Les talismans et les lieux-dits (ajoutés le 24/09/2026)
 
 Martin : « je veux des items incroyables ». Six **talismans**, uniques, qu'on trouve une

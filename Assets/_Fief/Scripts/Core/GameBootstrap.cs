@@ -46,6 +46,16 @@ namespace Fief
             Game.Hoard.MaxCaches = Mathf.Max(0, config.maxCaches);
             Game.Hoard.CacheCapacity = Mathf.Max(1f, config.cacheCapacity);
             Game.Hoard.CampCapacity = Mathf.Max(1f, config.campCapacity);
+            // La garde du chateau : six hommes, six soldes, six loyautes. Bertrand
+            // n'a rien touche depuis cinq mois ; Jehan, lui, croit encore au roi.
+            Game.Garrison = new Garrison();
+            Game.Garrison.Guards.Add(new GuardInfo("Bertrand", 4, 5, 0.15f));
+            Game.Garrison.Guards.Add(new GuardInfo("Aubin", 5, 1, 0.7f));
+            Game.Garrison.Guards.Add(new GuardInfo("Lambert", 3, 3, 0.35f));
+            Game.Garrison.Guards.Add(new GuardInfo("Jehan", 6, 0, 0.85f));
+            Game.Garrison.Guards.Add(new GuardInfo("Thibaut", 4, 2, 0.5f));
+            Game.Garrison.Guards.Add(new GuardInfo("Enguerrand", 3, 4, 0.25f));
+
             Game.Me = new Seeker("Toi", new Color(0.92f, 0.78f, 0.42f), true, Game.Inventory, Game.Wallet, Game.Hoard);
             Game.Seekers.Add(Game.Me);
 
@@ -137,6 +147,26 @@ namespace Fief
             folk.transform.SetParent(worldRoot, false);
 
             Veilleur.Build(folk.transform);
+
+            // Les gardes et leurs rondes : deux a la grande porte, un devant chaque
+            // reserve, un qui fait le tour de la cour.
+            Vector3[][] routes =
+            {
+                new[] { new Vector3(-5f, 0f, -35f), new Vector3(-5f, 0f, -27f) },
+                new[] { new Vector3(5f, 0f, -35f), new Vector3(5f, 0f, -27f) },
+                new[] { new Vector3(-26f, 0f, -20f), new Vector3(-26f, 0f, -8f) },
+                new[] { new Vector3(26f, 0f, -20f), new Vector3(26f, 0f, -8f) },
+                new[] { new Vector3(-31f, 0f, 26f), new Vector3(-19f, 0f, 26f) },
+                new[] { new Vector3(-13f, 0f, -6f), new Vector3(-13f, 0f, 6f), new Vector3(9f, 0f, 6f), new Vector3(9f, 0f, -6f) }
+            };
+            for (int i = 0; i < routes.Length && i < Game.Garrison.Guards.Count; i++)
+            {
+                for (int k = 0; k < routes[i].Length; k++) routes[i][k] = Ground.Place(routes[i][k], 0.05f);
+                Guard.Build(folk.transform, Game.Garrison.Guards[i], routes[i]);
+            }
+
+            // L'or, pour les acheter.
+            Purse.Scatter(worldRoot, config);
             if (Landmarks.Tour != null) Ermite.Build(Landmarks.Tour);
             Wisp.SpawnAll(folk.transform, config, 9);
             WhiteStag.Build(folk.transform, config);

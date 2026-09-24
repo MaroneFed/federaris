@@ -226,6 +226,9 @@ namespace Fief
             float y = box.y + UiStyle.S(12);
 
             GUI.Label(new Rect(x, y, inner, UiStyle.S(24)), "SAC", UiStyle.Head);
+            if (Game.Wallet != null)
+                UiStyle.Tinted(new Rect(x + UiStyle.S(52), y, UiStyle.S(120), UiStyle.S(24)),
+                               Game.Wallet.Gold + " or", UiStyle.Label, new Color(0.95f, 0.78f, 0.35f));
 
             GUIStyle right = UiStyle.Small;
             TextAnchor previous = right.alignment;
@@ -424,6 +427,16 @@ namespace Fief
             if (hoard.CampPlanted && FlatDistance(me, hoard.CampPosition) > 6f)
                 DrawMarker(cam, hoard.CampPosition + Vector3.up * 2.2f, "CAMP", new Color(0.78f, 0.86f, 0.62f));
 
+            // Les gardes : "?" quand ils se doutent, "!" quand ils courent.
+            for (int i = 0; i < Guard.All.Count; i++)
+            {
+                Guard g = Guard.All[i];
+                if (g == null || FlatDistance(me, g.transform.position) > 40f) continue;
+                if (g.Chasing) DrawAlert(cam, g.transform.position + Vector3.up * 2.9f, "!", new Color(1f, 0.3f, 0.2f), 1f);
+                else if (g.Suspicion > 0.03f)
+                    DrawAlert(cam, g.transform.position + Vector3.up * 2.9f, "?", new Color(1f, 0.85f, 0.3f), g.Suspicion);
+            }
+
             // Les rivaux : leur nom au-dessus de la tete quand on est pres. Et celui
             // qui emporte TA relique, on le voit toujours : c'est une chasse.
             for (int i = 0; i < Rival.All.Count; i++)
@@ -467,6 +480,24 @@ namespace Fief
                 DrawMarker(cam, cache.Position + Vector3.up * 1.2f, "CACHE " + cache.Number,
                            new Color(0.80f, 0.66f, 0.46f));
             }
+        }
+
+        /// <summary>Un grand signe au-dessus d'une tete ("?", "!"), qui grossit avec l'alerte.</summary>
+        void DrawAlert(Camera cam, Vector3 world, string sign, Color color, float level)
+        {
+            Vector3 sp = cam.WorldToScreenPoint(world);
+            if (sp.z <= 0f) return;
+            float size = UiStyle.S(26 + 20 * Mathf.Clamp01(level));
+            Rect r = new Rect(sp.x - size, Screen.height - sp.y - size, size * 2f, size * 2f);
+            GUIStyle big = UiStyle.Big;
+            int previous = big.fontSize;
+            TextAnchor align = big.alignment;
+            big.fontSize = Mathf.RoundToInt(size);
+            big.alignment = TextAnchor.MiddleCenter;
+            UiStyle.Tinted(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), sign, big, new Color(0f, 0f, 0f, 0.7f));
+            UiStyle.Tinted(r, sign, big, color);
+            big.fontSize = previous;
+            big.alignment = align;
         }
 
         static float FlatDistance(Vector3 a, Vector3 b)

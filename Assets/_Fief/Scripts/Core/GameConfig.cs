@@ -90,7 +90,9 @@ namespace Fief
         [Header("Inventaire")]
         [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, la relique = 5.")]
         public float maxWeight = 60f;
-        public int startingGold = 200;
+        [Tooltip("L'or au depart. Il ne sert qu'a SOUDOYER les gardes du chateau. On en trouve " +
+                 "d'autre dans les bourses perdues de la foret.")]
+        public int startingGold = 40;
 
         [Header("Recolte")]
         public float interactRadius = 3.6f;

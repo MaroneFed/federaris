@@ -36,6 +36,8 @@ namespace Fief
         public const float TowerHeight = 18f;
         public const float GateWidth = 6.5f;
         public const float GateHeight = 7.5f;
+        public const float PosterneWidth = 1.6f;
+        public const float PosterneHeight = 2.6f;
         public const float BreachFrom = 8f;
         public const float BreachTo = 16f;
         public const float BreachHeight = 6.5f;
@@ -67,6 +69,19 @@ namespace Fief
             float reach = HalfSize + TowerSize * 0.5f + margin;
             if (Mathf.Abs(x) < reach && Mathf.Abs(z) < reach) return true;
             return Mathf.Abs(x) < AvenueHalfWidth + margin && z < -HalfSize && z > AvenueEnd - margin;
+        }
+
+        /// <summary>
+        /// Vrai si ce point est DANS une des trois reserves a fer. Les gardes jettent
+        /// dehors qui y met les pieds.
+        /// </summary>
+        public static bool InStoreroom(float x, float z)
+        {
+            float west = -HalfSize + WallThickness * 0.5f + 4.6f;
+            float north = HalfSize - WallThickness * 0.5f - 4.6f;
+            if (Mathf.Abs(x - west) < 4.5f && Mathf.Abs(z + 14f) < 6f) return true;
+            if (Mathf.Abs(x + west) < 4.5f && Mathf.Abs(z + 14f) < 6f) return true;
+            return Mathf.Abs(x + 25f) < 6f && Mathf.Abs(z - north) < 4.5f;
         }
 
         /// <summary>Le donjon : sa salle du trone se visite.</summary>
@@ -175,7 +190,10 @@ namespace Fief
             Vector3 nw = new Vector3(-h, 0f, h), ne = new Vector3(h, 0f, h);
             Vector3 sw = new Vector3(-h, 0f, -h), se = new Vector3(h, 0f, -h);
 
-            Segment(t, nw, ne, y0, WallHeight, WallThickness, Stone, true, "Courtine_Nord");
+            // Au milieu du mur nord, la POTERNE : une porte basse, fermee de
+            // l'interieur. Seul un garde soudoye l'ouvre (voir Poterne et Guard).
+            WallWithDoor(t, nw, ne, y0, WallHeight, WallThickness, PosterneWidth, PosterneHeight, Stone, "Courtine_Nord");
+            Poterne.Build(t, new Vector3(0f, 0f, h));
 
             // A l'est, un pan s'est effondre : entre z = 8 et z = 16, le mur ne monte
             // plus qu'a six metres et demi. Trop haut pour passer, assez bas pour qu'on
@@ -188,7 +206,8 @@ namespace Fief
             WallWithDoor(t, sw, se, y0, WallHeight, WallThickness, GateWidth, GateHeight, Stone, "Courtine_Sud");
 
             // Une plinthe plus sombre au pied : l'humidite qui remonte dans la pierre.
-            Segment(t, nw, ne, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
+            Segment(t, nw, new Vector3(-PosterneWidth * 0.5f, 0f, h), y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
+            Segment(t, new Vector3(PosterneWidth * 0.5f, 0f, h), ne, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
             Segment(t, ne, se, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
             Segment(t, sw, nw, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
 

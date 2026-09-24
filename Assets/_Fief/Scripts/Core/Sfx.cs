@@ -387,6 +387,13 @@ namespace Fief
             return thunder;
         }
 
+        /// <summary>Un grincement joue depuis un point du monde (une porte qui s'ouvre).</summary>
+        public static void Creak3D(Vector3 at)
+        {
+            if (Muted) return;
+            AudioSource.PlayClipAtPoint(Creak(), at, 1f);
+        }
+
         /// <summary>Le clip de la cloche, pour la faire sonner depuis le chateau.</summary>
         public static AudioClip BellClip()
         {

@@ -138,6 +138,15 @@ namespace Fief
             All.Remove(this);
         }
 
+        /// <summary>Deplace d'un coup (jete dehors par la garde).</summary>
+        public void Teleport(Vector3 position)
+        {
+            body.enabled = false;
+            transform.position = position;
+            node = null;
+            think = 0f;
+        }
+
         /// <summary>Le rival dont c'est la stele, ou null.</summary>
         public static Rival Of(Seeker s)
         {

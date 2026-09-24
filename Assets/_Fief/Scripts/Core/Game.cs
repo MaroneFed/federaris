@@ -31,6 +31,7 @@ namespace Fief
         public static CharacterRig Rig;
         public static Transform PlayerTransform;
         public static Mage Mage;
+        public static Garrison Garrison;
 
         /// <summary>Le centre du chateau, et donc de la stele.</summary>
         public static Vector3 CastleCentre;
@@ -66,6 +67,7 @@ namespace Fief
             Rig = null;
             PlayerTransform = null;
             Mage = null;
+            Garrison = null;
             Me = null;
             Seekers.Clear();
             CastleCentre = Vector3.zero;
