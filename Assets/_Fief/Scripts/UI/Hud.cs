@@ -831,8 +831,8 @@ namespace Fief
         {
             if (!showHelp) return;
 
-            float w = UiStyle.S(300);
-            float h = UiStyle.S(319);
+            float w = UiStyle.S(340);
+            float h = UiStyle.S(362);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -856,10 +856,12 @@ namespace Fief
                 { "ZQSD", "se deplacer" },
                 { "Maj", "courir" },
                 { "Souris", "camera" },
-                { "E", "recolter, interagir" },
+                { "E", "recolter, interagir, ta stele" },
                 { "C", "planter le camp" },
                 { "G", "creuser une cache" },
                 { "Tab", "ta besace" },
+                { "1 / 2 + clic", "outil : abattre, frapper, poser un piege" },
+                { "F", "grimper dans un arbre" },
                 { "F3", "diagnostic" },
                 { "Echap", "pause" }
             };
