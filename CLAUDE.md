@@ -103,3 +103,10 @@ mauvais nombre d'arguments, type inconnu ou `[Header]` posé devant une méthode
 
 Si tu ajoutes du code utilisant un type Unity absent de `Tools/types-externes.txt`,
 le vérificateur rouspète : ajoute son nom au fichier, une ligne chacun.
+
+**Le compilateur de contrôle** (depuis le 24/09/2026, après un CS0119 que le
+vérificateur n'avait pas vu) : `sh Tools/compiler.sh` compile *vraiment* les scripts
+avec le compilateur C#, contre les assemblies de référence d'Unity téléchargées depuis
+NuGet (jamais versionnées). Il donne les mêmes erreurs qu'Unity. Il faut le SDK .NET
+(`apt-get install dotnet-sdk-8.0`). Claude le lance avant chaque push quand il le peut ;
+les deux outils se complètent (le vérificateur connaît aussi les API périmées d'Unity 6).
