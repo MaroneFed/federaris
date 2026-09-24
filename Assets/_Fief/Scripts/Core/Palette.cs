@@ -217,6 +217,32 @@ namespace Fief
                              Mathf.Round(c.b * s) / s, c.a);
         }
 
+        /// <summary>
+        /// Arrondi PERCEPTUEL, fin dans les sombres. Sert de filet de securite a
+        /// MaterialFactory : des teintes proches partagent un materiau.
+        ///
+        /// L'arrondi lineaire (Quantize) coupe [0,1] en marches egales. Sur des
+        /// couleurs claires, invisible. Sur la sylve, ou tout vit entre 8 % et 27 %
+        /// de clarte, il ne reste que quatre ou cinq marches -- et il deforme la
+        /// TEINTE : le vert du feuillage a l'ombre (0,062 / 0,099 / 0,081) devenait
+        /// (0,042 / 0,083 / 0,083), plus bleu que vert. Tout le sous-bois virait au
+        /// gris-bleu, et c'est une partie de ce qui faisait une lumiere "pas naturelle".
+        ///
+        /// Ici on arrondit la RACINE de la valeur : les marches sont serrees dans
+        /// les sombres, larges dans les clairs, comme la sensibilite de l'oeil.
+        /// </summary>
+        public static Color QuantizeFine(Color c, int steps)
+        {
+            float s = Mathf.Max(2, steps);
+            return new Color(Step(c.r, s), Step(c.g, s), Step(c.b, s), c.a);
+        }
+
+        static float Step(float v, float s)
+        {
+            float r = Mathf.Round(Mathf.Sqrt(Mathf.Max(0f, v)) * s) / s;
+            return r * r;
+        }
+
         public static Color Shade(Color c, float factor)
         {
             return new Color(c.r * factor, c.g * factor, c.b * factor, c.a);

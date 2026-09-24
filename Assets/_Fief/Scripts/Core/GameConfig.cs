@@ -13,30 +13,38 @@ namespace Fief
     {
         [Header("Monde")]
         [Tooltip("Cote de la carte en metres. 700 m se traverse en 90 s a pied -- " +
-                 "mais avec 40 m de visibilite, on n'en a jamais l'impression.")]
+                 "mais avec 26 m de visibilite, on n'en a jamais l'impression.")]
         public float mapSize = 700f;
         [Tooltip("Graine du generateur aleatoire : meme graine = meme map.")]
         public int worldSeed = 1337;
 
         [Header("La sylve")]
         [Tooltip("Distance a laquelle la brume efface tout, en metres. C'est le reglage " +
-                 "le plus important du jeu : il decide de l'enfermement. 40 m = on ne " +
-                 "voit jamais ce qu'il y a deux arbres plus loin.")]
-        public float sightDistance = 40f;
+                 "le plus important du jeu : il decide de l'enfermement. A 26 m un tronc " +
+                 "est a moitie efface a 13 m -- on ne voit jamais ce qu'il y a deux arbres " +
+                 "plus loin. Descends a 18 pour etouffer, remonte a 40 pour respirer.")]
+        public float sightDistance = 26f;
 
-        [Tooltip("Couleur de la brume et du fond. Bleu-vert tres sombre : une brume " +
-                 "grise a l'air d'un bug de rendu, une brume teintee a l'air d'un lieu.")]
-        public Color hazeColor = new Color(0.10f, 0.12f, 0.13f);
+        [Tooltip("Couleur de la brume et du fond. Gris-vert, et PLUS CLAIRE que les " +
+                 "troncs proches : c'est ce qui les decoupe en silhouettes. Une brume plus " +
+                 "sombre que les arbres donne un vide noir, pas une foret.")]
+        public Color hazeColor = new Color(0.17f, 0.19f, 0.17f);
 
-        [Tooltip("Force de la lumiere rasante. Elle ne sert pas a eclairer mais a decouper.")]
-        public float sunIntensity = 0.5f;
+        [Tooltip("Hauteur de la lumiere au-dessus de l'horizon, en degres. Sous un couvert " +
+                 "la lumiere tombe d'en haut : en dessous de 35 elle eclaire les troncs de " +
+                 "cote, comme un projecteur, et plus rien n'a l'air naturel.")]
+        public float sunElevation = 52f;
+
+        [Tooltip("Force de la lumiere du ciel. Faible : c'est un temps couvert.")]
+        public float sunIntensity = 0.45f;
 
         [Tooltip("Force de la lanterne que tu portes. Sans elle, sombre veut dire " +
-                 "'on ne voit rien' et le jeu devient penible.")]
-        public float lampIntensity = 1.35f;
+                 "'on ne voit rien' et le jeu devient penible. Trop forte, elle repeint " +
+                 "la foret en orange.")]
+        public float lampIntensity = 1.0f;
 
         [Tooltip("Portee de la lanterne, en metres.")]
-        public float lampRange = 15f;
+        public float lampRange = 13f;
 
         [Tooltip("Ecart moyen entre deux emplacements d'arbre, en metres. Plus petit = " +
                  "plus dense, mais aussi plus long a construire.")]
@@ -80,7 +88,7 @@ namespace Fief
         public float mouseSensitivity = 0.13f;
 
         [Header("Inventaire")]
-        [Tooltip("Charge maximale en kg. Bois = 1 kg/u, Pierre = 2, Fer = 3.")]
+        [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, la relique = 5.")]
         public float maxWeight = 60f;
         public int startingGold = 200;
 
@@ -96,16 +104,29 @@ namespace Fief
         public int nodeCapacity = 30;
         public float nodeRespawnDelay = 55f;
 
-        [Header("Marche")]
-        public float marketRadius = 30f;
-        [Tooltip("Marge du marchand : tu achetes plus cher que tu ne vends.")]
-        public float buySpread = 1.18f;
-        [Tooltip("Temps qu'il faut a un prix casse pour remonter a mi-chemin, en secondes. " +
-                 "Plus c'est long, plus brader une cargaison coute cher, et plus on a interet " +
-                 "a changer de ressource. 300 s = 5 minutes.")]
-        public float marketRecoveryHalfLife = 300f;
-        [Tooltip("Sensibilite du prix au stock. Plus c'est haut, plus les prix bougent fort.")]
-        public float priceElasticity = 0.62f;
+        [Header("La Saison (voir docs/LA-SAISON.md)")]
+        [Tooltip("Duree d'une Saison, en minutes. A la cloche, seule compte la relique posee sur la stele.")]
+        public float seasonMinutes = 30f;
+        [Tooltip("Premiere apparition du mage, en secondes. Assez tot pour qu'on le rencontre " +
+                 "avant d'avoir oublie qu'il existe.")]
+        public float mageFirstAppearance = 120f;
+        [Tooltip("Ecart entre deux apparitions, en secondes. Le rater, c'est attendre ca.")]
+        public float mageInterval = 270f;
+        [Tooltip("Duree d'une apparition, en secondes. Il faut le trouver avant qu'il parte.")]
+        public float mageStay = 150f;
+        [Tooltip("Le mage apparait au moins a cette distance de toi : il faut marcher.")]
+        public float mageMinDistance = 110f;
+        [Tooltip("Et au plus a celle-ci : il doit rester atteignable dans le temps imparti.")]
+        public float mageMaxDistance = 260f;
+        [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
+                 "tente se voit.")]
+        public float campCapacity = 60f;
+        [Tooltip("Nombre de caches qu'on peut creuser dans une Saison.")]
+        public int maxCaches = 3;
+        [Tooltip("Ce qu'une cache peut contenir, en kg.")]
+        public float cacheCapacity = 40f;
+        [Tooltip("Temps pour creuser une cache, en secondes (touche maintenue).")]
+        public float digDuration = 3.5f;
 
     }
 }

@@ -89,6 +89,12 @@ namespace Fief
         public static bool DiagnosticPressed { get { return KeyPressed(KeyCode.F3); } }
         public static bool SprintHeld { get { return KeyHeld(KeyCode.LeftShift); } }
 
+        /// <summary>C : planter le camp. Une seule fois par Saison.</summary>
+        public static bool CampPressed { get { return KeyPressed(KeyCode.C); } }
+        /// <summary>G maintenu : creuser une cache la ou l'on se tient.</summary>
+        public static bool DigHeld { get { return KeyHeld(KeyCode.G); } }
+        public static bool DigPressed { get { return KeyPressed(KeyCode.G); } }
+
         static bool KeyHeld(KeyCode code)
         {
 #if ENABLE_INPUT_SYSTEM
@@ -122,6 +128,8 @@ namespace Fief
                 case KeyCode.F1: return k.f1Key;
                 case KeyCode.F3: return k.f3Key;
                 case KeyCode.LeftShift: return k.leftShiftKey;
+                case KeyCode.C: return k.cKey;
+                case KeyCode.G: return k.gKey;
             }
             return null;
         }

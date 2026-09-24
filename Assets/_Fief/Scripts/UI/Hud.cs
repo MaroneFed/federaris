@@ -4,7 +4,16 @@ using UnityEngine.Rendering;
 namespace Fief
 {
     /// <summary>
-    /// Le HUD : or, prestige, sac, poids, invite d'interaction, reperes a l'ecran.
+    /// Le HUD : l'horloge de la Saison, le sac, la relique, l'invite d'interaction,
+    /// et des reperes vers ce qui t'appartient.
+    ///
+    /// PRESQUE RIEN A L'ECRAN, et c'est voulu : ce qu'on aime dans ce jeu, c'est la
+    /// vue. Chaque element ici doit meriter sa place.
+    ///
+    /// LES REPERES. On voit ou sont TON camp et TES caches -- tu sais ou tu as
+    /// enterre tes affaires, meme dans la brume. On voit le chateau, qui est le seul
+    /// lieu que tout le monde connait. On ne voit PAS le mage : on le trouve a
+    /// l'oreille. Un repere sur le mage tuerait la chasse.
     ///
     /// Il ne decide RIEN. Il lit l'etat du jeu et l'affiche. La souris, la pause et
     /// le verrouillage des entrees sont geres au meme endroit, dans Menus.cs.
@@ -54,12 +63,12 @@ namespace Fief
             UiStyle.Ensure();
             if (Hidden) return;
 
-            // La bourse, le sac et les reperes au loin appartenaient au monde
-            // d'avant. Un repere "MARCHE a 666 m" n'a aucun sens quand on ne voit
-            // pas a quarante metres -- et il tuerait justement ce qu'on cherche :
-            // ne pas savoir ou on est. On ne garde que ce qui sert ici.
+            DrawMarkers();
             FloatingTexts.Draw(viewCamera != null ? viewCamera : Camera.main);
+            DrawSeason();
+            DrawPack();
             DrawPrompt();
+            DrawDigging();
             Toasts.Draw();
             DrawHelp();
             DrawBuildError();
@@ -68,45 +77,87 @@ namespace Fief
             if (panel != null) panel.Draw();
         }
 
-        // ---------------------------------------------------------------- la bourse
+        // ---------------------------------------------------------------- horloge
 
-        void DrawPurse()
+        public static string Clock(float seconds)
         {
-            if (Game.Wallet == null || Game.Fief == null) return;
+            int total = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return (total / 60) + ":" + (total % 60).ToString("00");
+        }
 
-            float pad = UiStyle.S(16);
-            float w = UiStyle.S(286);
-            float h = UiStyle.S(96);
-            Rect box = new Rect(pad, pad, w, h);
-            UiStyle.Frame(box);
+        /// <summary>Huit directions, pour dire "au nord-est" plutot qu'un angle.</summary>
+        public static string Direction(Vector3 from, Vector3 to)
+        {
+            Vector3 d = to - from;
+            float angle = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            if (angle < 0f) angle += 360f;
+            string[] names = { "au nord", "au nord-est", "a l'est", "au sud-est",
+                               "au sud", "au sud-ouest", "a l'ouest", "au nord-ouest" };
+            return names[Mathf.RoundToInt(angle / 45f) % 8];
+        }
 
-            float x = box.x + UiStyle.S(16);
-            float y = box.y + UiStyle.S(12);
-            float inner = w - UiStyle.S(32);
+        void DrawSeason()
+        {
+            Season season = Game.Season;
+            if (season == null) return;
 
-            UiStyle.Chip(new Rect(x, y + UiStyle.S(7), UiStyle.S(16), UiStyle.S(16)), Palette.Gold);
-            UiStyle.Tinted(new Rect(x + UiStyle.S(24), y, inner, UiStyle.S(30)),
-                           Game.Wallet.Gold.ToString(), UiStyle.Value, Palette.Gold);
-            GUIStyle right = UiStyle.Small;
-            TextAnchor previous = right.alignment;
-            right.alignment = TextAnchor.MiddleRight;
-            GUI.Label(new Rect(x, y, inner, UiStyle.S(30)), "OR", right);
-            right.alignment = previous;
+            float w = UiStyle.S(360);
+            float x = (Screen.width - w) * 0.5f;
+            float y = UiStyle.S(14);
 
-            y += UiStyle.S(32);
-            UiStyle.Rule(new Rect(x, y, inner, 1f));
-            y += UiStyle.S(7);
+            DrawCompass(new Rect((Screen.width - UiStyle.S(300)) * 0.5f, y, UiStyle.S(300), UiStyle.S(18)));
+            y += UiStyle.S(22);
 
-            GUI.Label(new Rect(x, y, inner, UiStyle.S(20)),
-                      Game.Fief.prestige + " prestige      " + Game.Fief.buildingCount + "/6 batiments",
-                      UiStyle.Small);
-            y += UiStyle.S(20);
+            // La cloche approche : l'horloge rougit dans les trois dernieres minutes.
+            float left = season.Remaining;
+            Color clock = left < 180f ? new Color(0.92f, 0.45f, 0.32f) : UiStyle.Ink;
+            UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(26)), Clock(left), UiStyle.Centered, clock);
+            y += UiStyle.S(24);
 
-            string reserve = "Reserve  " + Game.Fief.Stock(ResourceType.Wood) + " bois   "
-                           + Game.Fief.Stock(ResourceType.Stone) + " pierre   "
-                           + Game.Fief.Stock(ResourceType.Iron) + " fer";
-            if (!Game.Fief.hasChest) reserve = "Reserve verrouillee - construis un Coffre";
-            GUI.Label(new Rect(x, y, inner, UiStyle.S(18)), reserve, UiStyle.Tiny);
+            string mage;
+            Color tint;
+            if (season.MagePresent)
+            {
+                mage = "Le mage chante quelque part.  Il repart dans " + Clock(season.MageTimeLeft);
+                tint = new Color(0.62f, 0.72f, 1f);
+            }
+            else if (season.NextMageIn >= 0f)
+            {
+                mage = "Le mage reviendra dans " + Clock(season.NextMageIn);
+                tint = UiStyle.InkDim;
+            }
+            else
+            {
+                mage = "Le mage ne reviendra plus.  Pose ta relique.";
+                tint = new Color(0.92f, 0.62f, 0.32f);
+            }
+            UiStyle.Tinted(new Rect(x - UiStyle.S(100), y, w + UiStyle.S(200), UiStyle.S(20)),
+                           mage, UiStyle.CenteredSmall, tint);
+        }
+
+        /// <summary>
+        /// Une bande de boussole : sans elle, "le mage chante au nord-est" ne sert a
+        /// rien dans une foret sans horizon.
+        /// </summary>
+        void DrawCompass(Rect band)
+        {
+            Transform eye = viewCamera != null ? viewCamera.transform : null;
+            if (eye == null) return;
+
+            float heading = eye.eulerAngles.y;
+            string[] names = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" };
+            for (int i = 0; i < 8; i++)
+            {
+                float delta = Mathf.DeltaAngle(heading, i * 45f);
+                if (Mathf.Abs(delta) > 75f) continue;
+                float px = band.center.x + delta / 75f * band.width * 0.5f;
+                float alpha = 1f - Mathf.Abs(delta) / 75f;
+                Color c = i == 0 ? Palette.Gold : UiStyle.InkDim;
+                UiStyle.Tinted(new Rect(px - UiStyle.S(20), band.y, UiStyle.S(40), band.height),
+                               names[i], UiStyle.CenteredSmall, new Color(c.r, c.g, c.b, alpha));
+            }
+            UiStyle.Fill(new Rect(band.center.x - 1f, band.yMax, 2f, UiStyle.S(4)),
+                         new Color(1f, 1f, 1f, 0.35f));
         }
 
         // ---------------------------------------------------------------- le sac
@@ -117,8 +168,8 @@ namespace Fief
             if (inv == null) return;
 
             float pad = UiStyle.S(16);
-            float w = UiStyle.S(300);
-            float h = UiStyle.S(184);
+            float w = UiStyle.S(270);
+            float h = UiStyle.S(172);
             Rect box = new Rect(pad, Screen.height - h - pad, w, h);
             UiStyle.Frame(box);
 
@@ -136,20 +187,13 @@ namespace Fief
             right.alignment = previous;
 
             y += UiStyle.S(28);
-            UiStyle.Rule(new Rect(x, y, inner, 1f));
-            y += UiStyle.S(8);
-
             for (int i = 0; i < ResourceInfo.All.Length; i++)
             {
                 ResourceType type = ResourceInfo.All[i];
                 int amount = inv.Get(type);
 
-                if (i % 2 == 0)
-                    UiStyle.Fill(new Rect(x - UiStyle.S(6), y - UiStyle.S(1), inner + UiStyle.S(12), UiStyle.S(24)),
-                                 new Color(1f, 1f, 1f, 0.028f));
-
-                UiStyle.Chip(new Rect(x, y + UiStyle.S(5), UiStyle.S(13), UiStyle.S(13)), ResourceInfo.Tint(type));
-                UiStyle.Tinted(new Rect(x + UiStyle.S(21), y, UiStyle.S(120), UiStyle.S(22)),
+                UiStyle.Chip(new Rect(x, y + UiStyle.S(5), UiStyle.S(12), UiStyle.S(12)), ResourceInfo.Tint(type));
+                UiStyle.Tinted(new Rect(x + UiStyle.S(20), y, UiStyle.S(140), UiStyle.S(22)),
                                ResourceInfo.Name(type), UiStyle.Label,
                                amount > 0 ? UiStyle.Ink : UiStyle.InkFaint);
 
@@ -157,34 +201,32 @@ namespace Fief
                 UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(22)), amount.ToString(), right,
                                amount > 0 ? UiStyle.Ink : UiStyle.InkFaint);
                 right.alignment = previous;
-
-                y += UiStyle.S(24);
+                y += UiStyle.S(22);
             }
 
-            // --- la jauge de charge
-            y = box.yMax - UiStyle.S(58);
+            // --- la jauge de charge : c'est elle qui dit "va cacher"
+            y += UiStyle.S(6);
             float load = inv.Load01;
             Color fill = Color.Lerp(new Color(0.44f, 0.78f, 0.40f),
                                     new Color(0.88f, 0.31f, 0.25f), Mathf.Pow(load, 0.85f));
-            UiStyle.Bar(new Rect(x, y, inner, UiStyle.S(12)), load, fill, UiStyle.BarBg);
+            UiStyle.Bar(new Rect(x, y, inner, UiStyle.S(10)), load, fill, UiStyle.BarBg);
+            y += UiStyle.S(16);
 
-            // --- ce que la charge coute VRAIMENT : la lenteur des gestes
-            y += UiStyle.S(17);
-            GameConfig cfg = Game.Config;
-            float penalty = cfg != null ? Mathf.Lerp(1f, cfg.actionPenaltyFull, load) : 1f;
-            float harvest = cfg != null ? cfg.harvestDuration * penalty : 0f;
-
-            UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(18)),
-                           "Gestes  x" + penalty.ToString("0.0") + "   (" + harvest.ToString("0.0") + " s par coup)",
-                           UiStyle.Small,
-                           penalty > 1.6f ? new Color(0.90f, 0.55f, 0.30f) : UiStyle.InkDim);
-
-            y += UiStyle.S(18);
-            float speed = Game.Player != null ? Game.Player.TargetSpeed : 0f;
-            bool sprinting = Game.Player != null && Game.Player.IsSprinting;
-            GUI.Label(new Rect(x, y, inner, UiStyle.S(18)),
-                      "Vitesse  " + speed.ToString("0.0") + " m/s" + (sprinting ? "   (course)" : ""),
-                      UiStyle.Tiny);
+            // --- la relique
+            Hoard hoard = Game.Hoard;
+            string relic;
+            Color tint;
+            if (hoard == null || hoard.Relic == null)
+            {
+                relic = "Pas encore de relique";
+                tint = UiStyle.InkFaint;
+            }
+            else
+            {
+                relic = "Relique  " + hoard.Relic.Power + (hoard.RelicOnStele ? "   sur la stele" : "   en main");
+                tint = hoard.RelicOnStele ? new Color(0.62f, 0.78f, 0.95f) : Palette.Gold;
+            }
+            UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), relic, UiStyle.Small, tint);
         }
 
         // ---------------------------------------------------------------- invite
@@ -203,7 +245,6 @@ namespace Fief
             UiStyle.DropShadow(box, UiStyle.S(14));
             GUI.Box(box, GUIContent.none, UiStyle.CardBox);
 
-            // touche
             float capW = UiStyle.S(34);
             Rect cap = new Rect(box.x + UiStyle.S(13), box.y + (h - capW) * 0.5f, capW, capW);
             UiStyle.Pill(cap);
@@ -225,25 +266,59 @@ namespace Fief
             }
         }
 
+        // ---------------------------------------------------------------- creusage
+
+        /// <summary>La jauge de G maintenu : a la place de l'invite, au meme endroit.</summary>
+        void DrawDigging()
+        {
+            if (!CampActions.Digging) return;
+
+            float w = UiStyle.S(300);
+            float h = UiStyle.S(44);
+            Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(276), w, h);
+            UiStyle.DropShadow(box, UiStyle.S(14));
+            GUI.Box(box, GUIContent.none, UiStyle.CardBox);
+
+            float pad = UiStyle.S(14);
+            GUI.Label(new Rect(box.x + pad, box.y + UiStyle.S(4), w - pad * 2f, UiStyle.S(22)),
+                      "Tu creuses...", UiStyle.Label);
+            UiStyle.Bar(new Rect(box.x + pad, box.y + UiStyle.S(28), w - pad * 2f, UiStyle.S(8)),
+                        CampActions.Progress01, new Color(0.80f, 0.66f, 0.46f), UiStyle.BarBg);
+        }
+
         // ---------------------------------------------------------------- reperes
 
         void DrawMarkers()
         {
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
-            if (cam == null) return;
+            if (cam == null || Game.PlayerTransform == null) return;
+            Vector3 me = Game.PlayerTransform.position;
 
-            DrawMarker(cam, Game.MarketPosition + Vector3.up * 10f, "MARCHE", Palette.Gold);
-            DrawMarker(cam, Game.HomeFiefPosition + Vector3.up * 10f, "TON FIEF", Palette.Banner(0));
+            // Le chateau : le seul lieu que tout le monde connait. On le cache quand
+            // on y est -- a quoi bon un repere sur le lieu ou l'on se tient.
+            Vector3 castle = Game.CastleCentre + Vector3.up * 14f;
+            if (FlatDistance(me, Game.CastleCentre) > Castle.HalfSize + 20f)
+                DrawMarker(cam, castle, "CHATEAU", new Color(0.92f, 0.72f, 0.42f));
 
-            if (Game.Fief != null && Game.Fief.hasWatchtower)
+            Hoard hoard = Game.Hoard;
+            if (hoard == null) return;
+
+            if (hoard.CampPlanted && FlatDistance(me, hoard.CampPosition) > 6f)
+                DrawMarker(cam, hoard.CampPosition + Vector3.up * 2.2f, "CAMP", new Color(0.78f, 0.86f, 0.62f));
+
+            for (int i = 0; i < hoard.Caches.Count; i++)
             {
-                for (int i = 0; i < ResourceNode.All.Count; i++)
-                {
-                    ResourceNode node = ResourceNode.All[i];
-                    if (node == null || node.IsDepleted) continue;
-                    DrawDot(cam, node.transform.position + Vector3.up * 4f, ResourceInfo.Tint(node.type));
-                }
+                Cache cache = hoard.Caches[i];
+                if (FlatDistance(me, cache.Position) < 5f) continue;
+                DrawMarker(cam, cache.Position + Vector3.up * 1.2f, "CACHE " + cache.Number,
+                           new Color(0.80f, 0.66f, 0.46f));
             }
+        }
+
+        static float FlatDistance(Vector3 a, Vector3 b)
+        {
+            a.y = 0f; b.y = 0f;
+            return Vector3.Distance(a, b);
         }
 
         void DrawMarker(Camera cam, Vector3 world, string text, Color color)
@@ -257,9 +332,9 @@ namespace Fief
 
             string label = text;
             if (Game.PlayerTransform != null)
-                label += "  " + Mathf.RoundToInt(Vector3.Distance(Game.PlayerTransform.position, world)) + " m";
+                label += "  " + Mathf.RoundToInt(FlatDistance(Game.PlayerTransform.position, world)) + " m";
 
-            float dotSize = UiStyle.S(9);
+            float dotSize = UiStyle.S(8);
             UiStyle.Fill(new Rect(x - dotSize * 0.5f, y - dotSize * 0.5f, dotSize, dotSize),
                          new Color(0f, 0f, 0f, 0.5f));
             UiStyle.Fill(new Rect(x - dotSize * 0.5f + 1f, y - dotSize * 0.5f + 1f, dotSize - 2f, dotSize - 2f), color);
@@ -267,24 +342,10 @@ namespace Fief
             GUIStyle style = UiStyle.CenteredSmall;
             Color original = style.normal.textColor;
             style.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-            GUI.Label(new Rect(x - UiStyle.S(75) + 1f, y - UiStyle.S(29) + 1f, UiStyle.S(150), UiStyle.S(20)), label, style);
-            style.normal.textColor = color;
-            GUI.Label(new Rect(x - UiStyle.S(75), y - UiStyle.S(29), UiStyle.S(150), UiStyle.S(20)), label, style);
+            GUI.Label(new Rect(x - UiStyle.S(75) + 1f, y - UiStyle.S(27) + 1f, UiStyle.S(150), UiStyle.S(20)), label, style);
+            style.normal.textColor = new Color(color.r, color.g, color.b, 0.9f);
+            GUI.Label(new Rect(x - UiStyle.S(75), y - UiStyle.S(27), UiStyle.S(150), UiStyle.S(20)), label, style);
             style.normal.textColor = original;
-        }
-
-        void DrawDot(Camera cam, Vector3 world, Color color)
-        {
-            Vector3 sp = cam.WorldToScreenPoint(world);
-            if (sp.z <= 0f) return;
-            if (sp.x < 0f || sp.x > Screen.width) return;
-
-            float y = Screen.height - sp.y;
-            if (y < 0f || y > Screen.height) return;
-
-            float size = UiStyle.S(6);
-            UiStyle.Fill(new Rect(sp.x - size * 0.5f, y - size * 0.5f, size, size),
-                         new Color(color.r, color.g, color.b, 0.8f));
         }
 
         // ---------------------------------------------------------------- diagnostic
@@ -327,7 +388,7 @@ namespace Fief
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
 
             float w = UiStyle.S(500);
-            float h = UiStyle.S(334);
+            float h = UiStyle.S(377);
             Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(90), w, h);
             UiStyle.Frame(box);
 
@@ -341,6 +402,11 @@ namespace Fief
             y += UiStyle.S(8);
 
             y = Line(x, y, inner, "Monde construit en", Game.BuildMilliseconds + " ms");
+
+            // Tout le reglage de la lumiere depend de cet espace, et le depot ne le
+            // versionne pas : c'est Unity qui le choisit sur chaque machine.
+            y = Line(x, y, inner, "Espace colorimetrique",
+                     QualitySettings.activeColorSpace == ColorSpace.Linear ? "lineaire" : "gamma");
             y = Line(x, y, inner, "Vue",
                      orbitCamera != null && orbitCamera.ThroughEyes ? "premiere personne" : "ecran-titre");
 
@@ -350,6 +416,15 @@ namespace Fief
                 y = Line(x, y, inner, "Joueur",
                          p.x.ToString("0") + " / " + p.y.ToString("0.0") + " / " + p.z.ToString("0"));
                 y = Line(x, y, inner, "Sol sous les pieds", Ground.Sample(p.x, p.z).ToString("0.0") + " m");
+
+                // Pour tester sans chercher une demi-heure : ou est le mage. En jeu,
+                // aucun repere ne le montre -- on le trouve a l'oreille.
+                Mage mage = Game.Mage;
+                y = Line(x, y, inner, "Mage",
+                         mage != null && mage.Present
+                             ? "a " + FlatDistance(p, mage.transform.position).ToString("0") + " m, "
+                               + Direction(p, mage.transform.position)
+                             : "absent");
             }
 
             if (cam != null)
@@ -438,7 +513,7 @@ namespace Fief
             if (!showHelp) return;
 
             float w = UiStyle.S(300);
-            float h = UiStyle.S(235);
+            float h = UiStyle.S(277);
             Rect box = new Rect(Screen.width - w - UiStyle.S(16), UiStyle.S(16), w, h);
             UiStyle.Frame(box);
 
@@ -463,6 +538,8 @@ namespace Fief
                 { "Maj", "courir" },
                 { "Souris", "camera" },
                 { "E", "recolter, interagir" },
+                { "C", "planter le camp" },
+                { "G", "creuser une cache" },
                 { "F3", "diagnostic" },
                 { "Echap", "pause" }
             };

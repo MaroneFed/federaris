@@ -14,7 +14,8 @@ REELLEMENT arrivees sur ce projet :
   3. reference a Type.Membre qui n'existe pas
   4. appel avec le mauvais nombre d'arguments
   5. membre inexistant sur une VARIABLE (pas seulement sur un nom de type)
-  6. TYPE INCONNU, et attribut orphelin devant une methode
+  6. CHAINE d'acces (Game.Hud.Hidden) et membre NON PUBLIC appele d'ailleurs
+  7. TYPE INCONNU, et attribut orphelin devant une methode
 
 Les trois derniers ont ete ajoutes apres coup, chacun parce qu'une faute est
 passee jusqu'a Unity :
@@ -24,6 +25,10 @@ passee jusqu'a Unity :
   - un champ supprime de GameConfig restait appele via la VARIABLE config, ce
     que la verification par nom de type ne voyait pas (CS1061). Celle-la a mis
     Unity en Safe Mode.
+
+  - Game.Hud.Hidden = ... ecrit dans le nouveau menu, alors que Hidden est
+    prive dans Hud (CS0122). Rattrapee a la relecture, avant Unity cette fois ;
+    le verificateur, lui, ne regardait jamais au-dela du premier point.
 
 A chaque fois la regle a ete la meme : corriger le fichier ne suffit pas, il
 faut apprendre la faute a l'outil, sinon elle revient.
@@ -291,11 +296,13 @@ decl_var_re = re.compile(r'(?<![\w.])([A-Z]\w*)\s+([a-z_]\w*)\s*(?==|;|,|\)|\s+i
 member_re = re.compile(r'(?<![\w.])([a-z_]\w*)\.(\w+)')
 
 for path, s2 in sources.items():
+    # On note TOUS les types declares pour chaque nom, Unity compris : une variable
+    # "c" qui est une Color dans une methode et une Cache dans une autre est ambigue
+    # (le verificateur ne suit pas les portees), donc on l'ignore.
     holder = {}
     for m in decl_var_re.finditer(s2):
-        t, var = m.group(1), m.group(2)
-        if t not in all_types: continue
-        holder.setdefault(var, set()).add(t)
+        holder.setdefault(m.group(2), set()).add(m.group(1))
+    holder = dict((v, ts) for v, ts in holder.items() if len(ts) == 1 and next(iter(ts)) in all_types)
 
     for var, types in holder.items():
         if len(types) != 1: continue
@@ -315,6 +322,105 @@ for path, s2 in sources.items():
             line = s2.count('\n', 0, m.start()) + 1
             errors.append("%s ligne %d : %s est un %s, qui n'a pas de membre %s"
                           % (path, line, var, t, m.group(2)))
+
+# ---- 4c. chaines d'acces et visibilite ---------------------------------
+#
+# Deux fautes que rien ne voyait, rattrapees a la relecture le 23/09 :
+#
+#   Game.Hud.Hidden = ...   ->  Hud.Hidden est PRIVE : Unity refuse (CS0122).
+#
+# La passe 3 verifiait Game.Hud, jamais ce qui suit. On suit donc la chaine :
+# Game.Hud est un champ de type Hud, donc Hidden se cherche dans Hud -- et comme
+# on y accede depuis une AUTRE classe, il doit etre public.
+
+def_member_re = re.compile(
+    r'^[ \t]*public\s+(?:static\s+|readonly\s+|const\s+|override\s+|virtual\s+|abstract\s+|'
+    r'sealed\s+|new\s+|event\s+|async\s+)*(?:[\w<>\[\],\.\?]+\s+)?(\w+)\s*(?:[;=({]|$)', re.M)
+typed_field_re = re.compile(
+    r'^        (?:public\s+|private\s+|protected\s+|internal\s+)?(?:static\s+|readonly\s+)*'
+    r'([A-Z]\w*)\s+(\w+)\s*(?:;|=|\{)', re.M)
+
+public_members = defaultdict(set)
+field_type = defaultdict(dict)
+type_span = {}                              # type -> (fichier, debut, fin)
+for path, s2 in sources.items():
+    for name, a, b, bases in file_types[path]:
+        type_span[name] = (path, a, b)
+        body = s2[a:b]
+        is_enum = re.search(r'\benum\s+' + re.escape(name) + r'\b', s2) is not None
+        is_iface = re.search(r'\binterface\s+' + re.escape(name) + r'\b', s2) is not None
+        if is_enum or is_iface:
+            public_members[name] |= type_members[name]
+            continue
+        for m in def_member_re.finditer(body):
+            public_members[name].add(m.group(1))
+        for m in re.finditer(r'\bpublic\s+(?:static\s+)?(?:class|struct|enum|interface)\s+(\w+)', body):
+            public_members[name].add(m.group(1))
+        for m in typed_field_re.finditer(body):
+            if m.group(1) in all_types: field_type[name][m.group(2)] = m.group(1)
+
+def public_of(t, seen=None):
+    seen = seen or set()
+    if t in seen: return set()
+    seen.add(t)
+    out = set(public_members.get(t, ()))
+    b = type_bases.get(t)
+    if b == 'MonoBehaviour': out |= UNITY['MonoBehaviour']
+    elif b: out |= public_of(b, seen)
+    return out
+
+def full_members(t):
+    """Membres propres + herites, y compris ceux d'Unity pour un MonoBehaviour."""
+    out = set(members_of(t))
+    cur, seen = t, set()
+    while cur and cur not in seen:
+        seen.add(cur)
+        if type_bases.get(cur) == 'MonoBehaviour':
+            out |= UNITY['MonoBehaviour']
+            break
+        cur = type_bases.get(cur)
+    return out
+
+def enclosing(path, pos):
+    best = None
+    for name, a, b, bases in file_types[path]:
+        if a <= pos <= b and (best is None or a >= best[1]): best = (name, a)
+    return best[0] if best else None
+
+def nested_in(inner, outer):
+    if inner is None: return False
+    if inner == outer: return True
+    if outer not in type_span or inner not in type_span: return False
+    pi, ai, bi = type_span[inner]; po, ao, bo = type_span[outer]
+    return pi == po and ao <= ai and bi <= bo
+
+chain_re = re.compile(r'(?<![\w.])([A-Za-z_]\w*)((?:\.[A-Za-z_]\w*)+)')
+for path, s2 in sources.items():
+    holder = {}
+    for m in decl_var_re.finditer(s2):
+        holder.setdefault(m.group(2), set()).add(m.group(1))
+    holder = dict((v, ts) for v, ts in holder.items() if len(ts) == 1 and next(iter(ts)) in all_types)
+
+    for m in chain_re.finditer(s2):
+        head, rest = m.group(1), m.group(2).split('.')[1:]
+        if head in all_types: cur = head
+        elif head in holder and len(holder[head]) == 1: cur = next(iter(holder[head]))
+        else: continue
+        here = enclosing(path, m.start())
+        line = s2.count('\n', 0, m.start()) + 1
+        for member in rest:
+            if cur not in all_types: break
+            if member not in full_members(cur):
+                if cur not in (head,) or head not in all_types:   # la passe 3 couvre deja Type.Membre
+                    errors.append("%s ligne %d : %s n'a pas de membre %s" % (path, line, cur, member))
+                break
+            if not nested_in(here, cur) and member not in public_of(cur):
+                errors.append("%s ligne %d : %s.%s n'est pas public, on ne peut pas y acceder "
+                              "depuis %s (Unity refuse : CS0122)" % (path, line, cur, member, here))
+                break
+            if member in all_types: cur = member
+            elif member in field_type.get(cur, {}): cur = field_type[cur][member]
+            else: break
 
 # ---- 5a. attribut orphelin : [Header] / [Tooltip] ne valent que sur un champ
 attr_re = re.compile(r'\[\s*(Header|Tooltip|Range|Space)\s*\(')

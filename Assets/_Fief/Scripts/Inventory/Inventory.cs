@@ -16,6 +16,24 @@ namespace Fief
 
         public float MaxWeight = 60f;
 
+        /// <summary>
+        /// Poids porte en plus des ressources : la relique, quand on l'a en main. Elle
+        /// ne se range pas dans le sac, mais elle pese -- et c'est voulu : porter sa
+        /// relique jusqu'a la stele doit se sentir.
+        /// </summary>
+        public float ExtraWeight
+        {
+            get { return extraWeight; }
+            set
+            {
+                float v = Mathf.Max(0f, value);
+                if (Mathf.Approximately(v, extraWeight)) return;
+                extraWeight = v;
+                RaiseChanged();
+            }
+        }
+        float extraWeight;
+
         /// <summary>Leve a chaque modification : le HUD s'y abonne au lieu de sonder chaque frame.</summary>
         public event Action Changed;
 
@@ -28,7 +46,7 @@ namespace Fief
         {
             get
             {
-                float w = 0f;
+                float w = extraWeight;
                 for (int i = 0; i < amounts.Length; i++)
                     w += amounts[i] * ResourceInfo.UnitWeight((ResourceType)i);
                 return w;

@@ -6,35 +6,36 @@ namespace Fief
     /// Point d'acces unique aux systemes de la partie en cours.
     ///
     /// ATTENTION / PHASE 3 : ces champs statiques marchent tant qu'il n'y a qu'un
-    /// seul joueur dans le processus. En multijoueur, Inventory / Wallet / Fief
-    /// deviendront des composants par joueur, et Market restera cote hote uniquement.
-    /// C'est pour ca que TOUTES les mutations d'economie passent deja par
-    /// des methodes "demande -> validation -> application" (voir Market.cs) :
-    /// le jour ou on branche Netcode, ces methodes deviennent des ServerRpc et
-    /// le reste du code ne bouge pas.
+    /// seul joueur dans le processus. En multijoueur, Inventory, Wallet et Hoard
+    /// deviendront des composants PAR JOUEUR, et Season restera cote hote. C'est
+    /// pour ca que toute la regle du jeu vit dans des classes C# pures (Season,
+    /// Hoard, Relic, Cache, Inventory) et que tout changement passe par une methode
+    /// Request* ou Try* : le jour du reseau, ce sont elles qu'on protege.
     /// </summary>
     public static class Game
     {
         public static GameConfig Config;
         public static Inventory Inventory;
         public static Wallet Wallet;
-        public static Market Market;
-        public static FiefState Fief;
+        public static Season Season;
+        public static Hoard Hoard;
         public static Hud Hud;
+        public static Menus Menus;
         public static PlayerController Player;
         public static CharacterRig Rig;
         public static Transform PlayerTransform;
+        public static Mage Mage;
+
+        /// <summary>Le centre du chateau, et donc de la stele.</summary>
+        public static Vector3 CastleCentre;
 
         /// <summary>Renseigne si la construction du monde a echoue : affiche en rouge a l'ecran.</summary>
         public static string BuildError;
         public static long BuildMilliseconds;
 
-        public static Vector3 MarketPosition;
-        public static Vector3 HomeFiefPosition;
-
         public static bool Ready
         {
-            get { return Config != null && Inventory != null && Market != null; }
+            get { return Config != null && Inventory != null && Season != null && Hoard != null; }
         }
 
         public static void Reset()
@@ -42,15 +43,16 @@ namespace Fief
             Config = null;
             Inventory = null;
             Wallet = null;
-            Market = null;
-            Fief = null;
+            Season = null;
+            Hoard = null;
             Hud = null;
+            Menus = null;
             Player = null;
             Rig = null;
             PlayerTransform = null;
+            Mage = null;
+            CastleCentre = Vector3.zero;
             BuildError = null;
-            MarketPosition = Vector3.zero;
-            HomeFiefPosition = Vector3.zero;
             FloatingTexts.Clear();
         }
     }

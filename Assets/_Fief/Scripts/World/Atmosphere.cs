@@ -6,26 +6,37 @@ namespace Fief
     /// <summary>
     /// LA PENOMBRE. Lumiere, brume, portee du regard.
     ///
-    /// Une foret sombre ne se fabrique pas en baissant la luminosite -- ca donne du
-    /// gris sale et illisible. Elle tient a quatre choses, et il faut les quatre :
+    /// L'ambiance visee : un sous-bois par temps couvert, en fin d'apres-midi.
+    /// C'est naturel -- chacun a deja marche dans une foret comme ca -- et c'est
+    /// inquietant sans effet special.
     ///
-    ///   1. UNE BRUME DENSE ET COLOREE. C'est elle qui ferme le monde. A 40 m on ne
-    ///      voit plus rien, donc on ne sait jamais ce qu'il y a derriere les arbres.
-    ///      Elle est bleu-vert tres sombre, pas grise : une brume grise a l'air d'un
-    ///      bug de rendu, une brume teintee a l'air d'un lieu.
-    ///   2. UNE LUMIERE RASANTE ET FROIDE, faible, presque horizontale. Elle ne sert
-    ///      pas a eclairer mais a DECOUPER : les futs pales des hetres l'accrochent,
-    ///      et les troncs projettent de longues ombres entre lesquelles on avance.
-    ///   3. UN AMBIANT SOMBRE MAIS PAS NOIR, legerement bleu. Sans lui les faces a
-    ///      l'ombre seraient du noir pur, et le low-poly devient une bouillie.
-    ///   4. UNE LANTERNE SUR LE JOUEUR. C'est le point crucial : sans elle, sombre
-    ///      veut dire "on ne voit rien" et le jeu devient penible. Avec elle, on
-    ///      emmene une flaque de lumiere, le sol reste lisible sous ses pieds, et la
-    ///      foret reste noire au-dela. C'est ca, l'inquietude : voir un peu.
+    /// LA PREMIERE VERSION NE L'ETAIT PAS, et Martin l'a vu tout de suite : "la
+    /// lumiere pas tres naturelle". Trois erreurs :
+    ///
+    ///   1. Un soleil a 14 degres, presque horizontal. Sous un couvert dense il ne
+    ///      passerait pas ; il eclairait les troncs de cote, comme un projecteur.
+    ///   2. Tout etait bleu froid, sauf la lanterne, orange sature. Ce contraste de
+    ///      complementaires est un effet de jeu video, pas de foret.
+    ///   3. La brume etait PLUS SOMBRE que les arbres : au loin tout plongeait dans
+    ///      le noir, comme un vide. Dans une vraie foret brumeuse c'est l'inverse :
+    ///      l'air charge d'humidite diffuse la lumiere, il est plus CLAIR que les
+    ///      troncs, et les arbres se decoupent en silhouettes sombres sur un fond
+    ///      gris-vert. C'est plus naturel, et c'est justement ce qui fait peur : on
+    ///      devine des formes, on ne les voit pas.
+    ///
+    /// CE QUI EST FAIT MAINTENANT
+    ///
+    ///   - La lumiere vient d'EN HAUT (52 degres), neutre et un peu chaude, faible,
+    ///     avec des ombres adoucies : un ciel couvert filtre par les feuilles.
+    ///   - L'ambiant est vert-gris en haut, brun en bas : c'est la lumiere qui
+    ///     rebondit sur les feuilles et sur l'humus. Une foret eclaire en vert.
+    ///   - La brume est gris-vert, plus claire que les ombres proches.
+    ///   - La lanterne est plus douce et moins orange : elle aide a lire le sol, elle
+    ///     ne repeint pas la foret.
     ///
     /// LA PORTEE DU REGARD SERT AUSSI LA PERFORMANCE. Le plan lointain de la camera
-    /// est cale juste au-dela de la brume : tout ce qui est plus loin n'est pas
-    /// dessine du tout. Une foret dense coute donc MOINS cher qu'une plaine degagee.
+    /// est cale juste au-dela de la brume : ce qui est plus loin n'est pas dessine.
+    /// Une foret dense coute donc MOINS cher qu'une plaine degagee.
     /// </summary>
     public static class Atmosphere
     {
@@ -52,9 +63,13 @@ namespace Fief
             // degrade bleu au-dessus des cimes casserait tout l'enfermement.
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.13f, 0.16f, 0.18f);
-            RenderSettings.ambientEquatorColor = new Color(0.09f, 0.11f, 0.12f);
-            RenderSettings.ambientGroundColor = new Color(0.05f, 0.06f, 0.06f);
+
+            // Vert-gris en haut (le ciel couvert vu a travers les feuilles), vert
+            // sourd a hauteur d'homme, brun en bas (l'humus). Une foret eclaire en
+            // vert : c'est ce qui manquait pour que ca paraisse vrai.
+            RenderSettings.ambientSkyColor = new Color(0.22f, 0.25f, 0.23f);
+            RenderSettings.ambientEquatorColor = new Color(0.14f, 0.16f, 0.13f);
+            RenderSettings.ambientGroundColor = new Color(0.08f, 0.07f, 0.06f);
             RenderSettings.reflectionIntensity = 0f;
 
             if (view != null)
@@ -82,13 +97,15 @@ namespace Fief
             }
             Sun.type = LightType.Directional;
 
-            // Presque horizontale : les ombres sont longues et traversent tout le
-            // champ de vision. Une lumiere zenithale aplatirait la foret.
-            Sun.transform.rotation = Quaternion.Euler(14f, 38f, 0f);
-            Sun.color = new Color(0.62f, 0.70f, 0.82f);
-            Sun.intensity = cfg != null ? cfg.sunIntensity : 0.5f;
+            // D'en haut, pas de cote : sous un couvert, la lumiere tombe. Neutre et un
+            // peu chaude, faible, ombres adoucies -- un ciel couvert en fin de journee.
+            float elevation = cfg != null ? cfg.sunElevation : 52f;
+            Sun.transform.rotation = Quaternion.Euler(elevation, 38f, 0f);
+            Sun.color = new Color(0.88f, 0.85f, 0.76f);
+            Sun.intensity = cfg != null ? cfg.sunIntensity : 0.45f;
             Sun.shadows = LightShadows.Soft;
-            Sun.shadowStrength = 0.82f;
+            Sun.shadowStrength = 0.62f;
+            RenderSettings.sun = Sun;
 
             // Les ombres ne portent pas plus loin que la vue : au-dela c'est du calcul
             // jete a la poubelle par la brume.
@@ -112,10 +129,12 @@ namespace Fief
                 go.AddComponent<LampFlicker>();
             }
 
+            // Une flamme a travers un verre sale : chaude, mais pas orange. Plus
+            // saturee, elle repeignait tout ce qu'elle touchait.
             Lamp.type = LightType.Point;
-            Lamp.color = new Color(1f, 0.82f, 0.56f);
-            Lamp.intensity = cfg != null ? cfg.lampIntensity : 1.35f;
-            Lamp.range = cfg != null ? cfg.lampRange : 15f;
+            Lamp.color = new Color(1f, 0.89f, 0.72f);
+            Lamp.intensity = cfg != null ? cfg.lampIntensity : 1.0f;
+            Lamp.range = cfg != null ? cfg.lampRange : 13f;
             Lamp.shadows = LightShadows.None;   // une seconde passe d'ombres coute cher pour rien
         }
     }

@@ -1,0 +1,225 @@
+using UnityEngine;
+
+namespace Fief
+{
+    /// <summary>
+    /// Les deux gestes qui font de la foret TON territoire :
+    ///   C  -- planter le camp (une seule fois par Saison, la ou l'on se tient) ;
+    ///   G  -- creuser une cache (maintenir, trois au maximum).
+    ///
+    /// Pourquoi C ne se maintient pas et G si : planter le camp est une DECISION,
+    /// on la prend d'un coup. Creuser est un TRAVAIL : on reste plante la, a genoux,
+    /// pendant plusieurs secondes, et plus le sac est lourd plus c'est long (la meme
+    /// regle que la recolte). En Phase 2, c'est le moment ou l'on est vulnerable.
+    ///
+    /// Ce composant ne garde rien : il demande a Hoard (TryPlantCamp, TryDig), puis
+    /// pose l'objet du monde qui represente la reponse.
+    /// </summary>
+    public class CampActions : MonoBehaviour
+    {
+        const float TentAhead = 4f;         // la tente se pose devant soi, pas sur soi
+        const float CacheAhead = 1.2f;
+        const float MaxSlope = 0.42f;
+        const float MinCacheSpacing = 4f;
+        const float WanderLimit = 0.7f;     // bouger de plus que ca annule le creusage
+
+        PlayerController player;
+        float digTimer;
+        float swingTimer;
+        Vector3 digStart;
+
+        /// <summary>Le HUD lit ces deux valeurs pour dessiner la jauge de creusage.</summary>
+        public static bool Digging { get; private set; }
+        public static float Progress01 { get; private set; }
+
+        void Awake()
+        {
+            player = GetComponent<PlayerController>();
+        }
+
+        void OnDestroy()
+        {
+            Digging = false;
+            Progress01 = 0f;
+        }
+
+        void Update()
+        {
+            bool locked = player != null && player.InputLocked;
+            if (locked)
+            {
+                StopDigging();
+                return;
+            }
+
+            if (FiefInput.CampPressed) TryCamp();
+
+            if (FiefInput.DigPressed) BeginDigging();
+            if (Digging) ContinueDigging();
+        }
+
+        // ------------------------------------------------------------------ le camp
+
+        void TryCamp()
+        {
+            Hoard hoard = Game.Hoard;
+            if (hoard == null) return;
+
+            if (hoard.CampPlanted)
+            {
+                Refuse("Ton camp est deja plante, " + Hud.Direction(transform.position, hoard.CampPosition) + ".");
+                return;
+            }
+
+            Vector3 forward = Facing();
+            Vector3 at = Ground.Place(transform.position + forward * TentAhead, 0f);
+
+            string why = WhyNotHere(at, 12f);
+            if (why == null && Blocked(at, forward)) why = "Pas la place ici pour une tente.";
+            if (why != null) { Refuse(why); return; }
+
+            if (!hoard.TryPlantCamp(at)) return;
+
+            // La tente tourne le dos a celui qui la plante : le feu est entre elle et lui.
+            float yaw = Mathf.Atan2(-forward.x, -forward.z) * Mathf.Rad2Deg;
+            Camp.Build(at, yaw);
+
+            Sfx.Build();
+            Toasts.Show("Camp plante. Une tente se voit de loin : c'est la qu'on te cherchera.", Palette.Gold);
+        }
+
+        /// <summary>
+        /// Une tente de 2,2 x 2,6 m ne doit rien traverser : ni tronc, ni rocher, ni
+        /// mur. On interroge la physique sur son volume, en ignorant le sol (le seul
+        /// MeshCollider du monde), les declencheurs, et le joueur lui-meme.
+        /// </summary>
+        bool Blocked(Vector3 at, Vector3 forward)
+        {
+            Quaternion rotation = Quaternion.LookRotation(forward, Vector3.up);
+            Collider[] hits = Physics.OverlapBox(at + Vector3.up * 1f, new Vector3(1.3f, 0.7f, 1.5f), rotation,
+                                                 ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hits.Length; i++)
+            {
+                Collider c = hits[i];
+                if (c is MeshCollider) continue;
+                if (c.transform.IsChildOf(transform)) continue;
+                return true;
+            }
+            return false;
+        }
+
+        // ------------------------------------------------------------------ les caches
+
+        void BeginDigging()
+        {
+            if (Digging || Game.Hoard == null) return;
+
+            Vector3 at = CacheSpotAhead();
+            string why = Game.Hoard.CanDig ? WhyNotHere(at, 4f) : "Tu as deja creuse tes " + Game.Hoard.MaxCaches + " caches.";
+            if (why == null) why = TooClose(at);
+            if (why != null) { Refuse(why); return; }
+
+            Digging = true;
+            digTimer = 0f;
+            swingTimer = 0f;
+            digStart = transform.position;
+        }
+
+        void ContinueDigging()
+        {
+            if (!FiefInput.DigHeld || Flat(transform.position - digStart).magnitude > WanderLimit)
+            {
+                StopDigging();
+                return;
+            }
+
+            // Un coup de pelle toutes les 0,6 s : le bras bouge, la terre sonne.
+            swingTimer -= Time.deltaTime;
+            if (swingTimer <= 0f)
+            {
+                swingTimer = 0.6f;
+                if (Game.Rig != null) Game.Rig.PlaySwing();
+                Sfx.HarvestTap(ResourceType.Moonstone);
+            }
+
+            float duration = DigDuration();
+            digTimer += Time.deltaTime;
+            Progress01 = Mathf.Clamp01(digTimer / duration);
+            if (digTimer < duration) return;
+
+            StopDigging();
+            Vector3 at = CacheSpotAhead();
+            Cache cache = Game.Hoard.TryDig(at);
+            if (cache == null) return;
+
+            CacheSpot.Build(cache, Random.Range(0f, 360f));
+            Sfx.Harvest(ResourceType.Moonstone);
+            int left = Game.Hoard.MaxCaches - Game.Hoard.Caches.Count;
+            Toasts.Show("Cache " + cache.Number + " creusee. Toi seul sais qu'elle est la."
+                        + (left > 0 ? "  (encore " + left + ")" : "  (c'etait la derniere)"),
+                        new Color(0.80f, 0.66f, 0.46f));
+        }
+
+        /// <summary>Meme regle que la recolte : un sac lourd rend le geste lent.</summary>
+        float DigDuration()
+        {
+            GameConfig cfg = Game.Config;
+            float baseDuration = cfg != null ? cfg.digDuration : 3.5f;
+            float penalty = cfg != null ? cfg.actionPenaltyFull : 2.4f;
+            float load = Game.Inventory != null ? Game.Inventory.Load01 : 0f;
+            return baseDuration * Mathf.Lerp(1f, penalty, load);
+        }
+
+        void StopDigging()
+        {
+            Digging = false;
+            Progress01 = 0f;
+            digTimer = 0f;
+        }
+
+        Vector3 CacheSpotAhead()
+        {
+            return Ground.Place(transform.position + Facing() * CacheAhead, 0f);
+        }
+
+        string TooClose(Vector3 at)
+        {
+            Hoard hoard = Game.Hoard;
+            for (int i = 0; i < hoard.Caches.Count; i++)
+                if (Flat(hoard.Caches[i].Position - at).magnitude < MinCacheSpacing)
+                    return "Trop pres de ta cache " + hoard.Caches[i].Number + ".";
+            if (hoard.CampPlanted && Flat(hoard.CampPosition - at).magnitude < MinCacheSpacing)
+                return "Trop pres de ta tente.";
+            return null;
+        }
+
+        // ------------------------------------------------------------------ commun
+
+        /// <summary>Null si l'endroit convient, sinon la raison, dite au joueur.</summary>
+        static string WhyNotHere(Vector3 at, float castleMargin)
+        {
+            if (Castle.Covers(at.x, at.z, castleMargin)) return "Pas au pied du chateau : on te verrait.";
+            if (Ground.Slope(at.x, at.z) > MaxSlope) return "Le sol est trop en pente ici.";
+            return null;
+        }
+
+        static void Refuse(string why)
+        {
+            Sfx.Deny();
+            Toasts.Show(why, UiStyle.InkDim);
+        }
+
+        static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v;
+        }
+
+        /// <summary>Le regard du corps, a plat et de longueur 1.</summary>
+        Vector3 Facing()
+        {
+            Vector3 f = Flat(transform.forward);
+            return f.sqrMagnitude > 0.0001f ? f.normalized : Vector3.forward;
+        }
+    }
+}

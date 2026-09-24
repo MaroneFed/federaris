@@ -1,0 +1,148 @@
+# LA SAISON — la bible du jeu
+
+> Écrit le 23/09/2026 à partir de ce que Martin a demandé ce jour-là, en prolongeant
+> l'« option B » qu'il avait validée le 21/09. C'est **la référence** : quand le code et
+> ce document ne disent pas la même chose, c'est un des deux qu'il faut corriger.
+
+---
+
+## L'idée en une phrase
+
+**Une forêt noire autour d'un château mort. Un mage errant forge des reliques avec ce
+qu'on lui apporte. À la fin de la Saison, la plus puissante relique posée sur la stèle
+du château l'emporte.**
+
+La phrase de l'écran-titre la résume : *« Ce que tu caches, un autre le cherche. »*
+
+---
+
+## Pourquoi cette boucle, et pas juste la liste des idées
+
+Martin a donné des ingrédients : un énorme château, un camp caché, des caches
+creusées, des pièges, un mage qui apparaît au hasard, une stèle, des PNJ. Une liste
+d'ingrédients n'est pas un jeu. Ce qui en fait un jeu, c'est que **chaque ingrédient
+crée une tension avec un autre** :
+
+| Ingrédient | Il existe parce que… |
+|---|---|
+| **Le poids** (60 kg, on ne court plus chargé) | on ne peut pas tout porter → il faut **cacher** |
+| **Les caches** | ce qu'on cache, il faut le **retrouver** dans une forêt sans repères, et un autre peut le **trouver** |
+| **Le mage errant** | il n'accepte que ce qu'on **porte** → il faut aller rechercher sa cache, se charger, et traverser la forêt lentement, **vulnérable** |
+| **La relique** | elle concentre tout ce qu'on a amassé en **un seul objet**, qu'on peut perdre d'un coup |
+| **La stèle** | elle est **au château** → tout le monde converge au même endroit à la fin |
+| **Le château** | il contient la ressource la plus rare → on est obligé d'y entrer avant la fin |
+| **Les gardes soudoyables** | c'est le **sabotage par les salaires** : on ne force pas une porte, on **achète** celui qui l'ouvre |
+
+Enlever un de ces éléments casse les autres. C'est le test qu'on appliquera à toute
+nouvelle idée.
+
+---
+
+## Le déroulé d'une Saison (30 minutes)
+
+1. **L'arrivée.** On apparaît à la lisière, seul, avec une lanterne. Il faut trouver
+   **où planter son camp** — et on ne peut le planter **qu'une fois**.
+2. **La cueillette.** La sylve donne deux ressources ; le château, la troisième.
+3. **Les caches.** Le sac est vite plein. On **creuse des caches** (trois au maximum)
+   pour y déposer. Seul leur propriétaire sait où elles sont.
+4. **Le mage.** Il apparaît à un endroit au hasard, **pour deux minutes et demie**,
+   puis disparaît. On ne le voit pas de loin — **on l'entend** : un bourdonnement grave
+   qui porte à travers la brume. Il faut le trouver, les bras chargés.
+5. **La forge.** Le mage fond tout ce qu'on porte en **une relique**. On peut revenir
+   la renforcer à chacune de ses apparitions.
+6. **La stèle.** Au cœur du château. La relique n'y compte qu'une fois **posée**.
+7. **La cloche.** À la trentième minute, la Saison s'achève. La plus puissante relique
+   posée sur la stèle gagne.
+
+### Les apparitions du mage
+
+| | |
+|---|---|
+| Première apparition | **2:00** |
+| Intervalle entre deux apparitions | **4:30** |
+| Durée de chaque apparition | **2:30** |
+| Dernière apparition | **24:30** → il reste 3 minutes pour rejoindre la stèle |
+
+Six apparitions par Saison. La rareté du mage **est** la tension : le rater, c'est
+attendre quatre minutes et demie.
+
+Il apparaît **à 110–260 m de toi**, dans une place dégagée, jamais au château ni dans
+un creux. On ne le voit qu'à 26 m (la brume) ; sa voix, elle, s'entend à deux cents
+mètres. Un message dit seulement « au nord-est » au moment où il arrive.
+
+**Il ne prend que ce qu'on porte, mais on peut faire plusieurs voyages** tant qu'il
+chante. C'est ce qui donne leur sens aux caches en solo : une cache pleine près de
+l'endroit où il apparaît, c'est un deuxième sac.
+
+### Ce que dit la simulation (`python3 Tools/saison.py`)
+
+| Joueur type | Puissance médiane | Ce que dit l'écran de fin |
+|---|---|---|
+| Flâneur (3 apparitions, pas de fer) | ~140 | un talisman |
+| Régulier (rate une apparition sur trois) | ~990 | un trésor de mage |
+| Expert, six apparitions, sans caches | ~1340 | un trésor de mage |
+| Expert qui se sert de ses caches | ~1550 | **une légende** |
+
+Paliers : babiole < 120 ≤ talisman < 400 ≤ relique < 800 ≤ trésor < 1450 ≤ légende.
+La légende **exige** les caches : c'est voulu, c'est la mécanique qu'on veut qu'il
+apprenne.
+
+---
+
+## Les trois ressources
+
+La décision verrouillée « trois ressources en v1 » tient. Elles changent de nom et de
+lieu, pas de nombre.
+
+| | **Bois mort** | **Pierre-lune** | **Fer ancien** |
+|---|---|---|---|
+| Où | fagots au pied des arbres morts | pierres qui luisent, **dans les creux** | les réserves **du château** |
+| Poids | 1 kg | 3 kg | 2 kg |
+| Valeur pour le mage | 1 | 4 | 10 |
+| Abondance | partout | rare, on la voit briller | **54 lingots pour toute la Saison**, ne reviennent pas ; gardés en Phase 2 |
+
+**La relique** vaut la somme des valeurs, multipliée par un bonus de **variété** :
+×1 pour une seule ressource, ×1,25 pour deux, **×1,6 pour les trois**. Sans ce bonus,
+tout le monde ne ferait que du fer ; avec lui, il faut **les trois lieux**.
+
+Le fer du château **ne revient pas**. Quand il revenait (toutes les deux minutes), la
+simulation montrait que le meilleur plan était la navette château–mage, sans jamais
+entrer dans la forêt. Fini, il devient une course : qui vide les réserves le premier.
+
+---
+
+## Ce qui est dans la Phase 1 (solo) — et ce qui n'y est pas
+
+**Porte 1 redéfinie :** *une Saison solo de 30 minutes est-elle haletante du début à
+la fin ?* En solo, l'adversaire est le temps : le mage qui s'en va, la cloche qui
+approche, le sac trop lourd.
+
+| Phase 1 — maintenant | Phase 2 — le conflit |
+|---|---|
+| Les trois ressources et leurs lieux | **Les gardes** du château et leur **solde** |
+| Le camp (une fois) et les caches (trois) | **Soudoyer** un garde : la porte dérobée, la torche éteinte |
+| Le mage errant, sa voix, la forge | **Les pièges** : collet, fil d'alarme, fosse |
+| La relique, la stèle, la cloche | **Voler** une cache, une relique, la stèle |
+| Le château, ses réserves, ses torches | Combat simple |
+| L'écran de fin | Un **rôdeur** PNJ qui pille les caches mal protégées (donne un sens aux pièges en solo) |
+
+Les pièges et les PNJ sont demandés par Martin et **ils viendront** — mais un piège
+n'a de sens que s'il y a quelqu'un pour tomber dedans. Ils arrivent avec ceux qu'ils
+doivent arrêter.
+
+---
+
+## Le sabotage par les salaires — où il vit maintenant
+
+Le différenciateur du projet (voir `CLAUDE.md`) ne disparaît pas, il **change
+d'adresse**. Il n'y a plus de fief par joueur, donc plus de serviteurs à soi. Mais le
+château a sa garde, et **elle est mal payée**. En Phase 2 :
+
+- chaque garde a une **solde** et une **loyauté** ;
+- un garde mécontent accepte de l'**or** pour ouvrir la poterne, détourner les yeux,
+  éteindre une torche ;
+- la **porte dérobée ne se force pas** : on l'ouvre de l'intérieur, en achetant
+  quelqu'un. La destruction à règles tient toujours.
+
+La meilleure façon d'entrer dans le château n'est pas la force : c'est la trahison
+achetée. C'était vrai des fiefs, c'est vrai du château.

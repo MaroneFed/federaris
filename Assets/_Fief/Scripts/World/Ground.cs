@@ -126,6 +126,11 @@ namespace Fief
                         150f + (float)rng.NextDouble() * 90f, -11f);
             }
 
+            // Le chateau pose sur un replat parfait. Dans son emprise la hauteur vaut
+            // exactement zero, et elle rejoint le relief sur 90 m tout autour : on
+            // monte ou descend en douceur vers ses murs, jamais de marche.
+            AddFlat(Vector2.zero, Castle.FlatRadius, 1f);
+
             ready = true;
         }
 
