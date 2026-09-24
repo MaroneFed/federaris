@@ -20,6 +20,33 @@ namespace Fief
         /// <summary>Mis a vrai quand un panneau d'interface est ouvert : le joueur ne bouge plus.</summary>
         public bool InputLocked;
 
+        /// <summary>
+        /// Vrai pendant un mouvement joue par le code (grimper a un arbre) : ni
+        /// deplacement, ni gravite ; c'est ScriptedMove qui place le corps.
+        /// </summary>
+        public bool Scripted { get; private set; }
+
+        public void BeginScripted()
+        {
+            Scripted = true;
+            controller.enabled = false;
+            verticalVelocity = 0f;
+        }
+
+        /// <summary>Placer le corps sans toucher au regard (la souris reste libre).</summary>
+        public void ScriptedMove(Vector3 position)
+        {
+            transform.position = position;
+        }
+
+        public void EndScripted(Vector3 position)
+        {
+            Scripted = false;
+            transform.position = position;
+            verticalVelocity = 0f;
+            controller.enabled = true;
+        }
+
         CharacterController controller;
         float verticalVelocity;
         bool wasGrounded = true;
@@ -39,7 +66,7 @@ namespace Fief
         void Update()
         {
             GameConfig cfg = Game.Config;
-            if (cfg == null) return;
+            if (cfg == null || Scripted) return;
 
             Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
 
@@ -165,6 +192,7 @@ namespace Fief
         /// </summary>
         public void Teleport(Vector3 position, float yaw)
         {
+            Scripted = false;                   // un teleport interrompt une escalade
             controller.enabled = false;
             transform.position = position;
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);

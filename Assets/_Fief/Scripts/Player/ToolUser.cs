@@ -52,6 +52,23 @@ namespace Fief
             Transform eye = player.cameraTransform;
             if (eye == null) return;
 
+            // Une escalade interrompue (tombe, jete dehors, releve a sa stele) : on
+            // oublie le perchoir.
+            if (climbing && !player.Scripted) climbing = false;
+            if (!climbing && perch != null && (transform.position - perch.position).magnitude > 3f)
+            {
+                Destroy(perch.gameObject);
+                perch = null;
+            }
+
+            // --- on grimpe (ou on descend) : rien d'autre pendant ce temps
+            if (climbing)
+            {
+                Hint = climbingUp ? "Tu grimpes..." : "Tu redescends...";
+                Climb();
+                return;
+            }
+
             // --- descendre de l'arbre
             if (perch != null)
             {
@@ -168,9 +185,21 @@ namespace Fief
 
         // ================================================================== grimper
 
+        // Le mouvement en cours : on monte (ou on descend) le long du tronc, traction
+        // apres traction. Pendant ce temps, rien d'autre ne se fait.
+        bool climbing;
+        bool climbingUp;
+        float climbT;
+        float climbDuration;
+        Vector3 climbStart, climbBase, climbTop, climbEnd;
+        int pullsDone;
+        const int Pulls = 5;
+
         /// <summary>
-        /// S'installer dans l'arbre : une petite plate-forme de branches apparait a
-        /// quatre metres, contre le tronc, et on s'y retrouve. Personne ne regarde
+        /// S'installer dans l'arbre : une petite plate-forme de branches a quatre
+        /// metres, contre le tronc. On y MONTE (1,6 s) : on s'approche du tronc, puis
+        /// cinq tractions, chacune avec son froissement de branches, un peu de
+        /// balancement ; enfin on se hisse sur la plate-forme. Personne ne regarde
         /// en l'air dans une foret : c'est le meilleur poste de guet du jeu.
         /// </summary>
         void ClimbUp(Collider trunk)
@@ -202,9 +231,14 @@ namespace Fief
             Proto.EndVisualOnly();
             perch = platform.transform;
 
-            player.Teleport(spot + Vector3.up * 0.05f, Quaternion.LookRotation(toMe).eulerAngles.y);
-            Sfx.HarvestTap(ResourceType.Deadwood);
-            Toasts.Show("Tu t'installes dans l'arbre. F pour redescendre.", UiStyle.InkDim);
+            // Le chemin : le pied du tronc, puis tout droit le long de l'ecorce,
+            // puis le rebord de la plate-forme.
+            Vector3 hug = centre + toMe * 0.75f;
+            StartClimb(true, transform.position,
+                       new Vector3(hug.x, ground + 0.05f, hug.z),
+                       new Vector3(hug.x, spot.y - 0.2f, hug.z),
+                       spot + Vector3.up * 0.05f, 1.6f);
+            Toasts.Show("Tu grimpes. F pour redescendre.", UiStyle.InkDim);
         }
 
         static void AddRail(Transform parent, Vector3 at, Vector3 size)
@@ -217,11 +251,79 @@ namespace Fief
 
         void ClimbDown()
         {
-            Vector3 p = perch.position + perch.forward * 1.2f;
-            Destroy(perch.gameObject);
-            perch = null;
-            player.Teleport(Ground.Place(p.x, p.z, 0.1f), transform.eulerAngles.y);
-            Sfx.Step();
+            Vector3 trunkSide = perch.position - perch.forward * 0.15f;
+            Vector3 landing = Ground.Place(perch.position.x + perch.forward.x * 1.2f, perch.position.z + perch.forward.z * 1.2f, 0.1f);
+            float ground = Ground.Sample(trunkSide.x, trunkSide.z);
+            StartClimb(false, transform.position,
+                       new Vector3(trunkSide.x, transform.position.y - 0.1f, trunkSide.z),
+                       new Vector3(trunkSide.x, ground + 0.1f, trunkSide.z),
+                       landing, 1.1f);
+        }
+
+        void StartClimb(bool up, Vector3 start, Vector3 baseAt, Vector3 top, Vector3 end, float duration)
+        {
+            climbing = true;
+            climbingUp = up;
+            climbT = 0f;
+            climbDuration = duration;
+            climbStart = start;
+            climbBase = baseAt;
+            climbTop = top;
+            climbEnd = end;
+            pullsDone = 0;
+            player.BeginScripted();
+            Sfx.HarvestTap(ResourceType.Deadwood);
+        }
+
+        /// <summary>Un pas de l'animation. Trois temps : s'approcher, grimper, se poser.</summary>
+        void Climb()
+        {
+            climbT = Mathf.Min(1f, climbT + Time.deltaTime / climbDuration);
+            float t = climbT;
+            Vector3 p;
+            if (t < 0.15f)
+            {
+                p = Vector3.Lerp(climbStart, climbBase, Mathf.SmoothStep(0f, 1f, t / 0.15f));
+            }
+            else if (t < 0.88f)
+            {
+                // Les tractions : la hauteur avance par a-coups (vite pendant la
+                // traction, presque rien entre deux), avec un leger balancement.
+                float u = (t - 0.15f) / 0.73f;
+                float steps = u * Pulls;
+                float within = steps - Mathf.Floor(steps);
+                float eased = (Mathf.Floor(steps) + Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(within * 1.6f))) / Pulls;
+                p = Vector3.Lerp(climbBase, climbTop, Mathf.Clamp01(eased));
+                Vector3 side = Vector3.Cross(Vector3.up, climbTop - climbEnd).normalized;
+                p += side * Mathf.Sin(steps * Mathf.PI) * 0.06f;
+                int pull = Mathf.FloorToInt(steps);
+                if (pull > pullsDone && pull <= Pulls)
+                {
+                    pullsDone = pull;
+                    Sfx.HarvestTap(ResourceType.Deadwood);
+                    if (pull == 2) Sfx.Creak3D(p + Vector3.up);
+                    if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.04f);
+                }
+            }
+            else
+            {
+                p = Vector3.Lerp(climbTop, climbEnd, Mathf.SmoothStep(0f, 1f, (t - 0.88f) / 0.12f));
+            }
+            player.ScriptedMove(p);
+
+            if (climbT < 1f) return;
+            climbing = false;
+            player.EndScripted(climbEnd);
+            if (climbingUp)
+            {
+                Sfx.Step();
+            }
+            else
+            {
+                if (perch != null) Destroy(perch.gameObject);
+                perch = null;
+                Sfx.Step();
+            }
         }
 
         // ================================================================== l'outil en main
