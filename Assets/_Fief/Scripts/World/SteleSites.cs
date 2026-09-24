@@ -30,6 +30,9 @@ namespace Fief
             // Une graine differente a chaque lancement : la stele change de place a
             // chaque partie, meme si la foret, elle, reste la meme.
             System.Random rng = new System.Random(System.Environment.TickCount);
+            // Les troncs viennent d'etre poses dans cette meme image : on force la
+            // physique a connaitre leur place avant de chercher un coin libre.
+            Physics.SyncTransforms();
             List<Vector3> taken = new List<Vector3>();
 
             for (int i = 0; i < seekers.Count; i++)
