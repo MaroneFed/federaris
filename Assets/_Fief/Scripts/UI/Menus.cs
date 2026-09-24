@@ -555,9 +555,6 @@ namespace Fief
             if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Quitter", false, late) && late > 0.9f)
                 Quit();
 
-            UiStyle.Tinted(new Rect(UiStyle.S(24), Screen.height - UiStyle.S(34), UiStyle.S(700), UiStyle.S(24)),
-                           "Prototype   --   la sylve, le chateau, trois rivaux   --   Unity 6", UiStyle.Tiny,
-                           new Color(UiStyle.InkFaint.r, UiStyle.InkFaint.g, UiStyle.InkFaint.b, late));
         }
 
         void DrawPause()

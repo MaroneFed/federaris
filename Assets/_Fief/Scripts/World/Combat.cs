@@ -63,6 +63,33 @@ namespace Fief
             }
         }
 
+        /// <summary>Y a-t-il un ennemi (rival, bete) a portee d'epee, devant soi ?</summary>
+        public static bool FoeAhead(Transform eye)
+        {
+            Seeker me = Game.Me;
+            if (me == null || me.Body == null) return false;
+            Vector3 f = eye.forward;
+            f.y = 0f;
+            f.Normalize();
+            for (int i = 0; i < Rival.All.Count; i++)
+            {
+                Rival r = Rival.All[i];
+                if (r == null || !r.seeker.Alive) continue;
+                Vector3 to = r.transform.position - me.Body.position;
+                to.y = 0f;
+                if (to.magnitude <= Reach && Vector3.Angle(f, to) <= 55f) return true;
+            }
+            for (int i = 0; i < Beast.All.Count; i++)
+            {
+                Beast b = Beast.All[i];
+                if (b == null || !b.Alive) continue;
+                Vector3 to = b.transform.position - me.Body.position;
+                to.y = 0f;
+                if (to.magnitude <= Reach + 0.4f && Vector3.Angle(f, to) <= 60f) return true;
+            }
+            return false;
+        }
+
         /// <summary>Un coup porte. Tout passe par ici : degats, cris, mort.</summary>
         public static void Hit(Seeker victim, Seeker attacker, float damage)
         {

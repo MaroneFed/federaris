@@ -25,6 +25,23 @@ namespace Fief
     {
         public static readonly List<Monument> All = new List<Monument>();
 
+        /// <summary>Le dernier versement recu par le joueur, et combien de temps l'afficher.</summary>
+        public static string LastPay = "";
+        public static float PayFlash;
+
+        /// <summary>"Autel de l'Or, Autel de la Lune" -- ceux que tient ce chercheur.</summary>
+        public static string HeldBy(Seeker s)
+        {
+            string held = "";
+            for (int i = 0; i < All.Count; i++)
+            {
+                if (All[i] == null || All[i].Owner != s || s == null) continue;
+                if (held.Length > 0) held += ", ";
+                held += Name(All[i].kind);
+            }
+            return held;
+        }
+
         public enum Kind { Or, Bucheron, Lune }
 
         const float Radius = 5f;
@@ -213,6 +230,7 @@ namespace Fief
             Season season = Game.Season;
             if (season == null || !season.Running) return;
             float dt = Time.deltaTime;
+            if (kind == Kind.Or && PayFlash > 0f) PayFlash -= dt;       // un seul autel decompte
 
             // Qui se tient dans le cercle ?
             Seeker alone = null;
@@ -307,7 +325,13 @@ namespace Fief
                 h.Store.Contents.TryAdd(t, kind == Kind.Bucheron ? 4 : 2);
             }
             if (s.IsPlayer)
-                Toasts.Show(Name(kind) + " : +" + Gift(kind) + ".", Tint(kind));
+            {
+                // Plus de message a chaque versement : un bruit de pieces, et une ligne
+                // au-dessus du sac qui s'allume trois secondes.
+                Sfx.Coin();
+                LastPay = "+" + Gift(kind);
+                PayFlash = 3f;
+            }
         }
 
         // ================================================================== affichage
@@ -316,6 +340,7 @@ namespace Fief
         {
             if (!playerInside || Game.Season == null || !Game.Season.Running) return;
             if (Game.Menus != null && Game.Menus.Blocking) return;
+            if (Game.Hud != null && Game.Hud.PanelOpen) return;
             UiStyle.Ensure();
             float w = UiStyle.S(360);
             Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.24f, w, UiStyle.S(64));

@@ -65,7 +65,7 @@ namespace Fief
             get
             {
                 if (Game.Inventory != null && Game.Inventory.SpaceFor(type) <= 0)
-                    return "Sac plein - vide-le dans une cache";
+                    return "Sac plein - rentre le vider a ta stele";
                 return "Ramasser : " + ResourceInfo.Name(type) + "   (" + remaining + ")";
             }
         }
@@ -99,8 +99,8 @@ namespace Fief
             if (inv.SpaceFor(type) <= 0)
             {
                 Sfx.Deny();
-                Toasts.Show("Sac plein (" + Mathf.RoundToInt(inv.Weight) + " kg) - creuse une cache (G) ou retourne a la tienne",
-                            Palette.Iron);
+                Toasts.Show("Sac plein (" + Mathf.RoundToInt(inv.Weight) + " kg) : rentre le vider a ta stele, ou creuse une cache (G).",
+                            new Color(0.95f, 0.45f, 0.35f));
                 return;
             }
 

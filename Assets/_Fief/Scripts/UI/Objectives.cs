@@ -97,6 +97,25 @@ namespace Fief
             float x = Screen.width - w - UiStyle.S(18);
             float y = UiStyle.S(18);
 
+            // Passees les deux premieres etapes, on sait jouer : l'encart se reduit a
+            // l'etape en cours (plus de liste qui encombre le coin de l'ecran).
+            if (done >= 2 && done < Steps.Length)
+            {
+                Rect small = new Rect(x, y, w, UiStyle.S(84));
+                GUI.Box(small, GUIContent.none, UiStyle.CardBox);
+                float sx = small.x + UiStyle.S(14);
+                UiStyle.Tinted(new Rect(sx, small.y + UiStyle.S(4), w, UiStyle.S(18)),
+                               "PREMIERS PAS  " + (done + 1) + " / " + Steps.Length, UiStyle.Tiny, Palette.Gold);
+                UiStyle.Tinted(new Rect(sx, small.y + UiStyle.S(20), w - UiStyle.S(28), UiStyle.S(22)), Steps[done].text, UiStyle.Label,
+                               Color.Lerp(UiStyle.Ink, Palette.Gold, flash));
+                GUIStyle tip = UiStyle.Tiny;
+                bool wrapTip = tip.wordWrap;
+                tip.wordWrap = true;
+                UiStyle.Tinted(new Rect(sx, small.y + UiStyle.S(44), w - UiStyle.S(28), UiStyle.S(38)), Steps[done].hint, tip, UiStyle.InkDim);
+                tip.wordWrap = wrapTip;
+                return;
+            }
+
             if (done < Steps.Length)
             {
                 float h = UiStyle.S(78) + UiStyle.S(24) * Steps.Length + UiStyle.S(48);

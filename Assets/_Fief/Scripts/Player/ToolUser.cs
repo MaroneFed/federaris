@@ -20,6 +20,8 @@ namespace Fief
         /// <summary>Ce que le HUD affiche pres du centre de l'ecran ("Clic : abattre").</summary>
         public static string Hint;
         public static bool Aiming;
+        /// <summary>Un ennemi (rival, bete) a portee d'epee, dans l'axe : le reticule rougit.</summary>
+        public static bool FoeInReach;
 
         static readonly Dictionary<Collider, int> Chops = new Dictionary<Collider, int>();
 
@@ -39,6 +41,7 @@ namespace Fief
         {
             Hint = null;
             Aiming = false;
+            FoeInReach = false;
             Seeker me = Game.Me;
             if (me == null || player == null) return;
             Kit kit = me.Kit;
@@ -82,6 +85,7 @@ namespace Fief
             bool tree = Physics.Raycast(eye.position, eye.forward, out hit, 3.2f, ~0, QueryTriggerInteraction.Ignore)
                         && Forest.IsTree(hit.collider);
             Aiming = kit.Held != null;
+            if (kit.Holding(ToolKind.Epee)) FoeInReach = Combat.FoeAhead(eye);
 
             if (tree)
             {

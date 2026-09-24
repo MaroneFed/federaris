@@ -295,6 +295,13 @@ namespace Fief
             // --- la Malediction : visible des qu'elle approche (deux minutes), et
             // qui palpite dans les vingt dernieres secondes.
             float curse = season.NextCurseIn;
+            if (curse >= 120f)
+            {
+                Color quiet = Curse.Violet;
+                quiet.a = 0.55f;
+                UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(24), Screen.width, UiStyle.S(18)),
+                               "Malediction dans " + Clock(curse), UiStyle.CenteredSmall, quiet);
+            }
             if (curse >= 0f && curse < 120f && !season.MagePresent)
             {
                 bool urgent = curse < 20f;
@@ -320,6 +327,16 @@ namespace Fief
             float h = UiStyle.S(198);
             Rect box = new Rect(pad, Screen.height - h - pad, w, h);
             UiStyle.Frame(box);
+
+            // Les Autels que tu tiens, et leur dernier versement (plus de message a
+            // chaque versement : un son de pieces, et cette ligne).
+            string held = Monument.HeldBy(Game.Me);
+            if (held.Length > 0)
+            {
+                string pay = Monument.PayFlash > 0f ? "   " + Monument.LastPay : "";
+                Color gold = new Color(0.95f, 0.78f, 0.35f, 0.6f + 0.4f * Mathf.Clamp01(Monument.PayFlash));
+                UiStyle.Tinted(new Rect(box.x, box.y - UiStyle.S(24), UiStyle.S(560), UiStyle.S(20)), "Tu tiens : " + held + pay, UiStyle.Small, gold);
+            }
 
             float x = box.x + UiStyle.S(16);
             float inner = w - UiStyle.S(32);
@@ -360,6 +377,13 @@ namespace Fief
             float load = inv.Load01;
             Color fill = Color.Lerp(new Color(0.44f, 0.78f, 0.40f),
                                     new Color(0.88f, 0.31f, 0.25f), Mathf.Pow(load, 0.85f));
+            if (load >= 0.98f)
+            {
+                // Plein : la jauge clignote, et le dit.
+                fill = Color.Lerp(fill, Color.white, 0.35f + 0.35f * Mathf.Sin(Time.unscaledTime * 8f));
+                UiStyle.Tinted(new Rect(x, y - UiStyle.S(24), inner, UiStyle.S(20)), "PLEIN  --  va vider ton sac a ta stele", RightSmall(),
+                               new Color(0.95f, 0.45f, 0.35f));
+            }
             UiStyle.Bar(new Rect(x, y, inner, UiStyle.S(10)), load, fill, UiStyle.BarBg);
             y += UiStyle.S(16);
 
@@ -490,10 +514,25 @@ namespace Fief
                                what + "  --  tu ne peux pas frapper, et on te voit venir", UiStyle.CenteredSmall, blue);
             }
 
-            if (ToolUser.Aiming)
+            // Le reticule : un point discret ; un losange dore quand quelque chose est a
+            // portee de main (E) ; rouge quand un ennemi est a portee d'epee.
             {
-                float d = UiStyle.S(4);
-                UiStyle.Icon(new Rect(Screen.width * 0.5f - d * 0.5f, Screen.height * 0.5f - d * 0.5f, d, d), UiStyle.Shape.Dot, new Color(1f, 1f, 1f, 0.7f));
+                float cx = Screen.width * 0.5f, cy = Screen.height * 0.5f;
+                bool foe = ToolUser.FoeInReach;
+                bool usable = interactor != null && interactor.Current != null && panel == null;
+                if (foe || usable)
+                {
+                    float d = UiStyle.S(foe ? 12 : 10);
+                    Color c = foe ? new Color(1f, 0.35f, 0.28f, 0.9f) : new Color(1f, 0.85f, 0.5f, 0.75f);
+                    UiStyle.Icon(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), UiStyle.Shape.Diamond, c);
+                    float inner2 = d * 0.5f;
+                    UiStyle.Icon(new Rect(cx - inner2 * 0.5f, cy - inner2 * 0.5f, inner2, inner2), UiStyle.Shape.Diamond, new Color(0.05f, 0.04f, 0.03f, 0.8f));
+                }
+                else if (ToolUser.Aiming)
+                {
+                    float d = UiStyle.S(4);
+                    UiStyle.Icon(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), UiStyle.Shape.Dot, new Color(1f, 1f, 1f, 0.7f));
+                }
             }
             if (!string.IsNullOrEmpty(ToolUser.Hint) && panel == null)
                 UiStyle.Tinted(new Rect(0f, Screen.height * 0.5f + UiStyle.S(26), Screen.width, UiStyle.S(20)), ToolUser.Hint,
@@ -883,6 +922,17 @@ namespace Fief
                 GUI.Label(new Rect(x + UiStyle.S(84), y, inner - UiStyle.S(84), UiStyle.S(20)), rows[i, 1], UiStyle.Small);
                 y += UiStyle.S(21);
             }
+        }
+
+        static GUIStyle rightSmall;
+        static GUIStyle RightSmall()
+        {
+            if (rightSmall == null || rightSmall.fontSize != UiStyle.Small.fontSize)
+            {
+                rightSmall = new GUIStyle(UiStyle.Small);
+                rightSmall.alignment = TextAnchor.MiddleRight;
+            }
+            return rightSmall;
         }
     }
 }
