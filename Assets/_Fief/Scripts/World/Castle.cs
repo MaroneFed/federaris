@@ -573,15 +573,51 @@ namespace Fief
             box.center = new Vector3(0f, 0.5f, 0f);
             box.size = new Vector3(1.1f, 1f, 1.1f);
 
+            // UNE CAISSE DE FER ANCIEN : des planches (avec des jours entre elles),
+            // des cornieres de fer rivetees, le couvercle entrouvert, et dedans des
+            // lingots qui accrochent la lumiere des torches.
             Proto.BeginVisualOnly();
             GameObject visual = new GameObject("Visuel");
             visual.transform.SetParent(go.transform, false);
-            Proto.Cube(visual.transform, new Vector3(0f, 0.45f, 0f), new Vector3(1f, 0.9f, 1f), Timber, "Caisse");
-            Proto.Cube(visual.transform, new Vector3(0f, 0.2f, 0f), new Vector3(1.04f, 0.1f, 1.04f), IronDark, "Cerclage");
-            Proto.Cube(visual.transform, new Vector3(0f, 0.7f, 0f), new Vector3(1.04f, 0.1f, 1.04f), IronDark, "Cerclage");
+            Transform v = visual.transform;
+            Color plank = Palette.Shade(Timber, 1.15f);
+            Proto.Cube(v, new Vector3(0f, 0.06f, 0f), new Vector3(1f, 0.12f, 1f), Timber, "Fond");
+            for (int side = 0; side < 4; side++)
+            {
+                Quaternion q = Quaternion.Euler(0f, side * 90f, 0f);
+                for (int k = 0; k < 3; k++)
+                {
+                    GameObject board = Proto.Cube(v, q * new Vector3(0f, 0.2f + k * 0.26f, 0.47f), new Vector3(0.98f, 0.22f, 0.06f),
+                                                  k % 2 == 0 ? plank : Timber, "Planche");
+                    board.transform.localRotation = q;
+                }
+            }
+            // Les cornieres, et une rangee de rivets.
+            for (int c = 0; c < 4; c++)
+            {
+                float a = c * 90f + 45f;
+                Vector3 corner = Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, 0.69f);
+                Proto.Cube(v, new Vector3(corner.x, 0.45f, corner.z), new Vector3(0.1f, 0.92f, 0.1f), IronDark, "Corniere");
+                for (int k = 0; k < 3; k++)
+                    Proto.Cube(v, new Vector3(corner.x * 1.02f, 0.18f + k * 0.28f, corner.z * 1.02f), new Vector3(0.04f, 0.04f, 0.04f),
+                               new Color(0.35f, 0.33f, 0.3f), "Rivet");
+            }
+            Proto.Cube(v, new Vector3(0f, 0.3f, 0f), new Vector3(1.04f, 0.06f, 1.04f), IronDark, "Cerclage");
+            // Le couvercle, souleve d'un cote et pose de travers.
+            GameObject lid = Proto.Cube(v, new Vector3(0.15f, 0.98f, -0.1f), new Vector3(1.02f, 0.07f, 1.02f), plank, "Couvercle");
+            lid.transform.localRotation = Quaternion.Euler(14f, 8f, -6f);
+            // Les lingots : trapezes d'acier sombre, un reflet chaud sur l'arete.
             Color ingot = ResourceInfo.Tint(ResourceType.Iron);
-            Proto.Cube(visual.transform, new Vector3(-0.2f, 0.98f, 0f), new Vector3(0.36f, 0.14f, 0.18f), ingot, "Lingot");
-            Proto.Cube(visual.transform, new Vector3(0.18f, 0.98f, 0.1f), new Vector3(0.36f, 0.14f, 0.18f), ingot, "Lingot");
+            Material edge = MaterialFactory.GetGlow(new Color(0.9f, 0.62f, 0.35f), 0.5f);
+            for (int k = 0; k < 4; k++)
+            {
+                Vector3 p = new Vector3(-0.22f + (k % 2) * 0.4f, 0.86f + (k / 2) * 0.1f, -0.15f + (k / 2) * 0.22f);
+                GameObject bar = Proto.Cube(v, p, new Vector3(0.34f, 0.1f, 0.15f), ingot, "Lingot");
+                bar.transform.localRotation = Quaternion.Euler(0f, k * 12f - 10f, 0f);
+                GameObject rim = Proto.Cube(v, p + new Vector3(0f, 0.052f, 0f), new Vector3(0.3f, 0.01f, 0.11f), ingot, "Reflet");
+                rim.transform.localRotation = bar.transform.localRotation;
+                rim.GetComponent<Renderer>().sharedMaterial = edge;
+            }
             Proto.EndVisualOnly();
 
             ResourceNode node = go.AddComponent<ResourceNode>();

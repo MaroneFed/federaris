@@ -75,21 +75,59 @@ namespace Fief
             trigger.center = new Vector3(0f, 0.3f, 0f);
             trigger.size = new Vector3(1.4f, 0.7f, 1.4f);
 
+            // UN VRAI FAGOT : des branches rondes, couchees cote a cote, serrees par
+            // deux liens de corde ; quelques rameaux qui depassent, deux branches
+            // tombees a cote, des feuilles mortes. Le bois est PALE (ecorce morte,
+            // lichen) : dans la penombre, c'est ce qui le fait sortir du sol.
             Proto.BeginVisualOnly();
             GameObject visual = new GameObject("Visuel");
             visual.transform.SetParent(go.transform, false);
-            int sticks = 5 + rng.Next(3);
+            Color pale = new Color(0.52f, 0.47f, 0.4f);
+            Color[] barks = { pale, Stick, new Color(0.46f, 0.42f, 0.36f), StickDark };
+            int sticks = 7 + rng.Next(3);
+            float length = 1.2f + (float)rng.NextDouble() * 0.3f;
             for (int i = 0; i < sticks; i++)
             {
-                float yaw = (i * 37f + (float)rng.NextDouble() * 20f);
-                GameObject s = Proto.Cube(visual.transform,
-                                          new Vector3(((float)rng.NextDouble() - 0.5f) * 0.25f, 0.08f + i * 0.06f,
-                                                      ((float)rng.NextDouble() - 0.5f) * 0.25f),
-                                          new Vector3(0.07f, 0.07f, 1.1f + (float)rng.NextDouble() * 0.4f),
-                                          i % 2 == 0 ? Stick : StickDark, "Branche");
-                s.transform.localRotation = Quaternion.Euler(((float)rng.NextDouble() - 0.5f) * 14f, yaw, 0f);
+                // En tas : deux rangs, celui du dessus plus etroit.
+                int row = i < 5 ? 0 : 1;
+                float across = row == 0 ? (i - 2f) * 0.085f : (i - 6f) * 0.085f;
+                float up = 0.05f + row * 0.08f;
+                float r = 0.028f + (float)rng.NextDouble() * 0.018f;
+                float len = length * (0.8f + (float)rng.NextDouble() * 0.3f);
+                GameObject s = Proto.Cylinder(visual.transform, new Vector3(across, up, ((float)rng.NextDouble() - 0.5f) * 0.2f),
+                                              new Vector3(r * 2f, len * 0.5f, r * 2f), barks[i % barks.Length], "Branche");
+                s.transform.localRotation = Quaternion.Euler(90f + ((float)rng.NextDouble() - 0.5f) * 8f, ((float)rng.NextDouble() - 0.5f) * 10f, 0f);
             }
-            Proto.Cube(visual.transform, new Vector3(0f, 0.22f, 0f), new Vector3(0.28f, 0.1f, 0.28f), Twine, "Lien");
+            // Deux liens de corde.
+            for (int k = -1; k <= 1; k += 2)
+            {
+                GameObject band = Proto.Cylinder(visual.transform, new Vector3(0f, 0.09f, k * length * 0.25f),
+                                                 new Vector3(0.52f, 0.02f, 0.3f), Twine, "Lien");
+                band.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            }
+            // Des rameaux qui depassent en oblique.
+            for (int k = 0; k < 3; k++)
+            {
+                GameObject twig = Proto.Cube(visual.transform, new Vector3(((float)rng.NextDouble() - 0.5f) * 0.3f, 0.18f, (k - 1) * 0.4f),
+                                             new Vector3(0.02f, 0.02f, 0.4f), StickDark, "Rameau");
+                twig.transform.localRotation = Quaternion.Euler(-25f - (float)rng.NextDouble() * 20f, (float)rng.NextDouble() * 360f, 0f);
+            }
+            // Deux branches tombees a cote, et quelques feuilles.
+            for (int k = 0; k < 2; k++)
+            {
+                GameObject loose = Proto.Cylinder(visual.transform, new Vector3(0.45f + k * 0.12f, 0.03f, ((float)rng.NextDouble() - 0.5f) * 0.6f),
+                                                  new Vector3(0.05f, 0.35f, 0.05f), Stick, "Branche tombee");
+                loose.transform.localRotation = Quaternion.Euler(90f, 40f + k * 50f, 0f);
+            }
+            Color[] leaves = { new Color(0.42f, 0.31f, 0.14f), new Color(0.36f, 0.15f, 0.10f), new Color(0.30f, 0.21f, 0.13f) };
+            for (int k = 0; k < 6; k++)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float d = 0.35f + (float)rng.NextDouble() * 0.4f;
+                GameObject leaf = Proto.Cube(visual.transform, new Vector3(Mathf.Cos(a) * d, 0.012f, Mathf.Sin(a) * d),
+                                             new Vector3(0.12f, 0.006f, 0.08f), leaves[k % leaves.Length], "Feuille");
+                leaf.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+            }
             Proto.EndVisualOnly();
 
             ResourceNode node = go.AddComponent<ResourceNode>();
@@ -244,22 +282,40 @@ namespace Fief
                                          new Vector3(1.2f, 0.45f, 1.0f), RockWet, "Socle");
             rock.transform.localRotation = Quaternion.Euler(6f, 20f, -4f);
 
+            // UNE GRAPPE DE CRISTAUX : des prismes a six pans, pointus, qui sortent de
+            // la roche en eventail -- un grand au centre, des plus petits autour --
+            // et quelques eclats tombes a terre qui luisent aussi.
             GameObject visual = new GameObject("Eclats");
             visual.transform.SetParent(go.transform, false);
             Material shine = MaterialFactory.GetGlow(MoonGlow, 1.6f);
-            int shards = 2 + rng.Next(3);
+            Material deep = MaterialFactory.GetGlow(new Color(0.42f, 0.58f, 0.95f), 1.3f);
+            int shards = 4 + rng.Next(3);
             for (int i = 0; i < shards; i++)
             {
-                float h = 0.45f + (float)rng.NextDouble() * 0.55f;
-                GameObject shard = Proto.Cube(visual.transform,
-                                              new Vector3(((float)rng.NextDouble() - 0.5f) * 0.5f, 0.3f + h * 0.5f,
-                                                          ((float)rng.NextDouble() - 0.5f) * 0.4f),
-                                              new Vector3(0.16f, h, 0.16f), MoonGlow, "Eclat");
-                shard.transform.localRotation = Quaternion.Euler(((float)rng.NextDouble() - 0.5f) * 36f,
-                                                                 (float)rng.NextDouble() * 90f,
-                                                                 ((float)rng.NextDouble() - 0.5f) * 36f);
-                Renderer r = shard.GetComponent<Renderer>();
-                if (r != null) r.sharedMaterial = shine;
+                bool main = i == 0;
+                float h = main ? 0.9f + (float)rng.NextDouble() * 0.35f : 0.35f + (float)rng.NextDouble() * 0.45f;
+                float r = main ? 0.13f : 0.06f + (float)rng.NextDouble() * 0.05f;
+                float a = i * 2.4f + (float)rng.NextDouble();
+                float spread = main ? 0f : 0.18f + (float)rng.NextDouble() * 0.12f;
+                Vector3 foot = new Vector3(Mathf.Cos(a) * spread, 0.28f, Mathf.Sin(a) * spread);
+                GameObject crystal = new GameObject("Cristal");
+                crystal.transform.SetParent(visual.transform, false);
+                crystal.transform.localPosition = foot;
+                // Chaque cristal penche vers l'exterieur de la grappe.
+                crystal.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * (main ? 6f : 28f), 0f, -Mathf.Cos(a) * (main ? 6f : 28f));
+                Material m = i % 3 == 1 ? deep : shine;
+                GameObject prism = Proto.Cylinder(crystal.transform, new Vector3(0f, h * 0.35f, 0f), new Vector3(r * 2f, h * 0.35f, r * 2f), MoonGlow, "Prisme");
+                prism.GetComponent<Renderer>().sharedMaterial = m;
+                GameObject tip = Proto.Cone(crystal.transform, new Vector3(0f, h * 0.7f, 0f), r, h * 0.3f, MoonGlow, "Pointe", 6);
+                tip.GetComponent<Renderer>().sharedMaterial = m;
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float d = 0.55f + (float)rng.NextDouble() * 0.3f;
+                GameObject chip = Proto.Cone(visual.transform, new Vector3(Mathf.Cos(a) * d, 0.02f, Mathf.Sin(a) * d), 0.04f, 0.1f, MoonGlow, "Eclat", 4);
+                chip.transform.localRotation = Quaternion.Euler(70f, (float)rng.NextDouble() * 360f, 0f);
+                chip.GetComponent<Renderer>().sharedMaterial = shine;
             }
             Proto.EndVisualOnly();
 
