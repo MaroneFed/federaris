@@ -80,6 +80,9 @@ namespace Fief
                 Forest.Plant(worldRoot, config, rng);
                 Gathering.PlaceMoonstones(worldRoot, config, rng);
                 Landmarks.Build(worldRoot, config);
+                // Ruines, fleurs-lune, corbeaux : apres la foret et les lieux-dits,
+                // pour tomber dans les trous qu'ils laissent.
+                Nature.Build(worldRoot, config);
 
                 // Le mage existe des le debut, invisible et muet : c'est l'agenda de
                 // la Saison qui le fait apparaitre. Il a besoin des colliders de la

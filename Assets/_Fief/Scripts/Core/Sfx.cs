@@ -261,6 +261,62 @@ namespace Fief
             return howl;
         }
 
+        static AudioClip caw, wings;
+
+        /// <summary>
+        /// Un croassement : une note rauque (dent de scie) qui retombe, melee de
+        /// souffle. Deux cris coup sur coup, le second plus court.
+        /// </summary>
+        public static AudioClip Caw()
+        {
+            if (caw != null) return caw;
+            int count = Mathf.RoundToInt(Rate * 0.7f);
+            float[] data = new float[count];
+            System.Random r = new System.Random(61);
+            float[] starts = { 0f, 0.32f };
+            float[] lengths = { 0.24f, 0.18f };
+            for (int n = 0; n < 2; n++)
+            {
+                int from = Mathf.RoundToInt(starts[n] * Rate);
+                int len = Mathf.RoundToInt(lengths[n] * Rate);
+                float phase = 0f;
+                for (int i = 0; i < len && from + i < count; i++)
+                {
+                    float u = (float)i / len;
+                    float f = Mathf.Lerp(620f, 430f, u);
+                    phase += f / Rate;
+                    float saw = Mathf.Repeat(phase, 1f) * 2f - 1f;
+                    float env = Mathf.Sin(u * Mathf.PI);
+                    float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                    data[from + i] += (saw * 0.7f + noise * 0.35f) * env;
+                }
+            }
+            Normalize(data, 0.6f);
+            caw = FromSamples("corbeau", data);
+            return caw;
+        }
+
+        /// <summary>Un envol : des battements d'ailes, du souffle hache.</summary>
+        public static AudioClip Wings()
+        {
+            if (wings != null) return wings;
+            int count = Mathf.RoundToInt(Rate * 1.2f);
+            float[] data = new float[count];
+            System.Random r = new System.Random(62);
+            float low = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float beat = Mathf.Pow(Mathf.Abs(Mathf.Sin(t * Mathf.PI * 9f)), 3f) * Mathf.Exp(-1.4f * t);
+                float noise = (float)(r.NextDouble() * 2.0 - 1.0);
+                low += (noise - low) * 0.25f;
+                data[i] = low * beat;
+            }
+            Normalize(data, 0.5f);
+            wings = FromSamples("envol", data);
+            return wings;
+        }
+
         static AudioClip rain, thunder, arrival, forge;
 
         /// <summary>
