@@ -62,6 +62,7 @@ namespace Fief
             w.Stoop = 16f;
             w.HoldPole = true;
             e.walker = w;
+            ModelSkin.TryDress(w, "Ermite", look.height, 0);
 
             Proto.BeginVisualOnly();
             Transform head = w.Head;

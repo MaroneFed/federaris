@@ -74,6 +74,7 @@ namespace Fief
             w.HoldLantern = true;
             w.RunSpeed = 5f;
             v.walker = w;
+            ModelSkin.TryDress(w, "Veilleur", look.height, 0);
 
             Proto.BeginVisualOnly();
             Transform head = w.Head;

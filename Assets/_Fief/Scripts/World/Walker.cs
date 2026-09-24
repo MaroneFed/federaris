@@ -220,7 +220,11 @@ namespace Fief
         public void PlaySwing()
         {
             swingTimer = 0.5f;
+            if (Skin != null) Skin.Attack();
         }
+
+        /// <summary>Le vrai modele qui l'habille, s'il y en a un (voir ModelSkin).</summary>
+        public ModelSkin Skin;
 
         // ================================================================== animation
 

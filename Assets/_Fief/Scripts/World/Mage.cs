@@ -131,6 +131,7 @@ namespace Fief
             Walker w = Walker.Build(f, "Mage", look);
             w.HoldPole = true;
             mage.walker = w;
+            ModelSkin.TryDress(w, "Mage", look.height, 0);
 
             Proto.BeginVisualOnly();
             // La capuche : dessus, cotes, nuque et une visiere -- ouverte devant, le

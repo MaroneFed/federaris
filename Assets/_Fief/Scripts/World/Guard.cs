@@ -92,6 +92,8 @@ namespace Fief
             w.HoldLantern = true;
             w.RunSpeed = RunSpeed;
             g.walker = w;
+            // Un vrai modele dans Resources/Modeles/Gardes ? Il remplace les cubes.
+            ModelSkin.TryDress(w, "Gardes", look.height, info.Name.Length + All.Count);
 
             Color cross = new Color(0.8f, 0.78f, 0.72f);
             Color wood = new Color(0.25f, 0.19f, 0.13f);

@@ -131,3 +131,11 @@ RenderTextureFormat
 Texture
 MaterialPropertyBlock
 Vector3Int
+AnimationClip
+AnimationClipPlayable
+AnimationMixerPlayable
+AnimationPlayableOutput
+Animator
+PlayableGraph
+Animation
+DirectorUpdateMode
