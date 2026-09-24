@@ -16,6 +16,7 @@ REELLEMENT arrivees sur ce projet :
   5. membre inexistant sur une VARIABLE (pas seulement sur un nom de type)
   6. CHAINE d'acces (Game.Hud.Hidden) et membre NON PUBLIC appele d'ailleurs
   7. TYPE INCONNU, et attribut orphelin devant une methode
+  8. API Unity PERIMEE, devenue une erreur dans Unity 6 (GetInstanceID...)
 
 Les trois derniers ont ete ajoutes apres coup, chacun parce qu'une faute est
 passee jusqu'a Unity :
@@ -488,6 +489,22 @@ for n in unknown:
     errors.append("type inconnu : %s (utilise dans %s). S'il vient d'Unity ou de .NET, "
                   "ajoute-le a Tools/types-externes.txt ; sinon il a ete supprime par erreur."
                   % (n, ", ".join(w.replace(ROOT + "/", "") for w in where[:3])))
+
+# ---- 5c. API Unity perimees (erreur dans Unity 6) ----------------------
+# Ce qui compile dans un tutoriel de 2022 peut etre une ERREUR dans Unity 6.
+# GetInstanceID() l'a appris a Martin le 24/09/2026 (CS0619). Une ligne par
+# piege : le motif, puis ce qu'il faut ecrire a la place.
+OBSOLETE = [
+    (r'\.GetInstanceID\s*\(', "GetInstanceID() est perime (CS0619) : n'en pas avoir besoin, ou un compteur a soi"),
+    (r'\bFindObjectOfType\s*<', "FindObjectOfType est perime : FindFirstObjectByType"),
+    (r'\bFindObjectsOfType\s*<', "FindObjectsOfType est perime : FindObjectsByType"),
+    (r'\.velocity\b(?=[^;]*Rigidbody)', "Rigidbody.velocity est perime : linearVelocity"),
+]
+for path, s2 in sources.items():
+    for pattern, advice in OBSOLETE:
+        for m in re.finditer(pattern, s2):
+            line = s2.count('\n', 0, m.start()) + 1
+            errors.append("%s ligne %d : %s" % (path, line, advice))
 
 print("%d fichiers, %d types" % (len(files), len(all_types)))
 if errors:

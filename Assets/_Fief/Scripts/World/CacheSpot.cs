@@ -14,7 +14,9 @@ namespace Fief
     /// </summary>
     public class CacheSpot : MonoBehaviour, IInteractable
     {
-        public Cache cache;
+        // Une classe C# pure ne s'affiche pas dans l'Inspector : on le dit a Unity,
+        // sinon il previent a chaque compilation (UAC1001).
+        [System.NonSerialized] public Cache cache;
 
         static readonly Color Earth = new Color(0.17f, 0.14f, 0.11f);
         static readonly Color EarthDark = new Color(0.12f, 0.10f, 0.08f);

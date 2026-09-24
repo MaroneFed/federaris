@@ -31,6 +31,7 @@ namespace Fief
         static Texture2D softDot;
         static Material additive;
         static Material blended;
+        static uint sparkleCount;
 
         public static void Build(Transform worldRoot, Transform player, GameConfig cfg)
         {
@@ -247,7 +248,11 @@ namespace Fief
             shape.radius = 0.55f;
 
             FadeInOut(ps, 1f);
-            ps.randomSeed = (uint)localPosition.GetHashCode() + (uint)parent.GetInstanceID();
+            // Chaque nuage de paillettes a sa graine : sinon ils scintillent tous en
+            // meme temps. (GetInstanceID, qu'on aurait pu utiliser, est perime dans
+            // Unity 6 : un simple compteur fait l'affaire.)
+            sparkleCount++;
+            ps.randomSeed = (uint)localPosition.GetHashCode() + sparkleCount * 7919u;
             ps.Play();
         }
 
