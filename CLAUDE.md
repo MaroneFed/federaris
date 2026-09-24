@@ -60,7 +60,9 @@ quoi. Porte dérobée = impossible par la force, uniquement par quelqu'un de l'i
 
 - **PHASE 1 — la Saison en solo** ← *on est ici* (redéfinie le 23/09/2026)
   Porte 1 : une Saison solo de 30 minutes est-elle haletante du début à la fin ?
-  Ressources, camp, caches, mage, relique, château, stèle, cloche.
+  Ressources, camp, caches, mage, relique, château, stèle, cloche — et depuis le 24/09 :
+  six talismans, cinq lieux-dits, et des habitants qui ne se battent pas (Veilleur,
+  Ermite, feux-follets, cerf blanc).
 - **PHASE 2 — le conflit.** Porte 2 : un vol de relique crée-t-il une histoire qu'on se
   raconte après ? Gardes et **soudoiement**, pièges, vol, combat, rôdeur PNJ.
 - **PHASE 3 — multijoueur.** Porte 3 : une Saison de 30-45 min à 4 joueurs sans crash ni désync.
