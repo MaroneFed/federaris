@@ -50,6 +50,7 @@ namespace Fief
             Banners(t);
             ThroneRoom(t);
             Courtyard(t, rng);
+            CastleDetails.Build(t, rng);
         }
 
         // ================================================================== 1. l'allee
