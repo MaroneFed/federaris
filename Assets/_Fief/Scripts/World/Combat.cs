@@ -31,7 +31,7 @@ namespace Fief
                 Toasts.Show("Tu portes une relique : tu ne peux pas frapper.", new Color(0.9f, 0.6f, 0.4f));
                 return;
             }
-            Sfx.HarvestTap(ResourceType.Iron);
+            Sfx.Whoosh();
 
             Vector3 flatForward = eye.forward;
             flatForward.y = 0f;
@@ -46,6 +46,7 @@ namespace Fief
                 if (to.magnitude > Reach || Vector3.Angle(flatForward, to) > 55f) continue;
                 if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
                 Hit(r.seeker, me, damage);
+                Punch.Apply(r.Figure, me.Body.position);
                 return;                             // un coup, une cible
             }
             // Les betes : loups, revenants.
@@ -57,7 +58,6 @@ namespace Fief
                 to.y = 0f;
                 if (to.magnitude > Reach + 0.4f || Vector3.Angle(flatForward, to) > 60f) continue;
                 if (me.Kit.Wear(1)) Toasts.Show("Ton epee s'est brisee.", new Color(0.8f, 0.6f, 0.4f));
-                Sfx.Harvest(ResourceType.Iron);
                 b.Hurt(damage, me);
                 return;
             }
@@ -74,7 +74,9 @@ namespace Fief
         {
             if (victim == null || !victim.Alive) return;
             bool dead = victim.TakeDamage(damage, Time.time);
-            Sfx.Harvest(ResourceType.Iron);
+            Sfx.Thud();
+            if (victim.Body != null && !victim.IsPlayer)
+                Ambiance.Burst(null, victim.Body.position + Vector3.up * 1.2f, new Color(0.55f, 0.1f, 0.08f));
             if (victim.Body != null)
                 FloatingTexts.Spawn(victim.Body.position + Vector3.up * 2.1f, "-" + Mathf.RoundToInt(damage), new Color(1f, 0.35f, 0.3f));
 

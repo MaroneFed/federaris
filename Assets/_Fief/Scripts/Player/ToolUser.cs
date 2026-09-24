@@ -119,7 +119,7 @@ namespace Fief
                 swing = 1f;
                 if (kit.Holding(ToolKind.Hache) && tree) Chop(hit, kit);
                 else if (kit.Holding(ToolKind.Epee)) Combat.PlayerStrike(eye);
-                else Sfx.Step();
+                else Sfx.Whoosh();
             }
             swing = Mathf.Max(0f, swing - Time.deltaTime * 3.2f);
             AnimateViewModel();
@@ -356,26 +356,86 @@ namespace Fief
             }
             else if (kind == ToolKind.Hache)
             {
-                Proto.Cube(go.transform, new Vector3(0f, 0f, 0f), new Vector3(0.035f, 0.5f, 0.035f), wood, "Manche");
-                Proto.Cube(go.transform, new Vector3(0.06f, 0.22f, 0f), new Vector3(0.12f, 0.1f, 0.02f), new Color(0.35f, 0.5f, 0.75f), "Lame");
-                Proto.Cube(go.transform, new Vector3(-0.02f, 0.22f, 0f), new Vector3(0.05f, 0.06f, 0.04f), new Color(0.3f, 0.3f, 0.32f), "Tete");
+                // LA HACHE : un manche de frene legerement courbe, enroule de cuir a
+                // la prise, une tete forgee (douille, joue, tranchant courbe et clair).
+                Transform t = go.transform;
+                GameObject shaft = Proto.Cylinder(t, new Vector3(0f, 0.02f, 0f), new Vector3(0.036f, 0.28f, 0.036f), wood, "Manche");
+                shaft.transform.localRotation = Quaternion.Euler(0f, 0f, -3f);
+                for (int i = 0; i < 4; i++)
+                    Proto.Cylinder(t, new Vector3(0f, -0.2f + i * 0.035f, 0f), new Vector3(0.042f, 0.012f, 0.042f),
+                                   i % 2 == 0 ? new Color(0.24f, 0.16f, 0.1f) : new Color(0.3f, 0.2f, 0.12f), "Cuir");
+                Proto.Cylinder(t, new Vector3(0f, -0.27f, 0f), new Vector3(0.046f, 0.012f, 0.046f), new Color(0.2f, 0.14f, 0.09f), "Talon");
+                Color iron = new Color(0.34f, 0.35f, 0.37f);
+                Proto.Cube(t, new Vector3(0f, 0.26f, 0f), new Vector3(0.05f, 0.08f, 0.05f), iron, "Douille");
+                Proto.Cube(t, new Vector3(0.055f, 0.26f, 0f), new Vector3(0.07f, 0.07f, 0.022f), iron, "Joue");
+                GameObject edge = Proto.Cylinder(t, new Vector3(0.1f, 0.26f, 0f), new Vector3(0.13f, 0.011f, 0.13f), iron, "Tranchant");
+                edge.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                GameObject bright = Proto.Cylinder(t, new Vector3(0.115f, 0.26f, 0f), new Vector3(0.115f, 0.012f, 0.115f), new Color(0.72f, 0.74f, 0.78f), "Fil");
+                bright.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                Proto.Cube(t, new Vector3(-0.035f, 0.26f, 0f), new Vector3(0.03f, 0.05f, 0.04f), iron, "Marteau");
             }
             else
             {
-                Proto.Cube(go.transform, new Vector3(0f, -0.12f, 0f), new Vector3(0.035f, 0.14f, 0.035f), wood, "Poignee");
-                Proto.Cube(go.transform, new Vector3(0f, -0.04f, 0f), new Vector3(0.16f, 0.025f, 0.03f), new Color(0.5f, 0.42f, 0.2f), "Garde");
-                Proto.Cube(go.transform, new Vector3(0f, 0.26f, 0f), new Vector3(0.045f, 0.58f, 0.012f), steel, "Lame");
+                // L'EPEE : pommeau rond, poignee filetee, garde aux quillons evases,
+                // lame a gouttiere sombre qui s'effile en pointe.
+                Transform t = go.transform;
+                Color bronze = new Color(0.55f, 0.44f, 0.22f);
+                Proto.Sphere(t, new Vector3(0f, -0.2f, 0f), new Vector3(0.05f, 0.05f, 0.05f), bronze, "Pommeau");
+                for (int i = 0; i < 5; i++)
+                    Proto.Cylinder(t, new Vector3(0f, -0.16f + i * 0.022f, 0f), new Vector3(0.034f, 0.012f, 0.034f),
+                                   i % 2 == 0 ? new Color(0.22f, 0.15f, 0.1f) : new Color(0.4f, 0.32f, 0.2f), "Fil");
+                Proto.Cube(t, new Vector3(0f, -0.045f, 0f), new Vector3(0.15f, 0.022f, 0.032f), bronze, "Garde");
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    GameObject q = Proto.Cube(t, new Vector3(side * 0.085f, -0.035f, 0f), new Vector3(0.03f, 0.03f, 0.03f), bronze, "Quillon");
+                    q.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                }
+                Proto.Cube(t, new Vector3(0f, 0.22f, 0f), new Vector3(0.046f, 0.5f, 0.01f), steel, "Lame");
+                Proto.Cube(t, new Vector3(0f, 0.2f, 0f), new Vector3(0.012f, 0.42f, 0.012f), new Color(0.36f, 0.37f, 0.4f), "Gouttiere");
+                GameObject tip = Proto.Cone(t, new Vector3(0f, 0.47f, 0f), 0.033f, 0.1f, steel, "Pointe", 4);
+                tip.transform.localScale = new Vector3(0.033f, 0.1f, 0.008f);
             }
             Proto.EndVisualOnly();
+            // L'outil en main ne projette pas d'ombre : collee a la camera, elle
+            // tomberait en grand sur le sol devant soi.
+            Renderer[] parts = go.GetComponentsInChildren<Renderer>();
+            for (int i = 0; i < parts.Length; i++) parts[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
+
+        // Le mouvement de l'outil : il suit le pas, respire au repos, et traine un
+        // peu derriere le regard quand on tourne la tete.
+        float bobPhase;
+        Vector2 lag;
+        Quaternion lastView = Quaternion.identity;
 
         void AnimateViewModel()
         {
             if (viewModel == null) return;
-            // Au repos, en bas a droite, legerement penche ; le coup la fait plonger.
+            float dt = Time.deltaTime;
+
+            // Le pas : un balancement en huit, plus ample a la course.
+            float speed = player != null ? player.CurrentSpeed : 0f;
+            float walk = Mathf.Clamp01(speed / 6f);
+            bobPhase += speed * dt * 1.6f;
+            float bobX = Mathf.Sin(bobPhase) * 0.014f * walk;
+            float bobY = -Mathf.Abs(Mathf.Cos(bobPhase)) * 0.016f * walk;
+            // Le souffle, a l'arret.
+            float breathe = Mathf.Sin(Time.time * 1.7f) * 0.004f * (1f - walk);
+
+            // L'inertie : l'outil traine derriere le regard.
+            Quaternion view = player.cameraTransform.rotation;
+            Vector3 d = (Quaternion.Inverse(lastView) * view).eulerAngles;
+            lastView = view;
+            float yaw = Mathf.DeltaAngle(0f, d.y), pitch = Mathf.DeltaAngle(0f, d.x);
+            lag = Vector2.Lerp(lag, new Vector2(Mathf.Clamp(-yaw * 0.9f, -7f, 7f), Mathf.Clamp(-pitch * 0.9f, -6f, 6f)), 1f - Mathf.Exp(-10f * dt));
+
+            // Le coup : l'outil monte, puis plonge.
             float s = Mathf.Sin(swing * Mathf.PI);
-            viewModel.localPosition = new Vector3(0.32f - s * 0.12f, -0.3f - s * 0.05f, 0.55f + s * 0.1f);
-            viewModel.localRotation = Quaternion.Euler(-20f + s * 75f, -15f, 20f - s * 30f);
+            float windup = swing > 0.75f ? (swing - 0.75f) * 4f : 0f;
+            viewModel.localPosition = new Vector3(0.32f - s * 0.12f + bobX + lag.x * 0.003f,
+                                                  -0.3f - s * 0.05f + bobY + breathe + windup * 0.04f + lag.y * 0.003f,
+                                                  0.55f + s * 0.1f);
+            viewModel.localRotation = Quaternion.Euler(-20f + s * 75f - windup * 25f + lag.y, -15f + lag.x, 20f - s * 30f + bobX * 200f);
         }
     }
 

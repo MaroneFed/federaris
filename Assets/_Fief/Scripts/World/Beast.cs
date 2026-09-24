@@ -187,6 +187,7 @@ namespace Fief
 
             if (state == State.Dead)
             {
+                Collapse(dt);
                 deadTimer -= dt;
                 if (deadTimer <= 0f) Revive();
                 return;
@@ -352,6 +353,10 @@ namespace Fief
         {
             if (state == State.Dead) return;
             Health -= amount;
+            Sfx.Thud();
+            Ambiance.Burst(null, transform.position + Vector3.up * (kind == Kind.Loup ? 0.7f : 1.4f),
+                           kind == Kind.Loup ? new Color(0.5f, 0.1f, 0.08f) : GhostEyes);
+            if (by != null && by.Body != null) Punch.Apply(figure, by.Body.position);
             FloatingTexts.Spawn(transform.position + Vector3.up * (kind == Kind.Loup ? 1.3f : 2.4f), "-" + Mathf.RoundToInt(amount),
                                 new Color(1f, 0.6f, 0.4f));
             if (by != null) { prey = by; state = State.Chase; }
@@ -373,9 +378,28 @@ namespace Fief
             else if (killer != null && killer.IsPlayer)
                 Toasts.Show("Le loup s'effondre.", UiStyle.InkDim);
             body.enabled = false;
-            figure.gameObject.SetActive(false);
+            dying = 0f;
             Light l = GetComponentInChildren<Light>();
             if (l != null) l.enabled = false;
+        }
+
+        // LA CHUTE : la bete bascule sur le flanc (0,4 s), reste la un moment, puis
+        // s'enfonce dans la terre et disparait. Plus de disparition d'un coup.
+        float dying = -1f;
+
+        void Collapse(float dt)
+        {
+            if (dying < 0f) return;
+            dying += dt;
+            float fall = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(dying / 0.4f));
+            float sink = Mathf.Clamp01((dying - 2.5f) / 2f);
+            figure.localRotation = Quaternion.Euler(0f, 0f, 88f * fall);
+            figure.localPosition = new Vector3(0f, (kind == Kind.Loup ? 0.25f : 0.2f) * fall - sink * 1.2f, 0f);
+            if (dying > 4.5f)
+            {
+                figure.gameObject.SetActive(false);
+                dying = -1f;
+            }
         }
 
         void Revive()
@@ -384,6 +408,9 @@ namespace Fief
             Health = maxHealth;
             transform.position = home + Vector3.up * 0.2f;
             body.enabled = true;
+            dying = -1f;
+            figure.localRotation = Quaternion.identity;
+            figure.localPosition = Vector3.zero;
             figure.gameObject.SetActive(true);
             Light l = GetComponentInChildren<Light>(true);
             if (l != null) l.enabled = true;

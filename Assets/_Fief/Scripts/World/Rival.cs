@@ -666,6 +666,9 @@ namespace Fief
         }
 
         /// <summary>Une bete le mord et il est a bout : il fuit, et renonce a l'Autel.</summary>
+        /// <summary>La silhouette (ce qu'on voit), pour le recul d'un coup.</summary>
+        public Transform Figure { get { return figure; } }
+
         public void FleeFrom(Vector3 from)
         {
             fleeTimer = 7f;

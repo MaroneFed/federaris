@@ -739,6 +739,53 @@ namespace Fief
             return drone;
         }
 
+        static AudioClip whoosh, thud;
+
+        /// <summary>Un coup dans le vide : un souffle bref dont le filtre monte puis descend.</summary>
+        public static void Whoosh()
+        {
+            if (whoosh == null)
+            {
+                const float duration = 0.28f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                System.Random rng = new System.Random(12);
+                float low = 0f;
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate / duration;
+                    float cutoff = 0.02f + Mathf.Sin(t * Mathf.PI) * 0.22f;
+                    low += (((float)rng.NextDouble() * 2f - 1f) - low) * cutoff;
+                    data[i] = low * Mathf.Sin(t * Mathf.PI);
+                }
+                Normalize(data, 0.7f);
+                whoosh = FromSamples("fendre", data);
+            }
+            Play(whoosh, 0.55f);
+        }
+
+        /// <summary>Un coup qui porte : un choc sourd (48 Hz qui tombe) et un craquement bref.</summary>
+        public static void Thud()
+        {
+            if (thud == null)
+            {
+                const float duration = 0.35f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                System.Random rng = new System.Random(5);
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float body = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(90f, 45f, t / duration) * t) * Mathf.Exp(-14f * t);
+                    float crack = ((float)rng.NextDouble() * 2f - 1f) * Mathf.Exp(-70f * t) * 0.6f;
+                    data[i] = body + crack;
+                }
+                Normalize(data, 0.9f);
+                thud = FromSamples("choc", data);
+            }
+            Play(thud, 0.9f);
+        }
+
         static AudioClip trapSnap;
 
         /// <summary>
