@@ -49,6 +49,41 @@ DefaultImporter:
 """
 
 
+# Une police (.ttf, .otf) : "Dynamic", Unity dessine les lettres a la demande,
+# dans toutes les tailles, accents compris.
+FONT = """fileFormatVersion: 2
+guid: {guid}
+TrueTypeFontImporter:
+  externalObjects: {{}}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontNames:
+  - {family}
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+"""
+
+TEXT = """fileFormatVersion: 2
+guid: {guid}
+TextScriptImporter:
+  externalObjects: {{}}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+"""
+
+
 def guid_for(path):
     return hashlib.md5(("fief:" + path.replace(os.sep, "/")).encode("utf-8")).hexdigest()
 
@@ -88,10 +123,15 @@ def main():
                 template = FOLDER
             elif name.endswith(".cs"):
                 template = SCRIPT
+            elif name.lower().endswith((".ttf", ".otf")):
+                template = FONT
+            elif name.lower().endswith((".txt", ".json", ".md")):
+                template = TEXT
             else:
                 template = OTHER
             with open(meta, "w", newline="\n") as out:
-                out.write(template.format(guid=guid_for(path)))
+                family = os.path.splitext(name)[0]
+                out.write(template.format(guid=guid_for(path), family=family))
             created.append(path)
 
     for p in created:

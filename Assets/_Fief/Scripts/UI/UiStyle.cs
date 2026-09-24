@@ -86,17 +86,33 @@ namespace Fief
         }
 
         /// <summary>
-        /// Deux polices systeme : une a empattements pour les titres (le cote
-        /// "manuscrit"), une plus sobre pour lire. Unity prend la premiere qui existe
-        /// sur la machine ; si aucune n'existe, il garde sa police interne.
+        /// Deux polices. D'abord celles du jeu, rangees dans Resources/Fonts :
+        /// Titre.ttf (Cinzel, des capitales gravees comme sur une pierre) et
+        /// Texte.ttf (EB Garamond, un livre ancien qui se lit bien). Toutes deux
+        /// sous licence OFL : libres, meme pour un jeu vendu, a condition de garder
+        /// le fichier de licence a cote.
+        ///
+        /// Pour en changer : remplace le .ttf par un autre du meme nom (Google Fonts
+        /// en a des centaines). Sans fichier, on retombe sur une police systeme a
+        /// empattements ; et sans rien, sur celle d'Unity.
         /// </summary>
         static void BuildFonts()
         {
+            if (titleFont == null) titleFont = Resources.Load<Font>("Fonts/Titre");
+            if (bodyFont == null)
+            {
+                bodyFont = Resources.Load<Font>("Fonts/Texte");
+                // Le Garamond a de petites minuscules : on le grossit un peu pour
+                // qu'il se lise aussi bien qu'un Georgia de meme taille.
+                if (bodyFont != null) bodyBoost = 1.12f;
+            }
             if (titleFont == null)
                 titleFont = TryFont(new[] { "Palatino Linotype", "Book Antiqua", "Palatino", "Constantia", "Georgia", "Times New Roman" });
             if (bodyFont == null)
                 bodyFont = TryFont(new[] { "Constantia", "Georgia", "Palatino Linotype", "Cambria", "Segoe UI", "Arial" });
         }
+
+        static float bodyBoost = 1f;
 
         static Font TryFont(string[] names)
         {
@@ -304,7 +320,7 @@ namespace Fief
         {
             GUIStyle s = new GUIStyle();
             if (font != null) s.font = font;
-            s.fontSize = S(size);
+            s.fontSize = S(font != null && font == bodyFont ? size * bodyBoost : size);
             s.fontStyle = style;
             s.normal.textColor = color;
             s.hover.textColor = color;
