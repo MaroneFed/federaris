@@ -40,9 +40,11 @@ de 16 ans pour les assets et la map (débutant complet).
 | Ressources | 3 en v1, **renommées le 23/09/2026** : **Bois mort** (partout, 1 kg), **Pierre-lune** (dans les creux, 3 kg), **Fer ancien** (dans le château, 2 kg). Toujours trois, toujours placées dans des zones fixes. |
 | Boucle | **Récolter → cacher → porter au mage → forger une relique → la poser sur la stèle.** Le mage errant n'accepte que ce qu'on *porte* : c'est ce qui oblige à ressortir sa cache et à traverser la forêt chargé. Détails et chiffres : `docs/LA-SAISON.md`. |
 | Camp et caches | Un camp, planté **une seule fois**. Trois caches au plus, creusées n'importe où ; seul leur propriétaire sait où elles sont. |
-| Stèles et vol | **Chacun sa stèle**, plantée une fois où il veut (révisé le 24/09/2026 par Martin). Seule la relique posée sur **sa** stèle compte. On peut **voler** celle des autres (60 % seulement se fond dans la sienne). Trois **rivaux PNJ** jouent avec exactement les mêmes règles que le joueur (classe `Seeker`). |
+| Stèles et vol | **Chacun sa stèle, FIXE, tirée au hasard à chaque partie ; on naît à côté** (révisé le 25/09/2026 par Martin). Elle sert de **réserve** (« notre marché ») : ce qui y dort échappe à la Malédiction, mais qui la trouve sans son maître la pille. Seule la relique posée sur **sa** stèle compte. On peut **voler** celle des autres (60 % seulement se fond dans la sienne). Trois **rivaux PNJ** jouent avec exactement les mêmes règles que le joueur (classe `Seeker`). |
+| Boussole | **Les points cardinaux, rien d'autre** (Martin, 25/09 : « comme ça ça force à retenir »). Ne pas y rajouter de marqueur. |
+| Malédiction | 75 s après chaque départ du mage, **le sac de chacun perd ses ressources** (pas la relique, l'or, les outils, les caches, la réserve). C'est ce qui force à rentrer à sa stèle. Glas à 60/30/10 s. |
 | Monnaie | L'Or, unique. Il sert à **soudoyer** (Phase 2), pas à acheter. |
-| Combat | Simple et lisible. **Épée** fabriquée (2 bois, 3 fer), quatre coups tuent ; **qui porte une relique ne peut pas frapper** (Martin, 24/09). Tomber = tout lâcher dans une dépouille, se relever à sa stèle. L'arc reste à faire. |
+| Combat | Simple et lisible. **Épée** fabriquée (2 bois, 3 fer), quatre coups tuent ; **qui porte une relique ne peut pas frapper** (Martin, 24/09). Tomber = tout lâcher dans une dépouille, se relever à sa stèle. **Piège** (3 bois, 2 fer) : qui marche dessus meurt et lâche tout (25/09). **Loups** et **revenants** attaquent tout le monde. Trois **Autels** au pied du château paient qui les tient (25/09). L'arc reste à faire. |
 | Outils | Deux emplacements (1 / 2) : **hache** (abattre les arbres) et **épée**, qui s'usent et cassent. L'outil tenu se voit à l'écran — **l'outil seul, jamais de mains** (la règle du corps invisible tient). |
 | Persistance | **Aucune** entre parties |
 | Réseau | Listen-server + Steam P2P. **Autorité serveur absolue sur l'économie** |
@@ -66,9 +68,11 @@ quoi. Porte dérobée = impossible par la force, uniquement par quelqu'un de l'i
   six talismans, cinq lieux-dits, et des habitants qui ne se battent pas (Veilleur,
   Ermite, feux-follets, cerf blanc). Et, demandés explicitement par Martin le 24/09 :
   **chacun sa stèle, trois rivaux PNJ, le vol, six gardes et le soudoiement (poterne)**.
+  Puis le 25/09 : **stèle fixe et réserve, Malédiction, pièges, loups et revenants,
+  trois Autels, améliorations, boussole vide**.
 - **PHASE 2 — le conflit.** Porte 2 : un vol de relique crée-t-il une histoire qu'on se
-  raconte après ? Ce qui reste : **pièges**, **combat** (mêlée + arc), rôdeur PNJ, et les
-  gardes qui trahissent **pour les rivaux** aussi (le vol et le soudoiement existent déjà).
+  raconte après ? Ce qui reste : l'**arc**, les autres pièges (alarme, fosse), le rôdeur
+  PNJ, et les gardes qui trahissent **pour les rivaux** aussi.
 - **PHASE 3 — multijoueur.** Porte 3 : une Saison de 30-45 min à 4 joueurs sans crash ni désync.
 - **PHASE 4 — la Saison complète.** Anti-snowball, événements, équilibrage fin.
 - **PHASE 5 — vitrine.** Page Steam, démo, Next Fest, localisation EN.

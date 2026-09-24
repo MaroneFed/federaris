@@ -143,8 +143,10 @@ Martin : « je veux que chacun ait sa stèle et qu'il la pose quelque part sur l
 « on doit pouvoir voler ». Ce qui était prévu en Phase 2 arrive maintenant, **contre des
 rivaux PNJ** — les mêmes règles serviront telles quelles en multijoueur.
 
-- **Ta stèle** : touche **P**, une seule fois, où tu veux (pas dans le château, pas sur
-  un lieu-dit). À la cloche, seule compte la relique posée sur **ta** stèle.
+- **Ta stèle** : **fixe, tirée au hasard à chaque partie** (révisé le 25/09), entre 110
+  et 290 m du centre, à 120 m au moins des autres. **On naît à côté d'elle**, et rien ne
+  l'indique ensuite : il faut retenir le chemin. À la cloche, seule compte la relique
+  posée sur **ta** stèle.
 - **Le Registre**, au château (l'ancienne stèle) : il grave le classement de tous.
 - **Trois rivaux** : Mahaut la Rousse (pilleuse), Oswin le Borgne (le fer du château),
   Guérin des Marais (les creux, presque honnête). Ils récoltent aux **mêmes gisements**
@@ -155,9 +157,84 @@ rivaux PNJ** — les mêmes règles serviront telles quelles en multijoueur.
   La relique volée pèse 8 kg ; il faut la porter à **ta** stèle pour la fondre dans la
   tienne — **60 %** seulement : le reste se perd.
 - **Être volé** : un rival qui est passé près de ta stèle s'en souvient. Quand tu es loin,
-  il vient la piller. Un marqueur « VOLEUR » le montre : rattrape-le, E pour reprendre.
+  il vient la piller — ta relique, et ta réserve. Une alerte dit de quel côté il file :
+  rattrape-le, E pour reprendre.
 - **Être chassé** : si tu voles un rival, il te poursuit. S'il te rattrape avant que tu
   aies fondu sa relique, il la reprend.
+
+---
+
+## La stèle, ta réserve — et la Malédiction (décidé par Martin le 25/09/2026)
+
+Martin : « la stèle, c'est juste pour déposer nos trucs, c'est notre marché », « toutes
+les X minutes, une malédiction enlève tout ce qu'il y a dans notre sac, ce qui force à
+tout déposer dans la stèle — mais si elle est sans surveillance, c'est mauvais ».
+
+- **La réserve** : E devant ta stèle ouvre trois onglets — **Réserve** (déposer, reprendre,
+  400 kg), **Relique** (la poser, la reprendre pour le mage, fondre une relique volée),
+  **Améliorations**.
+- **La Malédiction** tombe **75 s après chaque départ du mage** : 5:45, 10:15, 14:45,
+  19:15, 23:45, 28:15. Tout ce qui est dans les sacs — le tien, ceux des rivaux — est
+  dévoré. Pas la relique, pas l'or, pas les outils, pas les caches, pas la réserve. Un glas
+  sonne à 60, 30 et 10 s ; le compte à rebours s'affiche sous l'horloge.
+- **Le rythme qui en naît** : récolter → rentrer déposer avant le glas → reprendre sa
+  réserve quand la colonne du mage monte → forger → reposer. Six fois par Saison.
+- **Le piège qui en naît** : une réserve pleine attire. Qui trouve ta stèle sans toi à côté
+  la pille (E maintenu 3 s : ta relique en trophée, et tout ce qui rentre dans son sac).
+
+## La boussole ne montre rien (décidé par Martin le 25/09/2026)
+
+« Faut rien indiquer sur la boussole, comme ça ça force à retenir. » Les points cardinaux,
+et c'est tout : ni ta stèle, ni le château, ni le mage. On se repère au Grand Chêne, au
+chant de sa stèle (15 m), aux torches du château, à la colonne du mage au-dessus des
+arbres. Le mage dit ses secrets **en mots** (« à cent quarante pas au nord-est »).
+
+## Les améliorations (décidé par Martin le 25/09/2026)
+
+Payées avec la **réserve** de la stèle (pas le sac), et parfois de l'or :
+
+| Amélioration | Effet | Prix |
+|---|---|---|
+| Besace renforcée (×2) | +20 kg dans le sac | 10 bois, 2 lune — puis 16 bois, 4 lune, 10 or |
+| Amulette du glas | la Malédiction laisse la moitié du sac | 4 lune, 2 fer, 15 or |
+| Sentinelle | ta stèle sonne quand un rival rôde, et dit où elle est | 8 bois, 2 lune |
+| Verre poli | lanterne +35 % de portée | 3 lune, 1 fer |
+| Lame trempée | épée +40 % | 4 fer, 10 or |
+| Bottes de cerf (×2) | +10 % de vitesse | 8 bois, 1 lune, 10 or — puis 12 bois, 2 lune |
+| Collets (×2) | +2 pièges posés en même temps | 6 bois, 2 fer — puis 8 bois, 3 fer |
+
+## Les pièges (décidé par Martin le 25/09/2026)
+
+« Construire des pièges : quand un gars va dessus, il meurt et perd tout son stuff. »
+Artisanat (Tab) : **3 bois mort, 2 fer**. En main, clic : posé devant soi. Qui marche
+dessus — rival, joueur, loup, revenant — meurt sur le coup et lâche tout dans sa dépouille.
+Invisible au-delà de 3,5 m (sauf les tiens). Usage unique, 3 posés au plus (+2 par Collets).
+Les rivaux agressifs piègent les abords de leur propre stèle.
+
+## Les Autels (décidé par Martin le 25/09/2026)
+
+« À côté du château, des monuments qui, une fois contrôlés, te paient avec de l'or ou du
+bois — sans que ça devienne cheaté. » Trois, hors des murs :
+
+| Autel | Où | Rapporte (toutes les 40 s) |
+|---|---|---|
+| de l'Or | à l'ouest | 5 or |
+| du Bûcheron | à l'est | 4 bois mort, dans ta réserve |
+| de la Lune | au nord | 2 pierres-lune, dans ta réserve |
+
+Le prendre : **10 s seul** dans le cercle. À deux, rien n'avance ; un autre efface d'abord
+ta marque. **Deux revenants** le gardent : tant qu'ils sont debout près de la pierre, il ne
+se prend pas. Les rivaux armés viennent parfois l'assiéger.
+
+## Ce qui veut ton mal (décidé par Martin le 25/09/2026)
+
+- **Les loups** : trois meutes de trois, repaires tirés au hasard loin des stèles. Yeux
+  jaunes dans la brume, hurlement quand ils chassent. Plus rapides que toi à pied, moins
+  qu'à la course (à vide) : chargé, il faut se battre. 45 PV (deux coups d'épée), 14 par
+  morsure. Ils ne montent pas aux arbres.
+- **Les revenants** : deux par Autel. Lents, 90 PV, 22 par coup, 6 or chacun. Ils ne
+  s'éloignent pas de leur pierre.
+- Les bêtes reviennent à leur repaire 2 min 30 à 3 min après leur mort.
 
 ---
 
@@ -282,17 +359,18 @@ approche, le sac trop lourd.
 
 | Phase 1 — maintenant | Phase 2 — le conflit |
 |---|---|
-| Les trois ressources et leurs lieux | **Les pièges** : collet, fil d'alarme, fosse |
+| Les trois ressources et leurs lieux | Les autres pièges : fil d'alarme, fosse |
 | Le camp (une fois) et les caches (trois) | **L'arc** |
 | Le mage errant, sa colonne, la forge, ses secrets | Un **rôdeur** PNJ qui pille les caches mal protégées |
-| La relique, chacun sa stèle, la cloche, quatre victoires | Les gardes qui trahissent **pour les rivaux** aussi |
+| La relique, la stèle fixe et sa réserve, la Malédiction, la cloche, quatre victoires | Les gardes qui trahissent **pour les rivaux** aussi |
 | Le château, ses six gardes, leur solde, la poterne (demandés par Martin le 24/09) | |
-| Trois rivaux, le vol de relique | |
-| Hache, épée, combat à l'épée (demandés par Martin le 24/09) | |
+| Trois rivaux, le vol de relique et de réserve | |
+| Hache, épée, piège à mâchoires, combat (demandés par Martin les 24 et 25/09) | |
+| Les Autels, les loups, les revenants, les améliorations (demandés par Martin le 25/09) | |
 | L'écran de fin | |
 
 Ce qui a glissé de la Phase 2 vers la Phase 1 l'a fait **sur demande explicite de
-Martin**, le 24/09. Les pièges et l'arc restent en Phase 2.
+Martin**, les 24 et 25/09.
 
 ---
 
