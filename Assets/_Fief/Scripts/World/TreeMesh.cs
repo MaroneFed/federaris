@@ -67,7 +67,9 @@ namespace Fief
         public const int ShadePart = 2;
         public const int MidPart = 3;
         public const int LitPart = 4;
-        public const int PartCount = 5;
+        /// <summary>Champignons en console et lichen pale : ce qu'on voit a hauteur d'yeux.</summary>
+        public const int FungusPart = 5;
+        public const int PartCount = 6;
 
         // ------------------------------------------------------------------ atelier
 
@@ -77,6 +79,7 @@ namespace Fief
             public readonly List<int> bark = new List<int>();
             public readonly List<int> moss = new List<int>();
             public readonly List<int> leaf = new List<int>();
+            public readonly List<int> fungus = new List<int>();
 
             public void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, List<int> into)
             {
@@ -84,6 +87,13 @@ namespace Fief
                 points.Add(a); points.Add(b); points.Add(c); points.Add(d);
                 into.Add(i); into.Add(i + 1); into.Add(i + 2);
                 into.Add(i); into.Add(i + 2); into.Add(i + 3);
+            }
+
+            /// <summary>Un triangle tourne du cote voulu, quel que soit l'ordre des points.</summary>
+            public void TriFacing(Vector3 a, Vector3 b, Vector3 c, Vector3 outward, List<int> into)
+            {
+                if (Vector3.Dot(Vector3.Cross(b - a, c - a), outward) < 0f) Tri(a, c, b, into);
+                else Tri(a, b, c, into);
             }
 
             public void Tri(Vector3 a, Vector3 b, Vector3 c, List<int> into)
@@ -140,6 +150,16 @@ namespace Fief
         static Vector3[] Ring(Vector3 centre, Vector3 direction, float radius, int sides,
                               float phase, System.Random rng, float wobble)
         {
+            return Ring(centre, direction, radius, sides, phase, rng, wobble, 0f);
+        }
+
+        /// <summary>
+        /// Meme anneau, avec des SILLONS : un sommet sur deux rentre un peu. C'est
+        /// l'ecorce crevassee du sapin et du chene, lisible en silhouette de pres.
+        /// </summary>
+        static Vector3[] Ring(Vector3 centre, Vector3 direction, float radius, int sides,
+                              float phase, System.Random rng, float wobble, float furrow)
+        {
             Vector3 right, forward;
             Basis(direction, out right, out forward);
 
@@ -148,6 +168,7 @@ namespace Fief
             {
                 float a = phase + (i / (float)sides) * Mathf.PI * 2f;
                 float r = radius * (1f + ((float)rng.NextDouble() - 0.5f) * wobble);
+                if (i % 2 == 1) r *= 1f - furrow;
                 ring[i] = centre + (Mathf.Cos(a) * right + Mathf.Sin(a) * forward) * r;
             }
             return ring;
@@ -167,6 +188,12 @@ namespace Fief
         /// </summary>
         static Vector3 Trunk(Shape s, float height, float radius, Vector3 lean, int sides,
                              System.Random rng, float taper, ref TreeInfo info)
+        {
+            return Trunk(s, height, radius, lean, sides, rng, taper, 0f, ref info);
+        }
+
+        static Vector3 Trunk(Shape s, float height, float radius, Vector3 lean, int sides,
+                             System.Random rng, float taper, float furrow, ref TreeInfo info)
         {
             // Meme derive que les anneaux ci-dessous, evaluee a hauteur d'homme.
             float tm = Mathf.Clamp01(1.5f / Mathf.Max(1f, height));
@@ -190,7 +217,7 @@ namespace Fief
 
                 Vector3 centre = new Vector3(0f, height * t, 0f) + drift;
                 Vector3[] ring = Ring(centre, Vector3.up + lean * 0.4f, r, sides,
-                                      i * 0.21f, rng, 0.16f);
+                                      i * 0.21f, rng, 0.16f, furrow);
 
                 if (previous != null) s.Tube(previous, ring, i == 1 ? s.moss : s.bark);
                 previous = ring;
@@ -213,6 +240,106 @@ namespace Fief
                 Vector3 from = outward * radius * 0.9f + new Vector3(0f, 0.30f, 0f);
                 Vector3 dir = outward + new Vector3(0f, -0.42f, 0f);
                 Limb(s, from, dir, radius * R(rng, 2.2f, 3.4f), radius * 0.46f, rng, s.moss);
+            }
+        }
+
+        /// <summary>Le centre du fut a la hauteur relative t -- la meme courbe que Trunk().</summary>
+        static Vector3 Axis(float height, float radius, Vector3 lean, float t)
+        {
+            return new Vector3(0f, height * t, 0f) + lean * (t * t) + new Vector3(
+                Mathf.Sin(t * 3.1f) * radius * 0.7f, 0f, Mathf.Cos(t * 2.3f) * radius * 0.6f);
+        }
+
+        /// <summary>Le rayon du fut a la hauteur relative t (evasement du pied compris).</summary>
+        static float RadiusAt(float radius, float taper, float t)
+        {
+            float flare = t < 0.13f ? Mathf.Lerp(1.9f, 1f, t / 0.13f) : 1f;
+            return radius * Mathf.Lerp(1f, taper, t) * flare;
+        }
+
+        /// <summary>
+        /// Les BRANCHES MORTES du bas : un vieux sapin a perdu ses etages du bas,
+        /// il en reste des brindilles seches qui pendent -- c'est exactement ce qu'on
+        /// voit a hauteur d'yeux dans une foret sombre, et c'est ce qui accroche.
+        /// </summary>
+        static void DeadTwigs(Shape s, float height, float radius, Vector3 lean, float taper,
+                              float from, float to, int count, System.Random rng)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float y = R(rng, from, to);
+                float t = y / height;
+                float a = R(rng, 0f, Mathf.PI * 2f);
+                Vector3 outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Vector3 root = Axis(height, radius, lean, t) + outward * RadiusAt(radius, taper, t) * 0.85f;
+                Vector3 dir = outward + new Vector3(0f, R(rng, -0.45f, 0.05f), 0f);
+                Vector3 tip = Limb(s, root, dir, R(rng, 0.7f, 1.6f), R(rng, 0.03f, 0.05f), rng, s.bark);
+                // Une fourche sur la moitie d'entre elles.
+                if (rng.NextDouble() < 0.5)
+                {
+                    Vector3 side = Vector3.Cross(dir, Vector3.up).normalized * (rng.NextDouble() < 0.5 ? 1f : -1f);
+                    Limb(s, Vector3.Lerp(root, tip, 0.55f), dir + side * 0.8f, R(rng, 0.3f, 0.6f), 0.02f, rng, s.bark);
+                }
+            }
+        }
+
+        /// <summary>Des moignons : des branches cassees net, courtes et epaisses.</summary>
+        static void Stubs(Shape s, float height, float radius, Vector3 lean, float taper,
+                          float from, float to, int count, System.Random rng)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float y = R(rng, from, to);
+                float t = y / height;
+                float a = R(rng, 0f, Mathf.PI * 2f);
+                Vector3 outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Vector3 root = Axis(height, radius, lean, t) + outward * RadiusAt(radius, taper, t) * 0.8f;
+                Vector3 dir = outward + new Vector3(0f, R(rng, 0.1f, 0.6f), 0f);
+                Vector3 d = dir.normalized;
+                Vector3[] a0 = Ring(root, d, radius * 0.32f, 5, 0.3f, rng, 0.2f);
+                Vector3[] a1 = Ring(root + d * R(rng, 0.25f, 0.55f), d, radius * 0.24f, 5, 0.3f, rng, 0.35f);
+                s.Tube(a0, a1, s.bark);
+                // L'extremite cassee : un bouchon de bois clair a cru.
+                Vector3 c = Vector3.zero;
+                for (int k = 0; k < a1.Length; k++) c += a1[k];
+                s.Roof(a1, c / a1.Length + d * 0.03f, s.fungus);
+            }
+        }
+
+        /// <summary>
+        /// Des CHAMPIGNONS EN CONSOLE (amadouviers) : des demi-disques pales colles au
+        /// tronc, en escalier. Ils disent "bois mort, humidite, vieille foret".
+        /// </summary>
+        static void Brackets(Shape s, float height, float radius, Vector3 lean, float taper,
+                             int count, System.Random rng)
+        {
+            float a = R(rng, 0f, Mathf.PI * 2f);
+            float y = R(rng, 0.5f, 1.4f);
+            for (int i = 0; i < count; i++)
+            {
+                float t = Mathf.Min(0.9f, y / height);
+                Vector3 outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Vector3 side = Vector3.Cross(Vector3.up, outward);
+                float r = RadiusAt(radius, taper, t);
+                Vector3 c = Axis(height, radius, lean, t) + outward * r * 0.9f;
+                float size = R(rng, 0.14f, 0.28f) * Mathf.Clamp(radius / 0.35f, 0.7f, 1.4f);
+                const int n = 6;
+                Vector3[] edge = new Vector3[n + 1];
+                for (int k = 0; k <= n; k++)
+                {
+                    float u = Mathf.PI * k / n;
+                    edge[k] = c + (side * Mathf.Cos(u) + outward * Mathf.Sin(u) * 0.8f) * size
+                                + Vector3.down * (Mathf.Sin(u) * size * 0.12f);
+                }
+                Vector3 top = c + Vector3.up * size * 0.22f;
+                Vector3 under = c - Vector3.up * size * 0.05f;
+                for (int k = 0; k < n; k++)
+                {
+                    s.TriFacing(top, edge[k], edge[k + 1], Vector3.up, s.fungus);
+                    s.TriFacing(under, edge[k + 1], edge[k], Vector3.down, s.fungus);
+                }
+                y += R(rng, 0.18f, 0.35f);
+                a += R(rng, -0.5f, 0.5f);
             }
         }
 
@@ -329,6 +456,7 @@ namespace Fief
             mesh.SetTriangles(shade, ShadePart);
             mesh.SetTriangles(mid, MidPart);
             mesh.SetTriangles(lit, LitPart);
+            mesh.SetTriangles(s.fungus, FungusPart);
 
             // Aucun sommet n'est partage entre deux faces : chaque face garde sa
             // propre normale et l'arbre reste facette, comme le reste du jeu.
@@ -341,7 +469,8 @@ namespace Fief
         {
             float h = R(rng, 11f, 18f);
             Vector3 lean = new Vector3(R(rng, -0.25f, 0.25f), 0f, R(rng, -0.25f, 0.25f));
-            Trunk(s, h, 0.30f, lean, 6, rng, 0.22f, ref info);
+            Trunk(s, h, 0.30f, lean, 10, rng, 0.22f, 0.14f, ref info);
+            DeadTwigs(s, h, 0.30f, lean, 0.22f, 1.3f, h * 0.17f, 7 + rng.Next(5), rng);
 
             // Les etages commencent bas et retrecissent. Chacun est une etoile de
             // sept pointes : on lit des branches, pas un cone.
@@ -363,7 +492,9 @@ namespace Fief
         {
             float h = R(rng, 13f, 21f);
             Vector3 lean = new Vector3(R(rng, -0.55f, 0.55f), 0f, R(rng, -0.55f, 0.55f));
-            Vector3 top = Trunk(s, h, 0.42f, lean, 7, rng, 0.30f, ref info);
+            Vector3 top = Trunk(s, h, 0.42f, lean, 12, rng, 0.30f, 0.06f, ref info);
+            Stubs(s, h, 0.42f, lean, 0.30f, 2.2f, h * 0.55f, 2 + rng.Next(3), rng);
+            if (rng.NextDouble() < 0.45) Brackets(s, h, 0.42f, lean, 0.30f, 2 + rng.Next(3), rng);
 
             // Fut nu jusqu'aux deux tiers, puis une couronne faite de nombreux volumes
             // plus petits : c'est leur nombre qui donne l'air touffu, pas leur taille.
@@ -389,7 +520,8 @@ namespace Fief
         {
             float h = R(rng, 9f, 14f);
             Vector3 lean = new Vector3(R(rng, -1.2f, 1.2f), 0f, R(rng, -1.2f, 1.2f));
-            Vector3 top = Trunk(s, h, 0.19f, lean, 5, rng, 0.42f, ref info);
+            Vector3 top = Trunk(s, h, 0.19f, lean, 8, rng, 0.42f, 0.03f, ref info);
+            DeadTwigs(s, h, 0.19f, lean, 0.42f, 1.8f, h * 0.45f, 3 + rng.Next(3), rng);
 
             int arms = 3 + rng.Next(3);
             for (int i = 0; i < arms; i++)
@@ -409,7 +541,9 @@ namespace Fief
         {
             float h = R(rng, 7f, 15f);
             Vector3 lean = new Vector3(R(rng, -0.9f, 0.9f), 0f, R(rng, -0.9f, 0.9f));
-            Trunk(s, h, 0.34f, lean, 5, rng, 0.14f, ref info);
+            Trunk(s, h, 0.34f, lean, 9, rng, 0.14f, 0.18f, ref info);
+            Brackets(s, h, 0.34f, lean, 0.14f, 3 + rng.Next(4), rng);
+            Stubs(s, h, 0.34f, lean, 0.14f, 1.5f, h * 0.6f, 2 + rng.Next(3), rng);
 
             // Des moignons casses, jamais symetriques. Pas une feuille.
             int arms = 3 + rng.Next(4);

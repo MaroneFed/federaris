@@ -99,8 +99,9 @@ namespace Fief
         }
 
         /// <summary>
-        /// Cinq materiaux par arbre, dans l'ordre des sous-maillages de TreeMesh :
-        /// ecorce, mousse, puis le feuillage a l'ombre, au milieu, au soleil.
+        /// Six materiaux par arbre, dans l'ordre des sous-maillages de TreeMesh :
+        /// ecorce, mousse, le feuillage a l'ombre, au milieu, au soleil, et les
+        /// champignons.
         /// </summary>
         public static Material[] TreeMaterials(Color bark, Color foliage)
         {
@@ -115,7 +116,9 @@ namespace Fief
                 MaterialFactory.Get(moss),
                 MaterialFactory.Get(shade),
                 MaterialFactory.Get(foliage),
-                MaterialFactory.Get(lit)
+                MaterialFactory.Get(lit),
+                // Champignons et bois a cru : un ocre pale, qui accroche la lanterne.
+                MaterialFactory.Get(new Color(0.62f, 0.55f, 0.42f))
             };
         }
 
