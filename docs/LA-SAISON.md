@@ -67,8 +67,18 @@ Six apparitions par Saison. La rareté du mage **est** la tension : le rater, c'
 attendre quatre minutes et demie.
 
 Il apparaît **à 110–260 m de toi**, dans une place dégagée, jamais au château ni dans
-un creux. On ne le voit qu'à 26 m (la brume) ; sa voix, elle, s'entend à deux cents
-mètres. Un message dit seulement « au nord-est » au moment où il arrive.
+un creux. On ne le voit qu'à 14 m (la brume) ; sa voix, elle, s'entend à deux cents
+mètres.
+
+**Comme un largage** (Martin, 24/09 : « comme un drop sur Fortnite ») : **45 secondes
+avant** son arrivée, une colonne de lumière bleue monte au-dessus des arbres à
+l'endroit exact où il descendra, et un point bleu apparaît sur la boussole de **tout le
+monde**. Tout le monde court au même endroit, rivaux compris : c'est là que les
+chemins se croisent. Après ses premières secondes, le point disparaît (sauf avec la
+Corne d'appel).
+
+**Après chaque forge, il murmure un secret** : l'emplacement d'une chose utile (un
+talisman, un creux riche, la stèle d'un rival…), qui s'ajoute à la boussole en violet.
 
 **Il ne prend que ce qu'on porte, mais on peut faire plusieurs voyages** tant qu'il
 chante. C'est ce qui donne leur sens aux caches en solo : une cache pleine près de
@@ -223,6 +233,47 @@ n'ont de sens qu'avec quelqu'un à arrêter.
 
 ---
 
+## Les outils et le combat (ajoutés le 24/09/2026)
+
+Martin : « on peut se créer des petites épées, tuer un gars… celui qui porte la relique
+ne peut pas attaquer ». Et : « couper l'arbre, il faut une hache, la hache se casse ».
+
+- **Deux emplacements** (touches **1** et **2**), rien de plus : il faut choisir.
+- **La hache** s'use et casse. Elle abat un arbre (clic maintenu) ; l'arbre tombe et
+  laisse un tas de bois mort. C'est la façon rapide de faire du bois — et c'est bruyant.
+- **L'épée** (2 bois mort, 3 fer ancien) : quatre coups tuent. Elle s'use aussi.
+- **Qui porte une relique ne peut pas frapper.** Il ne peut que fuir. C'est ce qui rend
+  le trajet mage → stèle dangereux, et c'est voulu.
+- **Tomber**, c'est lâcher tout ce qu'on porte dans une dépouille (que n'importe qui
+  peut fouiller), puis se relever à sa stèle.
+- **Grimper dans un arbre** (touche **F** près d'un tronc) : on voit arriver les gens,
+  on n'est pas vu d'en bas.
+
+L'outil tenu se voit à l'écran, **sans mains** (voir CLAUDE.md, le corps invisible).
+
+---
+
+## Le son, les corps, la pierre (24/09/2026)
+
+- **La musique** change d'humeur toute seule : écran-titre, forêt, **tension** (le mage
+  descend, un garde court, on est blessé, un voleur file, la cloche approche), fin. Les
+  morceaux de Martin vont dans `Assets/_Fief/Resources/Music` — le **nom du fichier** dit
+  l'humeur (`titre…`, `tension…`, `fin…`, sinon forêt). Sans fichier, le jeu fabrique
+  une musique sobre (nappes en ré mineur, bourdon et battement de cœur).
+- **Les PNJ marchent** : squelette articulé (`Walker`), robes en pans qui suivent les
+  jambes, hallebardes et lanternes qui restent droites, tête qui te suit. Les rivaux
+  portent **le corps du joueur** à leur couleur : en multijoueur, ce seront des joueurs.
+- **De vrais modèles** peuvent remplacer ces corps : un pack CC0 (KayKit, Quaternius,
+  Kenney) déposé dans `Assets/_Fief/Resources/Modeles/Gardes` (ou `Mage`, `Ermite`,
+  `Veilleur`) est chargé, mis à la bonne taille et animé automatiquement.
+- **Le château** fait maintenant 15 m de courtines, 30 m de tours, 48 m de donjon sous
+  un toit d'ardoise, avec contreforts et mâchicoulis, et toute sa pierre est
+  **appareillée** (texture de pierres taillées et relief, fabriqués au lancement).
+- **Les polices** : Cinzel (titres) et EB Garamond (texte), licence OFL, dans
+  `Assets/_Fief/Resources/Fonts`.
+
+---
+
 ## Ce qui est dans la Phase 1 (solo) — et ce qui n'y est pas
 
 **Porte 1 redéfinie :** *une Saison solo de 30 minutes est-elle haletante du début à
@@ -231,16 +282,17 @@ approche, le sac trop lourd.
 
 | Phase 1 — maintenant | Phase 2 — le conflit |
 |---|---|
-| Les trois ressources et leurs lieux | **Les gardes** du château et leur **solde** |
-| Le camp (une fois) et les caches (trois) | **Soudoyer** un garde : la porte dérobée, la torche éteinte |
-| Le mage errant, sa voix, la forge | **Les pièges** : collet, fil d'alarme, fosse |
-| La relique, la stèle, la cloche | **Voler** une cache, une relique, la stèle |
-| Le château, ses réserves, ses torches | Combat simple |
-| L'écran de fin | Un **rôdeur** PNJ qui pille les caches mal protégées (donne un sens aux pièges en solo) |
+| Les trois ressources et leurs lieux | **Les pièges** : collet, fil d'alarme, fosse |
+| Le camp (une fois) et les caches (trois) | **L'arc** |
+| Le mage errant, sa colonne, la forge, ses secrets | Un **rôdeur** PNJ qui pille les caches mal protégées |
+| La relique, chacun sa stèle, la cloche, quatre victoires | Les gardes qui trahissent **pour les rivaux** aussi |
+| Le château, ses six gardes, leur solde, la poterne (demandés par Martin le 24/09) | |
+| Trois rivaux, le vol de relique | |
+| Hache, épée, combat à l'épée (demandés par Martin le 24/09) | |
+| L'écran de fin | |
 
-Les pièges et les PNJ sont demandés par Martin et **ils viendront** — mais un piège
-n'a de sens que s'il y a quelqu'un pour tomber dedans. Ils arrivent avec ceux qu'ils
-doivent arrêter.
+Ce qui a glissé de la Phase 2 vers la Phase 1 l'a fait **sur demande explicite de
+Martin**, le 24/09. Les pièges et l'arc restent en Phase 2.
 
 ---
 
