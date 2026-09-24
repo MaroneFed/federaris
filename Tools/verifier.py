@@ -345,10 +345,10 @@ for path, s2 in sources.items():
 # on y accede depuis une AUTRE classe, il doit etre public.
 
 def_member_re = re.compile(
-    r'^[ \t]*public\s+(?:static\s+|readonly\s+|const\s+|override\s+|virtual\s+|abstract\s+|'
+    r'^[ \t]*(?:\[[^\]\n]*\]\s*)*public\s+(?:static\s+|readonly\s+|const\s+|override\s+|virtual\s+|abstract\s+|'
     r'sealed\s+|new\s+|event\s+|async\s+)*(?:[\w<>\[\],\.\?]+\s+)?(\w+)\s*(?:[;=({]|$)', re.M)
 typed_field_re = re.compile(
-    r'^        (?:public\s+|private\s+|protected\s+|internal\s+)?(?:static\s+|readonly\s+)*'
+    r'^        (?:\[[^\]\n]*\]\s*)*(?:public\s+|private\s+|protected\s+|internal\s+)?(?:static\s+|readonly\s+)*'
     r'([A-Z]\w*)\s+(\w+)\s*(?:;|=|\{)', re.M)
 
 public_members = defaultdict(set)

@@ -36,7 +36,7 @@ namespace Fief
 
         enum Goal { PlantStele, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
 
-        public Seeker seeker;
+        [System.NonSerialized] public Seeker seeker;
 
         // --- caractere
         float aggression;       // envie de piller (0-1)

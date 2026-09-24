@@ -28,7 +28,7 @@ namespace Fief
 
         enum State { Patrol, Chase, Return }
 
-        public GuardInfo info;
+        [System.NonSerialized] public GuardInfo info;
 
         State state = State.Patrol;
         Vector3[] route;

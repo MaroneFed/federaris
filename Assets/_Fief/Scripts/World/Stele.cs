@@ -21,7 +21,7 @@ namespace Fief
     {
         public static readonly List<Stele> All = new List<Stele>();
 
-        public Seeker owner;
+        [System.NonSerialized] public Seeker owner;
 
         Light glow;
         Transform relicShown;
