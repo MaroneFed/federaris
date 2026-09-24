@@ -129,3 +129,5 @@ ParticleSystemStopAction
 RenderTexture
 RenderTextureFormat
 Texture
+MaterialPropertyBlock
+Vector3Int

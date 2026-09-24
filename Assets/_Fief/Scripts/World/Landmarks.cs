@@ -156,6 +156,7 @@ namespace Fief
                     case Kind.Tertre: Tertre(go.transform, rng); break;
                     default:
                         BuildTour(go.transform, rng);
+                        Masonry.Apply(go.transform);        // la tour en pierres taillees
                         Tour = go.transform;
                         break;
                 }

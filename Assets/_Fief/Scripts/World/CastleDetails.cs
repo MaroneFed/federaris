@@ -323,7 +323,7 @@ namespace Fief
             Proto.BeginVisualOnly();
             for (int side = -1; side <= 1; side += 2)
             {
-                Vector3 p = new Vector3(side * off, 14.2f, face - 0.6f);
+                Vector3 p = new Vector3(side * off, Castle.GatehouseHeight - 0.8f, face - 0.6f);
                 Proto.Cube(t, p, new Vector3(6.4f, 1.6f, 1.2f), WoodDark, "Hourd");
                 GameObject roof = Proto.Cube(t, p + new Vector3(0f, 1.05f, -0.1f), new Vector3(6.8f, 0.1f, 1.7f), Wood, "Toit");
                 roof.transform.localRotation = Quaternion.Euler(-20f, 0f, 0f);
