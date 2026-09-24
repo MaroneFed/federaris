@@ -8,7 +8,7 @@ namespace Fief
     /// Il apparait selon l'agenda de la Saison (Season.CurrentAppearance), a un
     /// endroit tire au hasard, reste deux minutes et demie, puis s'evanouit.
     ///
-    /// ON NE LE VOIT PAS DE LOIN : la brume coupe a 26 m. On l'ENTEND. Sa voix est un
+    /// ON NE LE VOIT PAS DE LOIN : la brume coupe a 20 m. On l'ENTEND. Sa voix est un
     /// AudioSource "3D" : Unity baisse le volume avec la distance et le place a gauche
     /// ou a droite selon ou il se trouve. Tourner la tete, c'est deja le chercher.
     ///

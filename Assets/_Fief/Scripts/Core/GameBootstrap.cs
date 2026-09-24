@@ -84,6 +84,11 @@ namespace Fief
             // joueur (pour lui accrocher la lanterne) : elle vient donc en dernier.
             Atmosphere.Apply(config, viewCamera, player != null ? player.transform : null);
 
+            // Ce qui flotte dans l'air : poussieres, brume rasante, lucioles des creux.
+            // Rate, il n'y a pas de particules -- jamais de monde a moitie construit.
+            try { Ambiance.Build(worldRoot, player != null ? player.transform : null, config); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignoree : " + error.Message); }
+
             BuildHud(player);
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;

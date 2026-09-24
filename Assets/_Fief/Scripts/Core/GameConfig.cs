@@ -13,17 +13,17 @@ namespace Fief
     {
         [Header("Monde")]
         [Tooltip("Cote de la carte en metres. 700 m se traverse en 90 s a pied -- " +
-                 "mais avec 26 m de visibilite, on n'en a jamais l'impression.")]
+                 "mais avec 20 m de visibilite, on n'en a jamais l'impression.")]
         public float mapSize = 700f;
         [Tooltip("Graine du generateur aleatoire : meme graine = meme map.")]
         public int worldSeed = 1337;
 
         [Header("La sylve")]
         [Tooltip("Distance a laquelle la brume efface tout, en metres. C'est le reglage " +
-                 "le plus important du jeu : il decide de l'enfermement. A 26 m un tronc " +
-                 "est a moitie efface a 13 m -- on ne voit jamais ce qu'il y a deux arbres " +
-                 "plus loin. Descends a 18 pour etouffer, remonte a 40 pour respirer.")]
-        public float sightDistance = 26f;
+                 "le plus important du jeu : il decide de l'enfermement. A 20 m un tronc " +
+                 "est a moitie efface a 10 m -- on ne voit jamais ce qu'il y a deux arbres " +
+                 "plus loin. Descends a 15 pour etouffer, remonte a 30 pour respirer.")]
+        public float sightDistance = 20f;
 
         [Tooltip("Couleur de la brume et du fond. Gris-vert, et PLUS CLAIRE que les " +
                  "troncs proches : c'est ce qui les decoupe en silhouettes. Une brume plus " +

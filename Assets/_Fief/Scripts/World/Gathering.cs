@@ -111,6 +111,10 @@ namespace Fief
         /// <summary>Les creux retenus. Calcules AVANT la foret, pour qu'elle les laisse degages.</summary>
         static readonly List<Vector2> Hollows = new List<Vector2>();
 
+        /// <summary>Centre de chaque creux (x, z). Lu par Ambiance pour y poser des lucioles.</summary>
+        public static int HollowSpotCount { get { return Hollows.Count; } }
+        public static Vector2 HollowSpot(int index) { return Hollows[index]; }
+
         /// <summary>
         /// Cherche les creux sur une grille de 5 m : un point est un creux s'il est plus
         /// bas que la moyenne de huit points pris a 18 m autour de lui. On garde les

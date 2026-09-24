@@ -111,3 +111,15 @@ IEnumerable
 IComparable
 StringBuilder
 ColorSpace
+
+# --- Unity, particules (Ambiance.cs)
+ParticleSystem
+ParticleSystemRenderer
+ParticleSystemSimulationSpace
+ParticleSystemShapeType
+ParticleSystemRenderMode
+ParticleSystemStopBehavior
+ParticleSystemScalingMode
+Gradient
+GradientColorKey
+GradientAlphaKey
