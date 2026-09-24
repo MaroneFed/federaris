@@ -120,6 +120,10 @@ namespace Fief
 
             BuildHud(player);
 
+            // La musique : tes morceaux s'ils sont dans Resources/Music, sinon la sienne.
+            try { MusicDirector.Build(); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignoree : " + error.Message); }
+
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
                       + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs, "
