@@ -34,7 +34,7 @@ namespace Fief
     {
         public static readonly List<Rival> All = new List<Rival>();
 
-        enum Goal { PlantStele, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard }
+        enum Goal { PlantStele, Gather, FetchRelic, ToMage, ToStele, Steal, Hunt, Guard, Fight, Flee }
 
         public Seeker seeker;
 
@@ -58,6 +58,15 @@ namespace Fief
         float barkTimer;
         int talks;
         System.Random rng;
+
+        // --- le combat
+        Seeker aggro;
+        float aggroTimer;
+        float strikeTimer;
+        float fleeTimer;
+        Vector3 fleeFrom;
+        float deadTimer;
+        float rearmTimer;
 
         // --- corps
         CharacterController body;
@@ -184,7 +193,28 @@ namespace Fief
             if (season == null || !season.Running || Time.deltaTime <= 0f) return;
             float dt = Time.deltaTime;
 
+            // Tombe : il se relevera a sa stele, vingt secondes plus tard.
+            if (deadTimer > 0f)
+            {
+                deadTimer -= dt;
+                if (deadTimer <= 0f) Revive();
+                return;
+            }
             if (stunTimer > 0f) { stunTimer -= dt; return; }
+            if (aggroTimer > 0f) aggroTimer -= dt;
+            if (fleeTimer > 0f) fleeTimer -= dt;
+            if (strikeTimer > 0f) strikeTimer -= dt;
+            if (seeker.Alive && Time.time - seeker.LastHurt > 8f) seeker.Heal(3f * dt);
+            if (rearmTimer > 0f)
+            {
+                rearmTimer -= dt;
+                // Il s'est refait une epee (il a du bois et du fer quelque part).
+                if (rearmTimer <= 0f && armed && seeker.Kit.FreeSlot >= 0 && seeker.Kit.Held == null)
+                {
+                    seeker.Kit.Slots[seeker.Kit.FreeSlot] = new Tool(ToolKind.Epee);
+                    seeker.Kit.Select(0);
+                }
+            }
             if (huntTimer > 0f) huntTimer -= dt;
             if (stealCooldown > 0f) stealCooldown -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
@@ -202,6 +232,26 @@ namespace Fief
         {
             Hoard h = seeker.Hoard;
             Mage mage = Game.Mage;
+
+            // Il fuit : on l'a frappe alors qu'il ne peut pas se battre.
+            if (fleeTimer > 0f)
+            {
+                Vector3 away = transform.position - fleeFrom;
+                away.y = 0f;
+                goal = Goal.Flee;
+                target = transform.position + (away.sqrMagnitude > 0.01f ? away.normalized : transform.forward) * 20f;
+                return;
+            }
+
+            // Il se bat : on l'a frappe, ou un porteur de relique passe a sa portee.
+            if (aggro == null) LookForPrey();
+            if (aggro != null && aggroTimer > 0f && aggro.Alive && aggro.Body != null && seeker.CanStrike && seeker.Kit.Holding(ToolKind.Epee))
+            {
+                goal = Goal.Fight;
+                target = aggro.Body.position;
+                return;
+            }
+            aggro = null;
 
             if (!h.StelePlanted) { goal = Goal.PlantStele; target = steleSpot; return; }
 
@@ -278,13 +328,15 @@ namespace Fief
             if (goal == Goal.Hunt || goal == Goal.ToStele && h.Trophy != null) speed = RunSpeed * (h.Trophy != null ? 0.85f : 1f);
 
             float distance = Flat(target - transform.position).magnitude;
-            float reach = goal == Goal.Gather ? 2.2f : goal == Goal.Hunt ? 1.6f : 2.4f;
+            float reach = goal == Goal.Gather ? 2.2f : goal == Goal.Hunt ? 1.6f : goal == Goal.Fight ? 1.9f : 2.4f;
+            if (goal == Goal.Fight || goal == Goal.Flee) speed = RunSpeed;
 
             if (distance > reach)
             {
                 work = 0f;
                 if (goal == Goal.ToMage && Game.Mage != null) target = Game.Mage.transform.position;
                 if (goal == Goal.Hunt && huntTarget != null && huntTarget.Body != null) target = huntTarget.Body.position;
+                if (goal == Goal.Fight && aggro != null && aggro.Body != null) target = aggro.Body.position;
                 Walk(target, speed, dt);
                 return;
             }
@@ -344,6 +396,23 @@ namespace Fief
 
                 case Goal.Hunt:
                     Catch();
+                    break;
+
+                case Goal.Fight:
+                    // A portee : un coup d'epee toutes les 1,1 s.
+                    if (strikeTimer <= 0f && aggro != null && seeker.CanStrike)
+                    {
+                        strikeTimer = 1.1f;
+                        if (Game.Rig != null && PlayerWithin(25f)) Sfx.HarvestTap(ResourceType.Iron);
+                        if (seeker.Kit.Wear(1)) rearmTimer = 60f;
+                        Combat.Hit(aggro, seeker, 20f);
+                        if (!aggro.Alive) { aggro = null; Bark("Et voila."); }
+                    }
+                    if (aggro != null && aggro.Body != null) Figures.Face(transform, aggro.Body.position, 360f);
+                    break;
+
+                case Goal.Flee:
+                    think = 0f;
                     break;
 
                 case Goal.Guard:
@@ -454,6 +523,74 @@ namespace Fief
                 seeker.Discover(me);
                 if (PlayerWithin(25f)) Bark("Tiens. Une stele.");
             }
+        }
+
+        // ================================================================== le combat
+
+        /// <summary>Il en a une (Mahaut et Oswin partent armes, Guerin non).</summary>
+        public bool armed;
+
+        public void Arm()
+        {
+            armed = true;
+            seeker.Kit.Slots[0] = new Tool(ToolKind.Epee);
+            seeker.Kit.Select(0);
+        }
+
+        /// <summary>On vient de le frapper. S'il peut se battre, il se retourne ; sinon il fuit.</summary>
+        public void OnHit(Seeker attacker)
+        {
+            if (attacker == null || !seeker.Alive) return;
+            bool canFight = seeker.CanStrike && seeker.Kit.Holding(ToolKind.Epee) && seeker.Health > 35f;
+            if (canFight)
+            {
+                aggro = attacker;
+                aggroTimer = 25f;
+                Bark("Tu vas le regretter.");
+            }
+            else
+            {
+                fleeTimer = 6f;
+                fleeFrom = attacker.Body != null ? attacker.Body.position : transform.position;
+                Bark(seeker.Hoard.RelicInHand || seeker.Hoard.Trophy != null ? "Pas la relique !" : "Laisse-moi !");
+            }
+            think = 0f;
+        }
+
+        /// <summary>
+        /// Un porteur de relique (toi, avec la tienne ou une volee) passe a moins de
+        /// douze metres : les rivaux armes et agressifs tentent leur chance.
+        /// </summary>
+        void LookForPrey()
+        {
+            Seeker me = Game.Me;
+            if (me == null || !me.Alive || me.Body == null || !armed || !seeker.CanStrike) return;
+            bool carrying = me.Hoard.RelicInHand || me.Hoard.Trophy != null;
+            if (!carrying || !PlayerWithin(12f)) return;
+            if (rng.NextDouble() > aggression * 0.08f) return;       // une chance par reflexion, selon son caractere
+            aggro = me;
+            aggroTimer = 20f;
+            Bark("Donne-moi ca.");
+        }
+
+        public void Die()
+        {
+            deadTimer = 20f;
+            aggro = null;
+            huntTarget = null;
+            if (body != null) body.enabled = false;
+            if (figure != null) figure.gameObject.SetActive(false);
+            transform.position += Vector3.down * 50f;          // hors de vue, le temps de se relever
+        }
+
+        void Revive()
+        {
+            seeker.Health = Seeker.MaxHealth;
+            Vector3 at = Combat.RespawnPoint(seeker, transform.position + Vector3.up * 50f);
+            transform.position = at;
+            if (figure != null) figure.gameObject.SetActive(true);
+            if (armed) rearmTimer = 60f;
+            think = 0f;
         }
 
         // ================================================================== marcher

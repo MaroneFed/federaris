@@ -127,9 +127,10 @@ namespace Fief
 
             // Un seul endroit decide qui a la main : souris libre et joueur fige
             // des qu'un menu OU un panneau est ouvert.
-            bool blocked = Blocking || panelOpen || entering;
+            bool dead = Game.Hud != null && Game.Hud.Dead;
+            bool blocked = Blocking || panelOpen || entering || dead;
             Cursor.lockState = blocked ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = blocked && !entering;
+            Cursor.visible = blocked && !entering && !dead;
 
             if (Game.Player != null) Game.Player.InputLocked = blocked;
             if (cam != null) cam.InputLocked = blocked;
@@ -223,7 +224,8 @@ namespace Fief
                     { "E", "ramasser, parler, poser, voler (maintenir)" },
                     { "P", "planter ta stele (une seule fois)" },
                     { "C  /  G", "planter ton camp  /  creuser une cache (maintenir)" },
-                    { "Tab", "ta besace : victoires et talismans" },
+                    { "Tab", "ta besace : victoires, artisanat (hache, epee), talismans" },
+                    { "1 / 2  +  clic", "prendre un outil, frapper  --  F : grimper dans un arbre" },
                     { "Echap", "pause   --   F1 : toutes les commandes" }
                 };
                 for (int i = 0; i < keys.GetLength(0); i++)
@@ -659,7 +661,10 @@ namespace Fief
             { "C", "Planter ton camp (une fois)" },
             { "G (maintenir)", "Creuser une cache (trois)" },
             { "P", "Planter ta stele (une fois)" },
-            { "Tab", "Ta besace : tes talismans" },
+            { "Tab", "Ta besace : victoires, artisanat, talismans" },
+            { "1 / 2", "Prendre en main un outil (hache, epee)" },
+            { "Clic gauche", "Frapper : abattre un arbre, se battre" },
+            { "F", "Grimper dans un arbre / redescendre" },
             { "Echap", "Pause" },
             { "F1", "Aide a l'ecran" },
             { "F3", "Diagnostic" }

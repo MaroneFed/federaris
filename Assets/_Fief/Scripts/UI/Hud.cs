@@ -57,6 +57,82 @@ namespace Fief
             cardItem = -1;
         }
 
+        // --- les coups, la chute
+        float hurtFlash;
+        float deathTimer;
+        string killedBy;
+
+        /// <summary>Vrai pendant les quelques secondes ou l'on est tombe : les entrees sont figees.</summary>
+        public bool Dead { get { return deathTimer > 0f; } }
+
+        public void Hurt()
+        {
+            hurtFlash = 1f;
+        }
+
+        public void ShowDeath(string killer)
+        {
+            killedBy = killer;
+            deathTimer = Combat.RespawnSeconds;
+            ClosePanel();
+            Sfx.Bell();
+        }
+
+        void TickLife()
+        {
+            if (hurtFlash > 0f) hurtFlash = Mathf.Max(0f, hurtFlash - Time.unscaledDeltaTime * 1.6f);
+            Seeker me = Game.Me;
+            if (me == null) return;
+
+            if (deathTimer > 0f)
+            {
+                deathTimer -= Time.deltaTime;
+                if (deathTimer <= 0f)
+                {
+                    // Se relever, les mains vides, a sa stele.
+                    Vector3 at = Combat.RespawnPoint(me, me.Body != null ? me.Body.position : Vector3.zero);
+                    if (Game.Player != null) Game.Player.Teleport(at, Game.PlayerTransform.eulerAngles.y);
+                    me.Health = Seeker.MaxHealth;
+                    Toasts.Show("Tu te releves pres de ta stele. Ta depouille est la ou tu es tombe.", UiStyle.InkDim);
+                }
+                return;
+            }
+            // La vie remonte apres huit secondes sans coup.
+            if (me.Alive && Time.time - me.LastHurt > 8f) me.Heal(3f * Time.deltaTime);
+        }
+
+        void DrawLife()
+        {
+            Seeker me = Game.Me;
+            if (me == null) return;
+            if (hurtFlash > 0f)
+                UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.6f, 0.02f, 0.02f, hurtFlash * 0.35f));
+
+            if (deathTimer > 0f)
+            {
+                float a = Mathf.Clamp01((Combat.RespawnSeconds - deathTimer) / 0.8f);
+                UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.03f, 0.01f, 0.01f, a * 0.92f));
+                GUIStyle big = UiStyle.Big;
+                TextAnchor previous = big.alignment;
+                big.alignment = TextAnchor.MiddleCenter;
+                UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f, Screen.width, UiStyle.S(70)), UiStyle.Spaced("TU ES TOMBE"), big,
+                               new Color(0.85f, 0.3f, 0.25f, a));
+                big.alignment = previous;
+                UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f + UiStyle.S(76), Screen.width, UiStyle.S(24)),
+                               "sous les coups de " + killedBy + ". Tout ce que tu portais est reste la-bas.", UiStyle.Centered,
+                               new Color(0.9f, 0.85f, 0.78f, a));
+                return;
+            }
+
+            // La barre de vie : seulement quand elle n'est pas pleine.
+            if (me.Health < Seeker.MaxHealth - 0.5f)
+            {
+                float w = UiStyle.S(260);
+                Rect bar = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(110), w, UiStyle.S(10));
+                UiStyle.Bar(bar, me.Health / Seeker.MaxHealth, new Color(0.75f, 0.16f, 0.12f), UiStyle.BarBg);
+            }
+        }
+
         int cardItem = -1;
         float flash;
         Color flashTint;
@@ -88,6 +164,7 @@ namespace Fief
         {
             Toasts.Tick(Time.unscaledDeltaTime);
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
+            TickLife();
             if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.3f);
             if (slowMo > 0f)
             {
@@ -136,6 +213,7 @@ namespace Fief
             DrawPack();
             DrawPrompt();
             DrawDigging();
+            DrawTools();
             DrawDiscovery();
             Toasts.Draw();
             if (!showHelp) Objectives.Draw();
@@ -144,6 +222,7 @@ namespace Fief
             if (showDiagnostic) DrawDiagnostic();
 
             if (panel != null) panel.Draw();
+            DrawLife();
         }
 
         // ---------------------------------------------------------------- horloge
@@ -352,6 +431,46 @@ namespace Fief
                                     box.width - UiStyle.S(12), UiStyle.S(4));
                 UiStyle.Bar(bar, interactor.HoldProgress01, Palette.Gold, new Color(0f, 0f, 0f, 0.5f));
             }
+        }
+
+        // ---------------------------------------------------------------- les outils
+
+        /// <summary>
+        /// La barre d'outils : deux emplacements en bas au centre (1 et 2), l'outil,
+        /// son usure. Et au centre de l'ecran, un point de visee quand on tient un
+        /// outil, avec ce qu'on peut faire ("Clic : abattre l'arbre").
+        /// </summary>
+        void DrawTools()
+        {
+            Seeker me = Game.Me;
+            if (me == null) return;
+            Kit kit = me.Kit;
+            float size = UiStyle.S(54);
+            float gap = UiStyle.S(10);
+            float x = (Screen.width - size * 2f - gap) * 0.5f;
+            float y = Screen.height - size - UiStyle.S(20);
+            for (int i = 0; i < 2; i++)
+            {
+                Rect r = new Rect(x + i * (size + gap), y, size, size);
+                GUI.Box(r, GUIContent.none, kit.Active == i ? UiStyle.PanelBox : UiStyle.CardBox);
+                if (kit.Active == i) UiStyle.FadeBand(new Rect(r.x, r.yMax - 2f, r.width, 2f), Palette.Gold);
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(6), r.y + UiStyle.S(2), UiStyle.S(20), UiStyle.S(16)), (i + 1).ToString(), UiStyle.Tiny, UiStyle.InkDim);
+                Tool t = kit.Slots[i];
+                if (t == null) continue;
+                UiStyle.Tinted(new Rect(r.x, r.y + UiStyle.S(10), r.width, r.height - UiStyle.S(24)), Kit.Name(t.Kind), UiStyle.CenteredSmall,
+                               kit.Active == i ? Palette.Gold : UiStyle.Ink);
+                UiStyle.Bar(new Rect(r.x + UiStyle.S(8), r.yMax - UiStyle.S(12), r.width - UiStyle.S(16), UiStyle.S(4)),
+                            (float)t.Durability / t.Max, new Color(0.7f, 0.72f, 0.75f), UiStyle.BarBg);
+            }
+
+            if (ToolUser.Aiming)
+            {
+                float d = UiStyle.S(4);
+                UiStyle.Icon(new Rect(Screen.width * 0.5f - d * 0.5f, Screen.height * 0.5f - d * 0.5f, d, d), UiStyle.Shape.Dot, new Color(1f, 1f, 1f, 0.7f));
+            }
+            if (!string.IsNullOrEmpty(ToolUser.Hint) && panel == null)
+                UiStyle.Tinted(new Rect(0f, Screen.height * 0.5f + UiStyle.S(26), Screen.width, UiStyle.S(20)), ToolUser.Hint,
+                               UiStyle.CenteredSmall, new Color(0.95f, 0.9f, 0.8f, 0.9f));
         }
 
         // ---------------------------------------------------------------- trouvaille

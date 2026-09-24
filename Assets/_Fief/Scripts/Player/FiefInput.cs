@@ -95,6 +95,25 @@ namespace Fief
         public static bool DigHeld { get { return KeyHeld(KeyCode.G); } }
         public static bool DigPressed { get { return KeyPressed(KeyCode.G); } }
 
+        public static bool Slot1Pressed { get { return KeyPressed(KeyCode.Alpha1); } }
+        public static bool Slot2Pressed { get { return KeyPressed(KeyCode.Alpha2); } }
+        /// <summary>F : grimper dans un arbre, ou en redescendre.</summary>
+        public static bool ClimbPressed { get { return KeyPressed(KeyCode.F); } }
+
+        /// <summary>Clic gauche maintenu : frapper avec l'outil en main.</summary>
+        public static bool UseHeld
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                Mouse m = Mouse.current;
+                return m != null && m.leftButton.isPressed;
+#else
+                return Input.GetMouseButton(0);
+#endif
+            }
+        }
+
         /// <summary>Tab : ouvrir sa besace (les talismans trouves).</summary>
         public static bool SatchelPressed { get { return KeyPressed(KeyCode.Tab); } }
 
@@ -138,6 +157,9 @@ namespace Fief
                 case KeyCode.G: return k.gKey;
                 case KeyCode.P: return k.pKey;
                 case KeyCode.Tab: return k.tabKey;
+                case KeyCode.Alpha1: return k.digit1Key;
+                case KeyCode.Alpha2: return k.digit2Key;
+                case KeyCode.F: return k.fKey;
             }
             return null;
         }

@@ -42,7 +42,8 @@ de 16 ans pour les assets et la map (débutant complet).
 | Camp et caches | Un camp, planté **une seule fois**. Trois caches au plus, creusées n'importe où ; seul leur propriétaire sait où elles sont. |
 | Stèles et vol | **Chacun sa stèle**, plantée une fois où il veut (révisé le 24/09/2026 par Martin). Seule la relique posée sur **sa** stèle compte. On peut **voler** celle des autres (60 % seulement se fond dans la sienne). Trois **rivaux PNJ** jouent avec exactement les mêmes règles que le joueur (classe `Seeker`). |
 | Monnaie | L'Or, unique. Il sert à **soudoyer** (Phase 2), pas à acheter. |
-| Combat | Simple et lisible (mêlée + arc). L'intérêt est tactique/préparatoire |
+| Combat | Simple et lisible. **Épée** fabriquée (2 bois, 3 fer), quatre coups tuent ; **qui porte une relique ne peut pas frapper** (Martin, 24/09). Tomber = tout lâcher dans une dépouille, se relever à sa stèle. L'arc reste à faire. |
+| Outils | Deux emplacements (1 / 2) : **hache** (abattre les arbres) et **épée**, qui s'usent et cassent. L'outil tenu se voit à l'écran — **l'outil seul, jamais de mains** (la règle du corps invisible tient). |
 | Persistance | **Aucune** entre parties |
 | Réseau | Listen-server + Steam P2P. **Autorité serveur absolue sur l'économie** |
 

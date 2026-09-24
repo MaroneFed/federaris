@@ -23,6 +23,9 @@ namespace Fief
         public readonly Hoard Hoard;
         public Transform Body;
 
+        /// <summary>Ses deux emplacements d'outils (hache, epee).</summary>
+        public readonly Kit Kit = new Kit();
+
         /// <summary>Les steles des autres qu'on a vues de ses yeux (on peut y revenir).</summary>
         public readonly System.Collections.Generic.List<Seeker> KnownSteles =
             new System.Collections.Generic.List<Seeker>();
@@ -54,5 +57,34 @@ namespace Fief
         }
 
         public int Score { get { return Hoard != null ? Hoard.FinalScore : 0; } }
+
+        // ------------------------------------------------------------------ la vie
+
+        public const float MaxHealth = 100f;
+        public float Health = MaxHealth;
+        public bool Alive { get { return Health > 0f; } }
+        /// <summary>Heure (Time.time) du dernier coup recu : la vie ne remonte qu'apres un moment de calme.</summary>
+        public float LastHurt = -99f;
+
+        /// <summary>
+        /// LA REGLE DU PORTEUR (Martin, 24/09) : qui porte une relique -- la sienne en
+        /// main, ou une volee -- ne peut PAS frapper. Les autres, si. Porter, c'est
+        /// etre une cible.
+        /// </summary>
+        public bool CanStrike { get { return Alive && Hoard != null && !Hoard.RelicInHand && Hoard.Trophy == null; } }
+
+        /// <summary>Encaisser un coup. Vrai si ce coup est mortel.</summary>
+        public bool TakeDamage(float amount, float now)
+        {
+            if (!Alive || amount <= 0f) return false;
+            Health = Mathf.Max(0f, Health - amount);
+            LastHurt = now;
+            return Health <= 0f;
+        }
+
+        public void Heal(float amount)
+        {
+            Health = Mathf.Min(MaxHealth, Health + amount);
+        }
     }
 }

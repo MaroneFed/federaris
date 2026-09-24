@@ -14,7 +14,7 @@ namespace Fief
 
         public bool IsStillValid { get { return Game.Hoard != null; } }
 
-        bool talismansTab;
+        int tab;            // 0 : victoires, 1 : artisanat, 2 : talismans
 
         public void Draw()
         {
@@ -28,15 +28,23 @@ namespace Fief
             float y = box.y + UiStyle.S(22);
 
             // Deux onglets : les chemins de la victoire, et les talismans.
-            if (Tab(new Rect(x, y, UiStyle.S(320), UiStyle.S(38)), "VICTOIRES", !talismansTab)) talismansTab = false;
-            if (Tab(new Rect(x + UiStyle.S(340), y, UiStyle.S(320), UiStyle.S(38)), "TALISMANS", talismansTab)) talismansTab = true;
+            float tw = (w - UiStyle.S(56)) / 3f;
+            if (Tab(new Rect(x, y, tw, UiStyle.S(38)), "VICTOIRES", tab == 0)) tab = 0;
+            if (Tab(new Rect(x + tw, y, tw, UiStyle.S(38)), "ARTISANAT", tab == 1)) tab = 1;
+            if (Tab(new Rect(x + tw * 2f, y, tw, UiStyle.S(38)), "TALISMANS", tab == 2)) tab = 2;
             y += UiStyle.S(44);
             UiStyle.Rule(new Rect(x, y, w - UiStyle.S(56), UiStyle.S(8)));
             y += UiStyle.S(18);
 
-            if (!talismansTab)
+            if (tab == 0)
             {
                 DrawVictories(box, x, y, w - UiStyle.S(56));
+                CloseButton(box);
+                return;
+            }
+            if (tab == 1)
+            {
+                DrawCrafting(x, y, w - UiStyle.S(56));
                 CloseButton(box);
                 return;
             }
@@ -147,6 +155,64 @@ namespace Fief
                 progress += Mathf.Clamp01((float)got / Victories.Offering[i]) / ResourceInfo.Count;
             }
             Card(x, ref y, width, cardH, VictoryKind.Offrande, offer + ".", progress, new Color(0.62f, 0.86f, 0.48f));
+        }
+
+        /// <summary>
+        /// L'ARTISANAT : fabriquer une hache ou une epee avec ce qu'on porte. Deux
+        /// emplacements seulement (touches 1 et 2) : il faut choisir.
+        /// </summary>
+        static void DrawCrafting(float x, float y, float width)
+        {
+            Seeker me = Game.Me;
+            if (me == null) return;
+            ToolKind[] kinds = { ToolKind.Hache, ToolKind.Epee };
+            string[] uses =
+            {
+                "Abat les arbres (clic, face a un tronc) : 14 bois mort d'un coup. Se brise apres 12 coups.",
+                "Pour se battre : quatre coups tuent. Qui porte une relique ne peut pas frapper. Se brise apres 25 coups."
+            };
+            for (int k = 0; k < kinds.Length; k++)
+            {
+                Rect r = new Rect(x, y, width, UiStyle.S(112));
+                GUI.Box(r, GUIContent.none, UiStyle.CardBox);
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(18), r.y + UiStyle.S(8), width, UiStyle.S(28)), Kit.Name(kinds[k]), UiStyle.Title, Palette.Gold);
+                GUIStyle body = UiStyle.Small;
+                bool wrap = body.wordWrap;
+                body.wordWrap = true;
+                GUI.Label(new Rect(r.x + UiStyle.S(18), r.y + UiStyle.S(42), width * 0.62f, UiStyle.S(40)), uses[k], body);
+                body.wordWrap = wrap;
+
+                // Le cout, ressource par ressource : en rouge ce qui manque.
+                int[] cost = Kit.Cost(kinds[k]);
+                string line = "";
+                for (int i = 0; i < cost.Length; i++)
+                {
+                    if (cost[i] <= 0) continue;
+                    line += (line.Length > 0 ? "   " : "") + cost[i] + " " + ResourceInfo.Name((ResourceType)i)
+                          + " (" + me.Bag.Get((ResourceType)i) + ")";
+                }
+                bool can = Kit.CanAfford(kinds[k], me.Bag);
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(18), r.y + UiStyle.S(84), width * 0.62f, UiStyle.S(20)), line, UiStyle.Small,
+                               can ? UiStyle.Ink : new Color(0.9f, 0.45f, 0.38f));
+
+                bool room = me.Kit.FreeSlot >= 0;
+                GUI.enabled = can && room;
+                if (GUI.Button(new Rect(r.xMax - UiStyle.S(210), r.y + UiStyle.S(36), UiStyle.S(190), UiStyle.S(40)),
+                               room ? "Fabriquer" : "Mains pleines", UiStyle.ButtonPrimary))
+                {
+                    if (me.Kit.TryCraft(kinds[k], me.Bag))
+                    {
+                        me.SyncWeight();
+                        Sfx.Build();
+                        Toasts.Show(Kit.Name(kinds[k]) + " fabriquee. Elle est en main (touche " + (me.Kit.Active + 1) + ").", Palette.Gold);
+                    }
+                }
+                GUI.enabled = true;
+                y += UiStyle.S(122);
+            }
+            UiStyle.Tinted(new Rect(x, y + UiStyle.S(4), width, UiStyle.S(20)),
+                           "Touches 1 et 2 : prendre en main ou ranger.   Clic gauche : frapper.   F : grimper dans un arbre.",
+                           UiStyle.Tiny, UiStyle.InkDim);
         }
 
         static void Card(float x, ref float y, float width, float height, VictoryKind kind, string state, float progress, Color tint)

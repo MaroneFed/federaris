@@ -209,7 +209,9 @@ namespace Fief
         {
             float a = (index * 120f + 60f) * Mathf.Deg2Rad;
             Vector3 spawn = Ground.Place(Mathf.Cos(a) * 240f, Mathf.Sin(a) * 240f, 0.1f);
-            Rival.Build(parent, name, colour, spawn, aggression, ironLove, taunts, config.worldSeed * 41 + index);
+            Rival rival = Rival.Build(parent, name, colour, spawn, aggression, ironLove, taunts, config.worldSeed * 41 + index);
+            // Les deux plus agressifs partent avec une epee.
+            if (aggression >= 0.3f) rival.Arm();
         }
 
         // ================================================================ joueur
@@ -313,6 +315,8 @@ namespace Fief
             // C plante le camp, G creuse une cache. Apres PlayerController : son Awake
             // va chercher ce composant pour savoir quand les entrees sont figees.
             go.AddComponent<CampActions>();
+            // 1 / 2 : les outils ; clic : frapper ; F : grimper.
+            go.AddComponent<ToolUser>();
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;

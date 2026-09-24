@@ -252,6 +252,20 @@ namespace Fief
         /// Deux ondes croisees de periodes differentes -- assez simple pour etre lu
         /// d'un coup d'oeil, assez irregulier pour qu'on n'y voie pas de motif.
         /// </summary>
+        /// <summary>
+        /// Vrai si ce collider est le fut d'un arbre de la foret (qu'on peut abattre
+        /// ou escalader) : une capsule VERTICALE, posee sous la racine "SYLVE". Les
+        /// troncs couches ont une capsule couchee, les rochers une boite, et les
+        /// arbres des lieux-dits vivent ailleurs -- on ne coupe pas le Grand Chene.
+        /// </summary>
+        public static bool IsTree(Collider c)
+        {
+            CapsuleCollider cap = c as CapsuleCollider;
+            if (cap == null || cap.direction != 1) return false;
+            Transform parent = c.transform.parent;
+            return parent != null && parent.name == "SYLVE";
+        }
+
         public static float Canopy(float x, float z)
         {
             float a = Mathf.Sin(x * 0.0121f) * Mathf.Cos(z * 0.0095f);
