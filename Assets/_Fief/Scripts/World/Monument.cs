@@ -261,6 +261,13 @@ namespace Fief
                     if (Progress >= 1f) Capture(alone);
                 }
             }
+            else if (Owner != null && Progress < 1f && (count == 0 || count == 1 && alone == Owner))
+            {
+                // Personne ne le conteste (ou son maitre est revenu) : la marque du
+                // maitre se reforme, vite s'il est la, lentement sinon.
+                Taker = Owner;
+                Progress = Mathf.Min(1f, Progress + dt / CaptureSeconds * (count == 1 ? 1.5f : 0.4f));
+            }
             else if (count == 0 && Taker != null && Taker != Owner)
             {
                 Progress = Mathf.Max(0f, Progress - dt / CaptureSeconds * 0.5f);

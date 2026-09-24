@@ -739,6 +739,86 @@ namespace Fief
             return drone;
         }
 
+        static AudioClip alarm, moan, leaf;
+
+        /// <summary>LA SENTINELLE : trois tintements aigus et rapides -- rien a voir avec le glas.</summary>
+        public static void Alarm()
+        {
+            if (alarm == null)
+            {
+                const float duration = 1.2f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                for (int n = 0; n < 3; n++)
+                {
+                    int start = Mathf.RoundToInt(Rate * n * 0.16f);
+                    for (int i = start; i < count; i++)
+                    {
+                        float t = (float)(i - start) / Rate;
+                        float env = Mathf.Min(1f, t * 400f) * Mathf.Exp(-9f * t);
+                        data[i] += (Mathf.Sin(2f * Mathf.PI * 1318.5f * t) + Mathf.Sin(2f * Mathf.PI * 1975.5f * t) * 0.4f) * env * 0.4f;
+                    }
+                }
+                Normalize(data, 0.85f);
+                alarm = FromSamples("sentinelle", data);
+            }
+            Play(alarm, 0.9f);
+        }
+
+        /// <summary>
+        /// LE RALE DU REVENANT : une voix creuse, sans mots (deux formants qui
+        /// glissent), et un souffle. Quatre secondes qui bouclent : on l'entend
+        /// avant de le voir.
+        /// </summary>
+        public static AudioClip Moan()
+        {
+            if (moan != null) return moan;
+            const float length = 4f;
+            int count = Mathf.RoundToInt(Rate * length);
+            float[] data = new float[count];
+            System.Random rng = new System.Random(31);
+            float low = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float phase = t / length;
+                float voice = Mathf.Sin(2f * Mathf.PI * 82.5f * t) * 0.5f + Mathf.Sin(2f * Mathf.PI * 165f * t) * 0.3f
+                            + Mathf.Sin(2f * Mathf.PI * 247.5f * t) * 0.18f * (0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * phase * 2f));
+                low += (((float)rng.NextDouble() * 2f - 1f) - low) * 0.05f;
+                float swell = 0.3f + 0.7f * Mathf.Pow(Mathf.Sin(Mathf.PI * phase), 2f);
+                data[i] = (voice * 0.6f + low * 0.8f) * swell;
+            }
+            Normalize(data, 0.6f);
+            moan = AudioClip.Create("rale", count, 1, Rate, false);
+            moan.SetData(data, 0);
+            return moan;
+        }
+
+        /// <summary>Un pas dans les feuilles mortes : un froissement tres bref.</summary>
+        public static void LeafStep()
+        {
+            if (leaf == null)
+            {
+                const float duration = 0.18f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                System.Random rng = new System.Random(77);
+                float prev = 0f;
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float noise = (float)rng.NextDouble() * 2f - 1f;
+                    float crisp = noise - prev * 0.6f;
+                    prev = noise;
+                    float crackles = rng.NextDouble() < 0.02 ? 1.6f : 1f;
+                    data[i] = crisp * Mathf.Exp(-22f * t) * crackles;
+                }
+                Normalize(data, 0.5f);
+                leaf = FromSamples("feuilles", data);
+            }
+            Play(leaf, 0.16f);
+        }
+
         static AudioClip steleCall;
 
         /// <summary>
@@ -848,9 +928,20 @@ namespace Fief
         /// Un piege qui se referme : un claquement de fer (bruit tres bref, filtre
         /// haut) et deux notes metalliques qui sonnent faux. Sec, et on le reconnait.
         /// </summary>
+        public static AudioClip TrapSnapClip()
+        {
+            if (trapSnap == null) BuildTrapSnap();
+            return trapSnap;
+        }
+
         public static void TrapSnap()
         {
-            if (trapSnap == null)
+            if (trapSnap == null) BuildTrapSnap();
+            Play(trapSnap, 1f);
+        }
+
+        static void BuildTrapSnap()
+        {
             {
                 const float duration = 0.9f;
                 int count = Mathf.RoundToInt(Rate * duration);
@@ -871,7 +962,6 @@ namespace Fief
                 Normalize(data, 0.9f);
                 trapSnap = FromSamples("piege", data);
             }
-            Play(trapSnap, 1f);
         }
 
         static AudioClip curseToll, curseStrike;

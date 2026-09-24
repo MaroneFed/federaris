@@ -153,7 +153,7 @@ namespace Fief
                 if (r == null || !r.seeker.Alive) continue;
                 if (Flat(r.transform.position - transform.position).magnitude > 12f) continue;
                 sentinelCooldown = 40f;
-                Sfx.CurseToll();
+                Sfx.Alarm();
                 if (Game.Hud != null)
                     Game.Hud.ShowDiscovery("SENTINELLE", r.seeker.Name + " rode a ta stele",
                                            "Elle est " + Hud.Direction(me.Body.position, transform.position) + ".",

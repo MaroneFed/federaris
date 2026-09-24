@@ -130,6 +130,14 @@ namespace Fief
                 if (r != null && r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == me) tense = true;
             }
             if (me != null && me.Hoard.Trophy != null) tense = true;
+            // Une bete te chasse.
+            for (int i = 0; i < Beast.All.Count && !tense; i++) if (Beast.All[i] != null && Beast.All[i].Hunting(me)) tense = true;
+            // La Malediction dans moins de trente secondes, et le sac n'est pas vide.
+            if (Game.Season != null && Game.Inventory != null && !Game.Inventory.IsEmpty)
+            {
+                float curse = Game.Season.NextCurseIn;
+                if (curse >= 0f && curse < 30f) tense = true;
+            }
             if (Game.Season != null && Game.Season.Running && Game.Season.Remaining < 120f) tense = true;
 
             if (tense) calmTimer = 12f;

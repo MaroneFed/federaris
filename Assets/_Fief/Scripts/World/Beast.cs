@@ -112,9 +112,27 @@ namespace Fief
             return b;
         }
 
+        /// <summary>Chasse-t-il ce chercheur, en ce moment ?</summary>
+        public bool Hunting(Seeker s)
+        {
+            return state == State.Chase && prey == s;
+        }
+
         public static Beast Revenant(Transform parent, Vector3 at, int seed)
         {
             Beast b = Make(parent, at, Kind.Revenant, seed, 1.9f, 0.4f);
+            // Il rale : une voix creuse qu'on entend a vingt-cinq metres.
+            AudioSource voice = b.gameObject.AddComponent<AudioSource>();
+            voice.clip = Sfx.Moan();
+            voice.loop = true;
+            voice.spatialBlend = 1f;
+            voice.rolloffMode = AudioRolloffMode.Linear;
+            voice.minDistance = 3f;
+            voice.maxDistance = 25f;
+            voice.dopplerLevel = 0f;
+            voice.volume = 0.5f;
+            voice.pitch = 0.9f + (seed % 5) * 0.05f;
+            voice.Play();
             b.maxHealth = 90f; b.damage = 22f; b.bite = 1.6f; b.speed = 4.6f; b.sight = 13f; b.leash = 18f; b.respawn = 180f;
             b.goldCarried = 6;
 
@@ -430,6 +448,8 @@ namespace Fief
                 Toasts.Show("Le loup s'effondre.", UiStyle.InkDim);
             body.enabled = false;
             dying = 0f;
+            AudioSource voiceOff = GetComponent<AudioSource>();
+            if (voiceOff != null) voiceOff.Stop();
             Light l = GetComponentInChildren<Light>();
             if (l != null) l.enabled = false;
         }
@@ -460,6 +480,8 @@ namespace Fief
             transform.position = home + Vector3.up * 0.2f;
             body.enabled = true;
             dying = -1f;
+            AudioSource voiceOn = GetComponent<AudioSource>();
+            if (voiceOn != null) voiceOn.Play();
             figure.localRotation = Quaternion.identity;
             figure.localPosition = Vector3.zero;
             figure.gameObject.SetActive(true);

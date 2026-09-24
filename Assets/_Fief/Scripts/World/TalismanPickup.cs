@@ -143,7 +143,10 @@ namespace Fief
                 case Talisman.Lanterne:
                     Light lamp = Atmosphere.Lamp;
                     if (lamp == null) break;
-                    lamp.range = TalismanInfo.LanternRange;
+                    // Le Verre poli (amelioration de la stele) s'ajoute au talisman au lieu
+                    // d'etre efface par lui.
+                    bool polished = Game.Hoard != null && Game.Hoard.Level(UpgradeKind.Lanterne) > 0;
+                    lamp.range = TalismanInfo.LanternRange * (polished ? UpgradeInfo.LanternFactor : 1f);
                     lamp.color = new Color(1f, 0.84f, 0.62f);
                     float boosted = (Game.Config != null ? Game.Config.lampIntensity : 1f) * TalismanInfo.LanternBoost;
                     lamp.intensity = boosted;

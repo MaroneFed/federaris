@@ -237,6 +237,7 @@ namespace Fief
             }
             if (huntTimer > 0f) huntTimer -= dt;
             if (siegeTimer > 0f) siegeTimer -= dt;
+            if (dangerTimer > 0f) dangerTimer -= dt;
             if (stealCooldown > 0f) stealCooldown -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
 
@@ -417,6 +418,7 @@ namespace Fief
                     h.RequestStoreAll(seeker.Bag);
                     if (h.RelicInHand) h.TryPlaceOnStele();
                     seeker.SyncWeight();
+                    Improve();
                     SetTraps();
                     think = 0f;
                     break;
@@ -481,7 +483,7 @@ namespace Fief
                         if (rig != null) rig.PlaySwing();
                         if (Game.Rig != null && PlayerWithin(25f)) Sfx.HarvestTap(ResourceType.Iron);
                         if (seeker.Kit.Wear(1)) rearmTimer = 60f;
-                        Combat.Hit(aggro, seeker, 20f);
+                        Combat.Hit(aggro, seeker, 20f * (h.Level(UpgradeKind.Lame) > 0 ? UpgradeInfo.LameFactor : 1f));
                         if (!aggro.Alive) { aggro = null; Bark("Et voila."); }
                     }
                     if (aggro != null && aggro.Body != null) Figures.Face(transform, aggro.Body.position, 360f);
@@ -497,6 +499,31 @@ namespace Fief
                     break;
             }
         }
+
+        /// <summary>
+        /// Les rivaux s'ameliorent aussi, a leur stele, avec leur reserve et leur or
+        /// (memes prix que toi) : une besace plus grande, l'amulette du glas, une
+        /// lame trempee pour les armes, des collets pour les poseurs de pieges. Leur
+        /// or sert enfin a quelque chose.
+        /// </summary>
+        void Improve()
+        {
+            Hoard h = seeker.Hoard;
+            UpgradeKind[] wishes = armed
+                ? new[] { UpgradeKind.Besace, UpgradeKind.Lame, UpgradeKind.Amulette, UpgradeKind.Collets }
+                : new[] { UpgradeKind.Besace, UpgradeKind.Amulette, UpgradeKind.Besace };
+            for (int i = 0; i < wishes.Length; i++)
+            {
+                if (!h.CanBuy(wishes[i], seeker.Money)) continue;
+                if (!h.TryBuyUpgrade(wishes[i], seeker.Bag, seeker.Money)) continue;
+                if (PlayerWithin(25f)) Bark("Voila qui aidera.");
+                return;                                 // une a la fois
+            }
+        }
+
+        // Un endroit ou il s'est fait mordre : il l'evite une minute.
+        Vector3 dangerAt;
+        float dangerTimer;
 
         Monument NearestAltar()
         {
@@ -575,6 +602,7 @@ namespace Fief
                     if (n == null || n.IsDepleted) continue;
                     if (pass == 0 && n.type != wanted) continue;
                     if (seeker.Bag.SpaceFor(n.type) <= 0) continue;
+                    if (dangerTimer > 0f && Flat(n.transform.position - dangerAt).magnitude < 30f) continue;
                     float d = Flat(n.transform.position - transform.position).magnitude;
                     if (pass == 0 && d > limit) continue;
                     if (d < bestD) { bestD = d; best = n; }
@@ -675,6 +703,9 @@ namespace Fief
         {
             fleeTimer = 7f;
             fleeFrom = from;
+            dangerAt = from;
+            dangerTimer = 60f;
+            node = null;
             siege = null;
             siegeTimer = 0f;
             think = 0f;

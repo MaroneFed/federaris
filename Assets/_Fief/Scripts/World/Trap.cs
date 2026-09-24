@@ -28,6 +28,7 @@ namespace Fief
         [System.NonSerialized] public Seeker owner;
         Transform jawA, jawB;
         Renderer[] parts;
+        Renderer glint;
         bool shown = true;
         bool sprung;
         float closing;
@@ -99,8 +100,17 @@ namespace Fief
                                              new Vector3(0.14f, 0.008f, 0.09f), leaves[i % leaves.Length], "Feuille");
                 leaf.transform.localRotation = Quaternion.Euler((float)rng.NextDouble() * 20f - 10f, (float)rng.NextDouble() * 360f, 0f);
             }
+            GameObject spark = Proto.Cube(t, new Vector3(0.18f, 0.06f, 0.05f), new Vector3(0.03f, 0.03f, 0.03f), Color.white, "Reflet");
+            spark.transform.localRotation = Quaternion.Euler(45f, 45f, 0f);
             Proto.EndVisualOnly();
+            glint = spark.GetComponent<Renderer>();
+            glint.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.95f, 0.85f), 3f);
             parts = GetComponentsInChildren<Renderer>(true);
+            // Le reflet ne fait pas partie de ce qu'on montre de pres : il est a part.
+            List<Renderer> rest = new List<Renderer>(parts);
+            rest.Remove(glint);
+            parts = rest.ToArray();
+            glint.enabled = false;
         }
 
         /// <summary>Une machoire : un demi-cercle de fer herisse de dents, pivotant sur l'axe du ressort.</summary>
@@ -140,11 +150,20 @@ namespace Fief
 
             // Visible de pres seulement -- sauf pour son proprietaire.
             Transform player = Game.PlayerTransform;
-            bool see = owner == Game.Me || player != null && Flat(player.position - transform.position).magnitude < SeenFrom;
+            float away = player != null ? Flat(player.position - transform.position).magnitude : 99f;
+            bool see = owner == Game.Me || away < SeenFrom;
             if (see != shown)
             {
                 shown = see;
                 for (int i = 0; i < parts.Length; i++) if (parts[i] != null) parts[i].enabled = see;
+            }
+            // Le REFLET : entre 3,5 et 7 m, le fer accroche de temps en temps la
+            // lumiere de ta lanterne. Un point qui scintille dans les feuilles --
+            // celui qui regarde ou il marche a une chance.
+            if (glint != null)
+            {
+                bool twinkle = !see && away < 7f && Mathf.Sin(Time.time * 2.3f + transform.position.x) > 0.8f;
+                if (glint.enabled != twinkle) glint.enabled = twinkle;
             }
 
             // Quelqu'un marche dessus ?
@@ -176,9 +195,13 @@ namespace Fief
         {
             sprung = true;
             Snap();
+            if (victim.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.6f);
             Combat.Kill(victim, owner, "dans un piege de " + (owner != null ? owner.Name : "quelqu'un"));
             if (owner == Game.Me && !victim.IsPlayer)
-                Toasts.Show(victim.Name + " est tombe dans ton piege. Sa depouille t'attend.", new Color(0.95f, 0.55f, 0.3f));
+            {
+                string where = Game.PlayerTransform != null ? Hud.Direction(Game.PlayerTransform.position, transform.position) : "";
+                Toasts.Show(victim.Name + " est tombe dans ton piege, " + where + ". Sa depouille t'attend.", new Color(0.95f, 0.55f, 0.3f));
+            }
             Destroy(gameObject, 25f);
         }
 
@@ -186,8 +209,12 @@ namespace Fief
         {
             for (int i = 0; i < parts.Length; i++) if (parts[i] != null) parts[i].enabled = true;
             shown = true;
+            // De pres, le claquement en plein ; de loin (jusqu'a 120 m), un claquement
+            // lointain, spatialise : on sait qu'un piege s'est referme, et de quel cote.
             Transform player = Game.PlayerTransform;
-            if (player != null && Flat(player.position - transform.position).magnitude < 35f) Sfx.TrapSnap();
+            float far = player != null ? Flat(player.position - transform.position).magnitude : 999f;
+            if (far < 12f) Sfx.TrapSnap();
+            else if (far < 120f && !Sfx.Muted) AudioSource.PlayClipAtPoint(Sfx.TrapSnapClip(), transform.position + Vector3.up, 1f);
         }
 
         static Vector3 Flat(Vector3 v)

@@ -167,6 +167,9 @@ namespace Fief
             {
                 strideAccumulator = 0f;
                 Sfx.Step();
+                // Hors du chateau, le sol est jonche de feuilles : elles froissent.
+                Vector3 p = transform.position;
+                if (!Castle.Covers(p.x, p.z, 0f)) Sfx.LeafStep();
             }
         }
 
