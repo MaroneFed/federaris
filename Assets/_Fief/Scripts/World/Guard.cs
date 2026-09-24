@@ -36,7 +36,7 @@ namespace Fief
         float pause;
         CharacterController body;
         float fall;
-        Transform figure;
+        Walker walker;
         Light cone;
         float lookSweep;
 
@@ -79,32 +79,71 @@ namespace Fief
             g.route = route;
             g.body = cc;
 
+            // Le corps : un soldat articule qui marche vraiment (voir Walker.cs).
+            Walker.Look look = new Walker.Look();
+            look.skin = Skin;
+            look.shirt = new Color(0.30f, 0.27f, 0.24f);       // gambison matelasse
+            look.legs = new Color(0.22f, 0.2f, 0.19f);
+            look.boots = new Color(0.16f, 0.12f, 0.09f);
+            look.bulk = 1.12f;
+            look.height = 1.9f;
+            Walker w = Walker.Build(root.transform, "Soldat", look);
+            w.HoldPole = true;
+            w.HoldLantern = true;
+            w.RunSpeed = RunSpeed;
+            g.walker = w;
+
+            Color cross = new Color(0.8f, 0.78f, 0.72f);
+            Color wood = new Color(0.25f, 0.19f, 0.13f);
+            Color leather = new Color(0.2f, 0.14f, 0.1f);
             Proto.BeginVisualOnly();
-            Figures.Shape f = Figures.Robed(root.transform, 2.0f, 1.0f, Tabard, TabardDark, Skin, false);
-            g.figure = f.root;
-            float head = f.shoulders + 0.3f * (2.0f / 2.6f);
-            // Le camail et le casque.
-            Proto.Cube(f.root, new Vector3(0f, f.shoulders + 0.02f, 0f), new Vector3(0.7f, 0.16f, 0.46f), Steel, "Camail");
-            Proto.Cube(f.root, new Vector3(0f, head + 0.12f, 0f), new Vector3(0.31f, 0.14f, 0.31f), Steel, "Casque");
-            Proto.Cone(f.root, new Vector3(0f, head + 0.19f, 0f), 0.2f, 0.16f, Steel, "Timbre", 6);
-            // La croix blanche sur le tabard : c'est la garde, on la reconnait de loin.
-            Proto.Cube(f.root, new Vector3(0f, 1.3f, 0.3f), new Vector3(0.08f, 0.5f, 0.02f), new Color(0.8f, 0.78f, 0.72f), "Croix");
-            Proto.Cube(f.root, new Vector3(0f, 1.4f, 0.3f), new Vector3(0.34f, 0.08f, 0.02f), new Color(0.8f, 0.78f, 0.72f), "Croix");
-            // La hallebarde.
-            Proto.Cube(f.root, new Vector3(0.46f, 1.5f, 0.12f), new Vector3(0.06f, 3.0f, 0.06f), new Color(0.25f, 0.19f, 0.13f), "Hampe");
-            Proto.Cube(f.root, new Vector3(0.46f, 2.9f, 0.22f), new Vector3(0.04f, 0.4f, 0.26f), Steel, "Fer");
-            Proto.Cone(f.root, new Vector3(0.46f, 3.0f, 0.12f), 0.05f, 0.35f, Steel, "Pique", 4);
-            // La lanterne, tenue haut devant lui.
-            Vector3 lantern = new Vector3(-0.4f, 1.25f, 0.34f);
-            GameObject flame = Proto.Cube(f.root, lantern, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Flamme");
+            // Le tabard : devant et dans le dos, par-dessus le gambison, avec la croix.
+            Proto.Cube(w.Torso, new Vector3(0f, 0.2f, 0.15f), new Vector3(0.44f, 0.62f, 0.03f), Tabard, "Tabard");
+            Proto.Cube(w.Torso, new Vector3(0f, 0.2f, -0.15f), new Vector3(0.44f, 0.62f, 0.03f), TabardDark, "Tabard");
+            Proto.Cube(w.Hips, new Vector3(0f, -0.2f, 0.15f), new Vector3(0.36f, 0.34f, 0.03f), Tabard, "Pan");
+            Proto.Cube(w.Hips, new Vector3(0f, -0.2f, -0.15f), new Vector3(0.36f, 0.34f, 0.03f), TabardDark, "Pan");
+            Proto.Cube(w.Torso, new Vector3(0f, 0.24f, 0.17f), new Vector3(0.07f, 0.4f, 0.01f), cross, "Croix");
+            Proto.Cube(w.Torso, new Vector3(0f, 0.32f, 0.17f), new Vector3(0.28f, 0.07f, 0.01f), cross, "Croix");
+            Proto.Cube(w.Torso, new Vector3(0f, 0.02f, 0f), new Vector3(0.46f, 0.07f, 0.31f), leather, "Baudrier");
+            // Epauleres et gantelets de fer.
+            Proto.Cube(w.ArmL, new Vector3(-0.02f, -0.03f, 0f), new Vector3(0.2f, 0.13f, 0.2f), Steel, "Epauliere");
+            Proto.Cube(w.ArmR, new Vector3(0.02f, -0.03f, 0f), new Vector3(0.2f, 0.13f, 0.2f), Steel, "Epauliere");
+            Proto.Cube(w.HandL, Vector3.zero, new Vector3(0.12f, 0.13f, 0.13f), Steel, "Gantelet");
+            Proto.Cube(w.HandR, Vector3.zero, new Vector3(0.12f, 0.13f, 0.13f), Steel, "Gantelet");
+            // Le camail (la cagoule de mailles) et le chapel de fer a large bord.
+            Proto.Cube(w.Neck, new Vector3(0f, 0.02f, 0f), new Vector3(0.3f, 0.14f, 0.28f), Steel, "Camail");
+            Proto.Cube(w.Head, new Vector3(0f, 0.1f, -0.02f), new Vector3(0.26f, 0.24f, 0.25f), Palette.Shade(Steel, 0.8f), "Coiffe");
+            Proto.Cylinder(w.Head, new Vector3(0f, 0.26f, 0f), new Vector3(0.44f, 0.012f, 0.44f), Steel, "Bord");
+            Proto.Sphere(w.Head, new Vector3(0f, 0.27f, 0f), new Vector3(0.27f, 0.2f, 0.27f), Steel, "Chapel");
+            Proto.Cube(w.Head, new Vector3(0f, 0.37f, 0f), new Vector3(0.03f, 0.03f, 0.03f), Palette.Shade(Steel, 1.3f), "Pointe");
+            // Une epee au cote.
+            GameObject sheath = Proto.Cube(w.Hips, new Vector3(-0.24f, -0.26f, -0.04f), new Vector3(0.05f, 0.62f, 0.07f), leather, "Fourreau");
+            sheath.transform.localRotation = Quaternion.Euler(-18f, 0f, 6f);
+            Proto.Cube(w.Hips, new Vector3(-0.25f, 0.06f, 0.06f), new Vector3(0.16f, 0.03f, 0.03f), Steel, "Garde");
+
+            // La hallebarde, tenue droite : hampe, fer de hache, crochet, pique.
+            Transform pole = w.Holder(w.HandR, "Hallebarde");
+            // (La main est a 1,2 m du sol : la hampe descend jusqu'aux chevilles.)
+            Proto.Cube(pole, new Vector3(0f, 0.12f, 0f), new Vector3(0.05f, 2.5f, 0.05f), wood, "Hampe");
+            Proto.Cube(pole, new Vector3(0f, 1.2f, 0.12f), new Vector3(0.025f, 0.3f, 0.2f), Steel, "Hache");
+            Proto.Cube(pole, new Vector3(0f, 1.24f, -0.09f), new Vector3(0.025f, 0.08f, 0.14f), Steel, "Crochet");
+            Proto.Cone(pole, new Vector3(0f, 1.37f, 0f), 0.045f, 0.34f, Steel, "Pique", 4);
+            Proto.Cube(pole, new Vector3(0f, 1.04f, 0f), new Vector3(0.07f, 0.06f, 0.07f), Steel, "Virole");
+
+            // La lanterne, pendue a la main gauche.
+            Transform hang = w.Holder(w.HandL, "Lanterne");
+            Vector3 lantern = new Vector3(0f, -0.2f, 0f);
+            Proto.Cube(hang, new Vector3(0f, -0.04f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Steel, "Anse");
+            Proto.Cube(hang, lantern + new Vector3(0f, 0.1f, 0f), new Vector3(0.17f, 0.04f, 0.17f), Steel, "Chapeau");
+            Proto.Cube(hang, lantern - new Vector3(0f, 0.1f, 0f), new Vector3(0.17f, 0.03f, 0.17f), Steel, "Fond");
+            GameObject flame = Proto.Cube(hang, lantern, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Flamme");
             flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.74f, 0.4f), 2.6f);
             flame.AddComponent<Flame>();
-            Proto.Cube(f.root, lantern + new Vector3(0f, 0.12f, 0f), new Vector3(0.18f, 0.04f, 0.18f), Steel, "Lanterne");
             Proto.EndVisualOnly();
 
             // LE CONE : une lumiere "spot", exactement l'angle et la portee de sa vue.
             GameObject coneGo = new GameObject("Regard de " + info.Name);
-            coneGo.transform.SetParent(f.root, false);
+            coneGo.transform.SetParent(root.transform, false);
             coneGo.transform.localPosition = new Vector3(0f, 1.7f, 0.2f);
             coneGo.transform.localRotation = Quaternion.Euler(22f, 0f, 0f);
             g.cone = coneGo.AddComponent<Light>();
@@ -137,6 +176,7 @@ namespace Fief
             if (talking)
             {
                 Figures.Face(transform, Game.PlayerTransform.position, 120f);
+                walker.Gaze = Game.PlayerTransform;
                 ColourCone(season);
                 return;
             }
@@ -152,7 +192,8 @@ namespace Fief
                     break;
             }
             ColourCone(season);
-            Figures.Breathe(figure, info.Name.Length);
+            // Il te regarde quand tu es pres, ou quand il te soupconne.
+            walker.Gaze = NearPlayer(9f) || Suspicion > 0.2f && NearPlayer(SightRange) ? Game.PlayerTransform : null;
         }
 
         /// <summary>
@@ -266,6 +307,7 @@ namespace Fief
         /// <summary>Rattrape : il prend tout le fer, et jette le voleur devant la grande porte.</summary>
         void Seize(Seeker s)
         {
+            if (walker != null) walker.PlaySwing();
             int iron = s.Bag.Get(ResourceType.Iron);
             int taken = s.Bag.TryRemove(ResourceType.Iron, iron);
             if (Game.Garrison != null) Game.Garrison.IronSeized += taken;

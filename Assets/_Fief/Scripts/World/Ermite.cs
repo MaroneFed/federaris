@@ -24,7 +24,7 @@ namespace Fief
         static readonly Color Wood = new Color(0.26f, 0.20f, 0.14f);
         static readonly Color Voice = new Color(0.66f, 0.84f, 0.56f);
 
-        Transform figure;
+        Walker walker;
         Vector3 fireWorld;
         int page;
         bool met;
@@ -47,15 +47,42 @@ namespace Fief
             Ermite e = root.AddComponent<Ermite>();
             e.fireWorld = tower.TransformPoint(fire);
 
+            // Le corps : un vieil homme voute dans une robe de bure, capuche baissee,
+            // une longue barbe, un baton noueux.
+            Walker.Look look = new Walker.Look();
+            look.skin = Skin;
+            look.shirt = CloakDark;
+            look.legs = CloakDark;
+            look.boots = new Color(0.2f, 0.15f, 0.1f);
+            look.robe = true;
+            look.robeColor = Cloak;
+            look.robeDark = CloakDark;
+            look.height = 1.75f;
+            Walker w = Walker.Build(root.transform, "Vieil homme", look);
+            w.Stoop = 16f;
+            w.HoldPole = true;
+            e.walker = w;
+
             Proto.BeginVisualOnly();
-            Figures.Shape f = Figures.Robed(root.transform, 1.9f, 1.05f, Cloak, CloakDark, Skin, true);
-            // Voute : toute la silhouette penche en avant.
-            f.root.localRotation = Quaternion.Euler(12f, 0f, 0f);
-            e.figure = f.root;
-            float face = f.shoulders + 0.27f * (1.9f / 2.6f);
-            Proto.Cube(f.root, new Vector3(0f, face - 0.24f, 0.2f), new Vector3(0.24f, 0.46f, 0.08f), Beard, "Barbe");
-            GameObject staff = Proto.Cube(f.root, new Vector3(0.5f, 1.0f, 0.3f), new Vector3(0.06f, 2.2f, 0.06f), Wood, "Baton");
-            staff.transform.localRotation = Quaternion.Euler(-8f, 0f, -6f);
+            Transform head = w.Head;
+            // Capuche rabattue sur les epaules, crane degarni, sourcils broussailleux.
+            Proto.Cube(w.Neck, new Vector3(0f, -0.02f, -0.12f), new Vector3(0.4f, 0.16f, 0.2f), Cloak, "Capuche");
+            Proto.Cube(head, new Vector3(0f, 0.12f, -0.03f), new Vector3(0.25f, 0.18f, 0.22f), Beard, "Cheveux");
+            Proto.Cube(head, new Vector3(0f, 0.19f, 0.115f), new Vector3(0.17f, 0.03f, 0.03f), Beard, "Sourcils");
+            GameObject beard = Proto.Cube(head, new Vector3(0f, -0.1f, 0.1f), new Vector3(0.19f, 0.38f, 0.08f), Beard, "Barbe");
+            beard.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
+            Proto.Cube(head, new Vector3(0f, 0.06f, 0.125f), new Vector3(0.12f, 0.035f, 0.03f), Beard, "Moustache");
+            // Une besace, et un chapelet de champignons seches a la ceinture.
+            GameObject satchel = Proto.Cube(w.Hips, new Vector3(0.24f, -0.12f, 0.02f), new Vector3(0.1f, 0.24f, 0.26f), new Color(0.32f, 0.24f, 0.16f), "Besace");
+            satchel.transform.localRotation = Quaternion.Euler(0f, 0f, 6f);
+            for (int k = 0; k < 4; k++)
+                Proto.Cube(w.Hips, new Vector3(-0.2f, -0.06f - k * 0.07f, 0.1f), new Vector3(0.06f, 0.05f, 0.06f), new Color(0.6f, 0.5f, 0.36f), "Champignon");
+
+            Transform staff = w.Holder(w.HandR, "Baton");
+            GameObject shaft = Proto.Cube(staff, new Vector3(0f, -0.05f, 0f), new Vector3(0.06f, 2.0f, 0.06f), Wood, "Baton");
+            shaft.transform.localRotation = Quaternion.Euler(0f, 0f, -3f);
+            GameObject knot = Proto.Cube(staff, new Vector3(-0.04f, 0.96f, 0f), new Vector3(0.14f, 0.12f, 0.12f), Palette.Shade(Wood, 0.8f), "Noeud");
+            knot.transform.localRotation = Quaternion.Euler(20f, 30f, 10f);
             Proto.EndVisualOnly();
 
             Campfire(tower, fire);
@@ -114,9 +141,9 @@ namespace Fief
 
         void Update()
         {
-            Figures.Breathe(figure, 2.1f);
             Transform player = Game.PlayerTransform;
             bool near = player != null && Flat(player.position - transform.position).magnitude < 6f;
+            walker.Gaze = near ? player : null;
             Figures.Face(transform, near ? player.position : fireWorld, 60f);
         }
 

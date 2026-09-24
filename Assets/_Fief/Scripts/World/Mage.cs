@@ -36,6 +36,8 @@ namespace Fief
         GameConfig cfg;
         GameObject body;
         Transform figure;
+        Walker walker;
+        Transform crystal;
         Transform[] orbiters;
         Light halo;
         AudioSource voice;
@@ -70,6 +72,7 @@ namespace Fief
         public void PlayForge()
         {
             forgeGlow = 1f;
+            if (walker != null) walker.PlaySwing();         // il leve son baton
             Ambiance.Burst(transform, new Vector3(0f, 1.6f, 0f), Glow);
             Sfx.Forge();
         }
@@ -108,41 +111,61 @@ namespace Fief
 
             Proto.BeginVisualOnly();
 
-            // --- la silhouette : une robe en quatre tranches qui se resserrent. Un
-            // cone low-poly sans maillage sur mesure : quatre cubes tournes de 45 degres
-            // l'un sur l'autre donnent une robe a facettes.
+            // --- la silhouette : un grand corps articule (2,5 m) dans une robe dont
+            // les pans s'ouvrent quand il bouge, une capuche profonde, et le baton.
             GameObject fig = new GameObject("Silhouette");
             fig.transform.SetParent(b, false);
             Transform f = fig.transform;
             mage.figure = f;
+            Proto.EndVisualOnly();
 
-            float[] widths = { 1.05f, 0.86f, 0.68f, 0.52f };
-            for (int i = 0; i < widths.Length; i++)
-            {
-                GameObject slice = Proto.Cube(f, new Vector3(0f, 0.28f + i * 0.46f, 0f),
-                                              new Vector3(widths[i], 0.5f, widths[i]), i % 2 == 0 ? Robe : RobeDark, "Robe");
-                slice.transform.localRotation = Quaternion.Euler(0f, i * 45f, 0f);
-            }
-            Proto.Cube(f, new Vector3(0f, 2.02f, 0f), new Vector3(0.78f, 0.22f, 0.5f), RobeDark, "Epaules");
-            GameObject hood = Proto.Cube(f, new Vector3(0f, 2.3f, 0f), new Vector3(0.46f, 0.5f, 0.46f), Robe, "Capuche");
-            hood.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
-            GameObject peak = Proto.Cube(f, new Vector3(0f, 2.6f, -0.06f), new Vector3(0.26f, 0.3f, 0.26f), Robe, "Pointe");
-            peak.transform.localRotation = Quaternion.Euler(-14f, 45f, 0f);
-            Proto.Cube(f, new Vector3(0f, 2.26f, 0.2f), new Vector3(0.3f, 0.3f, 0.08f), Face, "Visage");
+            Walker.Look look = new Walker.Look();
+            look.skin = Face;
+            look.shirt = RobeDark;
+            look.legs = RobeDark;
+            look.boots = new Color(0.08f, 0.07f, 0.07f);
+            look.robe = true;
+            look.robeColor = Robe;
+            look.robeDark = RobeDark;
+            look.height = 2.5f;
+            Walker w = Walker.Build(f, "Mage", look);
+            w.HoldPole = true;
+            mage.walker = w;
+
+            Proto.BeginVisualOnly();
+            // La capuche : dessus, cotes, nuque et une visiere -- ouverte devant, le
+            // visage reste un trou noir.
+            Transform head = w.Head;
+            Proto.Cube(head, new Vector3(0f, 0.29f, -0.01f), new Vector3(0.34f, 0.08f, 0.36f), Robe, "Capuche");
+            Proto.Cube(head, new Vector3(-0.16f, 0.13f, -0.01f), new Vector3(0.06f, 0.34f, 0.34f), Robe, "Capuche");
+            Proto.Cube(head, new Vector3(0.16f, 0.13f, -0.01f), new Vector3(0.06f, 0.34f, 0.34f), Robe, "Capuche");
+            Proto.Cube(head, new Vector3(0f, 0.13f, -0.16f), new Vector3(0.32f, 0.36f, 0.08f), RobeDark, "Capuche");
+            Proto.Cube(head, new Vector3(0f, 0.25f, 0.16f), new Vector3(0.34f, 0.08f, 0.07f), RobeDark, "Visiere");
+            GameObject peak = Proto.Cone(head, new Vector3(0f, 0.32f, -0.06f), 0.14f, 0.34f, Robe, "Pointe", 5);
+            peak.transform.localRotation = Quaternion.Euler(-24f, 0f, 0f);
+            Proto.Cube(w.Torso, new Vector3(0f, 0.5f, -0.1f), new Vector3(0.62f, 0.16f, 0.2f), RobeDark, "Collet");
+            // Une longue barbe grise qui sort de l'ombre.
+            GameObject beard = Proto.Cube(head, new Vector3(0f, -0.08f, 0.12f), new Vector3(0.15f, 0.34f, 0.06f), new Color(0.55f, 0.56f, 0.6f), "Barbe");
+            beard.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
 
             // Deux yeux pales dans le noir de la capuche : inquietant, pas effrayant.
             Material eyes = MaterialFactory.GetGlow(Glow, 1.6f);
-            GameObject eyeL = Proto.Cube(f, new Vector3(-0.07f, 2.29f, 0.245f), new Vector3(0.05f, 0.025f, 0.01f), Glow, "Oeil");
-            GameObject eyeR = Proto.Cube(f, new Vector3(0.07f, 2.29f, 0.245f), new Vector3(0.05f, 0.025f, 0.01f), Glow, "Oeil");
+            GameObject eyeL = Proto.Cube(head, new Vector3(-0.055f, 0.15f, 0.13f), new Vector3(0.05f, 0.022f, 0.01f), Glow, "Oeil");
+            GameObject eyeR = Proto.Cube(head, new Vector3(0.055f, 0.15f, 0.13f), new Vector3(0.05f, 0.022f, 0.01f), Glow, "Oeil");
             eyeL.GetComponent<Renderer>().sharedMaterial = eyes;
             eyeR.GetComponent<Renderer>().sharedMaterial = eyes;
 
-            // --- le baton, et sa pierre qui eclaire
-            GameObject staff = Proto.Cube(f, new Vector3(0.58f, 1.35f, 0.15f), new Vector3(0.07f, 2.7f, 0.07f), Wood, "Baton");
-            staff.transform.localRotation = Quaternion.Euler(4f, 0f, -4f);
-            GameObject crystal = Proto.Cube(f, new Vector3(0.66f, 2.78f, 0.17f), new Vector3(0.18f, 0.26f, 0.18f), Glow, "Pierre du baton");
+            // --- le baton, tenu droit, et sa pierre qui eclaire
+            Transform staffHold = w.Holder(w.HandR, "Baton");
+            Proto.Cube(staffHold, new Vector3(0f, -0.05f, 0f), new Vector3(0.06f, 2.15f, 0.06f), Wood, "Hampe");
+            GameObject fork = Proto.Cube(staffHold, new Vector3(0.06f, 1.08f, 0f), new Vector3(0.04f, 0.3f, 0.04f), Wood, "Fourche");
+            fork.transform.localRotation = Quaternion.Euler(0f, 0f, -24f);
+            GameObject fork2 = Proto.Cube(staffHold, new Vector3(-0.06f, 1.08f, 0f), new Vector3(0.04f, 0.3f, 0.04f), Wood, "Fourche");
+            fork2.transform.localRotation = Quaternion.Euler(0f, 0f, 24f);
+            GameObject crystal = Proto.Cube(staffHold, new Vector3(0f, 1.18f, 0f), new Vector3(0.13f, 0.19f, 0.13f), Glow, "Pierre du baton");
             crystal.transform.localRotation = Quaternion.Euler(45f, 20f, 45f);
             crystal.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Glow, 3.2f);
+            mage.crystal = crystal.transform;
 
             // --- trois runes qui tournent autour de lui
             Material runeGlow = MaterialFactory.GetGlow(Glow, 2f);
@@ -266,6 +289,12 @@ namespace Fief
 
             // Il apparait en montant du sol, et s'y renfonce en partant.
             figure.localScale = new Vector3(1f, Mathf.SmoothStep(0.05f, 1f, shown), 1f);
+
+            // Sa pierre tourne sur elle-meme ; son regard te suit quand tu approches.
+            if (crystal != null) crystal.Rotate(0f, 50f * Time.deltaTime, 0f, Space.World);
+            if (walker != null)
+                walker.Gaze = Game.PlayerTransform != null && (Game.PlayerTransform.position - transform.position).sqrMagnitude < 15f * 15f
+                    ? Game.PlayerTransform : null;
 
             // Il se tourne lentement vers celui qui approche.
             if (Game.PlayerTransform != null)

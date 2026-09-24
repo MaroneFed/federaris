@@ -75,7 +75,8 @@ namespace Fief
         float detourTimer;
         float detourSign = 1f;
         Transform figure;
-        float bob;
+        CharacterRig rig;
+        Vector3 lastPosition;
 
         const float WalkSpeed = 4.3f;
         const float RunSpeed = 6.6f;
@@ -110,25 +111,41 @@ namespace Fief
             r.ironLove = ironLove;
             r.taunts = taunts;
             r.rng = new System.Random(seed);
+            r.lastPosition = spawn;
 
-            // La silhouette : une cape a sa couleur, un capuchon, un sac, une lanterne.
-            Color cloak = Palette.Shade(colour, 0.55f);
-            Color cloakDark = Palette.Shade(colour, 0.38f);
+            // LE CORPS : exactement celui du joueur -- poncho, capuche, baton. Un rival
+            // joue avec les memes regles que toi ; en multijoueur, ce sera un joueur.
+            // Sa couleur passe par la bande du poncho, une echarpe et un ruban au baton.
+            CharacterRig rig = CharacterRig.Build(root.transform, colour, Palette.Shade(colour, 0.62f));
+            rig.RunSpeed = RunSpeed;
+            r.rig = rig;
+            r.figure = rig.transform;
+
             Proto.BeginVisualOnly();
-            Figures.Shape f = Figures.Robed(root.transform, 1.85f, 0.95f, cloak, cloakDark, new Color(0.5f, 0.42f, 0.36f), true);
-            r.figure = f.root;
-            Proto.Cube(f.root, new Vector3(0f, 1.25f, -0.3f), new Vector3(0.5f, 0.6f, 0.3f), new Color(0.3f, 0.23f, 0.15f), "Sac");
-            Proto.Cube(f.root, new Vector3(0f, f.shoulders + 0.05f, 0.02f), new Vector3(0.82f, 0.08f, 0.5f), colour, "Echarpe");
-            Vector3 lantern = new Vector3(0.42f, 0.9f, 0.25f);
-            GameObject flame = Proto.Cube(f.root, lantern, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Flamme");
-            flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.38f), 2.6f);
-            flame.AddComponent<Flame>();
-            Proto.Cube(f.root, lantern + new Vector3(0f, 0.12f, 0f), new Vector3(0.18f, 0.04f, 0.18f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
+            Transform neck = rig.HeadBone;
+            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Echarpe");
+            GameObject tail = Proto.Cube(neck, new Vector3(0.08f, -0.24f, -0.17f), new Vector3(0.1f, 0.34f, 0.03f), Palette.Shade(colour, 0.85f), "Pan");
+            tail.transform.localRotation = Quaternion.Euler(-12f, 0f, 8f);
+
+            // La lanterne pend au bout du baton : de loin, on voit une lueur qui
+            // se balance a hauteur de tete. C'est comme ca qu'on repere un rival.
+            Transform staff = rig.StaffBone;
+            Vector3 lantern = new Vector3(0.16f, 1.08f, 0.04f);
+            if (staff != null)
+            {
+                Proto.Cube(staff, new Vector3(0.08f, 1.24f, 0.03f), new Vector3(0.18f, 0.03f, 0.03f), new Color(0.3f, 0.23f, 0.16f), "Potence");
+                Proto.Cube(staff, new Vector3(0.02f, 0.72f, 0f), new Vector3(0.08f, 0.14f, 0.08f), colour, "Ruban");
+                Proto.Cube(staff, lantern + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
+                Proto.Cube(staff, lantern - new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
+                GameObject flame = Proto.Cube(staff, lantern, new Vector3(0.09f, 0.13f, 0.09f), Color.white, "Flamme");
+                flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.38f), 2.6f);
+                flame.AddComponent<Flame>();
+            }
             Proto.EndVisualOnly();
 
             GameObject lightGo = new GameObject("Lanterne de " + name);
-            lightGo.transform.SetParent(f.root, false);
-            lightGo.transform.localPosition = lantern + new Vector3(0f, 0.1f, 0f);
+            lightGo.transform.SetParent(staff != null ? staff : rig.transform, false);
+            lightGo.transform.localPosition = lantern;
             Light light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = new Color(1f, 0.76f, 0.48f);
@@ -152,6 +169,7 @@ namespace Fief
         {
             body.enabled = false;
             transform.position = position;
+            lastPosition = position;
             node = null;
             think = 0f;
         }
@@ -405,6 +423,7 @@ namespace Fief
                     if (strikeTimer <= 0f && aggro != null && seeker.CanStrike)
                     {
                         strikeTimer = 1.1f;
+                        if (rig != null) rig.PlaySwing();
                         if (Game.Rig != null && PlayerWithin(25f)) Sfx.HarvestTap(ResourceType.Iron);
                         if (seeker.Kit.Wear(1)) rearmTimer = 60f;
                         Combat.Hit(aggro, seeker, 20f);
@@ -590,6 +609,7 @@ namespace Fief
             seeker.Health = Seeker.MaxHealth;
             Vector3 at = Combat.RespawnPoint(seeker, transform.position + Vector3.up * 50f);
             transform.position = at;
+            lastPosition = at;
             if (figure != null) figure.gameObject.SetActive(true);
             if (armed) rearmTimer = 60f;
             think = 0f;
@@ -634,16 +654,21 @@ namespace Fief
 
             Quaternion look = Quaternion.LookRotation(dir, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, 360f * dt);
-            bob += dt * speed * 2.2f;
         }
 
         void Animate(float dt)
         {
             if (figure == null) return;
-            // Une demarche : il se balance un peu en marchant.
-            float sway = Mathf.Sin(bob) * 0.04f;
-            figure.localPosition = new Vector3(0f, Mathf.Abs(Mathf.Sin(bob)) * 0.05f, 0f);
-            figure.localRotation = Quaternion.Euler(0f, 0f, sway * 40f);
+
+            // Loin de toi (plus de 45 m, bien au-dela de la brume), le corps s'eteint :
+            // son poncho n'a plus a etre simule, sa lanterne n'eclaire personne.
+            bool near = PlayerWithin(45f);
+            if (figure.gameObject.activeSelf != near) figure.gameObject.SetActive(near);
+
+            // Le corps s'anime tout seul : il lui suffit de savoir a quelle vitesse on va.
+            Vector3 moved = Flat(transform.position - lastPosition);
+            lastPosition = transform.position;
+            if (rig != null) rig.Speed = Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
         }
 
         // ================================================================== ou planter

@@ -34,7 +34,7 @@ namespace Fief
         static readonly Color Wood = new Color(0.25f, 0.19f, 0.13f);
         static readonly Color Voice = new Color(0.90f, 0.80f, 0.60f);
 
-        Transform figure;
+        Walker walker;
         int next = 1;
         float pause;
         int talks;
@@ -58,34 +58,56 @@ namespace Fief
 
             Veilleur v = root.AddComponent<Veilleur>();
 
+            // Le corps : un vieux soldat de grande taille, dans une longue cape grise.
+            Walker.Look look = new Walker.Look();
+            look.skin = Skin;
+            look.shirt = new Color(0.34f, 0.33f, 0.31f);
+            look.legs = CloakDark;
+            look.boots = new Color(0.14f, 0.11f, 0.09f);
+            look.robe = true;
+            look.robeColor = Cloak;
+            look.robeDark = CloakDark;
+            look.bulk = 1.08f;
+            look.height = 2.05f;
+            Walker w = Walker.Build(root.transform, "Vieux soldat", look);
+            w.HoldPole = true;
+            w.HoldLantern = true;
+            w.RunSpeed = 5f;
+            v.walker = w;
+
             Proto.BeginVisualOnly();
-            Figures.Shape f = Figures.Robed(root.transform, 2.15f, 1.0f, Cloak, CloakDark, Skin, false);
-            v.figure = f.root;
-            float head = f.shoulders + 0.3f * (2.15f / 2.6f);
-
+            Transform head = w.Head;
             // Le casque : une calotte d'acier et un nasal.
-            Proto.Cube(f.root, new Vector3(0f, head + 0.13f, 0f), new Vector3(0.32f, 0.12f, 0.32f), Steel, "Casque");
-            Proto.Cone(f.root, new Vector3(0f, head + 0.19f, 0f), 0.2f, 0.18f, Steel, "Timbre", 6);
-            Proto.Cube(f.root, new Vector3(0f, head, 0.16f), new Vector3(0.04f, 0.16f, 0.03f), Steel, "Nasal");
-            // Une barbe grise.
-            Proto.Cube(f.root, new Vector3(0f, head - 0.2f, 0.12f), new Vector3(0.22f, 0.22f, 0.1f), new Color(0.62f, 0.60f, 0.56f), "Barbe");
+            Proto.Sphere(head, new Vector3(0f, 0.2f, -0.01f), new Vector3(0.27f, 0.22f, 0.28f), Steel, "Casque");
+            Proto.Cube(head, new Vector3(0f, 0.12f, 0.135f), new Vector3(0.035f, 0.13f, 0.025f), Steel, "Nasal");
+            Proto.Cube(head, new Vector3(0f, 0.3f, 0f), new Vector3(0.03f, 0.05f, 0.24f), Palette.Shade(Steel, 1.2f), "Crete");
+            // Une barbe grise, courte et carree.
+            Proto.Cube(head, new Vector3(0f, -0.01f, 0.1f), new Vector3(0.2f, 0.18f, 0.1f), new Color(0.62f, 0.60f, 0.56f), "Barbe");
+            // Une cape agrafee sur l'epaule, un cor en bandouliere.
+            Proto.Cube(w.Torso, new Vector3(0f, 0.36f, -0.16f), new Vector3(0.58f, 0.36f, 0.05f), CloakDark, "Cape");
+            Proto.Cube(w.Torso, new Vector3(-0.2f, 0.5f, 0.12f), new Vector3(0.07f, 0.07f, 0.03f), new Color(0.6f, 0.5f, 0.3f), "Agrafe");
+            GameObject horn = Proto.Cone(w.Hips, new Vector3(0.22f, 0.06f, -0.06f), 0.06f, 0.28f, new Color(0.7f, 0.62f, 0.46f), "Cor", 6);
+            horn.transform.localRotation = Quaternion.Euler(0f, 0f, 100f);
 
-            // La hallebarde, dans la main droite.
-            Proto.Cube(f.root, new Vector3(0.46f, 1.5f, 0.18f), new Vector3(0.06f, 3.1f, 0.06f), Wood, "Hampe");
-            Proto.Cube(f.root, new Vector3(0.46f, 2.95f, 0.26f), new Vector3(0.04f, 0.42f, 0.24f), Steel, "Fer");
-            Proto.Cone(f.root, new Vector3(0.46f, 3.05f, 0.18f), 0.05f, 0.35f, Steel, "Pique", 4);
+            // La hallebarde, tenue droite dans la main droite.
+            Transform pole = w.Holder(w.HandR, "Hallebarde");
+            Proto.Cube(pole, new Vector3(0f, 0.15f, 0f), new Vector3(0.055f, 2.6f, 0.055f), Wood, "Hampe");
+            Proto.Cube(pole, new Vector3(0f, 1.25f, 0.12f), new Vector3(0.03f, 0.34f, 0.22f), Steel, "Fer");
+            Proto.Cone(pole, new Vector3(0f, 1.45f, 0f), 0.05f, 0.34f, Steel, "Pique", 4);
 
-            // La lanterne, dans la main gauche.
-            Vector3 lantern = new Vector3(-0.44f, 0.95f, 0.22f);
-            Proto.Cube(f.root, lantern + new Vector3(0f, 0.16f, 0f), new Vector3(0.2f, 0.04f, 0.2f), Steel, "Lanterne");
-            Proto.Cube(f.root, lantern - new Vector3(0f, 0.14f, 0f), new Vector3(0.2f, 0.04f, 0.2f), Steel, "Lanterne");
-            GameObject flame = Proto.Cube(f.root, lantern, new Vector3(0.1f, 0.16f, 0.1f), Color.white, "Flamme");
+            // La lanterne, pendue a la main gauche.
+            Transform hang = w.Holder(w.HandL, "Lanterne");
+            Vector3 lantern = new Vector3(0f, -0.22f, 0f);
+            Proto.Cube(hang, new Vector3(0f, -0.05f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Steel, "Anse");
+            Proto.Cube(hang, lantern + new Vector3(0f, 0.12f, 0f), new Vector3(0.19f, 0.04f, 0.19f), Steel, "Lanterne");
+            Proto.Cube(hang, lantern - new Vector3(0f, 0.11f, 0f), new Vector3(0.19f, 0.04f, 0.19f), Steel, "Lanterne");
+            GameObject flame = Proto.Cube(hang, lantern, new Vector3(0.1f, 0.16f, 0.1f), Color.white, "Flamme");
             flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.35f), 2.6f);
             flame.AddComponent<Flame>();
             Proto.EndVisualOnly();
 
             GameObject lightGo = new GameObject("Lanterne du Veilleur");
-            lightGo.transform.SetParent(f.root, false);
+            lightGo.transform.SetParent(hang, false);
             lightGo.transform.localPosition = lantern + new Vector3(0f, 0.1f, 0f);
             Light light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
@@ -111,7 +133,7 @@ namespace Fief
                 near = d.magnitude;
             }
 
-            Figures.Breathe(figure, 0.7f);
+            walker.Gaze = near < 8f ? player : null;
 
             // Quelqu'un approche : il s'arrete et le regarde.
             if (near < 4.5f)

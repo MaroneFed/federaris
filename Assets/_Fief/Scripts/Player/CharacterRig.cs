@@ -33,6 +33,11 @@ namespace Fief
 
         public float Speed;
         public bool Grounded = true;
+
+        // Pour les rivaux, qui portent le meme corps : on y accroche une echarpe a
+        // leur couleur et une lanterne au bout du baton.
+        public Transform HeadBone { get { return head; } }
+        public Transform StaffBone { get { return staffPivot; } }
         public float RunSpeed = 11f;
 
         /// <summary>
