@@ -95,6 +95,17 @@ namespace Fief
             Active = Active == slot || Slots[slot] == null ? -1 : slot;
         }
 
+        /// <summary>La molette : passer a l'outil suivant (ou precedent), en sautant les cases vides.</summary>
+        public void Cycle(int direction)
+        {
+            int start = Active < 0 ? (direction > 0 ? -1 : Slots.Length) : Active;
+            for (int k = 1; k <= Slots.Length; k++)
+            {
+                int i = ((start + direction * k) % Slots.Length + Slots.Length) % Slots.Length;
+                if (Slots[i] != null && i != Active) { Active = i; return; }
+            }
+        }
+
         /// <summary>User l'outil en main. Vrai s'il vient de casser.</summary>
         public bool Wear(int amount)
         {

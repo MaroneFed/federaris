@@ -163,6 +163,10 @@ namespace Fief
         }
 
         public void OpenPanel(IPanel newPanel) { panel = newPanel; }
+
+        /// <summary>Le sac est plein et on a voulu prendre : ses cases clignotent en rouge.</summary>
+        public static void FlashBag() { bagFlash = 1f; }
+        static float bagFlash;
         public void ClosePanel() { panel = null; }
 
         void Update()
@@ -406,6 +410,13 @@ namespace Fief
             }
             float bagW = x - gap - bagX;
             x += group - gap;
+
+            // Le sac plein qui refuse : ses trois cases rougissent un instant.
+            if (bagFlash > 0f)
+            {
+                bagFlash = Mathf.Max(0f, bagFlash - Time.unscaledDeltaTime * 1.6f);
+                UiStyle.Fill(new Rect(bagX, y, bagW, size), new Color(0.9f, 0.2f, 0.15f, 0.35f * bagFlash));
+            }
 
             // La jauge de poids, au-dessus des trois cases du sac.
             float load = inv.Load01;

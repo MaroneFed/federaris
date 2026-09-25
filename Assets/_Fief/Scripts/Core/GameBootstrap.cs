@@ -109,7 +109,7 @@ namespace Fief
 
                 // Ce qui veut ton mal : trois meutes de loups (apres les steles, pour
                 // ne pas naitre au milieu d'elles).
-                Beast.SpawnPacks(worldRoot, 3);
+                Beast.SpawnPacks(worldRoot, 2);   // deux meutes : la Sylve fait 420 m, plus 700
             }
             catch (System.Exception error)
             {
@@ -200,7 +200,7 @@ namespace Fief
             // L'or, pour les acheter.
             Purse.Scatter(worldRoot, config);
             if (Landmarks.Tour != null) Ermite.Build(Landmarks.Tour);
-            Wisp.SpawnAll(folk.transform, config, 9);
+            Wisp.SpawnAll(folk.transform, config, 6);
             WhiteStag.Build(folk.transform, config);
 
             // Tes trois rivaux. Chacun son caractere : Mahaut pille, Oswin aime le

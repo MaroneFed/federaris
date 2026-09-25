@@ -99,6 +99,7 @@ namespace Fief
             if (inv.SpaceFor(type) <= 0)
             {
                 Sfx.Deny();
+                Hud.FlashBag();
                 Toasts.Show("Sac plein.",
                             new Color(0.95f, 0.45f, 0.35f));
                 return;
@@ -112,7 +113,8 @@ namespace Fief
             if (added <= 0)
             {
                 Sfx.Deny();
-                Toasts.Show("Sac plein", Palette.Iron);
+                Hud.FlashBag();
+                Toasts.Show("Sac plein.", Palette.Iron);
                 return;
             }
 

@@ -13,14 +13,13 @@ namespace Fief
     /// y en a partout -- c'est la ressource commune.
     ///
     /// LA PIERRE-LUNE pousse dans les CREUX : les endroits plus bas que leur
-    /// voisinage. On les cherche sur le relief reel, on en garde quarante espaces
+    /// voisinage. On les cherche sur le relief reel, on en garde vingt-quatre espaces
     /// d'au moins 32 m, et on y pose une a trois pierres qui luisent. Un creux devient
     /// une petite clairiere bleue qu'on repere de loin dans la penombre -- un lieu,
     /// dont on se souvient, et vers lequel on revient.
     ///
-    /// Reglages verifies sur le terrain exact (Tools/monde.py) : depuis n'importe ou,
-    /// la pierre-lune la plus proche est a 72 m en moyenne, 187 m au pire. Rare, mais
-    /// jamais introuvable.
+    /// (Quarante creux sur la carte de 700 m ; vingt-quatre depuis qu'elle fait 420 m,
+    /// le 26/09 : la densite reste la meme, un peu plus rare.)
     /// </summary>
     public static class Gathering
     {
@@ -51,7 +50,8 @@ namespace Fief
         {
             ResourceNode node = log.AddComponent<ResourceNode>();
             node.yieldPerHarvest = 4;
-            node.harvestDuration = cfg != null ? cfg.harvestDuration : 1.15f;
+            // Aussi vif que le faisceau : casser des branches d'un tronc couche.
+            node.harvestDuration = 0.5f;
             node.respawnDelay = 150f;
             // Pas de visuel a faire fondre : un tronc ne retrecit pas quand on en casse
             // des branches. Le nombre restant s'affiche dans l'invite.
@@ -180,7 +180,7 @@ namespace Fief
             const float Probe = 18f;
             const float MinDepth = 0.5f;
             const float Spacing = 32f;
-            const int Target = 40;
+            const int Target = 24;          // 40 sur 700 m ; la carte fait 420 m (26/09)
 
             List<Hollow> found = new List<Hollow>();
             for (float x = -half; x <= half; x += Step)
@@ -333,7 +333,7 @@ namespace Fief
 
             ResourceNode node = go.AddComponent<ResourceNode>();
             node.yieldPerHarvest = 2;         // une grappe se prend en deux gestes, pas quatre
-            node.harvestDuration = (cfg != null ? cfg.harvestDuration : 1.15f) * 1.4f;
+            node.harvestDuration = 0.9f;
             node.respawnDelay = 180f;
             node.Initialise(ResourceType.Moonstone, 4, visual.transform);
             MoonstoneCount++;

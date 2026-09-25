@@ -49,8 +49,13 @@ namespace Fief
             UpdateViewModel(kit.Held != null ? kit.Held.Kind : ToolKind.None);
             if (player.InputLocked) return;
 
+            int was = kit.Active;
             if (FiefInput.Slot1Pressed) kit.Select(0);
             if (FiefInput.Slot2Pressed) kit.Select(1);
+            // La molette change d'outil, comme partout ailleurs.
+            float wheel = FiefInput.ZoomNotches;
+            if (Mathf.Abs(wheel) > 0.01f) kit.Cycle(wheel > 0f ? -1 : 1);
+            if (kit.Active != was) Sfx.Pop();
 
             Transform eye = player.cameraTransform;
             if (eye == null) return;
@@ -523,7 +528,7 @@ namespace Fief
             trigger.size = new Vector3(1.6f, 1.4f, 5f);
             ResourceNode node = heap.AddComponent<ResourceNode>();
             node.yieldPerHarvest = 4;
-            node.harvestDuration = Game.Config != null ? Game.Config.harvestDuration : 1.15f;
+            node.harvestDuration = 0.5f;
             node.respawnDelay = 0f;
             node.Initialise(ResourceType.Deadwood, 14, null);
         }

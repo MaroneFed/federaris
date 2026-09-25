@@ -28,7 +28,7 @@ namespace Fief
 
             // --- les ruines
             int ruins = 0;
-            for (int tries = 0; tries < 600 && ruins < 12; tries++)
+            for (int tries = 0; tries < 600 && ruins < 8; tries++)
             {
                 float x = R(rng, -half, half), z = R(rng, -half, half);
                 if (Castle.Covers(x, z, 20f) || Landmarks.Near(x, z, 15f) || Gathering.NearHollow(x, z, 10f) || Monument.Near(x, z, 8f)) continue;
@@ -58,7 +58,7 @@ namespace Fief
 
             // --- les corbeaux
             int flocks = 0;
-            for (int tries = 0; tries < 400 && flocks < 26; tries++)
+            for (int tries = 0; tries < 400 && flocks < 14; tries++)
             {
                 float x = R(rng, -half, half), z = R(rng, -half, half);
                 if (Castle.Covers(x, z, 5f) || Landmarks.Near(x, z, 2f) || Monument.Near(x, z, 2f)) continue;
