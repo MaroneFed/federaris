@@ -156,7 +156,7 @@ namespace Fief
                 Sfx.Alarm();
                 if (Game.Hud != null)
                     Game.Hud.ShowDiscovery("SENTINELLE", r.seeker.Name + " rôde à ta stèle",
-                                           "Elle est " + Hud.Direction(me.Body.position, transform.position) + ".",
+                                           "Elle est " + Hud.Direction(me.Body.position, transform.position) + " !",
                                            "Il vient pour ta réserve. Ou pour ta relique.", r.seeker.Colour);
                 return;
             }
@@ -289,10 +289,9 @@ namespace Fief
                 if (Mine)
                 {
                     Hoard h = me.Hoard;
-                    if (h.Trophy != null) return "Ta stèle  --  fondre la relique de " + h.TrophyFrom.Name;
-                    string sack = me.Bag.IsEmpty ? "" : "déposer ton sac, ";
-                    if (h.RelicInHand) return "Ta stèle  --  " + sack + "poser ta relique";
-                    return "Ta stèle  --  " + sack + "réserve : " + StoreSummary(h);
+                    if (h.Trophy != null) return "Ta stèle  ·  fondre la relique volée";
+                    if (h.RelicInHand) return "Ta stèle  ·  poser la relique";
+                    return me.Bag.IsEmpty ? "Ta stèle" : "Ta stèle  ·  vider le sac";
                 }
                 Hoard o = owner.Hoard;
                 string what = o.RelicOnStele && o.Relic != null ? "sa relique (" + o.FinalScore + ")" : "";
@@ -466,7 +465,7 @@ namespace Fief
             Sfx.Build();
             if (Game.Hud != null)
                 Game.Hud.ShowDiscovery("LA RELIQUE DE " + from.ToUpperInvariant(), "fondue dans la tienne",
-                                       "+" + gained + "  --  puissance " + h.Relic.Power, "Le vol ne rend que 60 % : le reste s'est perdu.",
+                                       "+" + gained + "   ·   puissance " + h.Relic.Power, "Le vol ne rend que 60 % : le reste s'est perdu.",
                                        RuneBlue);
         }
     }

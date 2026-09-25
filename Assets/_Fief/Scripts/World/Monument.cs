@@ -300,7 +300,7 @@ namespace Fief
             if (s.IsPlayer)
             {
                 if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("TU TIENS", Name(kind), "Il te donne " + Gift(kind) + " toutes les 40 secondes.",
+                    Game.Hud.ShowDiscovery("TU TIENS", Name(kind), Gift(kind) + " toutes les 40 s.",
                                            "Tant que personne ne te le reprend.", Tint(kind));
             }
             else if (before == Game.Me)

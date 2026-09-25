@@ -50,11 +50,11 @@ namespace Fief
         /// <summary>Null si l'endroit convient, sinon pourquoi.</summary>
         public static string WhyNot(Seeker owner, Vector3 at)
         {
-            if (CountOf(owner) >= MaxFor(owner)) return "Tu as déjà " + MaxFor(owner) + " pièges posés.";
-            if (Castle.Covers(at.x, at.z, 2f)) return "Pas dans le château : les gardes les verraient.";
-            if (Ground.Slope(at.x, at.z) > 0.5f) return "Le sol est trop en pente.";
+            if (CountOf(owner) >= MaxFor(owner)) return MaxFor(owner) + " pièges déjà posés";
+            if (Castle.Covers(at.x, at.z, 2f)) return "Pas dans le château";
+            if (Ground.Slope(at.x, at.z) > 0.5f) return "Trop en pente";
             for (int i = 0; i < All.Count; i++)
-                if (All[i] != null && Flat(All[i].transform.position - at).magnitude < 1.5f) return "Trop près d'un autre piège.";
+                if (All[i] != null && Flat(All[i].transform.position - at).magnitude < 1.5f) return "Trop près d'un piège";
             return null;
         }
 

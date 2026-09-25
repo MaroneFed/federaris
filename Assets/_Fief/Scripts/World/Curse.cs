@@ -95,7 +95,7 @@ namespace Fief
             {
                 Sfx.Discovery();
                 Game.Hud.ShowDiscovery("LA MALÉDICTION", "repart bredouille",
-                                       "Ton sac était vide. Bien joue.",
+                                       "Sac vide : rien perdu.",
                                        "Ta réserve est intacte : " + Stele.StoreSummary(Game.Hoard) + ".", Violet);
             }
             else

@@ -561,12 +561,11 @@ namespace Fief
             Season s = Game.Season;
             if (s != null)
             {
-                string mage = s.MagePresent ? "Le mage chante encore " + Hud.Clock(s.MageTimeLeft)
-                            : s.NextMageIn >= 0f ? "Le mage dans " + Hud.Clock(s.NextMageIn) : "Le mage ne reviendra plus";
+                string mage = s.MagePresent ? "mage " + Hud.Clock(s.MageTimeLeft) : s.NextMageIn >= 0f ? "mage dans " + Hud.Clock(s.NextMageIn) : "plus de mage";
                 float c = s.NextCurseIn;
-                string curse = c >= 0f ? "la Malédiction dans " + Hud.Clock(c) : "plus de Malédiction";
+                string curse = c >= 0f ? "Malédiction " + Hud.Clock(c) : "plus de Malédiction";
                 UiStyle.Tinted(new Rect(box.x, y - UiStyle.S(14), w, UiStyle.S(20)),
-                               "Cloche dans " + Hud.Clock(s.Remaining) + "   --   " + mage + "   --   " + curse, UiStyle.CenteredSmall, UiStyle.InkDim);
+                               "Cloche " + Hud.Clock(s.Remaining) + "   ·   " + mage + "   ·   " + curse, UiStyle.CenteredSmall, UiStyle.InkDim);
                 y += UiStyle.S(16);
             }
 
@@ -689,18 +688,19 @@ namespace Fief
         {
             { "ZQSD / WASD", "Se déplacer" },
             { "Souris", "Regarder" },
-            { "Maj", "Courir (sac pas trop lourd)" },
+            { "Maj", "Courir" },
             { "Espace", "Sauter" },
-            { "E", "Interagir, ramasser -- devant ta stèle : réserve, relique, améliorations" },
-            { "C", "Planter ton camp (une fois)" },
-            { "G (maintenir)", "Creuser une cache (trois)" },
-            { "Tab", "Ta besace : victoires, artisanat, talismans" },
-            { "1 / 2", "Prendre en main un outil (hache, épée, piège)" },
-            { "Clic gauche", "Abattre un arbre, frapper, poser un piège" },
-            { "F", "Grimper dans un arbre / redescendre" },
-            { "H", "Tendre l'oreille : ta stèle chante, une fois par minute" },
+            { "E", "Prendre, parler, ta stèle" },
+            { "C", "Planter le camp" },
+            { "G (maintenir)", "Creuser une cache" },
+            { "Tab", "Besace, artisanat" },
+            { "1 / 2", "Changer d'outil" },
+            { "Clic gauche", "Frapper, abattre, poser" },
+            { "F", "Grimper" },
+            { "H", "Écouter ta stèle" },
+            { "M", "La carte" },
             { "Échap", "Pause" },
-            { "F1", "Aide à l'écran" },
+            { "F1", "Aide" },
             { "F3", "Diagnostic" }
         };
 

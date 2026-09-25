@@ -235,9 +235,9 @@ namespace Fief
             Hoard hoard = Game.Hoard;
             for (int i = 0; i < hoard.Caches.Count; i++)
                 if (Flat(hoard.Caches[i].Position - at).magnitude < MinCacheSpacing)
-                    return "Trop près de ta cache " + hoard.Caches[i].Number + ".";
+                    return "Trop près de la cache " + hoard.Caches[i].Number;
             if (hoard.CampPlanted && Flat(hoard.CampPosition - at).magnitude < MinCacheSpacing)
-                return "Trop près de ta tente.";
+                return "Trop près du camp";
             return null;
         }
 
@@ -246,8 +246,8 @@ namespace Fief
         /// <summary>Null si l'endroit convient, sinon la raison, dite au joueur.</summary>
         static string WhyNotHere(Vector3 at, float castleMargin)
         {
-            if (Castle.Covers(at.x, at.z, castleMargin)) return "Pas au pied du château : on te verrait.";
-            if (Ground.Slope(at.x, at.z) > MaxSlope) return "Le sol est trop en pente ici.";
+            if (Castle.Covers(at.x, at.z, castleMargin)) return "Pas au pied du château";
+            if (Ground.Slope(at.x, at.z) > MaxSlope) return "Trop en pente";
             return null;
         }
 

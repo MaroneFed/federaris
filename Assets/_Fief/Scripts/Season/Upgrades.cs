@@ -51,11 +51,11 @@ namespace Fief
         {
             switch (k)
             {
-                case UpgradeKind.Besace: return "+" + Mathf.RoundToInt(BesaceKilos) + " kg dans le sac.";
-                case UpgradeKind.Amulette: return "La Malédiction te laisse la moitié de ton sac.";
-                case UpgradeKind.Sentinelle: return "Ta stèle sonne le glas quand un étranger s'en approche.";
-                case UpgradeKind.Lanterne: return "Ta lanterne éclaire un tiers plus loin.";
-                case UpgradeKind.Lame: return "Tes coups d'épée font 40 % de dégâts en plus.";
+                case UpgradeKind.Besace: return "+" + Mathf.RoundToInt(BesaceKilos) + " kg";
+                case UpgradeKind.Amulette: return "La Malédiction ne prend que la moitié";
+                case UpgradeKind.Sentinelle: return "Ta stèle t'alerte des intrus";
+                case UpgradeKind.Lanterne: return "Lanterne +33 %";
+                case UpgradeKind.Lame: return "Épée +40 %";
                 case UpgradeKind.Bottes: return "Tu marches 10 % plus vite.";
                 default: return "Deux pièges de plus posés en même temps.";
             }

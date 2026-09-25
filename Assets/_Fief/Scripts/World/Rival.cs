@@ -648,7 +648,7 @@ namespace Fief
             Sfx.Deny();
             if (Game.Hud != null && me.Body != null)
                 Game.Hud.ShowDiscovery("ALERTE", seeker.Name + " a pillé ta stèle",
-                                       "Il emporte " + took + ". Il file " + Hud.Direction(me.Body.position, transform.position) + ".",
+                                       took + ", " + Hud.Direction(me.Body.position, transform.position) + ". Rattrape-le !",
                                        seeker.Hoard.Trophy != null ? "Rattrape-le avant qu'il la fonde à sa stèle : E pour la reprendre."
                                                                    : "Abats-le : tout ce qu'il porte tombera dans sa dépouille.",
                                        new Color(1f, 0.4f, 0.3f));
@@ -897,7 +897,7 @@ namespace Fief
                 Sfx.Discovery();
                 if (Game.Hud != null)
                     Game.Hud.ShowDiscovery("DÉTROUSSÉ", "La relique de " + seeker.Name,
-                                           "Puissance " + taken.Power + ". Cours à ta stèle.", "Il est juste derrière toi.", seeker.Colour);
+                                           "Puissance " + taken.Power + ". Cours à ta stèle !", "", seeker.Colour);
                 return;
             }
 

@@ -177,15 +177,14 @@ namespace Fief
                 if (page == 1) return HollowLine();
 
                 string hello = firstTime
-                    ? "Ah. Quelqu'un qui marche au lieu de courir. Assieds-toi, le feu est pour tout le monde."
+                    ? "Assieds-toi. Le feu est à tout le monde."
                     : "Te revoilà. Le feu t'attendait.";
 
                 string brew;
                 if (Game.Brewed)
-                    brew = "Mon infusion te tient encore " + Hud.Clock(Game.Hoard.BrewUntil - Game.Season.Elapsed) + ".";
+                    brew = "Infusion : encore " + Hud.Clock(Game.Hoard.BrewUntil - Game.Season.Elapsed) + ".";
                 else
-                    brew = "Mon infusion : " + Hoard.BrewCost + " bois mort, et pendant trois minutes ton sac ne pèsera "
-                         + "plus sur tes gestes. Tu récolteras charge comme si tu étais léger.";
+                    brew = "Mon infusion : " + Hoard.BrewCost + " bois mort, et ton sac ne pèse plus, trois minutes.";
                 return hello + "\n\n" + LandmarkLine() + "\n\n" + brew;
             }
         }
@@ -196,8 +195,8 @@ namespace Fief
         {
             if (page == 0)
             {
-                if (index == 0) return "Donner " + Hoard.BrewCost + " bois mort pour l'infusion";
-                if (index == 1) return "Ou trouver des pierres-lune ?";
+                if (index == 0) return "L'infusion  (" + Hoard.BrewCost + " bois mort)";
+                if (index == 1) return "Où trouver des pierres-lune ?";
                 return "Adieu";
             }
             return index == 0 ? "Revenir" : "Adieu";
@@ -247,9 +246,9 @@ namespace Fief
                 float d = Flat(m.transform.position - player.position).magnitude;
                 if (d < bestDistance) { bestDistance = d; best = m; }
             }
-            if (best == null) return "Tu connais la sylve mieux que moi, maintenant. Ça arrive rarement.";
+            if (best == null) return "Tu connais la sylve mieux que moi.";
             return Landmarks.Name(best.kind) + " est " + Hud.Direction(player.position, best.transform.position)
-                   + ", a " + Paces(bestDistance) + " pas d'ici. Tu n'y es jamais allé, ça se voit.";
+                   + ", à " + Paces(bestDistance) + " pas.";
         }
 
         static string HollowLine()
@@ -266,8 +265,7 @@ namespace Fief
                 if (d < best) { best = d; spot = h; }
             }
             return "Le creux le plus proche est " + Hud.Direction(player.position, new Vector3(spot.x, 0f, spot.y))
-                   + ", a " + Paces(best) + " pas. Les pierres y luisent, tu ne peux pas le rater.\n\n"
-                   + "Et si tu croises un feu-follet, suis-le. Ils vont toujours là où les pierres chantent.";
+                   + ", à " + Paces(best) + " pas.\n\nLes feux-follets y vont toujours.";
         }
 
         /// <summary>Un pas, c'est trois quarts de metre. On compte en pas dans la sylve.</summary>

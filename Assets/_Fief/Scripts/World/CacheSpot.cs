@@ -59,8 +59,8 @@ namespace Fief
             get
             {
                 if (cache == null) return "";
-                return "Ta cache " + cache.Number + "   (" + Mathf.RoundToInt(cache.Contents.Weight) + " / "
-                       + Mathf.RoundToInt(cache.Contents.MaxWeight) + " kg)";
+                return "Cache " + cache.Number + "  ·  " + Mathf.RoundToInt(cache.Contents.Weight) + " / "
+                       + Mathf.RoundToInt(cache.Contents.MaxWeight) + " kg";
             }
         }
 

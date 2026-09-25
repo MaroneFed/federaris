@@ -65,28 +65,28 @@ namespace Fief
         {
             if (entries.Count == 0) return;
 
-            // Sous la carte de trouvaille, au tiers de l'ecran : ni sur la boussole,
-            // ni sur l'invite du bas.
-            float width = Mathf.Min(UiStyle.S(640), Screen.width - UiStyle.S(40));
-            float height = UiStyle.S(28);
-            float x = (Screen.width - width) * 0.5f;
-            float y = Screen.height * 0.36f;
+            // Sur le cote gauche, a mi-hauteur : hors du regard (le centre de l'ecran
+            // est a la foret), mais la ou l'oeil tombe entre deux pas. Le plus recent
+            // en bas, comme un fil de messages.
+            float width = Mathf.Min(UiStyle.S(420), Screen.width * 0.4f);
+            float height = UiStyle.S(24);
+            float x = UiStyle.S(22);
+            float y = Screen.height * 0.52f;
 
             for (int i = 0; i < entries.Count; i++)
             {
                 Entry e = entries[i];
-                float alpha = Mathf.Clamp01(e.life / 0.8f);
+                float alpha = Mathf.Clamp01(e.life / 0.8f) * Mathf.Clamp01((Lifetime - e.life) / 0.15f + 0.2f);
+                float slide = (1f - Mathf.Clamp01((Lifetime - e.life) / 0.2f)) * UiStyle.S(-16);
 
-                Rect row = new Rect(x, y + i * (height + UiStyle.S(4)), width, height);
-                UiStyle.FadeBand(row, new Color(0.03f, 0.025f, 0.02f, 0.7f * alpha));
-                float d = UiStyle.S(7);
-                UiStyle.Icon(new Rect(row.center.x - d * 0.5f, row.y - d * 0.5f, d, d), UiStyle.Shape.Diamond,
-                             new Color(e.color.r, e.color.g, e.color.b, alpha * 0.8f));
+                Rect row = new Rect(x + slide, y + i * (height + UiStyle.S(3)), width, height);
+                UiStyle.Fill(new Rect(row.x, row.y, 2f, row.height), new Color(e.color.r, e.color.g, e.color.b, alpha * 0.9f));
+                UiStyle.Fill(new Rect(row.x + 2f, row.y, row.width * 0.75f, row.height), new Color(0.03f, 0.025f, 0.02f, 0.45f * alpha));
 
-                GUIStyle style = UiStyle.Centered;
+                GUIStyle style = UiStyle.Label;
                 Color previous = style.normal.textColor;
                 style.normal.textColor = new Color(e.color.r, e.color.g, e.color.b, alpha);
-                GUI.Label(row, e.text, style);
+                GUI.Label(new Rect(row.x + UiStyle.S(10), row.y, row.width - UiStyle.S(12), row.height), e.text, style);
                 style.normal.textColor = previous;
             }
         }

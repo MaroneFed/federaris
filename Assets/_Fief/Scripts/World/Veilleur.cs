@@ -190,16 +190,17 @@ namespace Fief
             {
                 if (page == 1) return TalismanLines();
                 if (page == 2)
-                    return "Je garde ce château depuis que le roi a perdu sa tête. On me payait, avant. "
-                         + "Plus personne ne me paie.\n\nUn garde qu'on ne paie plus finit toujours par ouvrir "
-                         + "la porte à quelqu'un. Souviens-t'en, le jour où il y aura d'autres gardes que moi.";
+                    return "Je garde ce château. On me payait, avant.\n\nUn garde qu'on ne paie plus ouvre toujours la porte à quelqu'un.";
 
                 string hello;
-                if (talks <= 1) hello = "Encore un. Ils viennent tous pour la stèle, un jour ou l'autre.";
-                else if (talks % 3 == 0) hello = "La brume est plus épaisse ce soir. Ou alors ce sont mes yeux.";
-                else if (talks % 3 == 1) hello = "Tu reviens. C'est bien. Ceux qui ne reviennent pas, je ne les revois pas.";
-                else hello = "Parle. Je n'ai que ça à faire, écouter.";
-                return hello + "\n\n" + MageLine() + "\n\n" + RelicLine();
+                if (talks <= 1) hello = "Encore un.";
+                else if (talks % 3 == 0) hello = "La brume épaissit.";
+                else if (talks % 3 == 1) hello = "Tu reviens. C'est bien.";
+                else hello = "Parle.";
+                // Une seule chose utile a la fois : la relique si elle est en jeu, sinon le mage.
+                Hoard h = Game.Hoard;
+                string useful = h != null && h.Relic != null ? RelicLine() : MageLine();
+                return hello + "\n\n" + useful;
             }
         }
 
@@ -238,23 +239,22 @@ namespace Fief
             Mage mage = Game.Mage;
             if (season == null) return "";
             if (season.MagePresent && mage != null && Game.PlayerTransform != null)
-                return "Le mage chante en ce moment. Je l'entends " + Hud.Direction(Game.PlayerTransform.position, mage.transform.position)
-                       + ". Il repart dans " + Hud.Clock(season.MageTimeLeft) + ".";
+                return "Le mage chante, " + Hud.Direction(Game.PlayerTransform.position, mage.transform.position) + ".";
             if (season.NextMageIn >= 0f)
-                return "Le mage se taira encore " + Hud.Clock(season.NextMageIn) + ". Puis il chantera ailleurs.";
-            return "Le mage ne chantera plus. Pose ta relique avant la cloche.";
+                return "Le mage revient dans " + Hud.Clock(season.NextMageIn) + ".";
+            return "Le mage ne chantera plus.";
         }
 
         static string RelicLine()
         {
             Hoard h = Game.Hoard;
             if (h == null || h.Relic == null)
-                return "Tu n'as pas de relique. Le mage la forge avec ce que tu portes. Seulement ce que tu portes.";
+                return "Le mage forge avec ce que tu portes.";
             if (!h.StelePlanted)
-                return "Tu n'as pas de stèle. C'est étrange. Tout le monde en a une.";
+                return "Tu n'as pas de stèle ? Étrange.";
             if (h.RelicOnStele)
-                return "Ta relique est sur ta stèle. Elle vaut " + h.FinalScore + ", pour l'instant. Si personne ne l'a trouvée.";
-            return "Ta relique pèse dans ton sac. Tant qu'elle n'est pas sur ta stèle, elle ne compte pas.";
+                return "Ta relique vaut " + h.FinalScore + ". Si personne ne la trouve.";
+            return "Pose ta relique : en main, elle ne compte pas.";
         }
 
         static string TalismanLines()
@@ -262,7 +262,7 @@ namespace Fief
             Hoard h = Game.Hoard;
             if (h == null) return "";
             if (h.TalismanCount >= TalismanInfo.Count)
-                return "Tu les as tous les six. Personne n'avait jamais fait ça. Le roi lui-même n'en avait que quatre.";
+                return "Tous les six. Même le roi n'en avait que quatre.";
 
             string text = "Il y en a six. On dit :\n";
             int told = 0;

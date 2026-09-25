@@ -252,7 +252,7 @@ namespace Fief
                 Sfx.MageArrives();
                 if (Game.Hud != null)
                     Game.Hud.ShowDiscovery("LA DESCENTE", "Le mage va descendre",
-                                           "Une colonne bleue s'élève " + where + ". Il sera là dans " + Mathf.RoundToInt(AnnounceLead) + " secondes.",
+                                           "La colonne bleue, " + where + ".",
                                            "Tout le monde l'a vue. Cours-y avec ton sac.", Glow);
             }
 

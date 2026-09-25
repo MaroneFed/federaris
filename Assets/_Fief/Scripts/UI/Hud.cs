@@ -51,7 +51,9 @@ namespace Fief
             cardKicker = kicker;
             cardTitle = title;
             cardLine1 = line1;
-            cardLine2 = line2;
+            // Trois lignes au plus (Martin, 26/09 : "trop de texte") : la
+            // quatrieme n'est plus affichee, quel que soit l'appelant.
+            cardLine2 = "";
             cardTint = tint;
             cardTimer = CardDuration;
             cardItem = -1;
@@ -73,7 +75,7 @@ namespace Fief
         /// <summary>"how" : comment on est tombe ("sous les coups de Mahaut", "dans un piege").</summary>
         public void ShowDeath(string how)
         {
-            killedBy = how;
+            killedBy = string.IsNullOrEmpty(how) ? "" : char.ToUpperInvariant(how[0]) + how.Substring(1);
             deathTimer = Combat.RespawnSeconds;
             ClosePanel();
             Sfx.Bell();
@@ -122,7 +124,7 @@ namespace Fief
                                new Color(0.85f, 0.3f, 0.25f, a));
                 big.alignment = previous;
                 UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f + UiStyle.S(76), Screen.width, UiStyle.S(24)),
-                               killedBy + ". Tout ce que tu portais est reste là-bas.", UiStyle.Centered,
+                               killedBy, UiStyle.Centered,
                                new Color(0.9f, 0.85f, 0.78f, a));
                 return;
             }
@@ -148,7 +150,7 @@ namespace Fief
         public void ShowItem(Talisman t, int count)
         {
             ShowDiscovery("TALISMAN  " + count + " / " + TalismanInfo.Count, TalismanInfo.Name(t),
-                          TalismanInfo.Effect(t), TalismanInfo.Lore(t), TalismanInfo.Tint(t));
+                          TalismanInfo.Effect(t), "", TalismanInfo.Tint(t));
             cardItem = (int)t;
             cardTimer = CardDuration + 2f;
             flash = 1f;
@@ -970,13 +972,14 @@ namespace Fief
                 { "ZQSD", "se déplacer" },
                 { "Maj", "courir" },
                 { "Souris", "caméra" },
-                { "E", "récolter, interagir, ta stèle" },
+                { "E", "prendre, parler" },
                 { "C", "planter le camp" },
                 { "G", "creuser une cache" },
                 { "Tab", "ta besace" },
-                { "1 / 2 + clic", "outil : abattre, frapper, poser un piège" },
+                { "1 / 2 + clic", "outil" },
                 { "F", "grimper dans un arbre" },
-                { "H", "tendre l'oreille : ta stèle chante" },
+                { "H", "écouter ta stèle" },
+                { "M", "la carte" },
                 { "F3", "diagnostic" },
                 { "Échap", "pause" }
             };
