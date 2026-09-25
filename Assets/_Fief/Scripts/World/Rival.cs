@@ -454,7 +454,7 @@ namespace Fief
                         int gained = h.RequestAbsorbTrophy();
                         if (h.RelicInHand) h.TryPlaceOnStele();
                         seeker.SyncWeight();
-                        Toasts.Show(seeker.Name + " a fondu une relique volée dans la sienne (+" + gained + ").", seeker.Colour);
+                        Toasts.Show(seeker.Name + " a fondu une relique volée (+" + gained + ").", seeker.Colour);
                     }
                     else if (h.RelicInHand) h.TryPlaceOnStele();
                     seeker.SyncWeight();

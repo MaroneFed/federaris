@@ -339,7 +339,7 @@ namespace Fief
             string where = Game.PlayerTransform != null
                 ? Hud.Direction(Game.PlayerTransform.position, spot)
                 : "quelque part";
-            Toasts.Show("Le mage est descendu, " + where + ". La colonne s'éteindra bientôt : ensuite, suis sa voix.", Glow);
+            Toasts.Show("Le mage est descendu, " + where + ".", Glow);
 
             // La colonne reste encore vingt secondes, puis s'eteint : apres, il faut l'oreille.
             if (beacon != null)

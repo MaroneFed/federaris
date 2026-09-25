@@ -317,7 +317,7 @@ namespace Fief
                 if (stored > 0)
                 {
                     Sfx.Stash();
-                    Toasts.Show("Déposé à ta stèle : " + stored + " ressources. Réserve : " + StoreSummary(me.Hoard) + ".", Palette.Gold);
+                    Toasts.Show("+" + stored + " en réserve", Palette.Gold);
                     RefreshPiles();
                 }
                 // Une relique volee ou la sienne en main : l'onglet Relique d'abord.
@@ -444,7 +444,7 @@ namespace Fief
             if (me == null || !me.Hoard.TryPlaceOnStele()) return;
             me.SyncWeight();
             Sfx.Build();
-            Toasts.Show("Ta relique repose sur ta stèle. Elle comptera à la cloche -- si personne ne la vole.", RuneBlue);
+            Toasts.Show("Relique posée.", RuneBlue);
         }
 
         public static void TakeRelic(Seeker me)
@@ -452,7 +452,7 @@ namespace Fief
             if (me == null || !me.Hoard.TryTakeFromStele()) return;
             me.SyncWeight();
             Sfx.Pop();
-            Toasts.Show("Tu reprends ta relique. Elle ne compte plus tant qu'elle n'est pas reposée.", Palette.Gold);
+            Toasts.Show("Relique reprise : elle ne compte plus.", Palette.Gold);
         }
 
         public static void AbsorbTrophy(Seeker me)

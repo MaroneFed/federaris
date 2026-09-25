@@ -411,7 +411,7 @@ namespace Fief
             if (kind == Kind.Loup) AudioSource.PlayClipAtPoint(Sfx.Howl(), transform.position + Vector3.up, 0.9f);
             else Sfx.CurseToll();
             if (prey == Game.Me)
-                Toasts.Show(kind == Kind.Loup ? "Des yeux jaunes dans la brume. Les loups t'ont senti." : "Un revenant se lève et marche vers toi.",
+                Toasts.Show(kind == Kind.Loup ? "Des loups !" : "Un revenant se lève.",
                             new Color(0.95f, 0.5f, 0.35f));
         }
 
@@ -443,7 +443,7 @@ namespace Fief
             if (killer != null && goldCarried > 0)
             {
                 killer.Money.Add(goldCarried);
-                if (killer.IsPlayer) { Sfx.Coin(); Toasts.Show("Le revenant retombe en poussière. " + goldCarried + " or dans ses haillons.", Palette.Gold); }
+                if (killer.IsPlayer) { Sfx.Coin(); Toasts.Show("+" + goldCarried + " or", Palette.Gold); }
             }
             else if (killer != null && killer.IsPlayer)
                 Toasts.Show("Le loup s'effondre.", UiStyle.InkDim);

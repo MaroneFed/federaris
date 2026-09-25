@@ -300,7 +300,7 @@ namespace Fief
             if (bellWarnings == 0 && left <= 300f)
             {
                 bellWarnings = 1;
-                Toasts.Show("La cloche sonnera dans cinq minutes. Seule une relique posée sur la stèle comptera.",
+                Toasts.Show("Cinq minutes avant la cloche.",
                             new Color(0.92f, 0.62f, 0.32f));
             }
             else if (bellWarnings == 1 && left <= 60f)

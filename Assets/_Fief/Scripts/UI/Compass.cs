@@ -40,6 +40,9 @@ namespace Fief
         }
 
         static readonly List<Mark> Marks = new List<Mark>();
+
+        /// <summary>Vrai quand la Malediction tombe dans moins de 20 s et que ton sac n'est pas vide : ta stele palpite.</summary>
+        public static bool UrgeStele;
         const float HalfSpan = 95f;          // degres visibles de chaque cote
 
         public static void Draw(Rect band, Transform eye, Vector3 me)
@@ -151,7 +154,7 @@ namespace Fief
                 for (int i = 0; i < h.Caches.Count; i++)
                     Add(h.Caches[i].Position, UiStyle.Shape.Dot, new Color(0.78f, 0.58f, 0.36f), 9f, "Cache " + h.Caches[i].Number, false);
                 if (h.StelePlanted)
-                    Add(h.StelePosition, UiStyle.Shape.Diamond, Stele.RuneBlue, 15f, "Ta stèle", h.Trophy != null);
+                    Add(h.StelePosition, UiStyle.Shape.Diamond, Stele.RuneBlue, 15f, "Ta stèle", h.Trophy != null || UrgeStele);
             }
 
             for (int i = 0; i < Stele.All.Count; i++)

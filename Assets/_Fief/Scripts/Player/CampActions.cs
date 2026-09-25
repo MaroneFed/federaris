@@ -86,7 +86,7 @@ namespace Fief
             Camp.Build(at, yaw);
 
             Sfx.Build();
-            Toasts.Show("Camp plante. Une tente se voit de loin : c'est la qu'on te cherchera.", Palette.Gold);
+            Toasts.Show("Camp planté.", Palette.Gold);
         }
 
         /// <summary>

@@ -94,7 +94,7 @@ namespace Fief
                     Vector3 at = Combat.RespawnPoint(me, me.Body != null ? me.Body.position : Vector3.zero);
                     if (Game.Player != null) Game.Player.Teleport(at, Game.PlayerTransform.eulerAngles.y);
                     me.Health = Seeker.MaxHealth;
-                    Toasts.Show("Tu te relèves près de ta stèle. Ta dépouille est là où tu es tombé.", UiStyle.InkDim);
+                    Toasts.Show("Debout, à ta stèle. Ta dépouille t'attend.", UiStyle.InkDim);
                 }
                 return;
             }
@@ -191,7 +191,7 @@ namespace Fief
             }
 
             bool brewed = Game.Brewed;
-            if (wasBrewed && !brewed) Toasts.Show("L'infusion de l'Ermite ne fait plus effet.", new Color(0.66f, 0.84f, 0.56f));
+            if (wasBrewed && !brewed) Toasts.Show("Fin de l'infusion.", new Color(0.66f, 0.84f, 0.56f));
             wasBrewed = brewed;
             FloatingTexts.Tick(Time.unscaledDeltaTime);
 
@@ -256,8 +256,16 @@ namespace Fief
         }
 
         /// <summary>
-        /// Le haut de l'ecran : la boussole, puis l'horloge de la Saison dans son
-        /// cartouche, puis une ligne sur le mage.
+        /// Le haut de l'ecran : la boussole, et dessous TROIS PASTILLES sans phrase
+        /// (Martin, 26/09 : "le texte au-dessus, j'aime pas") :
+        ///
+        ///   [point bleu  3:12]   [ 24:05 ]   [triangle violet  0:48]
+        ///        le mage          la cloche       la Malediction
+        ///
+        /// Le point bleu brille quand le mage est la (le chiffre dit alors quand il
+        /// repart). Le triangle violet palpite dans les vingt dernieres secondes, et
+        /// le losange de ta stele sur la boussole palpite avec lui si ton sac n'est
+        /// pas vide : c'est la qu'il faut courir.
         /// </summary>
         void DrawSeason()
         {
@@ -267,13 +275,17 @@ namespace Fief
             Transform eye = viewCamera != null ? viewCamera.transform : null;
             float bandW = Mathf.Min(UiStyle.S(620), Screen.width - UiStyle.S(40));
             Rect band = new Rect((Screen.width - bandW) * 0.5f, UiStyle.S(14), bandW, UiStyle.S(30));
+            float curse = season.NextCurseIn;
+            bool bagged = Game.Inventory != null && !Game.Inventory.IsEmpty;
+            Compass.UrgeStele = curse >= 0f && curse < 20f && bagged;
             if (eye != null && Game.PlayerTransform != null) Compass.Draw(band, eye, Game.PlayerTransform.position);
 
-            // --- le cartouche de l'horloge
+            // --- la cloche, au milieu
             float left = season.Remaining;
             bool late = left < 180f;
-            float cw = UiStyle.S(128), ch = UiStyle.S(38);
-            Rect plate = new Rect((Screen.width - cw) * 0.5f, band.yMax + UiStyle.S(34), cw, ch);
+            float cw = UiStyle.S(104), ch = UiStyle.S(34);
+            float top = band.yMax + UiStyle.S(34);
+            Rect plate = new Rect((Screen.width - cw) * 0.5f, top, cw, ch);
             GUI.Box(plate, GUIContent.none, UiStyle.CardBox);
             GUIStyle clockStyle = UiStyle.Value;
             TextAnchor previous = clockStyle.alignment;
@@ -282,47 +294,53 @@ namespace Fief
             UiStyle.Tinted(plate, Clock(left), clockStyle, clock);
             clockStyle.alignment = previous;
 
-            // --- le mage
-            string mage;
-            Color tint;
+            float pw = UiStyle.S(88), ph = UiStyle.S(26);
+            float gap = UiStyle.S(10);
+
+            // --- le mage, a gauche
+            Rect magePill = new Rect(plate.x - gap - pw, top + (ch - ph) * 0.5f, pw, ph);
+            Color blue = new Color(0.62f, 0.78f, 1f);
             if (season.MagePresent)
             {
-                mage = "Le mage chante  --  il repart dans " + Clock(season.MageTimeLeft);
-                tint = new Color(0.62f, 0.76f, 1f);
+                float glow = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
+                Pill(magePill, UiStyle.Shape.Dot, new Color(blue.r, blue.g, blue.b, glow), Clock(season.MageTimeLeft), blue,
+                     season.MageTimeLeft / Mathf.Max(1f, season.MageStay));
             }
             else if (season.NextMageIn >= 0f)
-            {
-                mage = "Le mage reviendra dans " + Clock(season.NextMageIn);
-                tint = UiStyle.InkDim;
-            }
+                Pill(magePill, UiStyle.Shape.Dot, new Color(blue.r, blue.g, blue.b, 0.45f), Clock(season.NextMageIn), UiStyle.InkDim, -1f);
+            else
+                Pill(magePill, UiStyle.Shape.Dot, new Color(0.4f, 0.4f, 0.45f, 0.4f), "--", UiStyle.InkFaint, -1f);
+
+            // --- la Malediction, a droite
+            Rect cursePill = new Rect(plate.xMax + gap, top + (ch - ph) * 0.5f, pw, ph);
+            Color violet = Curse.Violet;
+            if (curse < 0f)
+                Pill(cursePill, UiStyle.Shape.Triangle, new Color(0.4f, 0.4f, 0.45f, 0.4f), "--", UiStyle.InkFaint, -1f);
             else
             {
-                mage = "Le mage ne reviendra plus. Pose ta relique.";
-                tint = new Color(0.92f, 0.62f, 0.32f);
-            }
-            UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(4), Screen.width, UiStyle.S(20)), mage, UiStyle.CenteredSmall, tint);
-
-            // --- la Malediction : visible des qu'elle approche (deux minutes), et
-            // qui palpite dans les vingt dernieres secondes.
-            float curse = season.NextCurseIn;
-            if (curse >= 120f)
-            {
-                Color quiet = Curse.Violet;
-                quiet.a = 0.55f;
-                UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(24), Screen.width, UiStyle.S(18)),
-                               "Malédiction dans " + Clock(curse), UiStyle.CenteredSmall, quiet);
-            }
-            if (curse >= 0f && curse < 120f && !season.MagePresent)
-            {
                 bool urgent = curse < 20f;
-                float pulse = urgent ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 8f) : 1f;
-                Color c = Curse.Violet;
-                c.a = pulse;
-                string line = "LA MALÉDICTION dans " + Clock(curse)
-                              + (Game.Inventory != null && !Game.Inventory.IsEmpty ? "  --  vide ton sac à ta stèle" : "  --  ton sac est vide");
-                UiStyle.Tinted(new Rect(0f, plate.yMax + UiStyle.S(24), Screen.width, UiStyle.S(20)), line,
-                               urgent ? UiStyle.Centered : UiStyle.CenteredSmall, c);
+                float pulse = urgent ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 8f) : curse < 120f ? 1f : 0.6f;
+                Color ink = urgent ? Color.Lerp(violet, Color.white, 0.4f) : curse < 120f ? violet : UiStyle.InkDim;
+                Pill(cursePill, UiStyle.Shape.Triangle, new Color(violet.r, violet.g, violet.b, pulse), Clock(curse), ink,
+                     curse < 120f ? curse / 120f : -1f);
+                if (urgent) UiStyle.FadeBand(new Rect(cursePill.x - UiStyle.S(4), cursePill.yMax + UiStyle.S(2), cursePill.width + UiStyle.S(8), 2f),
+                                             new Color(violet.r, violet.g, violet.b, pulse));
             }
+        }
+
+        /// <summary>Une pastille : une icone, un chiffre, et un filet qui se vide (fill &lt; 0 : pas de filet).</summary>
+        static void Pill(Rect r, UiStyle.Shape shape, Color icon, string text, Color ink, float fill)
+        {
+            GUI.Box(r, GUIContent.none, UiStyle.CardBox);
+            float d = UiStyle.S(11);
+            UiStyle.Icon(new Rect(r.x + UiStyle.S(10), r.center.y - d * 0.5f, d, d), shape, icon);
+            GUIStyle st = UiStyle.Label;
+            TextAnchor was = st.alignment;
+            st.alignment = TextAnchor.MiddleRight;
+            UiStyle.Tinted(new Rect(r.x, r.y, r.width - UiStyle.S(10), r.height), text, st, ink);
+            st.alignment = was;
+            if (fill >= 0f)
+                UiStyle.Fill(new Rect(r.x + 2f, r.yMax - 3f, (r.width - 4f) * Mathf.Clamp01(fill), 2f), new Color(icon.r, icon.g, icon.b, 0.8f));
         }
 
         // ---------------------------------------------------------------- le sac
@@ -519,9 +537,10 @@ namespace Fief
             {
                 Color blue = Stele.RuneBlue;
                 blue.a = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-                string what = carried.Trophy != null ? "LA RELIQUE DE " + carried.TrophyFrom.Name.ToUpperInvariant() : "TA RELIQUE EN MAIN";
-                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(30), Screen.width, UiStyle.S(22)),
-                               what + "  --  tu ne peux pas frapper, et on te voit venir", UiStyle.CenteredSmall, blue);
+                string what = carried.Trophy != null ? "Relique de " + carried.TrophyFrom.Name : "Relique en main";
+                float d = UiStyle.S(10);
+                UiStyle.Icon(new Rect(Screen.width * 0.5f - d * 0.5f, y - UiStyle.S(44), d, d), UiStyle.Shape.Diamond, blue);
+                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(32), Screen.width, UiStyle.S(22)), what, UiStyle.CenteredSmall, blue);
             }
 
             // Le reticule : un point discret ; un losange dore quand quelque chose est a

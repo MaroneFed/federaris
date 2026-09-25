@@ -48,7 +48,7 @@ namespace Fief
                         lastWarned = marks[i];
                         Sfx.CurseToll();
                         if (marks[i] >= 60f && Game.Inventory != null && !Game.Inventory.IsEmpty)
-                            Toasts.Show("Le glas. Dans une minute, la Malédiction dévore ce que tu portes. Rentre à ta stèle.", Violet);
+                            Toasts.Show("Le glas. Rentre à ta stèle.", Violet);
                     }
                 }
             }

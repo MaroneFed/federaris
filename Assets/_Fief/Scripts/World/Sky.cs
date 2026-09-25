@@ -174,7 +174,7 @@ namespace Fief
             if (inStorm && !stormAnnounced)
             {
                 stormAnnounced = true;
-                Toasts.Show("Le vent tourne. L'orage éclate au-dessus de la sylve.", new Color(0.7f, 0.78f, 0.95f));
+                Toasts.Show("L'orage éclate.", new Color(0.7f, 0.78f, 0.95f));
                 nextFlash = 6f;
             }
             if (!inStorm && stormAnnounced && !stormOver && elapsed >= stormEnd)

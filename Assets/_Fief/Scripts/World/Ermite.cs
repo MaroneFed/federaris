@@ -219,7 +219,7 @@ namespace Fief
                     if (Game.Hoard.RequestBrew(Game.Inventory, Game.Season.Elapsed))
                     {
                         Sfx.Build();
-                        Toasts.Show("L'infusion est amère et brûlante. Pendant trois minutes, ton sac ne pèse plus sur tes gestes.",
+                        Toasts.Show("Infusion : ton sac ne pèse plus, 3 minutes.",
                                     Voice);
                     }
                     return false;

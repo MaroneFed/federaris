@@ -157,7 +157,7 @@ namespace Fief
                 if (r != null) r.Die();
                 if (killer != null && killer.IsPlayer) Stats.RivalsDowned++;
                 if (killer != null && killer.IsPlayer)
-                    Toasts.Show(victim.Name + " est tombé. Sa dépouille est à toi -- fouille-la (E).", victim.Colour);
+                    Toasts.Show(victim.Name + " est tombé. Fouille-le (E).", victim.Colour);
             }
         }
 
@@ -308,7 +308,7 @@ namespace Fief
             }
             me.SyncWeight();
             Sfx.HarvestTap(ResourceType.Deadwood);
-            Toasts.Show(Empty ? "Tu as tout repris." : "Ton sac est plein : il reste des choses dans la dépouille.", UiStyle.InkDim);
+            Toasts.Show(Empty ? "Tu as tout repris." : "Sac plein : il en reste.", UiStyle.InkDim);
             if (Empty) Destroy(gameObject, 0.1f);
         }
     }

@@ -450,7 +450,7 @@ namespace Fief
             if (index == 0 && Game.Garrison.RequestLookAway(Game.Wallet, info, Now))
             {
                 Sfx.Coin();
-                Toasts.Show(info.Name + " empoche les pièces et se tourne vers le mur.", new Color(0.95f, 0.8f, 0.4f));
+                Toasts.Show(info.Name + " empoche l'or et détourne les yeux.", new Color(0.95f, 0.8f, 0.4f));
                 return false;
             }
             if (index == 2 && Game.Garrison.RequestOath(Game.Me, info))

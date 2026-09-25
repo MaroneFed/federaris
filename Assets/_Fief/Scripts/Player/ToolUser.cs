@@ -184,7 +184,7 @@ namespace Fief
             kit.Wear(1);                 // le piege quitte la main : l'emplacement se libere
             Sfx.Build();
             OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
-            Toasts.Show("Piège pose, sous les feuilles. De loin, toi seul sais qu'il est la.", new Color(0.95f, 0.62f, 0.35f));
+            Toasts.Show("Piège posé.", new Color(0.95f, 0.62f, 0.35f));
         }
 
         // ================================================================== grimper

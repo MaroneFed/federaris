@@ -99,7 +99,7 @@ namespace Fief
             if (inv.SpaceFor(type) <= 0)
             {
                 Sfx.Deny();
-                Toasts.Show("Sac plein (" + Mathf.RoundToInt(inv.Weight) + " kg) : rentre le vider à ta stèle, ou creuse une cache (G).",
+                Toasts.Show("Sac plein.",
                             new Color(0.95f, 0.45f, 0.35f));
                 return;
             }

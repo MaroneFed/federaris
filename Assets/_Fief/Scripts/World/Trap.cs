@@ -201,7 +201,7 @@ namespace Fief
             if (owner == Game.Me && !victim.IsPlayer)
             {
                 string where = Game.PlayerTransform != null ? Hud.Direction(Game.PlayerTransform.position, transform.position) : "";
-                Toasts.Show(victim.Name + " est tombé dans ton piège, " + where + ". Sa dépouille t'attend.", new Color(0.95f, 0.55f, 0.3f));
+                Toasts.Show(victim.Name + " pris au piège, " + where + ".", new Color(0.95f, 0.55f, 0.3f));
             }
             Destroy(gameObject, 25f);
         }
