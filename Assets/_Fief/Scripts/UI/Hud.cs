@@ -55,7 +55,19 @@ namespace Fief
         float flash;
         Color flashTint;
 
-        public void Hurt() { hurtFlash = 1f; }
+        /// <summary>Un coup : l'ecran blanchit, et le bord d'ou il vient rougit.</summary>
+        public void Hurt(Vector3 velocity)
+        {
+            hurtFlash = 1f;
+            Vector3 from = -new Vector3(velocity.x, 0f, velocity.z);
+            if (from.sqrMagnitude < 0.01f || viewCamera == null) return;
+            Vector3 f = viewCamera.transform.forward, r = viewCamera.transform.right;
+            f.y = 0f; r.y = 0f;
+            hitSide = new Vector2(Vector3.Dot(from.normalized, r.normalized), Vector3.Dot(from.normalized, f.normalized));
+            hitSideTimer = 0.8f;
+        }
+        Vector2 hitSide;
+        float hitSideTimer;
 
         public void Flash(Color tint)
         {

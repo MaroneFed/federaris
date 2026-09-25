@@ -68,6 +68,7 @@ namespace Fief
         float pullSpeed;
         Vector3 lastGround;         // le dernier point ou l'on touchait le sol (la Couronne y reste)
         float airTop;               // le plus haut atteint depuis qu'on a quitte le sol
+        bool windPlayed;
 
         // --- le rappel : ou l'on etait, un point tous les dixiemes de seconde, sur cinq secondes
         readonly Vector3[] trail = new Vector3[50];
@@ -170,6 +171,8 @@ namespace Fief
             else
             {
                 airTop = Mathf.Max(airTop, transform.position.y);
+                // Une vraie chute : le vent siffle (une fois).
+                if (verticalVelocity < -16f && !windPlayed) { windPlayed = true; Sfx.Whoosh(); }
                 if (canAct && FiefInput.JumpPressed && !airJumpUsed && me != null && me.Has(Ability.DoubleSaut))
                 {
                     airJumpUsed = true;
@@ -196,7 +199,16 @@ namespace Fief
             {
                 pullTime -= dt;
                 Vector3 to = pullPoint - transform.position;
-                if (to.magnitude < 1.6f) pullTime = 0f;
+                if (to.magnitude < 1.6f)
+                {
+                    // Arrive : on se HISSE sur le rebord (sinon on restait colle dessous
+                    // et on retombait) -- un elan vers l'avant, un petit saut.
+                    pullTime = 0f;
+                    Vector3 on = new Vector3(to.x, 0f, to.z);
+                    if (on.sqrMagnitude < 0.01f) on = transform.forward;
+                    knock += on.normalized * 7f;
+                    verticalVelocity = Mathf.Max(verticalVelocity, 4f);
+                }
                 else
                 {
                     extra += to.normalized * pullSpeed;
@@ -206,7 +218,9 @@ namespace Fief
             }
             knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
 
-            Vector3 motion = wish * speed + extra + knock + Vector3.up * verticalVelocity;
+            // Pendant un gros recul, on ne contre-marche pas : le coup porte vraiment.
+            float control = Mathf.Lerp(0.2f, 1f, Mathf.Clamp01(1f - knock.magnitude / 16f));
+            Vector3 motion = wish * speed * control + extra + knock + Vector3.up * verticalVelocity;
             if (pullTime > 0f) motion.y = Mathf.Max(motion.y, (pullPoint - transform.position).normalized.y * pullSpeed);
             controller.Move(motion * dt);
 
@@ -220,7 +234,10 @@ namespace Fief
         void Land(Seeker me)
         {
             float fall = airTop - transform.position.y;
+            windPlayed = false;
             if (orbitCamera != null) orbitCamera.Shake(Mathf.Clamp01(fall / 20f) * 0.3f);
+            if (fall > 3f) Ambiance.Burst(null, transform.position + Vector3.up * 0.1f, new Color(0.45f, 0.42f, 0.38f));
+            if (fall > 10f && Tower.On(lastGround) && !Tower.On(transform.position)) Feed.FellFromTower(me);
             if (fall > 4f && me != null && me.Has(Ability.Rebond))
             {
                 Combat.Blast(transform.position, 5f, 13f, 5f, me);

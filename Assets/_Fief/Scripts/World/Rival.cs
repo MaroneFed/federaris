@@ -41,7 +41,7 @@ namespace Fief
             }
         }
 
-        enum Goal { Shrine, Raid, Grab, Deliver, Hunt, Fight, Roam }
+        enum Goal { Shrine, Raid, Grab, Deliver, Hunt, Fight, Guard, Roam }
 
         [System.NonSerialized] public Seeker seeker;
 
@@ -88,8 +88,13 @@ namespace Fief
         int trailAt;
         float trailTimer;
 
-        const float WalkSpeed = 5.6f;
-        const float RunSpeed = 7.6f;
+        // 27/09 : ils couraient a 7,6 m/s, toi a 10,8. Tu les semais TOUJOURS avec la
+        // Couronne, et tu les rattrapais toujours sans : la course-poursuite n'existait
+        // pas. Ils courent maintenant presque aussi vite que toi -- selon leur niveau.
+        const float WalkSpeed = 6.2f;
+        static float RunSpeed { get { return Match.BotLevel == 0 ? 9f : Match.BotLevel == 1 ? 10.2f : 10.7f; } }
+        /// <summary>Le temps entre deux capacites, selon le niveau.</summary>
+        static float Reflex { get { return Match.BotLevel == 0 ? 1.4f : Match.BotLevel == 1 ? 0.45f : 0.25f; } }
 
         // ================================================================== construction
 
@@ -150,9 +155,12 @@ namespace Fief
         {
             knock += new Vector3(velocity.x, 0f, velocity.z);
             if (velocity.y > 0f) fallSpeed = Mathf.Max(fallSpeed, velocity.y);
+            // Lance par un courant : il monte droit, sans marcher, jusqu'a passer le trou.
+            if (velocity.y > 20f) launchedUntil = Time.time + 0.9f;
             dashTime = 0f;
             pullTime = 0f;
         }
+        float launchedUntil;
 
         public void Dash(Vector3 direction, float speed, float seconds)
         {
@@ -205,8 +213,8 @@ namespace Fief
             if (castTimer > 0f) castTimer -= dt;
 
             think -= dt;
-            if (think <= 0f) { think = 0.5f; Think(season); }
-            if (castTimer <= 0f) { castTimer = 0.4f; UseAbilities(); }
+            if (think <= 0f) { think = Match.BotLevel == 2 ? 0.3f : 0.5f; Think(season); }
+            if (castTimer <= 0f) { castTimer = Reflex; UseAbilities(); }
 
             Act(dt);
             Remember(dt);
@@ -227,6 +235,18 @@ namespace Fief
             {
                 prey = holder;
                 preyTimer = 5f;
+                // L'un d'eux (le plus pres du Monument) va l'y attendre, au lieu de
+                // courir derriere avec les autres : on coupe la route du porteur.
+                if (Guardian() == this && Monument.Instance != null)
+                {
+                    Vector3 m = Monument.Instance.transform.position;
+                    Vector3 toward = Flat(holder.Body.position - m);
+                    if (toward.magnitude > 35f)
+                    {
+                        SetGoal(Goal.Guard, m + toward.normalized * 6f, was);
+                        return;
+                    }
+                }
                 SetGoal(Goal.Hunt, holder.Body.position, was);
                 return;
             }
@@ -259,6 +279,24 @@ namespace Fief
             if (fresh) PlanPath(at);
         }
 
+        /// <summary>Le bot qui garde le Monument pendant que les autres chassent : le plus proche du Monument (null s'ils sont moins de deux).</summary>
+        static Rival Guardian()
+        {
+            if (Monument.Instance == null || Match.BotLevel == 0) return null;
+            Rival best = null;
+            float bestD = float.MaxValue;
+            int free = 0;
+            for (int i = 0; i < All.Count; i++)
+            {
+                Rival r = All[i];
+                if (r == null || r.seeker.CarriesCrown) continue;
+                free++;
+                float d = Flat(r.transform.position - Monument.Instance.transform.position).magnitude;
+                if (d < bestD) { bestD = d; best = r; }
+            }
+            return free >= 2 ? best : null;
+        }
+
         Shrine NearestShrine(float range)
         {
             Shrine best = null;
@@ -287,7 +325,7 @@ namespace Fief
             bool fromTower = Tower.On(from), toTower = Tower.On(to);
             if (fromTower && toTower)
             {
-                path.AddRange(Tower.Path(Tower.Progress(from), Tower.Progress(to)));
+                path.AddRange(Climb(Tower.Progress(from), Tower.Progress(to)));
                 return;
             }
             if (fromTower)
@@ -306,8 +344,32 @@ namespace Fief
             if (toTower)
             {
                 path.Add(Tower.Foot);
-                path.AddRange(Tower.Path(0f, Tower.Progress(to)));
+                path.AddRange(Climb(0f, Tower.Progress(to)));
             }
+        }
+
+        /// <summary>
+        /// Monter la rampe de "from" a "to" (0-1) -- en passant par les COURANTS quand
+        /// ils font gagner un tour (sauf les bots faciles, qui font tout a pied).
+        /// </summary>
+        List<Vector3> Climb(float from, float to)
+        {
+            List<Vector3> list = new List<Vector3>();
+            if (to <= from || Match.BotLevel == 0) { list.AddRange(Tower.Path(from, to)); return list; }
+            float cur = from;
+            for (int i = 0; i < Updraft.All.Count; i++)
+            {
+                Updraft u = Updraft.All[i];
+                if (u == null) continue;
+                float at = Tower.Progress(u.transform.position);
+                float landed = at + 1f / Tower.Turns;
+                if (at <= cur + 0.01f || landed > to + 0.02f) continue;
+                list.AddRange(Tower.Path(cur, at));
+                list.Add(u.transform.position);
+                cur = landed;
+            }
+            list.AddRange(Tower.Path(cur, to));
+            return list;
         }
 
         /// <summary>La prochaine etape : le premier point du chemin, sinon la cible.</summary>
@@ -318,10 +380,13 @@ namespace Fief
                 Vector3 p = path[0];
                 Vector3 d = p - transform.position;
                 bool sameLevel = Mathf.Abs(d.y) < 2.5f;
-                // Tombe loin de son chemin (pousse de la rampe) : il en refait un.
-                if (Mathf.Abs(d.y) > 6f && Tower.On(p) && !Tower.On(transform.position)) { PlanPath(target); if (path.Count == 0) break; p = path[0]; d = p - transform.position; sameLevel = Mathf.Abs(d.y) < 2.5f; }
+                // Loin de son chemin en hauteur (pousse de la rampe, lance par un courant) :
+                // il en refait un depuis la ou il est.
+                if (Mathf.Abs(d.y) > 6f && Tower.On(p) && (!body.enabled || body.isGrounded)) { PlanPath(target); if (path.Count == 0) break; p = path[0]; d = p - transform.position; sameLevel = Mathf.Abs(d.y) < 2.5f; }
                 d.y = 0f;
-                if (d.magnitude < 1.5f && sameLevel) { path.RemoveAt(0); continue; }
+                // Un courant : il faut marcher DEDANS, pas a cote.
+                float close = Updraft.Near(p, 0.1f) != null ? 0.4f : 1.5f;
+                if (d.magnitude < close && sameLevel) { path.RemoveAt(0); continue; }
                 return p;
             }
             return target;
@@ -340,10 +405,10 @@ namespace Fief
             bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
 
             // La poussee : des qu'il est a portee de sa proie.
-            if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null && seeker.CanShove
+            if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove
                 && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.7f)
             {
-                seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * 1.3f;
+                seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 1.05f);
                 if (rig != null) rig.PlaySwing();
                 Combat.Shove(seeker, prey.Body.position - transform.position);
                 if (goal == Goal.Fight && rng.NextDouble() < 0.4) preyTimer = 0f;
@@ -362,15 +427,14 @@ namespace Fief
             {
                 case Goal.Deliver:
                     work += dt;
-                    if (work < 2f) break;
-                    work = 0f;
+                    // (Le Monument le prend tout seul des qu'il entre dans le cercle.)
                     if (Monument.Instance != null && Monument.Instance.TryDeliver(seeker)) Bark("Victoire !");
                     think = 0f;
                     break;
                 case Goal.Raid:
                 case Goal.Grab:
                     work += dt;
-                    if (work < (Crown.Where == Crown.State.OnPedestal ? 1.2f : 0.4f)) break;
+                    if (work < (Crown.Where == Crown.State.OnPedestal ? 1f : 0.2f)) break;
                     work = 0f;
                     if (Crown.Instance != null && Crown.Instance.TryTakeFor(seeker)) Bark("À moi !");
                     think = 0f;
@@ -516,7 +580,7 @@ namespace Fief
             Vector3 to = Flat(destination - transform.position);
             float d = to.magnitude;
             Vector3 dir = d > 0.05f ? to / d : transform.forward;
-            if (d < 0.05f) speed = 0f;
+            if (d < 0.05f || Time.time < launchedUntil) speed = 0f;
             if (detourTimer > 0f)
             {
                 detourTimer -= dt;
@@ -529,7 +593,7 @@ namespace Fief
             {
                 pullTime -= dt;
                 Vector3 p = pullPoint - transform.position;
-                if (p.magnitude < 1.6f) pullTime = 0f;
+                if (p.magnitude < 1.6f) { pullTime = 0f; knock += Flat(p).normalized * 7f; fallSpeed = Mathf.Max(fallSpeed, 4f); }
                 else { extra += p.normalized * pullSpeed; fallSpeed = Mathf.Max(fallSpeed, p.normalized.y * pullSpeed); }
             }
 
@@ -592,13 +656,16 @@ namespace Fief
         /// <summary>Vrai s'il n'y a plus de sol un metre et demi devant (le bord d'un trou de la rampe).</summary>
         bool EdgeAhead(Vector3 dir)
         {
-            Vector3 probe = transform.position + dir * 1.5f + Vector3.up * 0.6f;
+            // A 0,8 m : plus loin, il sautait trop tot et tombait dans le trou.
+            Vector3 probe = transform.position + dir * 0.8f + Vector3.up * 0.6f;
             return !Physics.Raycast(probe, Vector3.down, 2.6f, ~0, QueryTriggerInteraction.Ignore);
         }
 
         void Land(float fall)
         {
             if (fall > 8f) fellAt = Time.time;
+            if (fall > 10f && Tower.On(lastGround) && !Tower.On(transform.position)) Feed.FellFromTower(seeker);
+            if (PlayerWithin(40f)) Ambiance.Burst(null, transform.position + Vector3.up * 0.1f, new Color(0.45f, 0.42f, 0.38f));
             if (fall > 4f && seeker.Has(Ability.Rebond)) Combat.Blast(transform.position, 5f, 13f, 5f, seeker);
         }
 

@@ -95,6 +95,11 @@ namespace Fief
         public float HiddenUntil = -1f;     // voile : invisible
         /// <summary>Le dernier coup encaisse (la musique, l'ecran s'en servent).</summary>
         public float LastHurt = -99f;
+        /// <summary>
+        /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant
+        /// dessus (sinon on la "rattrape" d'office en volant dans la meme direction).
+        /// </summary>
+        public float CrownLockUntil = -1f;
         /// <summary>La Prise ferme a deja servi pour ce port de Couronne.</summary>
         public bool GripUsed;
 

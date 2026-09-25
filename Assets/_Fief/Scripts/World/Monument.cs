@@ -131,10 +131,21 @@ namespace Fief
             if (Instance == this) { Instance = null; sited = false; }
         }
 
-        /// <summary>Quand quelqu'un porte la Couronne, la colonne s'embrase : le Monument l'appelle.</summary>
+        /// <summary>Le porteur entre dans ce cercle : la manche est gagnee, sans touche a tenir.</summary>
+        public const float DeliverRadius = 3.6f;
+
+        /// <summary>
+        /// Quand quelqu'un porte la Couronne, la colonne s'embrase : le Monument l'appelle.
+        /// Et s'il entre dans le cercle, c'est gagne (27/09 : tenir E deux secondes, avec
+        /// trois joueurs dans le dos, c'etait perdre la manche sur un bouton).
+        /// </summary>
         void Update()
         {
-            if (beam == null || Game.Season == null || !Game.Season.Running) return;
+            if (Game.Season == null || !Game.Season.Running) return;
+            Seeker holder = Crown.Holder;
+            if (holder != null && holder.Body != null && Within(holder.Body.position, DeliverRadius)
+                && Mathf.Abs(holder.Body.position.y - transform.position.y) < 4f) TryDeliver(holder);
+            if (beam == null) return;
             bool called = Crown.Holder != null;
             beam.targetAlpha = called ? 0.85f + 0.15f * Mathf.Sin(Time.time * 3f) : 0.55f;
             beam.fadeSpeed = 1.5f;
@@ -170,7 +181,7 @@ namespace Fief
         // ================================================================== IInteractable
 
         public Transform Anchor { get { return transform; } }
-        public bool CanInteract { get { return Game.Me != null && Game.Me.CarriesCrown; } }
+        public bool CanInteract { get { return false; } }       // plus de touche : on entre dans le cercle
         public string Prompt { get { return "Poser la Couronne"; } }
         public float HoldDuration { get { return 2f; } }
 

@@ -43,7 +43,7 @@ namespace Fief
         const float Angle = 34f;
         const float ChargeTime = 1.1f;
         const float LockTime = 0.5f;       // la fin de la charge : il ne suit plus
-        const float RestTime = 2.2f;
+        const float RestTime = 3.4f;       // (2,2 s : sur la rampe, on se faisait mitrailler)
 
         static readonly Color Calm = new Color(0.45f, 0.7f, 1f);
         static readonly Color Wary = new Color(1f, 0.6f, 0.2f);
@@ -216,7 +216,7 @@ namespace Fief
             if (target == null || !Interested(target) || !Sees(target, false, out d)) { state = State.Watch; return; }
             Look(target.Body.position + Vector3.up * 1.1f, dt * 6f);
             suspicion += dt * (target.Has(Ability.Ombre) ? 0.5f : 1f) * (target.CarriesCrown ? 1.6f : 1f);
-            if (suspicion < 0.55f) return;
+            if (suspicion < 0.7f) return;
             suspicion = 0f;
             state = State.Charge;
             timer = 0f;

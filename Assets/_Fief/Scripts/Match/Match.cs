@@ -61,6 +61,14 @@ namespace Fief
         public static int RoundSeed { get; private set; }
 
         static readonly string[] BotNames = { "Mahaut", "Oswin", "Guerin" };
+
+        /// <summary>
+        /// LE NIVEAU DES BOTS (choisi au salon, garde d'un match a l'autre) : 0 faciles,
+        /// 1 normaux, 2 coriaces. Il change leur vitesse, leurs reflexes, et la
+        /// frequence de leurs capacites -- jamais les regles.
+        /// </summary>
+        public static int BotLevel = 1;
+        public static readonly string[] BotLevels = { "Faciles", "Normaux", "Coriaces" };
         static readonly Color[] Colours =
         {
             new Color(0.95f, 0.78f, 0.35f),     // toi : or

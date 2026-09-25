@@ -75,7 +75,11 @@ namespace Fief
                 {
                     RaycastHit hit;
                     if (!RayFrom(s, eye, aim, 34f, out hit)) { s.Refund(a); return false; }
-                    m.PullTo(hit.point + hit.normal * 0.6f, 26f);
+                    // Contre un mur ou un rebord (normale a l'horizontale) : on vise un peu
+                    // au-dessus, pour arriver PAR-DESSUS le rebord et s'y hisser.
+                    Vector3 grip = hit.point + hit.normal * 0.6f;
+                    if (Mathf.Abs(hit.normal.y) < 0.5f) grip += Vector3.up * 1.4f;
+                    m.PullTo(grip, 26f);
                     Tether.Show(s.Body, null, hit.point, 0.7f, tint);
                     break;
                 }

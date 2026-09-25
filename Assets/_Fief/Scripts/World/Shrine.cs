@@ -101,6 +101,7 @@ namespace Fief
             if (crystal != null) crystal.gameObject.SetActive(false);
             if (glow != null) glow.intensity = 0.4f;
             Ambiance.Burst(null, transform.position + Vector3.up * 1.6f, AbilityInfo.Tint(gift));
+            Feed.GiftTaken(s, gift);
             if (s.IsPlayer)
             {
                 Sfx.Discovery();

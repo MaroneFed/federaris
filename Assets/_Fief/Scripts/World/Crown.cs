@@ -5,11 +5,13 @@ namespace Fief
     /// <summary>
     /// LA COURONNE : l'enjeu de la manche. Il n'y en a qu'une.
     ///
-    /// Elle attend sur son socle, en haut du donjon, sous la garde du Roi Creux. Qui la
-    /// prend (E maintenu) la porte au-dessus de sa tete : une COLONNE DOREE monte
-    /// au-dessus de lui, tout le monde sait ou il est. Il marche moins vite, ne frappe
-    /// plus. S'il tombe -- ou s'il se fait POUSSER --, elle roule par terre, et la
-    /// colonne marque l'endroit. Le premier qui la porte au Monument gagne la manche.
+    /// Elle attend sur son socle, au sommet de la tour. Qui la prend (E maintenu une
+    /// seconde) la porte au-dessus de sa tete : une COLONNE DOREE monte au-dessus de
+    /// lui, tout le monde sait ou il est. Il va moins vite et ne pousse plus. Si on le
+    /// POUSSE, elle roule par terre ; s'il SAUTE de haut, elle reste la ou il a quitte
+    /// le sol. A terre, il suffit de lui PASSER DESSUS pour la ramasser (27/09 : on ne
+    /// cherche pas la touche E en pleine bagarre). Le premier qui entre dans le cercle
+    /// du Monument avec elle gagne la manche.
     ///
     /// Toi et les bots passez par les memes methodes (TryTakeFor, Drop) : en Phase 3,
     /// c'est l'hote qui les appellera.
@@ -156,7 +158,7 @@ namespace Fief
             if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.Sample(visual.position.x, visual.position.z) - 3f))
                 ReturnHome();
             // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
-            if (state == State.Dropped) Attract();
+            if (state == State.Dropped) { Attract(); PickUpByTouch(); }
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
@@ -179,7 +181,7 @@ namespace Fief
             transform.position = pedestal;
             visual.position = home;
             Sfx.Bell();
-            if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "revient au sommet de la tour", "", Gold);
+            Feed.CrownHome();
         }
         float BaseHeight() { return state == State.OnPedestal ? home.y : state == State.Delivered ? deliveredY : groundY; }
 
@@ -189,6 +191,7 @@ namespace Fief
         public bool TryTakeFor(Seeker s)
         {
             if (s == null || s.Body == null || s.Stunned || state == State.Carried || state == State.Delivered) return false;
+            if (Game.Season == null || !Game.Season.Running) return false;
             bool fromPedestal = state == State.OnPedestal;
             state = State.Carried;
             Holder = s;
@@ -196,7 +199,8 @@ namespace Fief
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
             if (fromPedestal) Sfx.Alarm();
-            if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", s.IsPlayer ? "Au Monument !" : s.Name, "", s.Colour);
+            if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "Au Monument : la colonne bleue !", "", Gold);
+            Feed.CrownTaken(s, fromPedestal);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;
         }
@@ -227,8 +231,11 @@ namespace Fief
             Holder = null;
             droppedAt = Time.time;
             // Par terre, un peu devant : on la voit rouler.
+            at = SafeSpot(at, was);
             float y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 30f, ~0, QueryTriggerInteraction.Ignore)
                 ? hit.point.y : Ground.Sample(at.x, at.z);
+            // Celui qui vient de la perdre ne la rattrape pas en retombant dessus.
+            if (was != null) was.CrownLockUntil = Time.time + 1.2f;
             groundY = y + 0.35f;
             // Le declencheur d'abord (la couronne visible est son enfant : le bouger
             // apres elle la decalerait d'autant), puis la couronne elle-meme.
@@ -236,7 +243,26 @@ namespace Fief
             visual.position = new Vector3(at.x, groundY, at.z);
             Sfx.Thud();
             Ambiance.Burst(null, visual.position, Gold);
-            if (was != null && was.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "Couronne perdue", "", "", new Color(1f, 0.45f, 0.35f));
+        }
+
+        /// <summary>
+        /// Un endroit ou la Couronne peut tomber : jamais DANS le fut de la tour (un
+        /// coup venu de dehors poussait le porteur contre le mur, et la Couronne
+        /// traversait la pierre jusqu'au pied de la tour, introuvable), jamais dans un
+        /// mur. Sinon, la ou etait son porteur.
+        /// </summary>
+        static Vector3 SafeSpot(Vector3 at, Seeker was)
+        {
+            Vector2 flat = new Vector2(at.x, at.z);
+            if (flat.magnitude < Tower.Radius + 1f && at.y < Tower.Height - 0.5f)
+            {
+                Vector2 dir = flat.sqrMagnitude > 0.01f ? flat.normalized : Vector2.up;
+                flat = dir * (Tower.Radius + 1.4f);
+                at = new Vector3(flat.x, at.y, flat.y);
+            }
+            if (Physics.CheckSphere(at + Vector3.up * 0.6f, 0.3f, ~0, QueryTriggerInteraction.Ignore) && was != null && was.Body != null)
+                at = was.Body.position;
+            return at;
         }
 
         /// <summary>Pousse : le porteur la lache, elle roule dans la direction du coup.</summary>
@@ -248,7 +274,7 @@ namespace Fief
         {
             if (Instance == null || Holder != holder) return;
             Instance.Drop(lastGround);
-            if (holder.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "La Couronne a glissé", "elle est restée en haut", "", new Color(1f, 0.6f, 0.4f));
+            Feed.CrownSlipped(holder);
         }
 
         void Attract()
@@ -271,6 +297,19 @@ namespace Fief
             groundY = visual.position.y;
         }
 
+        /// <summary>A terre, la Couronne se ramasse en passant dessus.</summary>
+        void PickUpByTouch()
+        {
+            if (state != State.Dropped || Game.Season == null || !Game.Season.Running) return;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s.Body == null || s.Stunned || Time.time < s.CrownLockUntil) continue;
+                if ((s.Body.position + Vector3.up * 0.9f - visual.position).magnitude > 1.7f) continue;
+                if (TryTakeFor(s)) return;
+            }
+        }
+
         public static void KnockOff(Seeker victim, Vector3 direction)
         {
             if (Instance == null || Holder != victim || victim.Body == null) return;
@@ -282,8 +321,8 @@ namespace Fief
 
         public Transform Anchor { get { return visual != null ? visual : transform; } }
         public bool CanInteract { get { return state != State.Carried && state != State.Delivered && Game.Season != null && Game.Season.Running && Game.Me != null && !Game.Me.Stunned; } }
-        public string Prompt { get { return "La Couronne"; } }
-        public float HoldDuration { get { return state == State.OnPedestal ? 1.2f : 0.5f; } }
+        public string Prompt { get { return state == State.OnPedestal ? "Prendre la Couronne" : "Ramasser la Couronne"; } }
+        public float HoldDuration { get { return state == State.OnPedestal ? 1f : 0.2f; } }
 
         public void Interact()
         {

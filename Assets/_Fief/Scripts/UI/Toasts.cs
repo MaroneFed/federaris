@@ -4,8 +4,10 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// Les petits messages qui montent en haut de l'ecran ("+3 Bois", "Vendu 12 Pierre...").
-    /// Sans eux, on ne SENT pas la boucle de jeu : chaque action doit repondre.
+    /// LE FIL DES EVENEMENTS (27/09) : ce qui vient de se passer dans la manche, en une
+    /// ligne, a gauche de l'ecran -- "Mahaut a pris la Couronne !", "Oswin est tombe de
+    /// la tour". Les phrases sont ecrites par Feed.cs. Sans ce fil, on ne sait jamais
+    /// pourquoi la Couronne a change de mains.
     /// </summary>
     public static class Toasts
     {
@@ -16,8 +18,8 @@ namespace Fief
             public float life;
         }
 
-        const float Lifetime = 3.2f;
-        const int MaxVisible = 3;
+        const float Lifetime = 5f;
+        const int MaxVisible = 5;
 
         static readonly List<Entry> entries = new List<Entry>();
 
@@ -71,7 +73,7 @@ namespace Fief
             float width = Mathf.Min(UiStyle.S(420), Screen.width * 0.4f);
             float height = UiStyle.S(24);
             float x = UiStyle.S(22);
-            float y = Screen.height * 0.52f;
+            float y = Screen.height * 0.42f;
 
             for (int i = 0; i < entries.Count; i++)
             {
@@ -80,14 +82,11 @@ namespace Fief
                 float slide = (1f - Mathf.Clamp01((Lifetime - e.life) / 0.2f)) * UiStyle.S(-16);
 
                 Rect row = new Rect(x + slide, y + i * (height + UiStyle.S(3)), width, height);
-                UiStyle.Fill(new Rect(row.x, row.y, 2f, row.height), new Color(e.color.r, e.color.g, e.color.b, alpha * 0.9f));
-                UiStyle.Fill(new Rect(row.x + 2f, row.y, row.width * 0.75f, row.height), new Color(0.03f, 0.025f, 0.02f, 0.45f * alpha));
-
-                GUIStyle style = UiStyle.Label;
-                Color previous = style.normal.textColor;
-                style.normal.textColor = new Color(e.color.r, e.color.g, e.color.b, alpha);
-                GUI.Label(new Rect(row.x + UiStyle.S(10), row.y, row.width - UiStyle.S(12), row.height), e.text, style);
-                style.normal.textColor = previous;
+                UiStyle.Fill(new Rect(row.x, row.y + UiStyle.S(4), 2f, row.height - UiStyle.S(8)), new Color(e.color.r, e.color.g, e.color.b, alpha * 0.9f));
+                // Du texte avec son ombre, sans boite ; et on ne touche jamais au style partage.
+                Rect text = new Rect(row.x + UiStyle.S(10), row.y, row.width - UiStyle.S(12), row.height);
+                UiStyle.Tinted(new Rect(text.x + 1f, text.y + 1f, text.width, text.height), e.text, UiStyle.Label, new Color(0f, 0f, 0f, 0.8f * alpha));
+                UiStyle.Tinted(text, e.text, UiStyle.Label, new Color(e.color.r, e.color.g, e.color.b, alpha));
             }
         }
     }

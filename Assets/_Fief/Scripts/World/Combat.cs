@@ -15,7 +15,7 @@ namespace Fief
     public static class Combat
     {
         public const float ShoveReach = 3f;
-        public const float ShoveForce = 12f;
+        public const float ShoveForce = 14f;
 
         /// <summary>
         /// POUSSER (clic gauche) : le premier joueur devant soi, a 3 m, part en arriere
@@ -38,7 +38,9 @@ namespace Fief
             if (best == null) return false;
             Vector3 push = Flat(best.Body.position - by.Body.position).normalized;
             if (push.sqrMagnitude < 0.01f) push = f;
-            Hit(best, push * force + Vector3.up * 4.5f, 0f, true, by);
+            // Un court etourdissement : on ne contre-marche pas une poussee (c'est ce
+            // qui la rendait molle -- on reculait de deux metres en appuyant sur Z).
+            Hit(best, push * force + Vector3.up * 4.5f, 0.2f, true, by);
             if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.05f); }
             return true;
         }
@@ -66,13 +68,14 @@ namespace Fief
                 {
                     Crown.KnockOff(victim, velocity);
                     if (by != null && by.IsPlayer) Stats.CrownsStolen++;
+                    Feed.CrownKnocked(victim, by);
                 }
             }
 
             Sfx.Thud();
             if (victim.IsPlayer)
             {
-                if (Game.Hud != null) Game.Hud.Hurt();
+                if (Game.Hud != null) Game.Hud.Hurt(velocity);
                 if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(Mathf.Clamp(velocity.magnitude / 40f, 0.15f, 0.5f));
             }
             else

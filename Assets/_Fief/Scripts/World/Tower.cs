@@ -121,6 +121,18 @@ namespace Fief
                 float u = (Pendulums[i] + 0.5f) / (SegmentsPerTurn * Turns);
                 Pendulum.Build(t, RampPoint(u), Tangent(u), i * 1.7f);
             }
+
+            // Sous chaque trou, un tour plus bas : un COURANT qui renvoie d'un tour vers
+            // le haut, a travers le trou. Au bord interieur de la rampe : on y entre
+            // expres, on ne tombe pas dedans en courant.
+            Updraft.All.Clear();
+            for (int g = 0; g < Gaps.Length; g++)
+            {
+                float u = (Gaps[g] + 1f) / (SegmentsPerTurn * Turns) - 1f / Turns;
+                Vector3 mid = RampPoint(u);
+                Vector3 inward = -new Vector3(mid.x, 0f, mid.z).normalized;
+                Updraft.Build(t, mid + inward * (Centre - Radius - 1.3f));
+            }
         }
 
         static Vector3 Tangent(float u)
@@ -236,6 +248,72 @@ namespace Fief
     }
 
     /// <summary>
+    /// UN COURANT DE LA TOUR (27/09 -- "tomber de la tour, c'etait perdre trente
+    /// secondes") : un disque pale au bord interieur de la rampe, une colonne de
+    /// lumiere qui monte a travers le trou du dessus. Qui marche dedans est projete
+    /// seize metres plus haut, par le trou, sur le tour suivant. Un raccourci, et un
+    /// moyen de revenir quand on est tombe par un trou.
+    /// </summary>
+    public class Updraft : MonoBehaviour
+    {
+        public static readonly List<Updraft> All = new List<Updraft>();
+        readonly Dictionary<Seeker, float> lastLaunch = new Dictionary<Seeker, float>();
+        Transform disc;
+
+        public const float Radius = 1.05f;
+        const float Lift = 28f;         // assez pour monter de 16 m et depasser le rebord
+        static readonly Color Air = new Color(0.7f, 0.9f, 1f);
+
+        public static Updraft Build(Transform parent, Vector3 at)
+        {
+            GameObject go = new GameObject("COURANT");
+            go.transform.SetParent(parent, false);
+            go.transform.position = at;
+            Updraft u = go.AddComponent<Updraft>();
+            Proto.BeginVisualOnly();
+            GameObject d = Proto.Cylinder(go.transform, new Vector3(0f, 0.04f, 0f), new Vector3(Radius * 2f, 0.03f, Radius * 2f), Color.white, "Disque");
+            d.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Air, 1.8f);
+            u.disc = d.transform;
+            Proto.EndVisualOnly();
+            LightBeam beam = LightBeam.Build(parent, at, Air, 1.3f, 17f);
+            if (beam != null) beam.targetAlpha = 0.35f;
+            All.Add(u);
+            return u;
+        }
+
+        void OnDestroy() { All.Remove(this); }
+
+        /// <summary>Le courant le plus proche de "p" a moins de "metres" (null sinon).</summary>
+        public static Updraft Near(Vector3 p, float metres)
+        {
+            for (int i = 0; i < All.Count; i++)
+                if (All[i] != null && (All[i].transform.position - p).magnitude < metres) return All[i];
+            return null;
+        }
+
+        void Update()
+        {
+            if (disc != null) disc.localScale = new Vector3(Radius * 2f, 0.03f, Radius * 2f) * (1f + 0.06f * Mathf.Sin(Time.time * 5f));
+            if (Game.Season == null || !Game.Season.Running) return;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s.Body == null) continue;
+                Vector3 d = s.Body.position - transform.position;
+                if (Mathf.Abs(d.y) > 1.2f || new Vector2(d.x, d.z).magnitude > Radius) continue;
+                float last;
+                if (lastLaunch.TryGetValue(s, out last) && Time.time - last < 1.5f) continue;
+                IMover m = AbilityCaster.MoverOf(s);
+                if (m == null) continue;
+                lastLaunch[s] = Time.time;
+                m.Push(Vector3.up * Lift);
+                Ambiance.Burst(null, transform.position + Vector3.up * 0.5f, Air);
+                if (s.IsPlayer || (Game.PlayerTransform != null && (Game.PlayerTransform.position - transform.position).magnitude < 30f)) Sfx.Whoosh();
+            }
+        }
+    }
+
+    /// <summary>
     /// UN PENDULE de la tour : une boule de pierre au bout d'une chaine, qui balaie la
     /// rampe de l'interieur vers le vide et retour. Qui est dans sa course est
     /// projete -- et lache la Couronne. On passe en le regardant, au bon moment.
@@ -248,7 +326,10 @@ namespace Fief
         readonly Dictionary<Seeker, float> lastHit = new Dictionary<Seeker, float>();
 
         const float Length = 5.4f;
-        const float Swing = 68f;
+        // Il balaie du bord interieur (22 degres : au-dela, la boule entrait dans le mur
+        // de la tour) jusqu'au-dessus du vide (68 degres).
+        const float SwingIn = 22f;
+        const float SwingOut = 68f;
         const float Speed = 1.7f;
 
         public static Pendulum Build(Transform parent, Vector3 rampCentre, Vector3 tangent, float phase)
@@ -286,7 +367,8 @@ namespace Fief
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            float angle = Swing * Mathf.Sin(Time.time * Speed + phase);
+            float mid = (SwingOut - SwingIn) * 0.5f, half = (SwingOut + SwingIn) * 0.5f;
+            float angle = mid + half * Mathf.Sin(Time.time * Speed + phase);
             arm.localRotation = Quaternion.Euler(0f, 0f, angle);
             Vector3 head = Head;
             Vector3 velocity = (head - lastHead) / dt;
