@@ -62,8 +62,8 @@ namespace Fief
                 if (carried + already > 0) kinds++;
 
                 GUILayout.BeginHorizontal();
-                UiStyle.Tinted(GUILayoutUtility.GetRect(UiStyle.S(150), UiStyle.S(22)), ResourceInfo.Name(type),
-                               UiStyle.Label, carried > 0 ? ResourceInfo.Tint(type) : UiStyle.InkFaint);
+                Pictos.Named(GUILayoutUtility.GetRect(UiStyle.S(150), UiStyle.S(22)), type,
+                             UiStyle.Label, carried > 0 ? ResourceInfo.Tint(type) : UiStyle.InkFaint);
                 GUILayout.Label("x " + carried, UiStyle.Label, GUILayout.Width(UiStyle.S(70)));
                 GUILayout.Label("vaut " + ResourceInfo.ForgeValue(type) + " chacun", UiStyle.Small, GUILayout.Width(UiStyle.S(130)));
                 GUILayout.Label(already > 0 ? "déjà fondu : " + already : "", UiStyle.Tiny);

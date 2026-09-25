@@ -107,8 +107,7 @@ namespace Fief
                 int inHole = hole.Get(type);
 
                 GUILayout.BeginHorizontal();
-                UiStyle.Tinted(GUILayoutUtility.GetRect(UiStyle.S(150), btnH), ResourceInfo.Name(type),
-                               UiStyle.Head, ResourceInfo.Tint(type));
+                Pictos.Named(GUILayoutUtility.GetRect(UiStyle.S(150), btnH), type, UiStyle.Head, ResourceInfo.Tint(type));
                 GUILayout.Label(inBag.ToString(), UiStyle.Label, GUILayout.Width(UiStyle.S(60)), GUILayout.Height(btnH));
                 GUILayout.Label(inHole.ToString(), UiStyle.Label, GUILayout.Width(UiStyle.S(70)), GUILayout.Height(btnH));
 

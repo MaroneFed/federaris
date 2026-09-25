@@ -96,9 +96,9 @@ namespace Fief
         {
             Season season = Game.Season;
             float curse = season != null ? season.NextCurseIn : -1f;
-            string when = curse >= 0f ? "La prochaine Malédiction tombe dans " + Hud.Clock(curse) + "." : "Plus de Malédiction avant la cloche.";
+            string when = curse >= 0f ? "   ·   Malédiction dans " + Hud.Clock(curse) : "";
             UiStyle.Tinted(GUILayoutUtility.GetRect(width, UiStyle.S(20)),
-                           "Ce qui dort ici échappe à la Malédiction. Pas aux pillards.  " + when, UiStyle.Small, Curse.Violet);
+                           "À l'abri de la Malédiction, pas des pillards" + when, UiStyle.Small, Curse.Violet);
             GUILayout.Space(UiStyle.S(8));
             StashPanel.Rows(store, bag, "STÈLE");
             GUILayout.Space(UiStyle.S(6));
@@ -111,10 +111,10 @@ namespace Fief
         {
             Hoard h = me.Hoard;
             string state;
-            if (h.Trophy != null) state = "Tu portes la relique de " + h.TrophyFrom.Name + " (puissance " + h.Trophy.Power + "). Fonds-la dans la tienne : 60 % passent.";
-            else if (h.Relic == null) state = "Tu n'as pas encore de relique. Le mage la forge avec ce que tu lui portes.";
-            else if (h.RelicOnStele) state = "Ta relique repose ici : puissance " + h.FinalScore + ". Elle comptera à la cloche -- si personne ne la vole.";
-            else state = "Ta relique est dans tes mains (puissance " + h.Relic.Power + "). Tant qu'elle n'est pas posée, elle ne compte pas.";
+            if (h.Trophy != null) state = "Relique de " + h.TrophyFrom.Name + " : " + h.Trophy.Power + ". Fondue, 60 % passent dans la tienne.";
+            else if (h.Relic == null) state = "Pas encore de relique : le mage la forge.";
+            else if (h.RelicOnStele) state = "Posée : " + h.FinalScore + ". Elle compte à la cloche.";
+            else state = "En main : " + h.Relic.Power + ". Pose-la pour qu'elle compte.";
             GUILayout.Label(state, UiStyle.Label);
             GUILayout.Space(UiStyle.S(12));
 
@@ -131,7 +131,7 @@ namespace Fief
             }
             else if (h.RelicOnStele)
             {
-                if (GUILayout.Button("Reprendre ta relique (pour le mage)", UiStyle.Button, GUILayout.Height(UiStyle.S(34)), GUILayout.Width(UiStyle.S(320))))
+                if (GUILayout.Button("Reprendre ta relique", UiStyle.Button, GUILayout.Height(UiStyle.S(34)), GUILayout.Width(UiStyle.S(320))))
                     Stele.TakeRelic(me);
             }
             GUILayout.FlexibleSpace();

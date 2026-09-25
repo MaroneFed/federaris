@@ -131,7 +131,7 @@ namespace Fief
             if (me.Health < Seeker.MaxHealth - 0.5f)
             {
                 float w = UiStyle.S(260);
-                Rect bar = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(110), w, UiStyle.S(10));
+                Rect bar = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(114), w, UiStyle.S(8));
                 UiStyle.Bar(bar, me.Health / Seeker.MaxHealth, new Color(0.75f, 0.16f, 0.12f), UiStyle.BarBg);
             }
         }
@@ -345,123 +345,173 @@ namespace Fief
 
         // ---------------------------------------------------------------- le sac
 
+        /// <summary>
+        /// L'INVENTAIRE, refait le 26/09 (Martin : "que l'inventaire soit mieux") :
+        /// une seule barre de cases en bas de l'ecran, comme dans tous les jeux de
+        /// survie, au lieu d'un cadre de texte dans un coin.
+        ///
+        ///   [1 hache][2 epee]   [bois 12][pierre 3][fer 0]   [relique][or 45]
+        ///                        ======== poids ========
+        ///
+        /// Chaque case a son pictogramme (voir Pictos) et un chiffre. Au-dessus du
+        /// sac, la jauge de poids ; au-dessus de la relique, les six talismans ;
+        /// au-dessus des outils, les Autels que tu tiens.
+        /// </summary>
         void DrawPack()
         {
             Inventory inv = Game.Inventory;
-            if (inv == null) return;
+            Seeker me = Game.Me;
+            if (inv == null || me == null) return;
+            Hoard hoard = me.Hoard;
+            Kit kit = me.Kit;
 
-            float pad = UiStyle.S(16);
-            float w = UiStyle.S(270);
-            float h = UiStyle.S(198);
-            Rect box = new Rect(pad, Screen.height - h - pad, w, h);
-            UiStyle.Frame(box);
+            float size = UiStyle.S(54), gap = UiStyle.S(5), group = UiStyle.S(20);
+            float total = size * 7f + gap * 4f + group * 2f;
+            float x = (Screen.width - total) * 0.5f;
+            float y = Screen.height - size - UiStyle.S(18);
 
-            // Les Autels que tu tiens, et leur dernier versement (plus de message a
-            // chaque versement : un son de pieces, et cette ligne).
-            string held = Monument.HeldBy(Game.Me);
-            if (held.Length > 0)
+            // --- les outils (1, 2)
+            float toolsX = x;
+            for (int i = 0; i < 2; i++)
             {
-                string pay = Monument.PayFlash > 0f ? "   " + Monument.LastPay : "";
-                Color gold = new Color(0.95f, 0.78f, 0.35f, 0.6f + 0.4f * Mathf.Clamp01(Monument.PayFlash));
-                UiStyle.Tinted(new Rect(box.x, box.y - UiStyle.S(24), UiStyle.S(560), UiStyle.S(20)), "Tu tiens : " + held + pay, UiStyle.Small, gold);
+                Rect r = new Rect(x, y, size, size);
+                bool active = kit.Active == i;
+                Slot(r, active);
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(5), r.y + UiStyle.S(2), UiStyle.S(20), UiStyle.S(16)), (i + 1).ToString(), UiStyle.Tiny,
+                               active ? Palette.Gold : UiStyle.InkFaint);
+                Tool t = kit.Slots[i];
+                if (t != null)
+                {
+                    Pictos.Draw(Inset(r, 0.14f), Pictos.Of(t.Kind), false);
+                    UiStyle.Bar(new Rect(r.x + UiStyle.S(7), r.yMax - UiStyle.S(8), r.width - UiStyle.S(14), UiStyle.S(3)),
+                                (float)t.Durability / t.Max, t.Durability * 4 <= t.Max ? new Color(0.95f, 0.45f, 0.35f) : new Color(0.75f, 0.77f, 0.8f), UiStyle.BarBg);
+                }
+                x += size + gap;
             }
+            x += group - gap;
 
-            float x = box.x + UiStyle.S(16);
-            float inner = w - UiStyle.S(32);
-            float y = box.y + UiStyle.S(12);
-
-            GUI.Label(new Rect(x, y, inner, UiStyle.S(24)), "SAC", UiStyle.Head);
-            if (Game.Wallet != null)
-                UiStyle.Tinted(new Rect(x + UiStyle.S(52), y, UiStyle.S(120), UiStyle.S(24)),
-                               Game.Wallet.Gold + " or", UiStyle.Label, new Color(0.95f, 0.78f, 0.35f));
-
-            GUIStyle right = UiStyle.Small;
-            TextAnchor previous = right.alignment;
-            right.alignment = TextAnchor.MiddleRight;
-            GUI.Label(new Rect(x, y, inner, UiStyle.S(24)),
-                      Mathf.RoundToInt(inv.Weight) + " / " + Mathf.RoundToInt(inv.MaxWeight) + " kg", right);
-            right.alignment = previous;
-
-            y += UiStyle.S(28);
+            // --- le sac : trois ressources
+            float bagX = x;
             for (int i = 0; i < ResourceInfo.All.Length; i++)
             {
                 ResourceType type = ResourceInfo.All[i];
                 int amount = inv.Get(type);
-
-                UiStyle.Chip(new Rect(x, y + UiStyle.S(5), UiStyle.S(12), UiStyle.S(12)), ResourceInfo.Tint(type));
-                UiStyle.Tinted(new Rect(x + UiStyle.S(20), y, UiStyle.S(140), UiStyle.S(22)),
-                               ResourceInfo.Name(type), UiStyle.Label,
-                               amount > 0 ? UiStyle.Ink : UiStyle.InkFaint);
-
-                right.alignment = TextAnchor.MiddleRight;
-                UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(22)), amount.ToString(), right,
-                               amount > 0 ? UiStyle.Ink : UiStyle.InkFaint);
-                right.alignment = previous;
-                y += UiStyle.S(22);
+                Rect r = new Rect(x, y, size, size);
+                Slot(r, false);
+                Pictos.Draw(Inset(r, 0.16f), Pictos.Of(type), amount <= 0);
+                if (amount > 0) Count(r, amount.ToString(), UiStyle.Ink);
+                x += size + gap;
             }
+            float bagW = x - gap - bagX;
+            x += group - gap;
 
-            // --- la jauge de charge : c'est elle qui dit "va cacher"
-            y += UiStyle.S(6);
+            // La jauge de poids, au-dessus des trois cases du sac.
             float load = inv.Load01;
-            Color fill = Color.Lerp(new Color(0.44f, 0.78f, 0.40f),
-                                    new Color(0.88f, 0.31f, 0.25f), Mathf.Pow(load, 0.85f));
-            if (load >= 0.98f)
-            {
-                // Plein : la jauge clignote, et le dit.
-                fill = Color.Lerp(fill, Color.white, 0.35f + 0.35f * Mathf.Sin(Time.unscaledTime * 8f));
-                UiStyle.Tinted(new Rect(x, y - UiStyle.S(24), inner, UiStyle.S(20)), "PLEIN  --  va vider ton sac à ta stèle", RightSmall(),
-                               new Color(0.95f, 0.45f, 0.35f));
-            }
-            UiStyle.Bar(new Rect(x, y, inner, UiStyle.S(10)), load, fill, UiStyle.BarBg);
-            y += UiStyle.S(16);
+            Color fill = Color.Lerp(new Color(0.5f, 0.78f, 0.45f), new Color(0.9f, 0.33f, 0.26f), Mathf.Pow(load, 0.85f));
+            bool full = load >= 0.98f;
+            if (full) fill = Color.Lerp(fill, Color.white, 0.35f + 0.35f * Mathf.Sin(Time.unscaledTime * 8f));
+            Rect gauge = new Rect(bagX, y - UiStyle.S(9), bagW, UiStyle.S(4));
+            UiStyle.Bar(gauge, load, fill, UiStyle.BarBg);
+            UiStyle.Tinted(new Rect(bagX, gauge.y - UiStyle.S(18), bagW, UiStyle.S(16)),
+                           full ? "PLEIN" : Mathf.RoundToInt(inv.Weight) + " / " + Mathf.RoundToInt(inv.MaxWeight) + " kg",
+                           RightSmall(), full ? new Color(0.95f, 0.45f, 0.35f) : UiStyle.InkFaint);
+            if (Game.Brewed)
+                UiStyle.Tinted(new Rect(bagX, gauge.y - UiStyle.S(18), bagW, UiStyle.S(16)),
+                               "infusion " + Clock(hoard.BrewUntil - Game.Season.Elapsed), UiStyle.Tiny, new Color(0.66f, 0.84f, 0.56f));
 
             // --- la relique
-            Hoard hoard = Game.Hoard;
-            string relic;
-            Color tint;
-            if (hoard != null && hoard.Trophy != null)
+            float endX = x;
             {
-                relic = "Relique VOLÉE a " + hoard.TrophyFrom.Name + " : cours à ta stèle";
-                tint = new Color(1f, 0.55f, 0.4f);
+                Rect r = new Rect(x, y, size, size);
+                bool has = hoard.Relic != null || hoard.Trophy != null;
+                Slot(r, hoard.RelicInHand || hoard.Trophy != null);
+                if (has)
+                {
+                    Pictos.Draw(Inset(r, 0.12f), Pictos.Kind.Relique, hoard.RelicOnStele && hoard.Trophy == null);
+                    string power = hoard.Trophy != null ? "volée" : hoard.Relic.Power.ToString();
+                    Count(r, power, hoard.Trophy != null ? new Color(1f, 0.55f, 0.4f) : Palette.Gold);
+                    if (hoard.RelicOnStele && hoard.Trophy == null)
+                        UiStyle.Tinted(new Rect(r.x, r.y + UiStyle.S(2), r.width - UiStyle.S(5), UiStyle.S(14)), "stèle", RightTiny(), Stele.RuneBlue);
+                }
+                else Pictos.Draw(Inset(r, 0.12f), Pictos.Kind.Relique, true);
+                x += size + gap;
             }
-            else if (hoard == null || hoard.Relic == null)
+            // --- l'or
             {
-                relic = "Pas encore de relique";
-                tint = UiStyle.InkFaint;
-            }
-            else
-            {
-                relic = "Relique  " + hoard.Relic.Power + (hoard.RelicOnStele ? "   sur ta stèle" : "   en main");
-                tint = hoard.RelicOnStele ? new Color(0.62f, 0.78f, 0.95f) : Palette.Gold;
-            }
-            UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), relic, UiStyle.Small, tint);
-
-            // L'infusion de l'Ermite, tant qu'elle agit.
-            if (Game.Brewed)
-            {
-                right.alignment = TextAnchor.MiddleRight;
-                UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)),
-                               "infusion " + Clock(hoard.BrewUntil - Game.Season.Elapsed), right,
-                               new Color(0.66f, 0.84f, 0.56f));
-                right.alignment = previous;
+                Rect r = new Rect(x, y, size, size);
+                Slot(r, false);
+                int gold = Game.Wallet != null ? Game.Wallet.Gold : 0;
+                Pictos.Draw(Inset(r, 0.18f), Pictos.Kind.Or, gold <= 0);
+                Count(r, gold.ToString(), new Color(0.95f, 0.8f, 0.4f));
+                x += size;
             }
 
-            // --- les talismans : six pastilles, allumees quand on les a.
-            y += UiStyle.S(24);
-            float chip = UiStyle.S(14);
+            // Les six talismans, en petits losanges au-dessus de la relique et de l'or.
+            float chip = UiStyle.S(9);
+            float cw = (x - endX) / TalismanInfo.Count;
             for (int i = 0; i < TalismanInfo.Count; i++)
             {
                 Talisman tal = TalismanInfo.All[i];
-                bool owned = hoard != null && hoard.Has(tal);
-                Rect r = new Rect(x + i * (chip + UiStyle.S(6)), y + UiStyle.S(3), chip, chip);
-                if (owned) UiStyle.Chip(r, TalismanInfo.Tint(tal));
-                else UiStyle.Fill(r, new Color(1f, 1f, 1f, 0.07f));
+                bool owned = hoard.Has(tal);
+                Rect cr = new Rect(endX + cw * (i + 0.5f) - chip * 0.5f, y - UiStyle.S(13), chip, chip);
+                UiStyle.Icon(cr, UiStyle.Shape.Diamond, owned ? TalismanInfo.Tint(tal) : new Color(1f, 1f, 1f, 0.12f));
             }
-            int count = hoard != null ? hoard.TalismanCount : 0;
-            right.alignment = TextAnchor.MiddleRight;
-            UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(20)), "talismans " + count + " / " + TalismanInfo.Count,
-                           right, count > 0 ? UiStyle.Ink : UiStyle.InkFaint);
-            right.alignment = previous;
+
+            // Les Autels que tu tiens, au-dessus des outils : un carre par autel, et
+            // l'or qu'ils viennent de verser.
+            int held = 0;
+            for (int i = 0; i < Monument.All.Count; i++)
+            {
+                Monument m = Monument.All[i];
+                if (m == null || m.Owner != me) continue;
+                float d = UiStyle.S(10);
+                UiStyle.Icon(new Rect(toolsX + held * (d + UiStyle.S(5)), y - UiStyle.S(15), d, d), UiStyle.Shape.Square, Monument.Tint(m.kind));
+                held++;
+            }
+            if (held > 0 && Monument.PayFlash > 0f)
+            {
+                Color gold = new Color(0.95f, 0.78f, 0.35f, Mathf.Clamp01(Monument.PayFlash));
+                UiStyle.Tinted(new Rect(toolsX + held * UiStyle.S(15) + UiStyle.S(4), y - UiStyle.S(20), UiStyle.S(80), UiStyle.S(18)),
+                               Monument.LastPay, UiStyle.Small, gold);
+            }
+        }
+
+        static Rect Inset(Rect r, float f)
+        {
+            float d = r.width * f;
+            return new Rect(r.x + d, r.y + d, r.width - d * 2f, r.height - d * 2f);
+        }
+
+        /// <summary>Une case : fond sombre, bord dore quand elle est active.</summary>
+        static void Slot(Rect r, bool active)
+        {
+            UiStyle.Fill(r, new Color(0.04f, 0.035f, 0.03f, 0.72f));
+            Color edge = active ? Palette.Gold : new Color(0.55f, 0.44f, 0.26f, 0.45f);
+            UiStyle.Fill(new Rect(r.x, r.y, r.width, 1f), edge);
+            UiStyle.Fill(new Rect(r.x, r.yMax - 1f, r.width, 1f), edge);
+            UiStyle.Fill(new Rect(r.x, r.y, 1f, r.height), edge);
+            UiStyle.Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), edge);
+            if (active) UiStyle.Fill(new Rect(r.x + 1f, r.y + 1f, r.width - 2f, r.height - 2f), new Color(0.86f, 0.7f, 0.36f, 0.08f));
+        }
+
+        /// <summary>Le chiffre en bas a droite d'une case, avec une ombre.</summary>
+        static void Count(Rect r, string text, Color c)
+        {
+            GUIStyle st = RightSmall();
+            Rect at = new Rect(r.x, r.yMax - UiStyle.S(19), r.width - UiStyle.S(5), UiStyle.S(18));
+            UiStyle.Tinted(new Rect(at.x + 1f, at.y + 1f, at.width, at.height), text, st, new Color(0f, 0f, 0f, 0.9f));
+            UiStyle.Tinted(at, text, st, c);
+        }
+
+        static GUIStyle rightTiny;
+        static GUIStyle RightTiny()
+        {
+            if (rightTiny == null || rightTiny.fontSize != UiStyle.Tiny.fontSize)
+            {
+                rightTiny = new GUIStyle(UiStyle.Tiny);
+                rightTiny.alignment = TextAnchor.MiddleRight;
+            }
+            return rightTiny;
         }
 
         // ---------------------------------------------------------------- invite
@@ -512,24 +562,9 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null) return;
-            Kit kit = me.Kit;
-            float size = UiStyle.S(54);
-            float gap = UiStyle.S(10);
-            float x = (Screen.width - size * 2f - gap) * 0.5f;
-            float y = Screen.height - size - UiStyle.S(20);
-            for (int i = 0; i < 2; i++)
-            {
-                Rect r = new Rect(x + i * (size + gap), y, size, size);
-                GUI.Box(r, GUIContent.none, kit.Active == i ? UiStyle.PanelBox : UiStyle.CardBox);
-                if (kit.Active == i) UiStyle.FadeBand(new Rect(r.x, r.yMax - 2f, r.width, 2f), Palette.Gold);
-                UiStyle.Tinted(new Rect(r.x + UiStyle.S(6), r.y + UiStyle.S(2), UiStyle.S(20), UiStyle.S(16)), (i + 1).ToString(), UiStyle.Tiny, UiStyle.InkDim);
-                Tool t = kit.Slots[i];
-                if (t == null) continue;
-                UiStyle.Tinted(new Rect(r.x, r.y + UiStyle.S(10), r.width, r.height - UiStyle.S(24)), Kit.Name(t.Kind), UiStyle.CenteredSmall,
-                               kit.Active == i ? Palette.Gold : UiStyle.Ink);
-                UiStyle.Bar(new Rect(r.x + UiStyle.S(8), r.yMax - UiStyle.S(12), r.width - UiStyle.S(16), UiStyle.S(4)),
-                            (float)t.Durability / t.Max, new Color(0.7f, 0.72f, 0.75f), UiStyle.BarBg);
-            }
+            // Les cases d'outils sont dessinees avec le sac (DrawPack) ; ici, ce qui
+            // se passe au centre de l'ecran.
+            float y = Screen.height - UiStyle.S(54) - UiStyle.S(18) - UiStyle.S(26);
 
             // Une relique dans les mains : on ne peut pas frapper, et ca se voit.
             Hoard carried = me.Hoard;
@@ -539,8 +574,8 @@ namespace Fief
                 blue.a = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
                 string what = carried.Trophy != null ? "Relique de " + carried.TrophyFrom.Name : "Relique en main";
                 float d = UiStyle.S(10);
-                UiStyle.Icon(new Rect(Screen.width * 0.5f - d * 0.5f, y - UiStyle.S(44), d, d), UiStyle.Shape.Diamond, blue);
-                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(32), Screen.width, UiStyle.S(22)), what, UiStyle.CenteredSmall, blue);
+                UiStyle.Icon(new Rect(Screen.width * 0.5f - d * 0.5f, y - UiStyle.S(62), d, d), UiStyle.Shape.Diamond, blue);
+                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(50), Screen.width, UiStyle.S(22)), what, UiStyle.CenteredSmall, blue);
             }
 
             // Le reticule : un point discret ; un losange dore quand quelque chose est a
