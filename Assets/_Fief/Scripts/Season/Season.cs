@@ -8,9 +8,8 @@ namespace Fief
     /// Classe C# pure : elle ne connait que le temps ecoule. En Phase 3, le serveur
     /// envoie l'heure, et chaque machine en tire exactement la meme chose.
     ///
-    /// (Le mage, sa colonne et la Malediction qui suivait ses departs ont ete
-    /// retires le 26/09 : Martin ne comprenait plus pourquoi on recoltait. Il n'y a
-    /// plus qu'un chronometre, et un seul but : le butin.)
+    /// Elle ne part qu'au "PARTEZ !" du compte a rebours (Menus) : l'intro et le
+    /// decompte ne mangent pas le temps de la manche.
     /// </summary>
     public class Season
     {

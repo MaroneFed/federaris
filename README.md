@@ -60,7 +60,7 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
    *Sinon : dans la fenêtre `Project` en bas, double-clique `Assets/_Fief/Scenes/Main.unity`.*
 2. Appuie sur le **bouton ▶ Play** en haut au centre.
 3. L'**écran-titre** apparaît : FIEF, LA COURONNE, et la version en bas à droite.
-4. **Jouer** ▸ le **salon** : règle Joueurs, Manches, Durée avec **← →** (ou clique les
+4. **Jouer** ▸ le **salon** : règle Joueurs, Bots, Manches, Durée avec **← →** (ou clique les
    ‹ ›) ▸ **Commencer** ▸ choisis ta **première capacité** ▸ la manche 1 commence.
    Tous les menus se font **au clavier** (↑ ↓ ← → Entrée Échap) ou à la souris.
 
@@ -81,7 +81,7 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 | **R** | Ta 2e capacité |
 | **C** | Ta 3e capacité |
 | **V** | Le don d'un sanctuaire (pour la manche) |
-| **E** (maintenu) | Prendre la Couronne, prendre un don, poser au Monument |
+| **E** (maintenu) | Prendre la Couronne sur son socle, prendre un don |
 | **F** | Grimper à un arbre |
 | **Tab** | Le score et les capacités de chacun |
 | **Échap** | Pause |
@@ -96,8 +96,9 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
    (cristal qui flotte, E maintenu) te donne une capacité de plus, sur **V**.
 3. Monte la **rampe en spirale** de la tour : saute les trous, évite les pendules et
    les rayons des **Yeux**, pousse les bots dans le vide.
-4. Prends la **Couronne** au sommet (E maintenu) et porte-la au **Monument** (la colonne
-   bleue). Si tu sautes de la tour, elle reste en haut !
+4. Prends la **Couronne** au sommet (E maintenu) et entre dans le cercle du **Monument**
+   (la colonne bleue). Si tu sautes de la tour, elle reste en haut ! Tombé ? Les
+   **courants** (disques pâles au bord intérieur de la rampe) te renvoient d'un tour.
 5. Entre deux manches, choisis une **capacité** de plus.
 
 **Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et
@@ -156,6 +157,7 @@ Assets/_Fief/
 docs/
   LA-SAISON.md    <- LA référence : les règles du jeu
   100-RAISONS.md  <- les 100 raisons pour lesquelles c'était nul, et ce qu'on a corrigé
+  100-PROBLEMES.md <- le deuxième passage : ce qui cassait, ce qui manquait
   RESEAU.md       <- le jeu en ligne : ce qui est prêt, ce qui reste
   ARCHITECTURE.md <- pourquoi c'est découpé comme ça
   v2-ideas.md     <- la règle anti-dérive : toute idée hors-phase va ici

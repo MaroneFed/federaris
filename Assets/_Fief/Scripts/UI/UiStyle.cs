@@ -76,7 +76,8 @@ namespace Fief
 
         public static void Ensure()
         {
-            Scale = Mathf.Clamp(Screen.height / 900f, 0.8f, 2.4f);
+            Settings.Load();
+            Scale = Mathf.Clamp(Screen.height / 900f, 0.8f, 2.4f) * Settings.TextSize;
             if (Mathf.Abs(Scale - builtScale) < 0.001f && Title != null) return;
             builtScale = Scale;
 

@@ -5,7 +5,8 @@
 > un giga château ; les pouvoirs on comprend rien ; pas d'épée, juste des capacités,
 > on tiendra jamais rien en main ; j'aime pas les icônes et les menus moches ».
 > C'est **la référence** : quand le code et ce document ne disent pas la même chose,
-> c'est un des deux qu'il faut corriger. Pourquoi chaque choix : `docs/100-RAISONS.md`.
+> c'est un des deux qu'il faut corriger. Pourquoi chaque choix : `docs/100-RAISONS.md`,
+> puis `docs/100-PROBLEMES.md` (le deuxième passage, « ce qu'il manque »).
 > Les versions précédentes (épée, objets, Garde Pâle, Roi Creux…) sont dans l'historique Git.
 
 ---
@@ -26,6 +27,7 @@ C'est **Smash** (on ne meurt pas, on perd sa place) croisé avec **Fall Guys** (
 | | |
 |---|---|
 | Joueurs | 2 à **4** (toi + des bots en Phase 1 ; des joueurs en ligne en Phase 3) |
+| Bots | **faciles, normaux ou coriaces** (choisi au salon ; normaux par défaut) |
 | Manches | **3, 5, 7 ou 10** (choisi au salon ; 5 par défaut) |
 | Durée max d'une manche | **4, 6, 8 ou 10 min** (6 par défaut) |
 | Avant la manche 1 | chacun **choisit sa première capacité** (que des actives sur la table) |
@@ -35,15 +37,18 @@ C'est **Smash** (on ne meurt pas, on perd sa place) croisé avec **Fall Guys** (
 ### Une manche
 
 1. **Le départ.** Chacun apparaît à la lisière, à égale distance de la citadelle. Le
-   **Monument** (colonne de lumière bleue) change de place à chaque manche.
+   **Monument** (colonne de lumière bleue) change de place à chaque manche. Un
+   décompte **3, 2, 1, PARTEZ !** : tout le monde part en même temps, l'horloge aussi.
 2. **La forêt** (320 × 320 m, brume à 18 m). On peut foncer à la citadelle, ou passer
    par un **sanctuaire** (voir plus bas) pour gagner un don.
 3. **La citadelle.** Quatre portes ouvertes. Dans la cour, **la tour de la Couronne** ;
    sur les murs et autour de la tour, **les Yeux**.
 4. **La tour.** Une rampe en spirale, à l'extérieur, quatre tours complets, **sans
    parapet**, avec trois trous et quatre pendules. On monte à quatre, on se pousse.
-5. **La Couronne.** Au sommet. **E maintenu 1,2 s** pour la prendre (0,5 s si elle est
-   à terre). Qui la porte **brille** (colonne dorée), va **15 % moins vite**, **ne peut
+   Sous chaque trou, un tour plus bas, un **courant** (disque pâle au bord intérieur)
+   renvoie d'un tour vers le haut, à travers le trou.
+5. **La Couronne.** Au sommet. **E maintenu 1 s** pour la prendre sur son socle ; **à
+   terre, on la ramasse en passant dessus** (qui vient de la perdre attend 1,2 s). Qui la porte **brille** (colonne dorée), va **15 % moins vite**, **ne peut
    ni pousser ni lancer de capacité offensive** (crochet, onde, souffle, givre) — sauf
    avec le passif Porteur. Il la **lâche** si on le pousse, si une capacité le projette,
    si un Œil le touche, s'il marche sur une mine, si un pendule le balaie.
@@ -51,21 +56,22 @@ C'est **Smash** (on ne meurt pas, on perd sa place) croisé avec **Fall Guys** (
    reste là où il a quitté le sol**. On ne redescend pas la tour d'un saut : il faut
    la rampe — ou le Planeur.
 7. **À terre**, elle attend **45 s** qu'on la ramasse, puis revient au sommet.
-8. **Le Monument.** Porter la Couronne jusqu'à lui et **maintenir E 2 s** : manche
-   gagnée. Ralenti, la Couronne se pose sur l'autel, la caméra tourne autour.
+8. **Le Monument.** Porter la Couronne **dans son cercle** (3,6 m) : manche gagnée,
+   sans touche à tenir. Ralenti, la Couronne se pose sur l'autel, la caméra tourne
+   autour.
 9. **Le temps.** Au gong, celui qui tient la Couronne gagne ; sinon, personne.
 
 ---
 
 ## Les mains vides
 
-- **Clic gauche : POUSSER.** Le plus proche devant toi (3 m) part en arrière et en
-  l'air. **S'il porte la Couronne, il la lâche.** Recharge 0,9 s.
+- **Clic gauche : POUSSER.** Le plus proche devant toi (3 m) part en arrière (≈ 3 m) et
+  en l'air, étourdi 0,2 s. **S'il porte la Couronne, il la lâche.** Recharge 0,9 s.
 - **Clic droit, R, C : tes trois capacités actives**, dans l'ordre où tu les as prises.
 - **V : le don** d'un sanctuaire (pour la manche seulement).
 - **Espace** : sauter (encore une fois en l'air avec Double saut ; maintenu : planer
   avec Planeur).
-- **E** (maintenu) : prendre la Couronne, prendre un don, poser au Monument.
+- **E** (maintenu) : prendre la Couronne sur son socle, prendre un don.
 - **F** : grimper à un arbre (les géants dépassent la brume).
 - **Tab** : le score et les capacités de chacun.
 
@@ -171,8 +177,11 @@ l'autre. Touché : projeté (souvent dans le vide), et la Couronne tombe.
 - **L'écran, sans une seule icône** : le chrono et la manche en haut, une phrase qui
   dit où est la Couronne, le score en chiffres en haut à droite, tes capacités en bas à
   gauche (touche, nom, recharge), un point de visée qui rougit quand tu peux pousser.
+- **Le fil**, à gauche : ce qui vient d'arriver (« Mahaut t'a fait lâcher la
+  Couronne ! »). **Les astuces**, une fois par match, au moment où elles servent.
 - **Les menus** : une colonne de mots sur la forêt ; tout au clavier (↑ ↓ ← → Entrée
-  Échap) comme à la souris.
+  Échap) comme à la souris. **Réglages** : sensibilité, volume, champ de vision, taille
+  du texte, plein écran (gardés sur l'ordinateur).
 
 ## Ce qui reste de la forêt
 
@@ -183,10 +192,11 @@ ennemi.
 
 ## Les autres joueurs (des bots, en attendant le jeu en ligne)
 
-Ils jouent **avec tes règles, par les mêmes méthodes** (`World/Rival.cs`) : ils passent
-par un sanctuaire s'il y en a un près d'eux, montent la tour (et se servent du grappin,
-de la ruée, du double saut), prennent la Couronne, la portent au Monument, **chassent
-et poussent** celui qui la tient, lancent leurs capacités (`AbilityCaster.Cast`, comme
+Ils jouent **avec tes règles, par les mêmes méthodes** (`World/Rival.cs`) et courent
+presque aussi vite que toi (9 / 10,2 / 10,7 m/s selon leur niveau, toi 10,8) : ils passent
+par un sanctuaire s'il y en a un près d'eux, montent la tour (en sautant les trous et
+en prenant les courants), prennent la Couronne, la portent au Monument, **chassent et
+poussent** celui qui la tient — et l'un d'eux **va l'attendre au Monument**, lancent leurs capacités (`AbilityCaster.Cast`, comme
 toi). Ils ne parlent pas : on entend leur voix, pas des phrases.
 
 ## Retiré

@@ -274,7 +274,7 @@ namespace Fief
                 if (holder == me)
                 {
                     float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 5f);
-                    line = "TU PORTES LA COURONNE — au Monument, la colonne bleue";
+                    line = "TU PORTES LA COURONNE — entre dans le cercle du Monument (la colonne bleue)";
                     tint = new Color(1f, 0.82f * pulse + 0.1f, 0.4f);
                 }
                 else

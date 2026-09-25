@@ -76,7 +76,7 @@ namespace Fief
             new Color(0.95f, 0.78f, 0.35f),     // toi : or
             new Color(0.88f, 0.35f, 0.28f),     // rouge
             new Color(0.35f, 0.6f, 0.95f),      // bleu
-            new Color(0.45f, 0.82f, 0.4f)       // vert
+            new Color(0.72f, 0.48f, 0.98f)      // violet (27/09 : le vert se confondait avec le rouge pour un daltonien)
         };
 
         public static Color ColourOf(int index) { return Colours[Mathf.Clamp(index, 0, Colours.Length - 1)]; }

@@ -322,6 +322,7 @@ namespace Fief
     {
         Transform arm;
         float phase;
+        bool lastLow;
         Vector3 lastHead;
         readonly Dictionary<Seeker, float> lastHit = new Dictionary<Seeker, float>();
 
@@ -368,7 +369,17 @@ namespace Fief
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
             float mid = (SwingOut - SwingIn) * 0.5f, half = (SwingOut + SwingIn) * 0.5f;
-            float angle = mid + half * Mathf.Sin(Time.time * Speed + phase);
+            float wave = Mathf.Sin(Time.time * Speed + phase);
+            float angle = mid + half * wave;
+            // Il siffle quand il passe a pleine vitesse (au milieu de sa course), si tu
+            // es tout pres : on l'entend venir.
+            bool low = wave > 0f;
+            if (low != lastLow)
+            {
+                lastLow = low;
+                Transform p = Game.PlayerTransform;
+                if (p != null && (p.position - transform.position).magnitude < 14f) Sfx.Whoosh();
+            }
             arm.localRotation = Quaternion.Euler(0f, 0f, angle);
             Vector3 head = Head;
             Vector3 velocity = (head - lastHead) / dt;

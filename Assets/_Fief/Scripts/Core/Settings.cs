@@ -16,6 +16,7 @@ namespace Fief
         public static float Sensitivity = 1f;    // 0,3 a 2,5 : multiplie la sensibilite de base
         public static float Volume = 0.8f;       // 0 a 1
         public static float Fov = 78f;           // 65 a 100 degres
+        public static float TextSize = 1f;       // 0,8 a 1,5 : la taille de tout le texte a l'ecran
         public static bool Fullscreen = true;
 
         static bool loaded;
@@ -27,6 +28,7 @@ namespace Fief
             Sensitivity = PlayerPrefs.GetFloat("fief.sensibilite", 1f);
             Volume = PlayerPrefs.GetFloat("fief.volume", 0.8f);
             Fov = PlayerPrefs.GetFloat("fief.fov", 78f);
+            TextSize = PlayerPrefs.GetFloat("fief.texte", 1f);
             Fullscreen = PlayerPrefs.GetInt("fief.pleinecran", Screen.fullScreen ? 1 : 0) == 1;
         }
 
@@ -35,6 +37,7 @@ namespace Fief
             PlayerPrefs.SetFloat("fief.sensibilite", Sensitivity);
             PlayerPrefs.SetFloat("fief.volume", Volume);
             PlayerPrefs.SetFloat("fief.fov", Fov);
+            PlayerPrefs.SetFloat("fief.texte", TextSize);
             PlayerPrefs.SetInt("fief.pleinecran", Fullscreen ? 1 : 0);
             PlayerPrefs.Save();
         }
@@ -49,14 +52,15 @@ namespace Fief
             if (Screen.fullScreen != Fullscreen) Screen.fullScreen = Fullscreen;
         }
 
-        /// <summary>Changer le reglage "row" d'un cran (-1 / +1). Les lignes : sensibilite, volume, champ de vision, plein ecran.</summary>
+        /// <summary>Changer le reglage "row" d'un cran (-1 / +1). Les lignes : sensibilite, volume, champ de vision, taille du texte, plein ecran.</summary>
         public static void Step(int row, int step)
         {
             Load();
             if (row == 0) Sensitivity = Mathf.Clamp(Mathf.Round((Sensitivity + step * 0.1f) * 10f) / 10f, 0.3f, 2.5f);
             else if (row == 1) Volume = Mathf.Clamp(Mathf.Round((Volume + step * 0.1f) * 10f) / 10f, 0f, 1f);
             else if (row == 2) Fov = Mathf.Clamp(Fov + step * 5f, 65f, 100f);
-            else if (row == 3) Fullscreen = !Fullscreen;
+            else if (row == 3) TextSize = Mathf.Clamp(Mathf.Round((TextSize + step * 0.1f) * 10f) / 10f, 0.8f, 1.5f);
+            else if (row == 4) Fullscreen = !Fullscreen;
             Apply();
             Save();
         }
@@ -67,9 +71,10 @@ namespace Fief
             if (row == 0) return Sensitivity.ToString("0.0");
             if (row == 1) return Mathf.RoundToInt(Volume * 100f) + " %";
             if (row == 2) return Mathf.RoundToInt(Fov) + "°";
+            if (row == 3) return Mathf.RoundToInt(TextSize * 100f) + " %";
             return Fullscreen ? "oui" : "non";
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Plein écran" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran" };
     }
 }

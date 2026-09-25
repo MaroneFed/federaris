@@ -223,7 +223,10 @@ namespace Fief
         float deliveredY;
 
         /// <summary>La lacher, la ou l'on est (tombe, pousse, pris au piege).</summary>
-        public void Drop(Vector3 at)
+        public void Drop(Vector3 at) { Drop(at, at); }
+
+        /// <summary>La lacher en "at" ; si "at" est dans un mur, en "fallback" (la ou etait le porteur).</summary>
+        public void Drop(Vector3 at, Vector3 fallback)
         {
             if (state != State.Carried) return;
             Seeker was = Holder;
@@ -231,7 +234,7 @@ namespace Fief
             Holder = null;
             droppedAt = Time.time;
             // Par terre, un peu devant : on la voit rouler.
-            at = SafeSpot(at, was);
+            at = SafeSpot(at, fallback);
             float y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 30f, ~0, QueryTriggerInteraction.Ignore)
                 ? hit.point.y : Ground.Sample(at.x, at.z);
             // Celui qui vient de la perdre ne la rattrape pas en retombant dessus.
@@ -251,7 +254,7 @@ namespace Fief
         /// traversait la pierre jusqu'au pied de la tour, introuvable), jamais dans un
         /// mur. Sinon, la ou etait son porteur.
         /// </summary>
-        static Vector3 SafeSpot(Vector3 at, Seeker was)
+        static Vector3 SafeSpot(Vector3 at, Vector3 fallback)
         {
             Vector2 flat = new Vector2(at.x, at.z);
             if (flat.magnitude < Tower.Radius + 1f && at.y < Tower.Height - 0.5f)
@@ -260,8 +263,7 @@ namespace Fief
                 flat = dir * (Tower.Radius + 1.4f);
                 at = new Vector3(flat.x, at.y, flat.y);
             }
-            if (Physics.CheckSphere(at + Vector3.up * 0.6f, 0.3f, ~0, QueryTriggerInteraction.Ignore) && was != null && was.Body != null)
-                at = was.Body.position;
+            if (Physics.CheckSphere(at + Vector3.up * 0.6f, 0.3f, ~0, QueryTriggerInteraction.Ignore)) at = fallback;
             return at;
         }
 
@@ -314,7 +316,7 @@ namespace Fief
         {
             if (Instance == null || Holder != victim || victim.Body == null) return;
             Vector3 flat = new Vector3(direction.x, 0f, direction.z).normalized;
-            Instance.Drop(victim.Body.position + flat * 2.2f);
+            Instance.Drop(victim.Body.position + flat * 2.2f, victim.Body.position);
         }
 
         // ================================================================== IInteractable

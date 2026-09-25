@@ -180,7 +180,7 @@ namespace Fief
             if (FiefInput.CancelPressed)
             {
                 confirmAbandon = false;
-                if (showSettings) { showSettings = false; selected = 1; }
+                if (showSettings) { showSettings = false; selected = Current == State.Title ? 2 : 1; }
                 else if (showControls) { showControls = false; selected = 0; }
                 else if (Current == State.Lobby || Current == State.Online) Go(State.Title);
                 else if (Current == State.Briefing) Enter();

@@ -160,3 +160,16 @@ emplacements de construction.
 - **Raccourcis en forêt** : tunnels, ponts de branches entre les arbres géants.
 - **Manette** (le nouvel Input System le permet). (Phase 5)
 - Remplacer les cubes gris de la citadelle par des murs Kenney/Synty (sans toucher au jeu).
+
+### Le 27/09, deuxième passage (`docs/100-PROBLEMES.md`)
+
+- **Prolongation** (touche une décision verrouillée : à Martin de trancher) : au gong,
+  si quelqu'un porte la Couronne, la manche continue jusqu'à ce qu'il la pose au
+  Monument ou la perde. Plus haletant que « il la tenait, il gagne ».
+- Un son et un effet visuel propres à chaque capacité.
+- Une couleur de bannière par tour de rampe (lire sa hauteur d'un coup d'œil).
+- Bruits de pas plus forts derrière soi (sentir qu'on va se faire pousser).
+- Réglages : choix des touches, réduire les secousses de caméra.
+- Garantir au moins une capacité active dans chaque choix.
+- Au podium : les « moments » du match (plus longue chute, Couronne volée au bord du Monument).
+- Une page « Règles » dans la pause.
