@@ -3,61 +3,39 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LE CHATEAU. Au centre de la sylve, mort, et immense.
+    /// LA CITADELLE (27/09 -- Martin : "un giga chateau"). Au centre de la sylve.
     ///
-    /// Quatre-vingts metres de cote, des murs de dix, des tours de dix-huit, un donjon
-    /// de vingt-huit. Avec une brume qui efface tout a vingt-six metres, on ne le voit
-    /// JAMAIS en entier : on arrive au pied d'un mur sombre qui se perd dans le
-    /// brouillard des deux cotes. C'est ca qui le rend enorme -- pas sa taille, ce
-    /// qu'on n'en voit pas.
+    ///   - une ENCEINTE de cent metres de cote, murs de dix-huit metres, quatre tours
+    ///     d'angle coiffees d'ardoise ;
+    ///   - QUATRE PORTES, ouvertes, une par face, chacune entre deux tours de garde :
+    ///     on entre de partout, la bataille commence dans la cour ;
+    ///   - QUATRE ESCALIERS montent aux remparts : la-haut, on voit loin, et on saute ;
+    ///   - au milieu, LA TOUR DE LA COURONNE (voir Tower.cs) : soixante-quatre metres,
+    ///     une rampe en spirale a l'exterieur, la Couronne au sommet ;
+    ///   - les YEUX (voir Eye.cs) sur les tours et les portes : pas de gardes, des
+    ///     sentinelles de pierre qui chargent un rayon qu'on voit venir.
     ///
-    /// SES TORCHES sont les seules lumieres du monde, en dehors de ta lanterne. Quand
-    /// on approche, on les voit d'abord comme des taches chaudes dans la brume.
-    ///
-    /// CE QU'IL CONTIENT (La Couronne, 26/09 -- "digne des plus grands chateaux
-    /// d'Elden Ring, en contenu") -- voir docs/LA-SAISON.md :
-    ///   - TROIS ENTREES : la grande porte au sud, HERSE BAISSEE (un levier la leve,
-    ///     dans la cour) ; la POTERNE au nord, etroite et gardee ; la BRECHE a l'est,
-    ///     un talus d'eboulis qui monte jusqu'au mur effondre ;
-    ///   - LES REMPARTS : deux escaliers y montent depuis la cour ; les arbaletriers
-    ///     y sont postes ;
-    ///   - trois RESERVES le long des murs, chacune avec un coffre (un objet rare) ;
-    ///   - LE DONJON : trois niveaux et une terrasse (voir Keep.cs), la Couronne et
-    ///     le Roi Creux tout en haut, et une PORTE DEROBEE au pied du mur nord.
-    ///
-    /// Tout est bati en cubes, comme le reste du decor. Les murs, les tours, le donjon
-    /// et les reserves ont un collider : on ne passe pas au travers. Les creneaux, les
-    /// meurtrieres et la herse sont purement visuels -- personne ne les touche, et des
-    /// centaines de colliders inutiles couteraient pour rien.
+    /// Tout est bati en cubes, comme le reste du decor. Les murs, les tours et les
+    /// escaliers ont un collider ; les creneaux et les ornements, non.
     /// </summary>
     public static class Castle
     {
-        /// <summary>Demi-cote de l'enceinte : le chateau fait 80 m de cote.</summary>
-        public const float HalfSize = 40f;
-        public const float WallHeight = 15f;
-        public const float WallThickness = 2.6f;
-        public const float TowerSize = 13f;
-        public const float TowerHeight = 30f;
-        /// <summary>Les deux tours de la grande porte.</summary>
-        public const float GatehouseHeight = 22f;
-        /// <summary>
-        /// Le donjon : trois niveaux et une terrasse (voir Keep.cs). Ses murs montent
-        /// jusqu'au parapet de la terrasse ; la tour de guet, au coin, bien plus haut.
-        /// </summary>
-        public const float KeepHeight = Keep.Roof + 1.4f;
-        public const float GateWidth = 6.5f;
-        public const float GateHeight = 7.5f;
-        public const float PosterneWidth = 1.6f;
-        public const float PosterneHeight = 2.6f;
-        public const float BreachFrom = 8f;
-        public const float BreachTo = 16f;
-        public const float BreachHeight = 6.5f;
+        /// <summary>Demi-cote de l'enceinte : cent metres de cote.</summary>
+        public const float HalfSize = 50f;
+        public const float WallHeight = 18f;
+        public const float WallThickness = 3f;
+        public const float TowerSize = 14f;
+        public const float TowerHeight = 34f;
+        public const float GateWidth = 8f;
+        public const float GateHeight = 10f;
+        public const float GateTowerSize = 8f;
+        public const float GateTowerHeight = 26f;
 
-        /// <summary>Rayon du sol aplani sous le chateau, coins et tours compris.</summary>
+        /// <summary>Rayon du sol aplani sous la citadelle, coins et tours compris.</summary>
         public const float FlatRadius = HalfSize * 1.42f + TowerSize * 0.5f + 10f;
 
-        /// <summary>Le puits, au milieu de la cour, sous quatre torches.</summary>
-        public static readonly Vector3 CourtCentre = new Vector3(0f, 0f, -4f);
+        /// <summary>Le centre de la tour (pour les sons, la musique...).</summary>
+        public static readonly Vector3 KeepCentre = Vector3.zero;
 
         static readonly Color Stone = new Color(0.31f, 0.31f, 0.30f);
         static readonly Color StoneDark = new Color(0.23f, 0.23f, 0.23f);
@@ -67,169 +45,74 @@ namespace Fief
         static readonly Color IronDark = new Color(0.12f, 0.12f, 0.13f);
         static readonly Color Paving = new Color(0.20f, 0.20f, 0.19f);
 
-        /// <summary>L'allee des rois : de la porte vers le sud, bordee de statues.</summary>
-        public const float AvenueHalfWidth = 10f;
-        public const float AvenueEnd = -92f;
-
-        /// <summary>
-        /// Vrai si ce point est dans l'emprise du chateau (plus une marge) -- allee
-        /// des rois comprise : la foret n'y pousse pas, le mage n'y apparait pas.
-        /// </summary>
+        /// <summary>Vrai si ce point est dans l'emprise de la citadelle (plus une marge) : la foret n'y pousse pas.</summary>
         public static bool Covers(float x, float z, float margin)
         {
             float reach = HalfSize + TowerSize * 0.5f + margin;
-            if (Mathf.Abs(x) < reach && Mathf.Abs(z) < reach) return true;
-            return Mathf.Abs(x) < AvenueHalfWidth + margin && z < -HalfSize && z > AvenueEnd - margin;
+            return Mathf.Abs(x) < reach && Mathf.Abs(z) < reach;
         }
 
-        /// <summary>
-        /// Le chemin pour entrer dans l'enceinte depuis "from", du dehors vers le dedans :
-        /// par la GRANDE PORTE si la herse est levee, sinon par la POTERNE (nord) ou
-        /// la BRECHE (est, par le talus) -- la plus proche. Pour sortir, on le lit a
-        /// l'envers.
-        /// </summary>
-        public static Vector3[] EntryFrom(Vector3 from)
-        {
-            Vector3[] gate = { new Vector3(0f, 0f, -HalfSize - 12f), new Vector3(0f, 0f, -HalfSize + 6f) };
-            Vector3[] posterne = { new Vector3(0f, 0f, HalfSize + 5f), new Vector3(0f, 0f, HalfSize - 5f) };
-            float mid = (BreachFrom + BreachTo) * 0.5f;
-            Vector3[] breach = { new Vector3(HalfSize + 13f, 0f, mid), new Vector3(HalfSize, BreachHeight, mid), new Vector3(HalfSize - 13f, 0f, mid) };
-            Vector3[] best = posterne;
-            float bestD = (from - posterne[0]).magnitude;
-            float d = (from - breach[0]).magnitude;
-            if (d < bestD) { best = breach; bestD = d; }
-            d = (from - gate[0]).magnitude;
-            if (Portcullis.IsOpen && d < bestD) best = gate;
-            return best;
-        }
-
-        /// <summary>Vrai si ce point est DANS l'enceinte (cour, batiments, remparts compris).</summary>
+        /// <summary>Vrai si ce point est DANS l'enceinte (cour, tour, remparts compris).</summary>
         public static bool Inside(Vector3 p)
         {
             return Mathf.Abs(p.x) < HalfSize + WallThickness * 0.5f && Mathf.Abs(p.z) < HalfSize + WallThickness * 0.5f;
         }
 
-        /// <summary>Le seuil d'une reserve (dehors, puis dedans), pour un point proche d'elle ; null sinon.</summary>
-        public static Vector3[] StoreroomDoor(Vector3 near)
-        {
-            float west = -HalfSize + WallThickness * 0.5f + 4.6f;
-            float north = HalfSize - WallThickness * 0.5f - 4.6f;
-            if (Mathf.Abs(near.x - west) < 6f && Mathf.Abs(near.z + 14f) < 8f)
-                return new[] { new Vector3(west + 6.5f, 0f, -14f), new Vector3(west + 1.5f, 0f, -14f) };
-            if (Mathf.Abs(near.x + west) < 6f && Mathf.Abs(near.z + 14f) < 8f)
-                return new[] { new Vector3(-west - 6.5f, 0f, -14f), new Vector3(-west - 1.5f, 0f, -14f) };
-            if (Mathf.Abs(near.x + 25f) < 8f && Mathf.Abs(near.z - north) < 6f)
-                return new[] { new Vector3(-25f, 0f, north - 6.5f), new Vector3(-25f, 0f, north - 1.5f) };
-            return null;
-        }
-
-        /// <summary>Vrai si ce point est DANS le donjon (a n'importe quel etage).</summary>
-        public static bool InKeep(Vector3 p)
-        {
-            return Mathf.Abs(p.x - KeepCentre.x) < KeepHalfWidth - 0.5f && Mathf.Abs(p.z - KeepCentre.z) < KeepHalfDepth - 0.5f
-                   && p.y > -1f && p.y < KeepHeight + 3f;
-        }
+        /// <summary>Vrai si ce point est sur la tour (sa rampe ou son sommet).</summary>
+        public static bool InKeep(Vector3 p) { return Tower.On(p); }
 
         /// <summary>
-        /// Vrai si ce point est DANS une des trois reserves a fer. Les gardes courent
-        /// apres qui y met les pieds.
+        /// Pour entrer depuis "from" : la porte la plus proche. Deux points, dehors puis
+        /// dedans. (Pour sortir, on les lit a l'envers.)
         /// </summary>
-        public static bool InStoreroom(float x, float z)
+        public static Vector3[] EntryFrom(Vector3 from)
         {
-            float west = -HalfSize + WallThickness * 0.5f + 4.6f;
-            float north = HalfSize - WallThickness * 0.5f - 4.6f;
-            if (Mathf.Abs(x - west) < 4.5f && Mathf.Abs(z + 14f) < 6f) return true;
-            if (Mathf.Abs(x + west) < 4.5f && Mathf.Abs(z + 14f) < 6f) return true;
-            return Mathf.Abs(x + 25f) < 6f && Mathf.Abs(z - north) < 4.5f;
+            Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
+            Vector3 best = Vector3.back;
+            float bestD = float.MaxValue;
+            for (int i = 0; i < dirs.Length; i++)
+            {
+                float d = (from - dirs[i] * HalfSize).sqrMagnitude;
+                if (d < bestD) { bestD = d; best = dirs[i]; }
+            }
+            return new[] { best * (HalfSize + 9f), best * (HalfSize - 9f) };
         }
-
-        /// <summary>Le donjon : sa salle du trone se visite.</summary>
-        public static readonly Vector3 KeepCentre = new Vector3(0f, 0f, 19f);
-        public const float KeepHalfWidth = 10f;
-        public const float KeepHalfDepth = 8f;
-        public const float HallFloor = 0.9f;
-        public const float HallCeiling = 9f;
 
         public static void Build(Transform parent, GameConfig cfg)
         {
-            GameObject root = new GameObject("CHÂTEAU");
+            GameObject root = new GameObject("CITADELLE");
             root.transform.SetParent(parent, false);
             Transform t = root.transform;
             Game.CastleCentre = Vector3.zero;
 
             BuildCurtain(t);
-            BuildTowers(t);
-            BuildGatehouse(t);
-            BuildKeep(t);
+            BuildCorners(t);
+            BuildGates(t);
+            BuildStairs(t);
             BuildCourtyard(t);
+            Tower.Build(t);
 
-            Storeroom(t, new Vector3(-HalfSize + WallThickness * 0.5f + 4.6f, 0f, -14f), 9f, 12f, Side.PlusX, cfg);
-            Storeroom(t, new Vector3(HalfSize - WallThickness * 0.5f - 4.6f, 0f, -14f), 9f, 12f, Side.MinusX, cfg);
-            Storeroom(t, new Vector3(-25f, 0f, HalfSize - WallThickness * 0.5f - 4.6f), 12f, 9f, Side.MinusZ, cfg);
-
-            // Au milieu de la cour, un puits sous les quatre torches.
-            Well(t, CourtCentre);
-            BuildTorches(t);
-
-            // Les chemins : la breche et son talus, les escaliers des remparts, la
-            // porte derobee du donjon.
-            BuildBreachSlopes(t);
-            BuildRampartStairs(t);
-            SecretDoor.Build(t, new Vector3(Keep.SecretLanding.x, 0f, KeepCentre.z + KeepHalfDepth + 0.04f), 0f,
-                             Keep.SecretLanding, 180f);
-
-            // Tout ce qui fait qu'on s'arrete pour regarder : l'allee des rois, les
-            // portes ouvertes, les braseros, la salle du trone, la cour en ruine.
-            CastleDecor.Build(t, cfg);
-
-            // Et pour finir, la pierre : chaque mur recoit son appareil de pierres
-            // taillees et son relief (voir Masonry.cs).
             int dressed = Masonry.Apply(t);
-            Debug.Log("[FIEF] Château : " + dressed + " pans de pierre appareillés.");
+            Debug.Log("[FIEF] Citadelle : " + dressed + " pans de pierre appareillés.");
         }
 
         // ------------------------------------------------------------------ outils
 
-        enum Side { PlusX, MinusX, PlusZ, MinusZ }
-
-        /// <summary>
-        /// Un pan de mur entre deux points du sol, de la hauteur y0 a y1. Tout le
-        /// chateau est fait de ca. Le mur descend sous le sol : si le terrain n'est pas
-        /// parfaitement plat, on ne voit jamais de jour entre le mur et la terre.
-        /// </summary>
-        static GameObject Segment(Transform parent, Vector3 a, Vector3 b, float y0, float y1,
-                                  float thick, Color color, bool solid, string name)
+        /// <summary>Un pan de mur entre deux points du sol, de y0 a y1.</summary>
+        static GameObject Segment(Transform parent, Vector3 a, Vector3 b, float y0, float y1, float thick, Color color, bool solid, string name)
         {
             Vector3 flat = new Vector3(b.x - a.x, 0f, b.z - a.z);
             float length = flat.magnitude;
             if (length < 0.01f) return null;
-
             if (!solid) Proto.BeginVisualOnly();
             GameObject go = Proto.Cube(parent, Vector3.zero, new Vector3(thick, y1 - y0, length), color, name);
             if (!solid) Proto.EndVisualOnly();
-
             go.transform.localPosition = new Vector3((a.x + b.x) * 0.5f, (y0 + y1) * 0.5f, (a.z + b.z) * 0.5f);
             go.transform.localRotation = Quaternion.LookRotation(flat / length, Vector3.up);
             return go;
         }
 
-        /// <summary>Un mur perce d'une porte en son milieu : deux pans et un linteau.</summary>
-        static void WallWithDoor(Transform parent, Vector3 a, Vector3 b, float y0, float y1,
-                                 float thick, float doorWidth, float doorHeight, Color color, string name)
-        {
-            Vector3 mid = (a + b) * 0.5f;
-            Vector3 dir = (b - a).normalized;
-            Vector3 left = mid - dir * doorWidth * 0.5f;
-            Vector3 right = mid + dir * doorWidth * 0.5f;
-            Segment(parent, a, left, y0, y1, thick, color, true, name);
-            Segment(parent, right, b, y0, y1, thick, color, true, name);
-            Segment(parent, left, right, doorHeight, y1, thick, color, true, name + "_Linteau");
-        }
-
-        /// <summary>
-        /// Des creneaux sur le haut d'un mur. Un sur deux manque, et quelques-uns sont
-        /// tombes : le chateau est mort depuis longtemps.
-        /// </summary>
+        /// <summary>Des creneaux sur le haut d'un mur. Quelques-uns sont tombes.</summary>
         static void Crenellate(Transform parent, Vector3 a, Vector3 b, float top, float thick, int seed)
         {
             System.Random rng = new System.Random(seed);
@@ -237,14 +120,12 @@ namespace Fief
             float length = dir.magnitude;
             if (length < 1f) return;
             dir /= length;
-
             Proto.BeginVisualOnly();
             for (float s = 0.9f; s < length - 0.5f; s += 2.4f)
             {
-                if (rng.NextDouble() < 0.14) continue;
+                if (rng.NextDouble() < 0.1) continue;
                 Vector3 p = a + dir * s;
-                GameObject m = Proto.Cube(parent, new Vector3(p.x, top + 0.65f, p.z),
-                                          new Vector3(thick * 0.92f, 1.3f, 1.25f),
+                GameObject m = Proto.Cube(parent, new Vector3(p.x, top + 0.65f, p.z), new Vector3(thick * 0.3f, 1.3f, 1.25f),
                                           rng.NextDouble() < 0.2 ? StoneMoss : Stone, "Merlon");
                 m.transform.localRotation = Quaternion.LookRotation(dir, Vector3.up);
             }
@@ -255,542 +136,191 @@ namespace Fief
 
         static void BuildCurtain(Transform t)
         {
-            float h = HalfSize;
-            float y0 = -1.5f;
-            Vector3 nw = new Vector3(-h, 0f, h), ne = new Vector3(h, 0f, h);
-            Vector3 sw = new Vector3(-h, 0f, -h), se = new Vector3(h, 0f, -h);
-
-            // Au milieu du mur nord, la POTERNE : une porte basse, ouverte. L'entree
-            // des discrets -- un garde fait les cent pas juste derriere.
-            WallWithDoor(t, nw, ne, y0, WallHeight, WallThickness, PosterneWidth, PosterneHeight, Stone, "Courtine_Nord");
-
-            // A l'est, un pan s'est effondre : entre z = 8 et z = 16, le mur ne monte
-            // plus qu'a six metres et demi. Trop haut pour passer, assez bas pour qu'on
-            // se dise que ce chateau a perdu une guerre.
-            Vector3 breachS = new Vector3(h, 0f, BreachFrom), breachN = new Vector3(h, 0f, BreachTo);
-            Segment(t, ne, breachN, y0, WallHeight, WallThickness, Stone, true, "Courtine_Est");
-            Segment(t, breachN, breachS, y0, BreachHeight, WallThickness, Stone, true, "Brèche");
-            Segment(t, breachS, se, y0, WallHeight, WallThickness, Stone, true, "Courtine_Est");
-            Segment(t, sw, nw, y0, WallHeight, WallThickness, Stone, true, "Courtine_Ouest");
-            WallWithDoor(t, sw, se, y0, WallHeight, WallThickness, GateWidth, GateHeight, Stone, "Courtine_Sud");
-
-            // Une plinthe plus sombre au pied : l'humidite qui remonte dans la pierre.
-            Segment(t, nw, new Vector3(-PosterneWidth * 0.5f, 0f, h), y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
-            Segment(t, new Vector3(PosterneWidth * 0.5f, 0f, h), ne, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
-            Segment(t, ne, se, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
-            Segment(t, sw, nw, y0, 1.6f, WallThickness + 0.3f, StoneDark, false, "Plinthe");
-
-            Crenellate(t, nw, ne, WallHeight, WallThickness, 11);
-            Crenellate(t, ne, new Vector3(h, 0f, BreachTo + 1f), WallHeight, WallThickness, 12);
-            Crenellate(t, new Vector3(h, 0f, BreachFrom - 1f), se, WallHeight, WallThickness, 16);
-            Crenellate(t, sw, nw, WallHeight, WallThickness, 13);
-            Crenellate(t, sw, new Vector3(-GateWidth * 0.5f - 4f, 0f, -h), WallHeight, WallThickness, 14);
-            Crenellate(t, new Vector3(GateWidth * 0.5f + 4f, 0f, -h), se, WallHeight, WallThickness, 15);
-
-            Buttresses(t);
-            Machicolations(t);
-        }
-
-        /// <summary>
-        /// Des contreforts au pied des courtines, tous les dix metres : un mur de
-        /// quinze metres parfaitement lisse ressemble a un decor de theatre. Deux
-        /// blocs en retrait l'un sur l'autre, comme un talus de pierre.
-        /// </summary>
-        static void Buttresses(Transform t)
-        {
-            float h = HalfSize;
-            float out1 = WallThickness * 0.5f + 0.8f;
-            float reach = h - TowerSize * 0.5f - 3f;
-            for (float u = -reach; u <= reach + 0.01f; u += 10f)
+            float h = HalfSize, y0 = -1.5f, gap = GateWidth * 0.5f;
+            Vector3[] corners = { new Vector3(-h, 0f, h), new Vector3(h, 0f, h), new Vector3(h, 0f, -h), new Vector3(-h, 0f, -h) };
+            for (int i = 0; i < 4; i++)
             {
-                // Nord, sauf devant la poterne.
-                if (Mathf.Abs(u) > 3f) Buttress(t, new Vector3(u, 0f, h + out1), Vector3.forward);
-                // Sud, sauf entre les tours de la grande porte.
-                if (Mathf.Abs(u) > GateWidth * 0.5f + 9f) Buttress(t, new Vector3(u, 0f, -h - out1), Vector3.back);
-                // Ouest, partout.
-                Buttress(t, new Vector3(-h - out1, 0f, u), Vector3.left);
-                // Est, sauf dans la breche.
-                if (u < BreachFrom - 2f || u > BreachTo + 2f) Buttress(t, new Vector3(h + out1, 0f, u), Vector3.right);
+                Vector3 a = corners[i], b = corners[(i + 1) % 4];
+                Vector3 mid = (a + b) * 0.5f, dir = (b - a).normalized;
+                Vector3 left = mid - dir * gap, right = mid + dir * gap;
+                Segment(t, a, left, y0, WallHeight, WallThickness, Stone, true, "Courtine");
+                Segment(t, right, b, y0, WallHeight, WallThickness, Stone, true, "Courtine");
+                Segment(t, left, right, GateHeight, WallHeight, WallThickness, Stone, true, "Linteau");
+                // Le merlon cote exterieur seulement : le chemin de ronde reste libre.
+                Vector3 outward = Vector3.Cross(Vector3.up, dir) * -1f;
+                Vector3 edge = outward * (WallThickness * 0.5f - 0.3f);
+                Crenellate(t, a + edge, left + edge, WallHeight, WallThickness, 11 + i);
+                Crenellate(t, right + edge, b + edge, WallHeight, WallThickness, 21 + i);
+                // Une plinthe sombre au pied : l'humidite qui remonte.
+                Segment(t, a, left, y0, 1.8f, WallThickness + 0.4f, StoneDark, false, "Plinthe");
+                Segment(t, right, b, y0, 1.8f, WallThickness + 0.4f, StoneDark, false, "Plinthe");
+                // Des contreforts dehors, tous les douze metres.
+                for (float u = 12f; u < h * 2f - 12f; u += 12f)
+                {
+                    if (Mathf.Abs(u - h) < gap + 8f) continue;
+                    Vector3 p = a + dir * u + outward * (WallThickness * 0.5f + 1f);
+                    GameObject butt = Proto.Cube(t, p + Vector3.up * 3.5f, new Vector3(2.6f, 8.5f, 2f), StoneDark, "Contrefort");
+                    butt.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
+                }
             }
         }
 
-        static void Buttress(Transform t, Vector3 at, Vector3 outward)
-        {
-            float y = Ground.Sample(at.x, at.z);
-            Quaternion face = Quaternion.LookRotation(outward, Vector3.up);
-            GameObject low = Proto.Cube(t, new Vector3(at.x, y + 2.6f, at.z), new Vector3(2.4f, 7f, 1.6f), StoneDark, "Contrefort");
-            low.transform.localRotation = face;
-            GameObject high = Proto.Cube(t, new Vector3(at.x, y + 7.8f, at.z) - outward * 0.35f, new Vector3(2f, 3.6f, 0.9f), Stone, "Contrefort");
-            high.transform.localRotation = face;
-            Proto.BeginVisualOnly();
-            GameObject cap = Proto.Cube(t, new Vector3(at.x, y + 9.7f, at.z) - outward * 0.5f, new Vector3(2.1f, 0.5f, 0.9f), StoneDark, "Glacis");
-            cap.transform.localRotation = face * Quaternion.Euler(-35f, 0f, 0f);
-            Proto.EndVisualOnly();
-        }
-
-        /// <summary>
-        /// Les MACHICOULIS : sous les creneaux, la galerie de pierre en surplomb,
-        /// posee sur des consoles. C'est par ses trous qu'on versait la poix sur les
-        /// assaillants -- et c'est ce qui donne a un rempart son air menacant.
-        /// </summary>
-        static void Machicolations(Transform t)
+        static void BuildCorners(Transform t)
         {
             float h = HalfSize;
-            float o = WallThickness * 0.5f + 0.45f;
-            float reach = h - TowerSize * 0.5f;
-            Proto.BeginVisualOnly();
-            // Nord et ouest d'un seul tenant ; sud en deux (la porte) ; est en deux (la breche).
-            Gallery(t, new Vector3(-reach, 0f, h + o), new Vector3(reach, 0f, h + o));
-            Gallery(t, new Vector3(-h - o, 0f, -reach), new Vector3(-h - o, 0f, reach));
-            Gallery(t, new Vector3(-reach, 0f, -h - o), new Vector3(-GateWidth * 0.5f - 8.4f, 0f, -h - o));
-            Gallery(t, new Vector3(GateWidth * 0.5f + 8.4f, 0f, -h - o), new Vector3(reach, 0f, -h - o));
-            Gallery(t, new Vector3(h + o, 0f, -reach), new Vector3(h + o, 0f, BreachFrom - 1f));
-            Gallery(t, new Vector3(h + o, 0f, BreachTo + 1f), new Vector3(h + o, 0f, reach));
-            Proto.EndVisualOnly();
+            Vector3[] corners = { new Vector3(-h, 0f, h), new Vector3(h, 0f, h), new Vector3(h, 0f, -h), new Vector3(-h, 0f, -h) };
+            for (int i = 0; i < corners.Length; i++) BigTower(t, corners[i], TowerSize, TowerHeight, true, 30 + i);
         }
 
-        static void Gallery(Transform t, Vector3 a, Vector3 b)
+        /// <summary>Une tour carree, meurtrieres et, s'il le faut, un toit d'ardoise pointu.</summary>
+        static void BigTower(Transform t, Vector3 at, float size, float height, bool roofed, int seed)
         {
-            Vector3 d = b - a;
-            float length = d.magnitude;
-            if (length < 1f) return;
-            Vector3 dir = d / length;
-            Quaternion along = Quaternion.LookRotation(dir, Vector3.up);
-            GameObject band = Proto.Cube(t, (a + b) * 0.5f + Vector3.up * (WallHeight - 0.4f), new Vector3(0.9f, 0.8f, length), Stone, "Machicoulis");
-            band.transform.localRotation = along;
-            int count = Mathf.FloorToInt(length / 1.6f);
-            for (int i = 0; i <= count; i++)
-            {
-                Vector3 p = a + dir * (i * length / Mathf.Max(1, count)) + Vector3.up * (WallHeight - 1.25f);
-                GameObject console = Proto.Cube(t, p, new Vector3(0.7f, 0.9f, 0.4f), StoneDark, "Console");
-                console.transform.localRotation = along;
-            }
-        }
-
-        static void BuildTowers(Transform t)
-        {
-            float h = HalfSize;
-            Vector3[] corners =
-            {
-                new Vector3(-h, 0f, h), new Vector3(h, 0f, h),
-                new Vector3(h, 0f, -h), new Vector3(-h, 0f, -h)
-            };
-            for (int i = 0; i < corners.Length; i++)
-            {
-                Tower(t, corners[i], TowerSize, TowerHeight, 20 + i, true);
-            }
-        }
-
-        /// <summary>
-        /// Une tour. Les quatre tours d'angle portent un TOIT POINTU d'ardoise : c'est
-        /// la silhouette qu'on devine au-dessus de la brume en s'approchant, et c'est
-        /// ce qui dit "chateau" avant meme qu'on voie un mur. Les tours du chatelet
-        /// gardent leurs creneaux : le contraste rend les deux plus lisibles.
-        /// </summary>
-        static void Tower(Transform t, Vector3 at, float size, float height, int seed, bool roofed = false)
-        {
-            Proto.Cube(t, new Vector3(at.x, (height - 1.5f) * 0.5f, at.z),
-                       new Vector3(size, height + 1.5f, size), Stone, "Tour");
-
-            // Meurtrieres : des fentes noires. De loin, ce sont elles qui font "chateau".
+            Proto.Cube(t, new Vector3(at.x, (height - 1.5f) * 0.5f, at.z), new Vector3(size, height + 1.5f, size), Stone, "Tour");
             Proto.BeginVisualOnly();
             for (int k = 0; k < 4; k++)
             {
-                float a = k * 90f;
-                Vector3 outward = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
-                int levels = Mathf.Max(2, Mathf.FloorToInt((height - 4f) / 6f));
-                for (int level = 0; level < levels; level++)
+                Vector3 outward = Quaternion.Euler(0f, k * 90f, 0f) * Vector3.forward;
+                for (int level = 0; level < Mathf.FloorToInt((height - 4f) / 6f); level++)
                 {
-                    Vector3 p = at + outward * (size * 0.5f + 0.02f) + Vector3.up * (6f + level * 6f);
-                    GameObject slit = Proto.Cube(t, p, new Vector3(0.45f, 1.9f, 0.08f), IronDark, "Meurtrière");
+                    GameObject slit = Proto.Cube(t, at + outward * (size * 0.5f + 0.02f) + Vector3.up * (6f + level * 6f),
+                                                 new Vector3(0.5f, 2f, 0.08f), IronDark, "Meurtrière");
                     slit.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
+                    if (level == 2 && k % 2 == seed % 2) slit.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.7f, 0.4f), 1.2f);
                 }
             }
+            Proto.Cube(t, new Vector3(at.x, height + 0.3f, at.z), new Vector3(size + 0.6f, 0.6f, size + 0.6f), StoneDark, "Corniche");
             Proto.EndVisualOnly();
-
-            float half = size * 0.5f;
             if (roofed)
             {
-                // Un bandeau sombre sous l'avant-toit, puis le cone d'ardoise, puis une
-                // fine fleche. Octogonal : une arete tombe sur chaque coin de la tour.
-                Proto.BeginVisualOnly();
-                Proto.Cube(t, new Vector3(at.x, height + 0.3f, at.z), new Vector3(size + 0.5f, 0.6f, size + 0.5f), StoneDark, "Corniche");
-                Proto.EndVisualOnly();
-                Proto.Cone(t, new Vector3(at.x, height + 0.55f, at.z), size * 0.78f, size * 1.05f, Slate, "Toit");
-                Proto.Cone(t, new Vector3(at.x, height + 0.55f + size * 1.0f, at.z), 0.18f, 3.2f, IronDark, "Flèche", 4);
+                Proto.Cone(t, new Vector3(at.x, height + 0.6f, at.z), size * 0.78f, size * 1.1f, Slate, "Toit");
+                Proto.Cone(t, new Vector3(at.x, height + 0.6f + size * 1.05f, at.z), 0.2f, 3.6f, IronDark, "Flèche", 4);
                 return;
             }
-
-            Vector3 a1 = at + new Vector3(-half, 0f, half), a2 = at + new Vector3(half, 0f, half);
-            Vector3 a3 = at + new Vector3(half, 0f, -half), a4 = at + new Vector3(-half, 0f, -half);
-            Crenellate(t, a1, a2, height, 1.2f, seed);
-            Crenellate(t, a2, a3, height, 1.2f, seed + 100);
-            Crenellate(t, a3, a4, height, 1.2f, seed + 200);
-            Crenellate(t, a4, a1, height, 1.2f, seed + 300);
+            float half = size * 0.5f;
+            Vector3 c1 = at + new Vector3(-half, 0f, half), c2 = at + new Vector3(half, 0f, half);
+            Vector3 c3 = at + new Vector3(half, 0f, -half), c4 = at + new Vector3(-half, 0f, -half);
+            Crenellate(t, c1, c2, height, 1.2f, seed);
+            Crenellate(t, c2, c3, height, 1.2f, seed + 1);
+            Crenellate(t, c3, c4, height, 1.2f, seed + 2);
+            Crenellate(t, c4, c1, height, 1.2f, seed + 3);
         }
 
-        static void BuildGatehouse(Transform t)
+        /// <summary>Les quatre portes : deux tours de garde, un arc sombre, deux braseros.</summary>
+        static void BuildGates(Transform t)
         {
-            float z = -HalfSize;
-            float off = GateWidth * 0.5f + 4.2f;
-            Tower(t, new Vector3(-off, 0f, z - 0.5f), 8f, GatehouseHeight, 40);
-            Tower(t, new Vector3(off, 0f, z - 0.5f), 8f, GatehouseHeight, 41);
-
-            // LA HERSE, baissee. Un levier la leve, dans la cour, contre le chatelet.
-            Portcullis.Build(t, new Vector3(0f, 0f, z), GateWidth, GateHeight);
-            Lever.Build(t, new Vector3(GateWidth * 0.5f + 1.6f, 0f, z + 3.6f), 180f);
+            Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
+            for (int i = 0; i < dirs.Length; i++)
+            {
+                Vector3 d = dirs[i];
+                Vector3 side = Vector3.Cross(Vector3.up, d);
+                Vector3 gate = d * HalfSize;
+                float off = GateWidth * 0.5f + GateTowerSize * 0.5f;
+                BigTower(t, gate + side * off + d * 1f, GateTowerSize, GateTowerHeight, false, 40 + i * 5);
+                BigTower(t, gate - side * off + d * 1f, GateTowerSize, GateTowerHeight, false, 42 + i * 5);
+                // L'arc : un bandeau sombre au-dessus du passage, et la herse relevee.
+                Proto.BeginVisualOnly();
+                for (float s = -GateWidth * 0.5f + 0.5f; s < GateWidth * 0.5f; s += 0.8f)
+                    Proto.Cube(t, gate + side * s + Vector3.up * (GateHeight - 0.7f), new Vector3(0.14f, 1.4f, 0.14f), IronDark, "Herse levée");
+                Proto.EndVisualOnly();
+                Torch(t, gate + d * 5f + side * (GateWidth * 0.5f + 1.2f), 3.4f);
+                Torch(t, gate + d * 5f - side * (GateWidth * 0.5f + 1.2f), 3.4f);
+                Torch(t, gate - d * 5f + side * (GateWidth * 0.5f + 1.2f), 3.4f);
+                Torch(t, gate - d * 5f - side * (GateWidth * 0.5f + 1.2f), 3.4f);
+            }
         }
 
         /// <summary>
-        /// LE DONJON (refait le 26/09 -- Martin : "faut mettre des etages"). Quatre
-        /// murs de 1,6 m perces d'une porte au sud, trois niveaux et une terrasse a
-        /// ciel ouvert, relies par des escaliers ; tout l'interieur est dans Keep.cs.
-        /// Au coin sud-ouest de la terrasse, une tour de guet monte a 42 m : la
-        /// silhouette qu'on devine au-dessus des arbres.
+        /// LES ESCALIERS DES REMPARTS : une rampe de pierre contre chaque courtine, cote
+        /// cour, finie par un palier. Du chemin de ronde, on domine la cour -- et on
+        /// peut sauter de dix-huit metres (on ne meurt pas : on atterrit).
         /// </summary>
-        static void BuildKeep(Transform t)
+        static void BuildStairs(Transform t)
         {
-            Vector3 c = KeepCentre;
-            float hx = KeepHalfWidth, hz = KeepHalfDepth;
-            float thick = 1.6f;
-            Vector3 p1 = c + new Vector3(-hx + thick * 0.5f, 0f, hz - thick * 0.5f);
-            Vector3 p2 = c + new Vector3(hx - thick * 0.5f, 0f, hz - thick * 0.5f);
-            Vector3 p3 = c + new Vector3(hx - thick * 0.5f, 0f, -hz + thick * 0.5f);
-            Vector3 p4 = c + new Vector3(-hx + thick * 0.5f, 0f, -hz + thick * 0.5f);
-
-            // Les murs, du sol jusqu'au parapet de la terrasse. Les murs lateraux sont
-            // allonges d'une demi-epaisseur : sinon chaque coin aurait un trou carre.
-            Vector3 ext = new Vector3(0f, 0f, thick * 0.5f);
-            Segment(t, p1 - new Vector3(thick * 0.5f, 0f, 0f), p2 + new Vector3(thick * 0.5f, 0f, 0f),
-                    -1.5f, KeepHeight, thick, Stone, true, "Donjon_Nord");
-            Segment(t, p2 + ext, p3 - ext, -1.5f, KeepHeight, thick, Stone, true, "Donjon_Est");
-            Segment(t, p4 - ext, p1 + ext, -1.5f, KeepHeight, thick, Stone, true, "Donjon_Ouest");
-            WallWithDoor(t, p3 + new Vector3(thick * 0.5f, 0f, 0f), p4 - new Vector3(thick * 0.5f, 0f, 0f),
-                         -1.5f, KeepHeight, thick, 3.6f, HallFloor + 5.2f, Stone, "Donjon_Sud");
-
-            // Le plancher du rez-de-chaussee, et les trois marches du perron.
-            // Il va jusqu'au bord EXTERIEUR du seuil : arrete au milieu du mur, il
-            // laissait sous la porte une fosse ou le joueur restait coince.
-            float floorFront = c.z - hz, floorBack = c.z + hz - thick;
-            Proto.Cube(t, new Vector3(c.x, HallFloor * 0.5f - 0.25f, (floorFront + floorBack) * 0.5f),
-                       new Vector3(hx * 2f - thick, HallFloor + 0.5f, floorBack - floorFront), Paving, "Plancher");
-            float doorZ = c.z - hz;
-            for (int i = 0; i < 3; i++)
+            float inner = HalfSize - WallThickness * 0.5f - 1.3f;
+            Vector3[] dirs = { Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
+            for (int i = 0; i < dirs.Length; i++)
             {
-                float top = HallFloor * (i + 1) / 3f;
-                float z0 = doorZ - 2.7f + i * 0.9f;
-                Proto.Cube(t, new Vector3(c.x, top * 0.5f - 0.1f, z0 + 0.45f),
-                           new Vector3(7f - i * 0.6f, top + 0.2f, 0.9f), StoneDark, "Marche");
+                Vector3 d = dirs[i];
+                Vector3 along = Vector3.Cross(Vector3.up, d);
+                // (Entre la tour de garde de la porte, jusqu'a x = 12, et la tour d'angle, a 43.)
+                Vector3 from = d * inner + along * 13f;
+                Vector3 to = d * inner + along * 37f + Vector3.up * WallHeight;
+                Stair(t, from, to);
+                Proto.Cube(t, d * inner + along * 39f + Vector3.up * (WallHeight - 0.2f), Rot(d, new Vector3(2.6f, 0.4f, 4f)), StoneDark, "Palier");
             }
+        }
 
-            // Les etages, les escaliers, les tresors, les gardes (voir Keep.cs).
-            Keep.Build(t);
+        static Vector3 Rot(Vector3 d, Vector3 size)
+        {
+            return Mathf.Abs(d.x) > 0.5f ? new Vector3(size.x, size.y, size.z) : new Vector3(size.z, size.y, size.x);
+        }
 
-            // Contreforts : ils cassent la facade, et le pied du donjon parait ancre.
-            for (int i = -1; i <= 1; i += 2)
-            {
-                Proto.Cube(t, new Vector3(c.x + i * 6f, 6f, c.z - 8.7f), new Vector3(2.2f, 13.5f, 1.8f), StoneDark, "Contrefort");
-                Proto.Cube(t, new Vector3(c.x + i * 6f, 13.2f, c.z - 8.4f), new Vector3(1.8f, 2.4f, 1.2f), StoneDark, "Contrefort");
-            }
-
+        /// <summary>Un escalier droit : une rampe pleine (le collider) et des marches dessinees.</summary>
+        public static void Stair(Transform t, Vector3 from, Vector3 to)
+        {
+            Vector3 run = to - from;
+            float length = run.magnitude + 0.4f;
+            GameObject ramp = Proto.Cube(t, (from + to) * 0.5f - new Vector3(0f, 0.17f, 0f), new Vector3(2.6f, 0.34f, length), StoneDark, "Escalier");
+            ramp.transform.localRotation = Quaternion.LookRotation(run.normalized, Vector3.up);
             Proto.BeginVisualOnly();
-            // Des fenetres etroites a chaque etage, noires ; une qui luit, en haut.
-            float[] rows = { Keep.L1 + 2.2f, Keep.L2 + 2.2f };
-            for (int k = -1; k <= 1; k++)
+            int steps = Mathf.RoundToInt(run.magnitude / 0.45f);
+            Vector3 flatDir = new Vector3(run.x, 0f, run.z).normalized;
+            for (int i = 0; i < steps; i++)
             {
-                for (int row = 0; row < rows.Length; row++)
-                {
-                    float y = rows[row];
-                    GameObject win = Proto.Cube(t, new Vector3(c.x + k * 5.5f, y, c.z - 8.02f), new Vector3(1.1f, 2.4f, 0.08f), IronDark, "Fenêtre");
-                    Proto.Cube(t, new Vector3(c.x + k * 5.5f, y - 1.35f, c.z - 8.12f), new Vector3(1.6f, 0.22f, 0.3f), StoneDark, "Appui");
-                    if (k == 1 && row == 1) win.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.74f, 0.45f), 1.4f);
-                }
+                Vector3 p = Vector3.Lerp(from, to, (i + 0.5f) / steps) + Vector3.up * 0.02f;
+                GameObject step = Proto.Cube(t, p, new Vector3(2.5f, 0.06f, 0.1f), Paving, "Nez de marche");
+                step.transform.localRotation = Quaternion.LookRotation(flatDir, Vector3.up);
             }
-            // Un cordon de pierre a chaque plancher : on lit les etages de dehors.
-            Proto.Cube(t, new Vector3(c.x, Keep.L1, c.z), new Vector3(hx * 2f + 0.5f, 0.45f, hz * 2f + 0.5f), StoneDark, "Cordon");
-            Proto.Cube(t, new Vector3(c.x, Keep.L2, c.z), new Vector3(hx * 2f + 0.5f, 0.45f, hz * 2f + 0.5f), StoneDark, "Cordon");
-            Proto.EndVisualOnly();
-
-            Vector3 a1 = c + new Vector3(-10f, 0f, 8f), a2 = c + new Vector3(10f, 0f, 8f);
-            Vector3 a3 = c + new Vector3(10f, 0f, -8f), a4 = c + new Vector3(-10f, 0f, -8f);
-            Crenellate(t, a1, a2, KeepHeight, 1.4f, 60);
-            Crenellate(t, a2, a3, KeepHeight, 1.4f, 61);
-            Crenellate(t, a3, a4, KeepHeight, 1.4f, 62);
-            Crenellate(t, a4, a1, KeepHeight, 1.4f, 63);
-
-            // LA TOUR DE GUET, au coin sud-ouest de la terrasse : pleine, haute, coiffee
-            // d'ardoise et d'une fleche. C'est elle qu'on voit au-dessus de la brume.
-            Vector3 w = new Vector3(c.x - hx + 2.8f, 0f, c.z - hz + 2.8f);
-            float towerTop = 42f;
-            Proto.Cube(t, new Vector3(w.x, (Keep.Roof + towerTop) * 0.5f, w.z), new Vector3(5.6f, towerTop - Keep.Roof, 5.6f), Stone, "Tour de guet");
-            Crenellate(t, w + new Vector3(-2.8f, 0f, 2.8f), w + new Vector3(2.8f, 0f, 2.8f), towerTop, 1f, 64);
-            Crenellate(t, w + new Vector3(2.8f, 0f, 2.8f), w + new Vector3(2.8f, 0f, -2.8f), towerTop, 1f, 65);
-            Proto.Cone(t, new Vector3(w.x, towerTop + 0.2f, w.z), 3.6f, 9f, Slate, "Toit de la tour", 8);
-            Proto.Cone(t, new Vector3(w.x, towerTop + 8.8f, w.z), 0.25f, 6f, IronDark, "Flèche", 4);
-            Proto.BeginVisualOnly();
-            for (int i = 0; i < 4; i++)
+            // Sous la rampe, la maconnerie qui la porte.
+            for (int i = 1; i < 6; i++)
             {
-                GameObject slit = Proto.Cube(t, new Vector3(w.x, Keep.Roof + 5f + i * 4.5f, w.z - 2.84f), new Vector3(0.4f, 1.6f, 0.06f), IronDark, "Meurtrière");
-                if (i == 3) slit.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.62f, 0.74f, 0.95f), 1.2f);
+                Vector3 p = Vector3.Lerp(from, to, i / 6f);
+                Proto.Cube(t, new Vector3(p.x, p.y * 0.5f - 0.2f, p.z), new Vector3(2.4f, Mathf.Max(0.1f, p.y), 0.8f), Stone, "Pile").transform.localRotation =
+                    Quaternion.LookRotation(flatDir, Vector3.up);
             }
             Proto.EndVisualOnly();
-
-            // Trois echauguettes aux autres coins de la terrasse, coiffees de fleches.
-            Vector3[] corners = { a1, a2, a3 };
-            for (int i = 0; i < corners.Length; i++)
-            {
-                Vector3 q = corners[i];
-                Proto.BeginVisualOnly();
-                Proto.Cylinder(t, new Vector3(q.x, KeepHeight + 1.2f, q.z), new Vector3(2.4f, 1.6f, 2.4f), Stone, "Échauguette");
-                Proto.EndVisualOnly();
-                Proto.Cone(t, new Vector3(q.x, KeepHeight + 2.8f, q.z), 1.6f, 3.4f, Slate, "Flèche");
-            }
         }
 
         static void BuildCourtyard(Transform t)
         {
-            // Un dallage sombre sur toute la cour. Pas de collider : le sol du terrain,
-            // aplani a zero, est juste dessous.
-            Proto.BeginVisualOnly();
             float inner = HalfSize - WallThickness * 0.5f;
-            // Dessus du dallage a 4 cm, de l'allee a 6 cm : deux surfaces a la meme
-            // hauteur que le sol se disputeraient chaque pixel et scintilleraient.
+            Proto.BeginVisualOnly();
             Proto.Cube(t, new Vector3(0f, -0.01f, 0f), new Vector3(inner * 2f, 0.1f, inner * 2f), Paving, "Dallage");
-            // L'allee de la porte a la stele, un ton plus clair : elle guide sans rien dire.
-            Proto.Cube(t, new Vector3(0f, 0.01f, -HalfSize * 0.5f - 2f),
-                       new Vector3(GateWidth - 1f, 0.1f, HalfSize - 4f), StoneDark, "Allée");
-            Proto.EndVisualOnly();
-        }
-
-        // ------------------------------------------------------------------ reserves
-
-        /// <summary>
-        /// Une reserve : quatre murs, un toit, une porte, et des caisses de Fer ancien
-        /// au fond. On y entre vraiment -- c'est un lieu, pas un objet.
-        /// </summary>
-        static void Storeroom(Transform t, Vector3 centre, float width, float depth, Side door, GameConfig cfg)
-        {
-            float hx = width * 0.5f, hz = depth * 0.5f;
-            float height = 4.6f, thick = 0.5f;
-            Vector3 c = centre;
-
-            Vector3 p1 = c + new Vector3(-hx, 0f, hz), p2 = c + new Vector3(hx, 0f, hz);
-            Vector3 p3 = c + new Vector3(hx, 0f, -hz), p4 = c + new Vector3(-hx, 0f, -hz);
-
-            // Nord (p1-p2), Est (p2-p3), Sud (p3-p4), Ouest (p4-p1)
-            Build(t, p1, p2, door == Side.PlusZ, height, thick);
-            Build(t, p2, p3, door == Side.PlusX, height, thick);
-            Build(t, p3, p4, door == Side.MinusZ, height, thick);
-            Build(t, p4, p1, door == Side.MinusX, height, thick);
-
-            Proto.Cube(t, new Vector3(c.x, height + 0.25f, c.z), new Vector3(width + 0.6f, 0.5f, depth + 0.6f), Slate, "Toit");
-
-            // Les caisses, contre le mur du fond (a l'oppose de la porte).
-            Vector3 back = -DoorOutward(door);
-            Vector3 along = new Vector3(back.z, 0f, -back.x);
-            float reach = (door == Side.PlusX || door == Side.MinusX ? hx : hz) - 1.3f;
-            float span = (door == Side.PlusX || door == Side.MinusX ? hz : hx) - 1.6f;
-            for (int i = -1; i <= 1; i++)
+            // Quatre allees claires, des portes a la tour : elles guident sans rien dire.
+            for (int i = 0; i < 4; i++)
             {
-                Vector3 at = c + back * reach + along * (i * span * 0.7f);
-                if (i == 0)
-                {
-                    // Le coffre de la reserve : un objet rare, sous la garde de la cour.
-                    System.Random rng = new System.Random(Match.RoundSeed ^ Mathf.RoundToInt(at.x * 13f + at.z * 5f));
-                    float yaw = Mathf.Atan2(-back.x, -back.z) * Mathf.Rad2Deg;
-                    Chest.Build(t, at, ItemInfo.Rare[rng.Next(ItemInfo.Rare.Length)], false, yaw);
-                }
-                else Crate(t, at);
-            }
-
-            // Une torche a la porte : on repere les reserves a leur lueur.
-            Vector3 outward = DoorOutward(door);
-            float doorReach = door == Side.PlusX || door == Side.MinusX ? hx : hz;
-            Torch(t, c + outward * (doorReach + 0.5f) + along * 1.8f, 2.6f);
-        }
-
-        static void Build(Transform t, Vector3 a, Vector3 b, bool hasDoor, float height, float thick)
-        {
-            if (hasDoor) WallWithDoor(t, a, b, -0.5f, height, thick, 2.2f, 2.8f, StoneDark, "Réserve");
-            else Segment(t, a, b, -0.5f, height, thick, StoneDark, true, "Réserve");
-        }
-
-        static Vector3 DoorOutward(Side side)
-        {
-            switch (side)
-            {
-                case Side.PlusX: return Vector3.right;
-                case Side.MinusX: return Vector3.left;
-                case Side.PlusZ: return Vector3.forward;
-                default: return Vector3.back;
-            }
-        }
-
-        /// <summary>
-        /// Une caisse de la reserve : des planches (avec des jours entre elles), des
-        /// cornieres de fer rivetees, le couvercle entrouvert. Du decor, et un obstacle.
-        /// </summary>
-        static void Crate(Transform t, Vector3 at)
-        {
-            GameObject go = new GameObject("Caisse");
-            go.transform.SetParent(t, false);
-            go.transform.localPosition = at;
-
-            BoxCollider box = go.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0.5f, 0f);
-            box.size = new Vector3(1.1f, 1f, 1.1f);
-
-            Proto.BeginVisualOnly();
-            Transform v = go.transform;
-            Color plank = Palette.Shade(Timber, 1.15f);
-            Proto.Cube(v, new Vector3(0f, 0.06f, 0f), new Vector3(1f, 0.12f, 1f), Timber, "Fond");
-            for (int side = 0; side < 4; side++)
-            {
-                Quaternion q = Quaternion.Euler(0f, side * 90f, 0f);
-                for (int k = 0; k < 3; k++)
-                {
-                    GameObject board = Proto.Cube(v, q * new Vector3(0f, 0.2f + k * 0.26f, 0.47f), new Vector3(0.98f, 0.22f, 0.06f),
-                                                  k % 2 == 0 ? plank : Timber, "Planche");
-                    board.transform.localRotation = q;
-                }
-            }
-            for (int c = 0; c < 4; c++)
-            {
-                float a = c * 90f + 45f;
-                Vector3 corner = Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, 0.69f);
-                Proto.Cube(v, new Vector3(corner.x, 0.45f, corner.z), new Vector3(0.1f, 0.92f, 0.1f), IronDark, "Cornière");
-            }
-            Proto.Cube(v, new Vector3(0f, 0.3f, 0f), new Vector3(1.04f, 0.06f, 1.04f), IronDark, "Cerclage");
-            GameObject lid = Proto.Cube(v, new Vector3(0.15f, 0.98f, -0.1f), new Vector3(1.02f, 0.07f, 1.02f), plank, "Couvercle");
-            lid.transform.localRotation = Quaternion.Euler(14f, 8f, -6f);
-            Proto.EndVisualOnly();
-        }
-
-        /// <summary>Le puits de la cour : une margelle ronde, deux montants, un treuil.</summary>
-        static void Well(Transform t, Vector3 at)
-        {
-            Proto.Cylinder(t, at + new Vector3(0f, 0.45f, 0f), new Vector3(2.4f, 0.45f, 2.4f), StoneDark, "Margelle");
-            Proto.BeginVisualOnly();
-            Proto.Cylinder(t, at + new Vector3(0f, 0.92f, 0f), new Vector3(1.8f, 0.03f, 1.8f), new Color(0.02f, 0.02f, 0.03f), "Eau noire");
-            for (int side = -1; side <= 1; side += 2)
-                Proto.Cube(t, at + new Vector3(side * 1.05f, 1.6f, 0f), new Vector3(0.18f, 2.2f, 0.18f), Timber, "Montant");
-            GameObject axle = Proto.Cylinder(t, at + new Vector3(0f, 2.4f, 0f), new Vector3(0.14f, 1.1f, 0.14f), Timber, "Treuil");
-            axle.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            Proto.Cube(t, at + new Vector3(0f, 1.8f, 0f), new Vector3(0.03f, 1.1f, 0.03f), new Color(0.4f, 0.34f, 0.24f), "Corde");
-            Proto.Cube(t, at + new Vector3(0f, 1.2f, 0f), new Vector3(0.3f, 0.3f, 0.3f), Timber, "Seau");
-            Proto.EndVisualOnly();
-        }
-
-        /// <summary>
-        /// LA BRECHE : dehors, un talus d'eboulis monte jusqu'au sommet du mur effondre
-        /// (6,5 m) ; dedans, un autre redescend dans la cour. Des blocs tombes le
-        /// herissent : on y grimpe, on ne s'y promene pas.
-        /// </summary>
-        static void BuildBreachSlopes(Transform t)
-        {
-            float mid = (BreachFrom + BreachTo) * 0.5f;
-            float width = BreachTo - BreachFrom - 0.6f;
-            float outer = HalfSize + WallThickness * 0.5f, inner = HalfSize - WallThickness * 0.5f;
-            Slope(t, new Vector3(outer + 11f, Ground.Sample(outer + 11f, mid), mid), new Vector3(outer, BreachHeight, mid), width, 71);
-            Slope(t, new Vector3(inner - 10f, 0f, mid), new Vector3(inner, BreachHeight, mid), width, 72);
-        }
-
-        /// <summary>Un talus : une rampe pleine (le collider) sous un chaos de blocs.</summary>
-        static void Slope(Transform t, Vector3 low, Vector3 high, float width, int seed)
-        {
-            Vector3 run = high - low;
-            float length = run.magnitude + 0.6f;
-            GameObject ramp = Proto.Cube(t, (low + high) * 0.5f - new Vector3(0f, 0.3f, 0f), new Vector3(width, 0.6f, length), StoneDark, "Talus");
-            ramp.transform.localRotation = Quaternion.LookRotation(run.normalized, Vector3.up);
-            // Sous la rampe, la terre : on ne voit pas de vide dessous.
-            Vector3 flat = new Vector3(run.x, 0f, run.z);
-            Proto.BeginVisualOnly();
-            System.Random rng = new System.Random(seed);
-            for (int i = 0; i < 26; i++)
-            {
-                float u = (float)rng.NextDouble();
-                float side = ((float)rng.NextDouble() - 0.5f) * width;
-                Vector3 p = Vector3.Lerp(low, high, u) + Vector3.Cross(Vector3.up, flat.normalized) * side;
-                float size = 0.4f + (float)rng.NextDouble() * 0.9f;
-                GameObject block = Proto.Cube(t, p + Vector3.up * size * 0.2f, new Vector3(size, size * 0.7f, size * 1.1f),
-                                              rng.NextDouble() < 0.3 ? StoneMoss : Stone, "Bloc");
-                block.transform.localRotation = Quaternion.Euler((float)rng.NextDouble() * 30f, (float)rng.NextDouble() * 360f, (float)rng.NextDouble() * 30f);
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                float u = (i + 0.5f) / 6f;
-                Vector3 p = Vector3.Lerp(low, high, u);
-                float h = p.y + 0.2f;
-                Proto.Cube(t, new Vector3(p.x, h * 0.5f - 0.3f, p.z), new Vector3(width * 0.9f, h, length / 6f), StoneDark, "Terre");
+                Vector3 d = Quaternion.Euler(0f, i * 90f, 0f) * Vector3.forward;
+                Vector3 mid = d * (inner + Tower.OuterRadius) * 0.5f;
+                Proto.Cube(t, mid + Vector3.up * 0.01f, Rot(d, new Vector3(inner - Tower.OuterRadius, 0.1f, 5f)), StoneDark, "Allée");
             }
             Proto.EndVisualOnly();
-        }
-
-        /// <summary>
-        /// LES ESCALIERS DES REMPARTS : deux rampes de pierre contre les courtines (nord
-        /// et sud), chacune finie par un palier au niveau du chemin de ronde. La-haut,
-        /// les arbaletriers -- et une vue sur toute la cour.
-        /// </summary>
-        static void BuildRampartStairs(Transform t)
-        {
-            float inner = HalfSize - WallThickness * 0.5f;
-            float z = inner - 1.2f;
-            Keep.Stair(t, new Vector3(6f, 0f, z), new Vector3(27f, WallHeight, z));
-            Proto.Cube(t, new Vector3(28.6f, WallHeight - 0.2f, z), new Vector3(3.2f, 0.4f, 2.4f), StoneDark, "Palier");
-            Keep.Rail(t, new Vector3(8f, 0f, z - 1.25f), new Vector3(27f, WallHeight - 0.1f, z - 1.25f));
-            Keep.Stair(t, new Vector3(-12.2f, 0f, -z), new Vector3(-29f, WallHeight, -z));
-            Proto.Cube(t, new Vector3(-30.6f, WallHeight - 0.2f, -z), new Vector3(3.2f, 0.4f, 2.4f), StoneDark, "Palier");
-            Keep.Rail(t, new Vector3(-14f, 0f, -z + 1.25f), new Vector3(-29f, WallHeight - 0.1f, -z + 1.25f));
+            // Des torches le long des allees, et des colonnes brisees ou se cacher.
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 d = Quaternion.Euler(0f, i * 90f + 45f, 0f) * Vector3.forward;
+                Vector3 at = d * 30f;
+                Proto.Cube(t, at + Vector3.up * 2.2f, new Vector3(2f, 4.4f, 2f), Stone, "Colonne brisée");
+                Proto.Cube(t, at + d * 5f + Vector3.up * 0.6f, new Vector3(2.4f, 1.2f, 1.4f), StoneDark, "Bloc tombé");
+                Torch(t, d * 22f, 3.2f);
+            }
         }
 
         // ------------------------------------------------------------------ torches
 
-        static void BuildTorches(Transform t)
-        {
-            float inner = HalfSize - WallThickness * 0.5f - 0.4f;
-            float gz = -HalfSize;
-
-            // La porte, dehors, devant les tours du chatelet (qui descendent jusqu'a
-            // z = -44,5) : ce sont les premieres lumieres qu'on voit en arrivant.
-            Torch(t, new Vector3(-GateWidth * 0.5f - 1.2f, 0f, gz - 6.2f), 3.2f);
-            Torch(t, new Vector3(GateWidth * 0.5f + 1.2f, 0f, gz - 6.2f), 3.2f);
-
-            // Autour du puits.
-            for (int i = 0; i < 4; i++)
-            {
-                float a = (i * 90f + 45f) * Mathf.Deg2Rad;
-                Torch(t, CourtCentre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 5.2f, 2.8f);
-            }
-
-            // Le long des murs, cote cour, espacees de facon irreguliere : certaines se
-            // sont eteintes depuis longtemps, et c'est tant mieux. Positions choisies a
-            // la main pour ne tomber ni dans une reserve ni dans une tour.
-            float[] north = { 2f, -9f };
-            float[] east = { 2f, 26f };
-            float[] west = { -27f, -1f, 19f };
-            for (int i = 0; i < north.Length; i++) Torch(t, new Vector3(north[i], 0f, inner), 3.4f);
-            for (int i = 0; i < east.Length; i++) Torch(t, new Vector3(inner, 0f, east[i]), 3.4f);
-            for (int i = 0; i < west.Length; i++) Torch(t, new Vector3(-inner, 0f, west[i]), 3.4f);
-        }
-
         /// <summary>
-        /// Une torche : un poteau, une flamme, et une lumiere qui vacille. Pas d'ombre
-        /// portee : une vingtaine de lumieres a ombres couterait tres cher.
+        /// Une torche : un poteau, une flamme, et une lumiere qui vacille. "at" est son
+        /// pied (hauteur comprise : il y en a sur la tour).
         /// </summary>
         public static void Torch(Transform t, Vector3 at, float height)
         {
             Proto.BeginVisualOnly();
-            // "at" est le pied de la torche (y compris sa hauteur : il y en a sur la terrasse du donjon).
             Proto.Cube(t, new Vector3(at.x, at.y + height * 0.5f, at.z), new Vector3(0.16f, height, 0.16f), Timber, "Torche");
             Proto.Cube(t, new Vector3(at.x, at.y + height + 0.12f, at.z), new Vector3(0.3f, 0.12f, 0.3f), IronDark, "Coupe");
-            GameObject flame = Proto.Cube(t, new Vector3(at.x, at.y + height + 0.38f, at.z),
-                                          new Vector3(0.22f, 0.4f, 0.22f), new Color(1f, 0.62f, 0.22f), "Flamme");
+            GameObject flame = Proto.Cube(t, new Vector3(at.x, at.y + height + 0.38f, at.z), new Vector3(0.22f, 0.4f, 0.22f), new Color(1f, 0.62f, 0.22f), "Flamme");
             Proto.EndVisualOnly();
-
             Renderer r = flame.GetComponent<Renderer>();
             if (r != null) r.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.22f), 2.2f);
             flame.AddComponent<Flame>();
-
             GameObject lightGo = new GameObject("Lueur");
             lightGo.transform.SetParent(t, false);
             lightGo.transform.localPosition = new Vector3(at.x, at.y + height + 0.6f, at.z);
@@ -798,7 +328,7 @@ namespace Fief
             light.type = LightType.Point;
             light.color = new Color(1f, 0.70f, 0.40f);
             light.intensity = 1.5f;
-            light.range = 10f;
+            light.range = 11f;
             light.shadows = LightShadows.None;
             lightGo.AddComponent<LampFlicker>();
         }

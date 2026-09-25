@@ -138,12 +138,12 @@ namespace Fief
             if (visual == null) return;
             if (state == State.Carried)
             {
-                if (Holder == null || !Holder.Alive || Holder.Body == null) { Drop(visual.position); return; }
+                if (Holder == null || Holder.Body == null) { Drop(visual.position); return; }
                 // Au-dessus de sa tete : tout le monde la voit briller.
                 visual.position = Holder.Body.position + Vector3.up * 2.25f + Vector3.up * Mathf.Sin(Time.time * 3f) * 0.05f;
             }
             // Quand c'est TOI qui la portes, on ne la montre pas au-dessus de ta tete ni
-            // sa colonne (la camera serait dedans) : tu la vois dans tes mains (ToolUser).
+            // sa colonne (la camera serait dedans) : l'ecran te le dit, et tu brilles.
             bool mine = state == State.Carried && Holder != null && Holder.IsPlayer;
             if (mine != hiddenForMe)
             {
@@ -155,6 +155,8 @@ namespace Fief
             // Tombee et oubliee (45 s), ou tombee hors d'atteinte : elle retourne sur son socle.
             if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.Sample(visual.position.x, visual.position.z) - 3f))
                 ReturnHome();
+            // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
+            if (state == State.Dropped) Attract();
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
@@ -177,7 +179,7 @@ namespace Fief
             transform.position = pedestal;
             visual.position = home;
             Sfx.Bell();
-            if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "retourne au donjon", "", Gold);
+            if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "revient au sommet de la tour", "", Gold);
         }
         float BaseHeight() { return state == State.OnPedestal ? home.y : state == State.Delivered ? deliveredY : groundY; }
 
@@ -186,15 +188,14 @@ namespace Fief
         /// <summary>Prendre la couronne. Vrai si prise.</summary>
         public bool TryTakeFor(Seeker s)
         {
-            if (s == null || !s.Alive || state == State.Carried || state == State.Delivered) return false;
+            if (s == null || s.Body == null || s.Stunned || state == State.Carried || state == State.Delivered) return false;
             bool fromPedestal = state == State.OnPedestal;
             state = State.Carried;
             Holder = s;
-            s.Items.Active = -1;
+            s.GripUsed = false;
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
-            // Au sommet du donjon : le Roi se leve, et toute la garde accourt.
-            if (fromPedestal) Guard.Alert(transform.position, 30f, s);
+            if (fromPedestal) Sfx.Alarm();
             if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", s.IsPlayer ? "Au Monument !" : s.Name, "", s.Colour);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;
@@ -239,6 +240,37 @@ namespace Fief
         }
 
         /// <summary>Pousse : le porteur la lache, elle roule dans la direction du coup.</summary>
+        /// <summary>
+        /// LA COURONNE GLISSE : son porteur tombe (sans planer). Elle reste la ou il a
+        /// quitte le sol -- on ne redescend pas la tour d'un saut.
+        /// </summary>
+        public static void Slip(Seeker holder, Vector3 lastGround)
+        {
+            if (Instance == null || Holder != holder) return;
+            Instance.Drop(lastGround);
+            if (holder.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "La Couronne a glissé", "elle est restée en haut", "", new Color(1f, 0.6f, 0.4f));
+        }
+
+        void Attract()
+        {
+            Seeker best = null;
+            float bestD = 8f;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s.Body == null || s.Stunned || !s.Has(Ability.Aimant)) continue;
+                float d = (s.Body.position + Vector3.up - visual.position).magnitude;
+                if (d < bestD) { bestD = d; best = s; }
+            }
+            if (best == null) return;
+            if (bestD < 1.4f) { TryTakeFor(best); return; }
+            Vector3 to = best.Body.position + Vector3.up - visual.position;
+            Vector3 step = to.normalized * Mathf.Min(to.magnitude, 9f * Time.deltaTime);
+            visual.position += step;
+            transform.position += step;
+            groundY = visual.position.y;
+        }
+
         public static void KnockOff(Seeker victim, Vector3 direction)
         {
             if (Instance == null || Holder != victim || victim.Body == null) return;
@@ -249,7 +281,7 @@ namespace Fief
         // ================================================================== IInteractable
 
         public Transform Anchor { get { return visual != null ? visual : transform; } }
-        public bool CanInteract { get { return state != State.Carried && state != State.Delivered && Game.Season != null && Game.Season.Running && Game.Me != null && Game.Me.Alive; } }
+        public bool CanInteract { get { return state != State.Carried && state != State.Delivered && Game.Season != null && Game.Season.Running && Game.Me != null && !Game.Me.Stunned; } }
         public string Prompt { get { return "La Couronne"; } }
         public float HoldDuration { get { return state == State.OnPedestal ? 1.2f : 0.5f; } }
 

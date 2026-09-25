@@ -89,32 +89,21 @@ namespace Fief
         public static bool DiagnosticPressed { get { return KeyPressed(KeyCode.F3); } }
         public static bool SprintHeld { get { return KeyHeld(KeyCode.LeftShift); } }
 
-        public static bool Slot1Pressed { get { return KeyPressed(KeyCode.Alpha1); } }
-        public static bool Slot2Pressed { get { return KeyPressed(KeyCode.Alpha2); } }
-        public static bool Slot3Pressed { get { return KeyPressed(KeyCode.Alpha3); } }
+        public static bool JumpHeld { get { return KeyHeld(KeyCode.Space); } }
         /// <summary>F : grimper dans un arbre, ou en redescendre.</summary>
         public static bool ClimbPressed { get { return KeyPressed(KeyCode.F); } }
-        /// <summary>R : la Ruee (le pouvoir).</summary>
-        public static bool DashPressed { get { return KeyPressed(KeyCode.R); } }
-        /// <summary>Tab maintenu : le tableau des scores (manches gagnees, pouvoirs).</summary>
+        /// <summary>Tab maintenu : le score du match.</summary>
         public static bool ScoresHeld { get { return KeyHeld(KeyCode.Tab); } }
 
-        /// <summary>Clic gauche maintenu : frapper avec l'epee.</summary>
-        public static bool UseHeld
-        {
-            get
-            {
-#if ENABLE_INPUT_SYSTEM
-                Mouse m = Mouse.current;
-                return m != null && m.leftButton.isPressed;
-#else
-                return Input.GetMouseButton(0);
-#endif
-            }
-        }
+        // --- les menus au clavier
+        public static bool UpPressed { get { return KeyPressed(KeyCode.UpArrow) || KeyPressed(KeyCode.W); } }
+        public static bool DownPressed { get { return KeyPressed(KeyCode.DownArrow) || KeyPressed(KeyCode.S); } }
+        public static bool LeftPressed { get { return KeyPressed(KeyCode.LeftArrow) || KeyPressed(KeyCode.A); } }
+        public static bool RightPressed { get { return KeyPressed(KeyCode.RightArrow) || KeyPressed(KeyCode.D); } }
+        public static bool ConfirmPressed { get { return KeyPressed(KeyCode.Return) || KeyPressed(KeyCode.KeypadEnter); } }
 
-        /// <summary>Clic gauche, a l'instant : se servir de l'objet en main.</summary>
-        public static bool UsePressed
+        /// <summary>Clic gauche, a l'instant : POUSSER.</summary>
+        public static bool PushPressed
         {
             get
             {
@@ -127,17 +116,24 @@ namespace Fief
             }
         }
 
-        /// <summary>Clic droit, a l'instant : POUSSER.</summary>
-        public static bool ShovePressed
+        /// <summary>
+        /// Les capacites actives : 0 = clic droit, 1 = R, 2 = C, 3 = V (le don d'un
+        /// sanctuaire). Voir AbilityInfo.Keys.
+        /// </summary>
+        public static bool CastPressed(int slot)
         {
-            get
+            switch (slot)
             {
+                case 0:
 #if ENABLE_INPUT_SYSTEM
-                Mouse m = Mouse.current;
-                return m != null && m.rightButton.wasPressedThisFrame;
+                    Mouse m = Mouse.current;
+                    return m != null && m.rightButton.wasPressedThisFrame;
 #else
-                return Input.GetMouseButtonDown(1);
+                    return Input.GetMouseButtonDown(1);
 #endif
+                case 1: return KeyPressed(KeyCode.R);
+                case 2: return KeyPressed(KeyCode.C);
+                default: return KeyPressed(KeyCode.V);
             }
         }
 
@@ -174,11 +170,20 @@ namespace Fief
                 case KeyCode.F1: return k.f1Key;
                 case KeyCode.F3: return k.f3Key;
                 case KeyCode.LeftShift: return k.leftShiftKey;
-                case KeyCode.Alpha1: return k.digit1Key;
-                case KeyCode.Alpha2: return k.digit2Key;
-                case KeyCode.Alpha3: return k.digit3Key;
                 case KeyCode.F: return k.fKey;
                 case KeyCode.R: return k.rKey;
+                case KeyCode.C: return k.cKey;
+                case KeyCode.V: return k.vKey;
+                case KeyCode.W: return k.wKey;
+                case KeyCode.A: return k.aKey;
+                case KeyCode.S: return k.sKey;
+                case KeyCode.D: return k.dKey;
+                case KeyCode.UpArrow: return k.upArrowKey;
+                case KeyCode.DownArrow: return k.downArrowKey;
+                case KeyCode.LeftArrow: return k.leftArrowKey;
+                case KeyCode.RightArrow: return k.rightArrowKey;
+                case KeyCode.Return: return k.enterKey;
+                case KeyCode.KeypadEnter: return k.numpadEnterKey;
                 case KeyCode.Tab: return k.tabKey;
             }
             return null;

@@ -1,18 +1,23 @@
 # LA COURONNE — la bible du jeu
 
-> Réécrite le 26/09/2026 au soir, sur la demande de Martin : « on oublie tout ce qui
-> est stèle, récolter pour gagner de la gloire. Ce qui compte, c'est d'avoir la
-> couronne et la ramener au monument. » C'est **la référence** : quand le code et ce
-> document ne disent pas la même chose, c'est un des deux qu'il faut corriger.
-> Les versions précédentes (stèles, butin, mage, reliques…) sont dans l'historique Git.
+> Réécrite le 27/09/2026, sur la demande de Martin : « réduis un peu la map, fais en
+> sorte qu'on s'amuse à balle ; les PNJ, soit un truc tellement excellent soit rien ;
+> un giga château ; les pouvoirs on comprend rien ; pas d'épée, juste des capacités,
+> on tiendra jamais rien en main ; j'aime pas les icônes et les menus moches ».
+> C'est **la référence** : quand le code et ce document ne disent pas la même chose,
+> c'est un des deux qu'il faut corriger. Pourquoi chaque choix : `docs/100-RAISONS.md`.
+> Les versions précédentes (épée, objets, Garde Pâle, Roi Creux…) sont dans l'historique Git.
 
 ---
 
 ## En une phrase
 
-**Quatre joueurs, chacun pour soi. Une Couronne au sommet d'un château gardé. La
-première personne qui la porte jusqu'au Monument gagne la manche. Entre deux
-manches, chacun choisit un pouvoir — le vainqueur choisit en dernier.**
+**Quatre joueurs, chacun pour soi, les mains vides. Une Couronne au sommet d'une tour
+de 64 m. Le premier qui la porte jusqu'au Monument gagne la manche. On ne se bat pas :
+on se pousse, on se projette, on se vole la Couronne — avec des capacités.**
+
+C'est **Smash** (on ne meurt pas, on perd sa place) croisé avec **Fall Guys** (une tour
+à gravir à quatre en se poussant dans le vide), dans une forêt noire.
 
 ---
 
@@ -22,160 +27,179 @@ manches, chacun choisit un pouvoir — le vainqueur choisit en dernier.**
 |---|---|
 | Joueurs | 2 à **4** (toi + des bots en Phase 1 ; des joueurs en ligne en Phase 3) |
 | Manches | **3, 5, 7 ou 10** (choisi au salon ; 5 par défaut) |
-| Durée max d'une manche | **4, 6, 8 ou 10 min** (6 par défaut) → un match de 5 manches ≈ 30 min |
+| Durée max d'une manche | **4, 6, 8 ou 10 min** (6 par défaut) |
+| Avant la manche 1 | chacun **choisit sa première capacité** (que des actives sur la table) |
+| Entre deux manches | chacun choisit **une capacité de plus** ; le vainqueur de la manche en dernier |
 | Vainqueur du match | le plus de manches gagnées ; à égalité, une **manche de départage** entre ex æquo |
 
 ### Une manche
 
-1. **Le départ.** Les quatre joueurs apparaissent à la lisière, aux quatre coins de la
-   forêt. Le **Monument** change de place à chaque manche : on voit sa colonne de
-   lumière bleue au-dessus des arbres. Le **château** est au centre ; sa tour de guet
-   dépasse de la brume.
-2. **La forêt.** On peut y foncer droit au château, ou fouiller : coffres, objets
-   enterrés (pelle + détecteur), objets magiques.
-3. **Le château.** La Couronne est sur la terrasse du donjon, gardée par **le Roi
-   Creux** (le boss) et toute la **Garde Pâle**.
-4. **La Couronne.** Qui la prend **brille** : une colonne dorée monte au-dessus de lui,
-   tout le monde sait où il est. Il marche plus lentement (−18 %), **ne peut ni frapper
-   ni pousser** (il la tient à deux mains) et **la lâche s'il tombe, s'il se fait
-   pousser, s'il marche dans un piège ou si le Roi le frappe**. Tombée, elle attend
-   **45 s** qu'on la ramasse (un compte à rebours sous l'icône), puis rentre sur son socle.
-5. **Le Monument.** Porter la Couronne jusqu'à lui et maintenir E deux secondes :
-   **manche gagnée**. Le monde passe au ralenti, la Couronne se pose sur l'autel, et la
-   caméra tourne autour du Monument. Tant que quelqu'un porte la Couronne, la colonne
-   bleue du Monument s'embrase : il l'appelle.
-6. **Le temps.** Si le chrono tombe à zéro, celui qui tient la Couronne gagne la
-   manche ; si personne ne la tient, personne ne gagne.
+1. **Le départ.** Chacun apparaît à la lisière, à égale distance de la citadelle. Le
+   **Monument** (colonne de lumière bleue) change de place à chaque manche.
+2. **La forêt** (320 × 320 m, brume à 18 m). On peut foncer à la citadelle, ou passer
+   par un **sanctuaire** (voir plus bas) pour gagner un don.
+3. **La citadelle.** Quatre portes ouvertes. Dans la cour, **la tour de la Couronne** ;
+   sur les murs et autour de la tour, **les Yeux**.
+4. **La tour.** Une rampe en spirale, à l'extérieur, quatre tours complets, **sans
+   parapet**, avec trois trous et quatre pendules. On monte à quatre, on se pousse.
+5. **La Couronne.** Au sommet. **E maintenu 1,2 s** pour la prendre (0,5 s si elle est
+   à terre). Qui la porte **brille** (colonne dorée), va **15 % moins vite**, **ne peut
+   ni pousser ni lancer de capacité offensive** (crochet, onde, souffle, givre) — sauf
+   avec le passif Porteur. Il la **lâche** si on le pousse, si une capacité le projette,
+   si un Œil le touche, s'il marche sur une mine, si un pendule le balaie.
+6. **Tomber avec la Couronne.** Si le porteur chute de haut (sans Planeur), **elle
+   reste là où il a quitté le sol**. On ne redescend pas la tour d'un saut : il faut
+   la rampe — ou le Planeur.
+7. **À terre**, elle attend **45 s** qu'on la ramasse, puis revient au sommet.
+8. **Le Monument.** Porter la Couronne jusqu'à lui et **maintenir E 2 s** : manche
+   gagnée. Ralenti, la Couronne se pose sur l'autel, la caméra tourne autour.
+9. **Le temps.** Au gong, celui qui tient la Couronne gagne ; sinon, personne.
 
-### Le choix des pouvoirs (entre deux manches)
+---
 
-On étale **(nombre de joueurs + 1) cartes** tirées au hasard. Chacun en prend une, dans
-l'ordre : **le moins de manches gagnées choisit en premier, le vainqueur de la manche
-choisit en dernier.** Un pouvoir se garde jusqu'à la fin du match.
+## Les mains vides
 
-| Pouvoir | Effet |
+- **Clic gauche : POUSSER.** Le plus proche devant toi (3 m) part en arrière et en
+  l'air. **S'il porte la Couronne, il la lâche.** Recharge 0,9 s.
+- **Clic droit, R, C : tes trois capacités actives**, dans l'ordre où tu les as prises.
+- **V : le don** d'un sanctuaire (pour la manche seulement).
+- **Espace** : sauter (encore une fois en l'air avec Double saut ; maintenu : planer
+  avec Planeur).
+- **E** (maintenu) : prendre la Couronne, prendre un don, poser au Monument.
+- **F** : grimper à un arbre (les géants dépassent la brume).
+- **Tab** : le score et les capacités de chacun.
+
+Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projette et
+étourdit un court instant (0,2 à 0,7 s), jamais plus.
+
+---
+
+## Les 26 capacités
+
+Trois actives au plus : en prendre une quatrième **remplace la plus ancienne** (la carte
+le dit avant qu'on choisisse). Les passives s'accumulent.
+
+### Actives (sur clic droit, R, C — ou V pour un don)
+
+| Capacité | Ce que ça fait | Recharge |
+|---|---|---|
+| **Ruée** | Un bond de huit mètres droit devant toi. | 6 s |
+| **Grappin** | Vise un mur, un arbre, la tour : le grappin t'y tire. | 7 s |
+| **Crochet** | Vise un joueur : il est tiré jusqu'à toi. | 10 s |
+| **Onde de choc** | Projette tout le monde autour de toi. | 8 s |
+| **Clignement** | Tu disparais et réapparais dix mètres plus loin. | 5 s |
+| **Bond** | Un saut immense, droit vers le ciel. | 8 s |
+| **Mur** | Un mur de pierre surgit devant toi pendant huit secondes. | 12 s |
+| **Nuée** | Un nuage de fumée : les Yeux et les autres ne voient plus rien. | 14 s |
+| **Mine** | Pose une mine : qui marche dessus s'envole et lâche la Couronne. | 9 s |
+| **Givre** | Lance une boule de givre : ceux qu'elle touche sont ralentis. | 8 s |
+| **Voile** | Tu deviens invisible pendant six secondes. | 16 s |
+| **Échange** | Vise un joueur : vous échangez vos places. | 14 s |
+| **Rappel** | Tu reviens là où tu étais il y a quatre secondes. | 10 s |
+| **Souffle** | Une rafale repousse tout ce qui est devant toi. | 7 s |
+
+### Passives (toujours là)
+
+| Capacité | Ce que ça fait |
 |---|---|
-| **Double saut** | un second saut en l'air |
-| **Ruée** | R : un bond de 8 m vers l'avant (toutes les 6 s) |
-| **Coureur** | +15 % de vitesse |
-| **Poigne** | ta poussée envoie deux fois plus loin, et revient plus vite |
-| **Colosse** | +50 % de vie |
-| **Ombre** | les gardes te voient deux fois moins vite |
-| **Flair** | la Couronne et ses porteurs brillent pour toi à travers les murs |
-| **Porteur** | avec la Couronne, tu cours à pleine vitesse |
-| **Sang vif** | la vie remonte trois fois plus vite |
-| **Seconde chance** | la première fois que tu tombes dans une manche, tu te relèves sur place |
+| **Double saut** | Appuie encore sur Espace en l'air : un second saut. |
+| **Planeur** | Maintiens Espace en l'air : tu planes. La Couronne ne tombe pas. |
+| **Coureur** | Tu vas quinze pour cent plus vite. |
+| **Porteur** | Avec la Couronne, tu n'es plus ralenti et tu peux pousser. |
+| **Poigne** | Ta poussée envoie deux fois plus loin. |
+| **Ancrage** | On te pousse deux fois moins loin. |
+| **Flair** | Tu vois toujours où est la Couronne, même à travers les murs. |
+| **Ombre** | Les Yeux mettent deux fois plus de temps à te repérer. |
+| **Prise ferme** | Le premier coup ne te fait pas lâcher la Couronne. |
+| **Recharge** | Tes capacités reviennent un tiers plus vite. |
+| **Rebond** | Retomber de haut fait une onde de choc autour de toi. |
+| **Aimant** | La Couronne à terre vole jusqu'à toi. |
+
+(Le code : `Match/Abilities.cs` pour la liste, `World/AbilityCaster.cs` pour les effets.)
+
+### Les sanctuaires
+
+Un cercle de pierres levées, un cristal qui flotte à la couleur de son don. **E
+maintenu 1 s** : ce don (une capacité active au hasard) devient la tienne **pour la
+manche**, sur **V**. Un seul don à la fois ; un sanctuaire ne sert qu'une fois. Il y en
+a un dans chaque lieu-dit, et quatre dans les clairières (≈ 9 par manche).
 
 ---
 
-## Ce qu'on fait avec ses mains
+## La citadelle (« un giga château »)
 
-- **Clic gauche : l'épée.** Quatre coups tuent un joueur. On la garde toujours.
-- **Clic droit : pousser.** Tout le monde peut pousser : l'autre part en arrière — et
-  **s'il porte la Couronne, il la lâche**. Toutes les 3 s.
-- **1, 2, 3 : les objets trouvés** (trois emplacements). On les prend en main, clic
-  gauche pour s'en servir.
-- **E : prendre** (Couronne, objets, coffres), **déposer** au Monument, tirer le levier.
-- **F : grimper** aux arbres (géants compris : là-haut, la brume s'ouvre).
-- **R : la Ruée** (si on a le pouvoir). **Tab** : le score du match.
-- La vie remonte seule après 6 s sans coup. Tomber, c'est lâcher ses objets dans une
-  **dépouille** (qu'on peut fouiller) et se relever 5 s plus tard à son point de départ.
+- **L'enceinte** : 100 m de côté, murs de 18 m, quatre tours d'angle (34 m).
+- **Quatre portes ouvertes**, une par face, chacune entre deux tours de garde : on entre
+  de partout.
+- **Quatre escaliers** montent aux remparts : on y voit loin, on saute sur la rampe.
+- **La tour de la Couronne**, au centre : 22 m de large, **64 m de haut** (elle perce la
+  brume, on la voit de partout). La rampe extérieure fait 5,5 m de large, quatre tours
+  complets, **trois trous** à sauter, **quatre pendules** qui la balaient. Au sommet :
+  la Couronne sur son socle et quatre braseros.
 
-### Les objets de la forêt
+### Les Yeux (pas de PNJ humains)
 
-| Objet | Où | Effet |
-|---|---|---|
-| **Détecteur** | coffres | en main, il bipe de plus en plus vite près d'un **trésor enterré** |
-| **Pelle** | coffres | en main, clic : creuse ; sur un trésor enterré, sort un objet rare |
-| **Fumigène** | coffres | lancé : un nuage où les gardes ne voient plus rien |
-| **Fiole de lenteur** | coffres | lancée : ralentit les joueurs touchés 5 s |
-| **Piège à mâchoires** | coffres | posé : immobilise 3 s qui marche dessus — **et lui fait lâcher la Couronne** |
-| **Élixir** | coffres | rend toute la vie |
-| **Plume** | enterré | 30 s de sauts très hauts |
-| **Cape d'ombre** | enterré | 10 s invisible pour les gardes |
-| **Clé du donjon** | enterré | ouvre la porte dérobée de la cave du donjon |
+Martin : « les PNJ, soit un truc tellement excellent, soit rien ». Donc rien d'humain.
+**Douze Yeux** : une sphère de pierre qui flotte, un iris qui luit, deux anneaux qui
+tournent. Huit sur les tours et les portes, quatre autour de la tour (un par tour de
+rampe). Ils ne marchent pas : ils ne se coincent jamais.
 
-Les **coffres** (une quinzaine) s'ouvrent d'un E. Les **trésors enterrés** (une dizaine)
-ne se voient pas : il faut le détecteur pour les trouver et la pelle pour les sortir.
+| Couleur | Ce qu'il fait |
+|---|---|
+| **Bleu** | il balaie la cour de son regard (un cône de lumière) |
+| **Orange** | il t'a aperçu : il te fixe |
+| **Rouge** | il **charge** 1,1 s : un trait rouge vous relie. La dernière demi-seconde, il ne te suit plus — bouge ! |
+| **Blanc** | il tire : projeté, étourdi 0,7 s, et **tu lâches la Couronne** |
 
----
+Ils ne regardent que la citadelle, la tour — et le porteur de la Couronne. La Nuée les
+aveugle, le Voile te cache, l'Ombre les ralentit.
 
-## Le château (« digne d'Elden Ring en contenu »)
+### Les pendules
 
-- **Trois entrées** : la **grande porte** (herse baissée — un levier, dans la cour au
-  pied du châtelet, la lève pour 45 s), la **poterne** au nord (étroite, gardée), la
-  **brèche** à l'est (un talus d'éboulis monte jusqu'au mur effondré, un autre redescend
-  dans la cour).
-- **Les remparts** : deux escaliers de pierre y montent depuis la cour (nord et sud).
-  Les arbalétriers y sont postés.
-- **Les réserves** : trois bâtiments le long des murs, chacun avec un coffre (un objet
-  rare), sous l'œil des sentinelles.
-- **La porte dérobée** : au pied du mur nord du donjon, fermée à clé. Avec la **Clé du
-  donjon**, on l'ouvre — un escalier dans le mur monte **droit à la terrasse**. Ouverte,
-  elle le reste pour tout le monde.
-- **Le donjon** : trois niveaux et une terrasse, reliés par des escaliers ; chaque
-  salle a ses gardes.
-- **La terrasse** : la Couronne sur son socle, et **le Roi Creux**.
-
-### La Garde Pâle
-
-Des chevaliers **lisses et sans visage** — armures d'ivoire usé, grandes capes
-sombres, une fente de visière qui luit comme une braise. Un seul style, cohérent, pas
-de cubes : des formes rondes et polies. Quand ils te voient, la fente passe au rouge.
-
-| | Nombre | Comportement |
-|---|---|---|
-| **Sentinelle** | 16 | ronde, cône de vision (la lanterne), crie et rameute ceux qui l'entendent, poursuit, frappe au glaive (coup annoncé : la fente devient blanche) |
-| **Arbalétrier** | 7 | sur les remparts (porte, châtelet, nord, ouest, est) et au 1er étage ; il **vise** une seconde (un trait rouge le relie à toi), puis tire un carreau qu'on voit partir — on l'esquive en bougeant |
-| **Molosse** | 3 | chien de garde dans la cour : rapide, fragile, sent à 8 m tout autour, mord |
-| **Le Roi Creux** | 1 | le boss de la terrasse : trois mètres, dort devant son trône jusqu'à ce qu'on approche la Couronne (9 m) ou qu'on la prenne ; **balayage** devant lui (35), **frappe au sol** toutes les 6 s (un cercle rouge grandit sous lui pendant 1 s : 45 et projeté au loin) ; 800 PV ; ne quitte pas la terrasse ; revient 4 min après sa chute |
-
-Les gardes s'intéressent à **quiconque entre dans l'enceinte**, et courent après **le
-porteur de la Couronne** même hors les murs (jusqu'à 60 m). On les sème (brume, murs,
-fumigène, Cape d'ombre) ou on les tue ; ils reviennent 90 s plus tard.
-
-**Vingt-sept en tout** (la liste exacte : `World/Garrison.cs`) : huit sentinelles et
-trois molosses dans la cour, six arbalétriers sur les remparts, une sentinelle par
-salle du donjon et un arbalétrier au 1er étage, deux gardes royaux et le Roi sur la
-terrasse, trois rôdeurs dans la forêt.
-
-**Leur visage dit tout.** La fente du heaume : *braise* (ronde), *orange* (il t'a vu),
-*rouge* (il court), *blanc* (il frappe — écarte-toi).
+Quatre lames de pierre, une par tour de rampe, qui balaient la rampe d'un bord à
+l'autre. Touché : projeté (souvent dans le vide), et la Couronne tombe.
 
 ---
 
-## Ce qu'on voit (pas de boussole, pas de carte)
+## Ce qu'on voit
 
-- Pas de boussole, pas de carte, pas de marqueurs : on se repère **aux lumières** —
-  la tour de guet du château, la colonne bleue du Monument, la colonne dorée de la
-  Couronne — et aux arbres géants (en haut, la brume s'ouvre).
-- **Les joueurs se voient** : chacun porte une lanterne à sa couleur et un halo au-dessus
-  de la tête, visibles de loin dans la brume.
-- L'écran : une belle **barre de vie**, les pouvoirs choisis, les trois objets, le chrono
-  de la manche et le score des quatre joueurs. Presque pas de texte.
+- **Pas de boussole, pas de carte, pas de marqueur** : la tour qui perce la brume, la
+  colonne bleue du Monument, la colonne dorée de la Couronne, les creux bleus, les
+  arbres géants.
+- **Les joueurs se voient** : lanterne, écharpe et halo à leur couleur ; leur nom
+  s'écrit au-dessus d'eux à moins de 22 m.
+- **L'écran, sans une seule icône** : le chrono et la manche en haut, une phrase qui
+  dit où est la Couronne, le score en chiffres en haut à droite, tes capacités en bas à
+  gauche (touche, nom, recharge), un point de visée qui rougit quand tu peux pousser.
+- **Les menus** : une colonne de mots sur la forêt ; tout au clavier (↑ ↓ ← → Entrée
+  Échap) comme à la souris.
 
 ## Ce qui reste de la forêt
 
-Loups (deux meutes), revenants près des lieux-dits (**abattu, un revenant lâche un
-objet**), feux-follets, cerf blanc, les creux à pierre-lune (décor, repères lumineux),
-les cinq lieux-dits (chacun avec un coffre), les arbres géants.
+Les creux à pierre-lune (décor, repères bleus), les feux-follets, les cinq lieux-dits
+(chacun avec son sanctuaire), les ruines, les arbres géants. **Plus de loups, de
+revenants ni de cerf blanc** : la forêt est le terrain de la poursuite, pas un deuxième
+ennemi.
 
 ## Les autres joueurs (des bots, en attendant le jeu en ligne)
 
-Ils jouent **avec tes règles, par les mêmes portes** (`World/Rival.cs`) : ils fouillent
-la forêt au début (plus ou moins longtemps selon leur caractère), montent à la Couronne
-(par la herse si elle est levée, sinon la poterne ou la brèche ; par l'escalier dérobé
-s'ils ont la clé), la portent au Monument, **chassent et poussent** celui qui la tient,
-se jettent sur elle quand elle roule, rendent les coups, et se servent de leurs objets
-(élixir, fumigène, fiole sur le porteur, piège sur la route du Monument).
+Ils jouent **avec tes règles, par les mêmes méthodes** (`World/Rival.cs`) : ils passent
+par un sanctuaire s'il y en a un près d'eux, montent la tour (et se servent du grappin,
+de la ruée, du double saut), prennent la Couronne, la portent au Monument, **chassent
+et poussent** celui qui la tient, lancent leurs capacités (`AbilityCaster.Cast`, comme
+toi). Ils ne parlent pas : on entend leur voix, pas des phrases.
 
-## Retiré le 26/09 au soir
+## Retiré
 
-Les stèles, le butin (★), les ressources (bois, pierre-lune, fer), le camp et les
-caches, la construction (T), les Autels, la boussole et la carte.
+- Le 26/09 au soir : stèles, butin (★), ressources, camp et caches, construction (T),
+  Autels, boussole, carte (M).
+- **Le 27/09** : l'**épée** et la **vie** (plus de mort), **tous les objets** (détecteur,
+  pelle, fumigène, fiole, piège, élixir, plume, cape, clé), les **coffres**, la **Garde
+  Pâle** et le **Roi Creux**, les **loups**, les **revenants**, le **cerf blanc**, le
+  **donjon à étages**, la herse et la porte dérobée, **toutes les icônes**.
 
 ## Phases
 
-- **Phase 1 (ici)** : le match complet contre des bots, avec le menu du salon.
-- **Phase 3** : le jeu en ligne (voir `docs/RESEAU.md` : l'architecture est déjà
-  préparée pour que les bots cèdent leur place à des joueurs).
+- **Phase 1 (ici)** : le match complet contre des bots, avec le salon.
+- **Phase 3** : le jeu en ligne (voir `docs/RESEAU.md` : les bots cèdent leur place à
+  des joueurs, rien d'autre ne change).

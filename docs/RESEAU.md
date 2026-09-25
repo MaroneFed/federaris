@@ -41,24 +41,24 @@ réécrire le jeu.
 |---|---|---|
 | `IsLocal` | la place de cette machine (toi) | la place de cette machine (une par machine) |
 | `IsBot` | tenue par un bot | faux pour un joueur en ligne ; vrai pour une place vide comblée par un bot |
-| `Wins`, `Powers` | le score et les pouvoirs | idem — c'est **l'hôte** qui les tient et les envoie |
+| `Wins`, `Abilities` | le score et les capacités | idem — c'est **l'hôte** qui les tient et les envoie |
 
 `Match` est **statique** et survit au rechargement de la scène : c'est le seul état qui
 traverse les manches. En ligne, l'hôte l'envoie au début de chaque manche (une poignée
-d'octets : quatre noms, quatre couleurs, des victoires, des pouvoirs, la graine).
+d'octets : quatre noms, quatre couleurs, des victoires, des capacités, la graine).
 
 ### 2. La graine de la manche
 
 Le monde est **entièrement reconstruit** à partir de deux nombres :
 
 - `GameConfig.worldSeed` : le relief, la forêt, le château (les mêmes à chaque manche) ;
-- `Match.RoundSeed` : le Monument, les coffres, les trésors enterrés, les points de
+- `Match.RoundSeed` : le Monument, les sanctuaires et leurs dons, les points de
   départ (différents à chaque manche).
 
 **Conséquence** : l'hôte n'envoie pas le monde, seulement la graine. Chaque machine
 reconstruit exactement le même. (Attention en Phase 3 : tout ce qui utilise
-`UnityEngine.Random` sans graine — le contenu des revenants, les loups — devra passer
-par une graine partagée ou être décidé par l'hôte.)
+`UnityEngine.Random` sans graine devra passer par une graine partagée ou être décidé
+par l'hôte. Les Yeux et les pendules, eux, ne dépendent que du temps : l'hôte les tient.)
 
 ### 3. Les gestes passent tous par des portes
 
@@ -69,15 +69,11 @@ Tout ce qui change l'état du jeu passe par une méthode qui prend **le joueur q
 |---|---|
 | Prendre la Couronne | `Crown.TryTakeFor(seeker)` |
 | La poser au Monument | `Monument.TryDeliver(seeker)` |
-| Ouvrir un coffre | `Chest.TryOpenFor(seeker)` |
-| Fouiller une dépouille | `Remains.TakeFor(seeker)` |
+| Prendre un don | `Shrine.TryTakeFor(seeker)` |
 | Pousser | `Combat.Shove(seeker, direction)` |
-| Frapper | `Combat.Hit(victime, seeker, dégâts)` |
-| Lancer un objet | `Thrown.Launch(seeker, objet, départ, vitesse)` |
-| Poser un piège | `Trap.Place(seeker, position, angle)` |
-| Tirer le levier | `Lever.PullFor(seeker)` |
-| Porte dérobée | `SecretDoor.UseFor(seeker)` |
-| Choisir un pouvoir | `Match.Draft.TryPick(place, carte)` |
+| Lancer une capacité | `AbilityCaster.Cast(seeker, capacité, œil, visée)` |
+| Projeter (tout coup) | `Combat.Hit(victime, vitesse, étourdissement, lâche, seeker)` |
+| Choisir une capacité | `Match.Draft.TryPick(place, carte)` |
 | Fin de manche | `Menus.EndRound(place)` (un seul endroit) |
 
 En Phase 3, un invité enverra « je veux prendre la Couronne » ; **l'hôte** appellera

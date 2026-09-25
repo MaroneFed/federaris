@@ -67,17 +67,16 @@ namespace Fief
                 Nature.Build(worldRoot, config);
                 Monument.Build(worldRoot, round);
 
-                // La Couronne, sur la terrasse du donjon.
-                Crown.Build(worldRoot, Keep.CrownSpot);
+                // La Couronne, au sommet de la tour.
+                Crown.Build(worldRoot, Tower.CrownSpot);
 
-                // Les coffres et les tresors enterres de la manche.
-                Chest.Scatter(worldRoot, round);
+                // Les sanctuaires de la manche (un don chacun, touche V).
+                Shrine.Scatter(worldRoot, round);
 
                 // Les points de depart, un par joueur, a la lisiere.
                 Spawns.Place(Match.Slots.Count, round);
 
                 BuildInhabitants();
-                Beast.SpawnPacks(worldRoot, 2);
             }
             catch (System.Exception error)
             {
@@ -108,7 +107,7 @@ namespace Fief
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] " + Game.Version + " -- manche " + Match.RoundNumber + " construite en " + chrono.ElapsedMilliseconds + " ms : "
-                      + Forest.TreeCount + " arbres, " + Guard.All.Count + " gardes, " + Chest.All.Count + " coffres, "
+                      + Forest.TreeCount + " arbres, " + Eye.All.Count + " Yeux, " + Shrine.All.Count + " sanctuaires, "
                       + Game.Seekers.Count + " joueurs.");
         }
 
@@ -126,16 +125,15 @@ namespace Fief
         // ================================================================ habitants
 
         /// <summary>
-        /// LA GARDE PALE (vingt-sept, voir Garrison), les feux-follets, le cerf blanc,
-        /// et ce qu'on entend.
+        /// LES YEUX (les sentinelles de la citadelle, voir Eye), les feux-follets et ce
+        /// qu'on entend. Plus de PNJ humains (27/09) : rien qui parle, rien qui marche.
         /// </summary>
         void BuildInhabitants()
         {
             GameObject folk = new GameObject("HABITANTS");
             folk.transform.SetParent(worldRoot, false);
-            Garrison.Build(folk.transform);
+            Eye.PlaceAll(folk.transform);
             Wisp.SpawnAll(folk.transform, config, 6);
-            WhiteStag.Build(folk.transform, config);
             Soundscape.Build(folk.transform);
         }
 
@@ -219,8 +217,8 @@ namespace Fief
             player.rig = rig;
             player.orbitCamera = orbit;
             go.AddComponent<PlayerInteractor>();
-            // L'epee, la poussee, les objets, grimper (voir ToolUser).
-            go.AddComponent<ToolUser>();
+            // La poussee, les capacites, le don, grimper (voir AbilityUser).
+            go.AddComponent<AbilityUser>();
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;

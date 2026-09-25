@@ -160,7 +160,7 @@ namespace Fief
             const float Probe = 18f;
             const float MinDepth = 0.5f;
             const float Spacing = 32f;
-            const int Target = 24;          // 40 sur 700 m ; la carte fait 420 m (26/09)
+            const int Target = 15;          // 40 sur 700 m, 24 sur 420 m ; la carte fait 320 m (27/09)
 
             List<Hollow> found = new List<Hollow>();
             for (float x = -half; x <= half; x += Step)

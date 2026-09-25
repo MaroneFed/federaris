@@ -25,7 +25,7 @@ namespace Fief
         static bool sited;
 
         /// <summary>
-        /// Choisir sa place : 110-175 m du chateau, sur un sol plat. A appeler AVANT la
+        /// Choisir sa place : 100-138 m du chateau, sur un sol plat. A appeler AVANT la
         /// foret (elle lui laisse une clairiere) et avant les lieux-dits (qui s'en
         /// ecartent) : chaque manche, il est ailleurs.
         /// </summary>
@@ -33,12 +33,14 @@ namespace Fief
         {
             System.Random rng = new System.Random(seed);
             sited = false;
-            Site = new Vector3(0f, 0f, -140f);
+            Site = new Vector3(0f, 0f, -118f);
             for (int tries = 0; tries < 400; tries++)
             {
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float r = 110f + (float)rng.NextDouble() * 65f;
+                // Carte de 320 m (27/09) : entre la citadelle et la lisiere.
+                float r = 100f + (float)rng.NextDouble() * 38f;
                 float x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r;
+                if (Mathf.Abs(x) > 138f || Mathf.Abs(z) > 138f) continue;
                 if (Castle.Covers(x, z, 20f) || Ground.Slope(x, z) > 0.25f) continue;
                 Site = new Vector3(x, 0f, z);
                 break;

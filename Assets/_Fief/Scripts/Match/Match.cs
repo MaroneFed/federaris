@@ -17,9 +17,21 @@ namespace Fief
         /// <summary>Tenu par cette machine (toi). En ligne, une seule place par machine.</summary>
         public bool IsLocal;
         public int Wins;
-        public readonly List<Power> Powers = new List<Power>();
+        /// <summary>Les capacites choisies, dans l'ordre (les actives prennent les touches dans cet ordre).</summary>
+        public readonly List<Ability> Abilities = new List<Ability>();
 
-        public bool Has(Power p) { return Powers.Contains(p); }
+        public bool Has(Ability a) { return Abilities.Contains(a); }
+
+        /// <summary>Les capacites actives (trois au plus), dans l'ordre des touches.</summary>
+        public List<Ability> Actives
+        {
+            get
+            {
+                List<Ability> list = new List<Ability>();
+                for (int i = 0; i < Abilities.Count; i++) if (AbilityInfo.IsActive(Abilities[i])) list.Add(Abilities[i]);
+                return list;
+            }
+        }
     }
 
     /// <summary>
@@ -166,16 +178,16 @@ namespace Fief
             }
         }
 
-        // ================================================================== le choix des pouvoirs
+        // ================================================================== le choix des capacites
 
         /// <summary>
-        /// LE CHOIX DES POUVOIRS, entre deux manches. On etale (joueurs + 1) cartes ;
+        /// LE CHOIX DES CAPACITES, entre deux manches. On etale (joueurs + 1) cartes ;
         /// chacun en prend une, le moins de victoires d'abord, le vainqueur de la
         /// manche en dernier (a victoires egales, le hasard de la graine).
         /// </summary>
         public static class Draft
         {
-            public static readonly List<Power> Offer = new List<Power>();
+            public static readonly List<Ability> Offer = new List<Ability>();
             public static readonly List<int> Order = new List<int>();
             public static int Turn { get; private set; }
 
@@ -189,21 +201,38 @@ namespace Fief
                 Turn = 0;
             }
 
+            /// <summary>
+            /// Etaler les cartes. Avant la premiere manche aussi : on commence le match
+            /// avec une capacite en main, jamais les mains vides. A la premiere, une
+            /// ACTIVE au moins sur la table pour chacun (sinon on ne ferait rien).
+            /// </summary>
             public static void Prepare()
             {
                 Clear();
                 System.Random rng = new System.Random(RoundSeed);
-                List<Power> pool = new List<Power>();
-                for (int i = 0; i < PowerInfo.Count; i++) pool.Add((Power)i);
-                // Un pouvoir que TOUT LE MONDE a deja ne sert a rien sur la table.
+                List<Ability> pool = new List<Ability>();
+                for (int i = 0; i < AbilityInfo.Count; i++) pool.Add((Ability)i);
+                // Une capacite que TOUT LE MONDE a deja ne sert a rien sur la table.
                 pool.RemoveAll(p => { for (int k = 0; k < Slots.Count; k++) if (!Slots[k].Has(p)) return false; return true; });
                 int cards = Mathf.Min(pool.Count, Slots.Count + 1);
+                bool first = Played == 0;
                 for (int i = 0; i < cards; i++)
                 {
-                    int k = rng.Next(pool.Count);
-                    Offer.Add(pool[k]);
-                    pool.RemoveAt(k);
+                    // Au premier choix, que des actives : tout le monde a quelque chose a essayer.
+                    List<Ability> from = pool;
+                    if (first)
+                    {
+                        from = pool.FindAll(AbilityInfo.IsActive);
+                        if (from.Count == 0) from = pool;
+                    }
+                    Ability pick = from[rng.Next(from.Count)];
+                    Offer.Add(pick);
+                    pool.Remove(pick);
                 }
+                // L'ordre : le moins de manches d'abord, le vainqueur en dernier ; a
+                // egalite, le hasard (sinon tu choisirais toujours le premier).
+                List<int> shuffle = new List<int>();
+                for (int i = 0; i < Slots.Count; i++) shuffle.Add(rng.Next(1000));
                 for (int i = 0; i < Slots.Count; i++) Order.Add(i);
                 Order.Sort((a, b) =>
                 {
@@ -211,21 +240,30 @@ namespace Fief
                     if (a == LastWinner) return 1;
                     if (b == LastWinner) return -1;
                     int w = Slots[a].Wins.CompareTo(Slots[b].Wins);
-                    return w != 0 ? w : a.CompareTo(b);
+                    return w != 0 ? w : shuffle[a].CompareTo(shuffle[b]);
                 });
                 while (!Done && !AnyNewFor(Current)) Turn++;
+            }
+
+            /// <summary>Si "slot" prend cette carte, quelle active perd-il (sinon : -1) ?</summary>
+            public static int WouldReplace(int slot, Ability card)
+            {
+                if (!AbilityInfo.IsActive(card)) return -1;
+                List<Ability> actives = Slots[slot].Actives;
+                return actives.Count >= AbilityInfo.MaxActives ? (int)actives[0] : -1;
             }
 
             /// <summary>La place "slot" prend la carte "card". Vrai si c'etait son tour et que la carte existe.</summary>
             public static bool TryPick(int slot, int card)
             {
                 if (Done || slot != Current || card < 0 || card >= Offer.Count) return false;
-                Power p = Offer[card];
+                Ability p = Offer[card];
                 if (Slots[slot].Has(p)) return false;
-                Slots[slot].Powers.Add(p);
+                int lost = WouldReplace(slot, p);
+                if (lost >= 0) Slots[slot].Abilities.Remove((Ability)lost);
+                Slots[slot].Abilities.Add(p);
                 Offer.RemoveAt(card);
                 Turn++;
-                // Plus rien de neuf pour la suite ? On passe les tours.
                 while (!Done && !AnyNewFor(Current)) Turn++;
                 return true;
             }
@@ -233,15 +271,18 @@ namespace Fief
             /// <summary>Un bot choisit : ce qu'il n'a pas, dans son ordre de preference.</summary>
             public static int BotChoice(int slot)
             {
-                Power[] taste = { Power.DoubleSaut, Power.Ruee, Power.Coureur, Power.Colosse, Power.Poigne,
-                                  Power.Porteur, Power.SangVif, Power.Ombre, Power.SecondeChance, Power.Flair };
-                int shift = slot * 3;
+                Ability[] taste = { Ability.Grappin, Ability.Ruee, Ability.Crochet, Ability.Onde, Ability.DoubleSaut, Ability.Planeur,
+                                    Ability.Clignement, Ability.Souffle, Ability.Coureur, Ability.Echange, Ability.Bond, Ability.Porteur,
+                                    Ability.Ancrage, Ability.Poigne, Ability.Mine, Ability.Gel, Ability.Voile, Ability.Nuee, Ability.PriseFerme,
+                                    Ability.Recharge, Ability.Mur, Ability.Rappel, Ability.Rebond, Ability.Aimant, Ability.Flair, Ability.Ombre };
+                int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {
-                    Power want = taste[(t + shift) % taste.Length];
+                    Ability want = taste[(t + shift) % taste.Length];
                     int at = Offer.IndexOf(want);
                     if (at >= 0 && !Slots[slot].Has(want)) return at;
                 }
+                for (int i = 0; i < Offer.Count; i++) if (!Slots[slot].Has(Offer[i])) return i;
                 return -1;
             }
 

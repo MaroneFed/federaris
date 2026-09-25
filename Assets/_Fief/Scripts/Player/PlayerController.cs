@@ -9,21 +9,22 @@ namespace Fief
     /// fait pour les personnages. On ne lui applique pas de forces physiques : on lui
     /// dit ou aller avec Move(), il gere les murs et les pentes.
     ///
-    /// Ce qui change la facon de bouger (La Couronne, 26/09) :
-    ///   - les POUVOIRS : Double saut (un second saut en l'air), Ruee (R, un bond de
-    ///     8 m), Coureur (+15 %), Porteur (la Couronne ne ralentit plus) ;
-    ///   - la COURONNE, qui ralentit (18 %) ; la fiole de lenteur (50 %) ; le piege
-    ///     (cloue sur place) -- tout ca est dans Seeker.SpeedFactor ;
-    ///   - la PLUME : des sauts presque deux fois plus hauts ;
-    ///   - la POUSSEE : Push() projette le joueur (un autre joueur, le Roi Creux).
+    /// Ce qui change la facon de bouger (voir Match/Abilities.cs) :
+    ///   - les CAPACITES passent par l'interface IMover : Dash (ruee), PullTo (grappin),
+    ///     Blink (clignement, echange, rappel), Push (poussees, bond, onde...) ;
+    ///   - le DOUBLE SAUT, le PLANEUR (Espace maintenu en l'air), le REBOND ;
+    ///   - l'ETOURDISSEMENT (on ne bouge plus), le GIVRE (moitie moins vite) ;
+    ///   - la COURONNE : si son porteur tombe (sans planer), elle reste la ou il a
+    ///     quitte le sol (Crown.Slip). On ne redescend pas la tour d'un saut.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IMover
     {
         public Transform cameraTransform;
         public CharacterRig rig;
+        public OrbitCamera orbitCamera;
 
-        /// <summary>Mis a vrai quand un panneau d'interface est ouvert : le joueur ne bouge plus.</summary>
+        /// <summary>Mis a vrai quand un menu est ouvert : le joueur ne bouge plus.</summary>
         public bool InputLocked;
 
         /// <summary>
@@ -39,11 +40,7 @@ namespace Fief
             verticalVelocity = 0f;
         }
 
-        /// <summary>Placer le corps sans toucher au regard (la souris reste libre).</summary>
-        public void ScriptedMove(Vector3 position)
-        {
-            transform.position = position;
-        }
+        public void ScriptedMove(Vector3 position) { transform.position = position; }
 
         public void EndScripted(Vector3 position)
         {
@@ -56,45 +53,72 @@ namespace Fief
         CharacterController controller;
         float verticalVelocity;
         bool wasGrounded = true;
-        public OrbitCamera orbitCamera;
 
         public float CurrentSpeed { get; private set; }
-        public float TargetSpeed { get; private set; }
         public bool IsSprinting { get; private set; }
+        public bool Gliding { get; private set; }
 
         float strideAccumulator;
-
-        // --- ce qui pousse le joueur de l'exterieur (une poussee, un coup du Roi)
-        Vector3 knock;
-        // --- le second saut, deja pris depuis qu'on a quitte le sol
+        Vector3 knock;              // ce qui pousse le joueur de l'exterieur
         bool airJumpUsed;
-        // --- la Ruee
         float dashTime;
-        Vector3 dashDir;
-        float dashReadyAt;
+        Vector3 dashVelocity;
+        float pullTime;
+        Vector3 pullPoint;
+        float pullSpeed;
+        Vector3 lastGround;         // le dernier point ou l'on touchait le sol (la Couronne y reste)
+        float airTop;               // le plus haut atteint depuis qu'on a quitte le sol
 
-        public const float DashCooldown = 6f;
-        const float DashDuration = 0.28f;
-        const float DashSpeed = 28f;
-
-        /// <summary>0 : la Ruee vient de servir ; 1 : elle est prete.</summary>
-        public float DashReady01 { get { return Mathf.Clamp01(1f - (dashReadyAt - Time.time) / DashCooldown); } }
+        // --- le rappel : ou l'on etait, un point tous les dixiemes de seconde, sur cinq secondes
+        readonly Vector3[] trail = new Vector3[50];
+        int trailAt;
+        float trailTimer;
 
         void Awake()
         {
             controller = GetComponent<CharacterController>();
+            for (int i = 0; i < trail.Length; i++) trail[i] = transform.position;
+            lastGround = transform.position;
         }
 
-        /// <summary>
-        /// Projeter le joueur (on le pousse, le Roi le balaie). La partie horizontale
-        /// s'amortit en une demi-seconde ; la verticale le soulege du sol.
-        /// </summary>
+        // ================================================================== IMover
+
         public void Push(Vector3 velocity)
         {
             knock += new Vector3(velocity.x, 0f, velocity.z);
             if (velocity.y > 0f) verticalVelocity = Mathf.Max(verticalVelocity, velocity.y);
             dashTime = 0f;
+            pullTime = 0f;
         }
+
+        public void Dash(Vector3 direction, float speed, float seconds)
+        {
+            dashVelocity = direction.normalized * speed;
+            dashTime = seconds;
+            if (verticalVelocity < 1f) verticalVelocity = 1f;
+            if (orbitCamera != null) orbitCamera.Shake(0.1f);
+        }
+
+        public void PullTo(Vector3 point, float speed)
+        {
+            pullPoint = point;
+            pullSpeed = speed;
+            pullTime = 1.4f;
+            dashTime = 0f;
+        }
+
+        public void Blink(Vector3 position)
+        {
+            Teleport(position, transform.eulerAngles.y);
+        }
+
+        public Vector3 PastPosition(float seconds)
+        {
+            int back = Mathf.Clamp(Mathf.RoundToInt(seconds / 0.1f), 1, trail.Length - 1);
+            return trail[((trailAt - back) % trail.Length + trail.Length) % trail.Length];
+        }
+
+        // ================================================================== boucle
 
         void Update()
         {
@@ -102,12 +126,10 @@ namespace Fief
             if (cfg == null || Scripted) return;
             Seeker me = Game.Me;
             float dt = Time.deltaTime;
+            if (dt <= 0f) return;
 
             Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
-
-            // Direction voulue, exprimee dans le repere de la camera puis aplatie au sol.
-            Vector3 forward = Vector3.forward;
-            Vector3 right = Vector3.right;
+            Vector3 forward = Vector3.forward, right = Vector3.right;
             if (cameraTransform != null)
             {
                 forward = cameraTransform.forward;
@@ -117,85 +139,104 @@ namespace Fief
                 if (forward.sqrMagnitude > 0.0001f) forward.Normalize();
                 if (right.sqrMagnitude > 0.0001f) right.Normalize();
             }
-
             Vector3 wish = forward * input.y + right * input.x;
             if (wish.sqrMagnitude > 1f) wish.Normalize();
 
-            // --- LA VITESSE : pouvoirs, couronne, lenteur, piege (voir Seeker.SpeedFactor).
             float factor = me != null ? me.SpeedFactor : 1f;
-            if (me != null && !me.Alive) factor = 0f;
             float speed = cfg.moveSpeed * factor;
             IsSprinting = !InputLocked && FiefInput.SprintHeld && wish.sqrMagnitude > 0.01f && factor > 0f;
             if (IsSprinting) speed *= cfg.sprintMultiplier;
-
-            TargetSpeed = speed;
             CurrentSpeed = wish.magnitude * speed;
 
-            // En premiere personne, le corps DOIT suivre le regard : sinon on
-            // avancerait de cote pendant que la camera regarde ailleurs.
-            if (orbitCamera != null && orbitCamera.ThroughEyes)
-            {
-                transform.rotation = Quaternion.Euler(0f, orbitCamera.yaw, 0f);
-            }
+            if (orbitCamera != null && orbitCamera.ThroughEyes) transform.rotation = Quaternion.Euler(0f, orbitCamera.yaw, 0f);
             else if (wish.sqrMagnitude > 0.0001f)
-            {
-                Quaternion target = Quaternion.LookRotation(wish, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, cfg.turnSpeed * dt);
-            }
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(wish, Vector3.up), cfg.turnSpeed * dt);
 
-            // Atterrissage : une petite secousse de camera. C'est du "juice" :
-            // ca ne change rien au jeu, mais le saut cesse d'etre mou.
-            if (controller.isGrounded && !wasGrounded && orbitCamera != null)
-            {
-                orbitCamera.Shake(Mathf.Clamp01(-verticalVelocity / 24f) * 0.22f);
-            }
-            wasGrounded = controller.isGrounded;
+            bool grounded = controller.isGrounded;
+            if (grounded && !wasGrounded) Land(me);
+            wasGrounded = grounded;
 
-            // --- LE SAUT (et le second, en l'air, avec le pouvoir)
+            // --- le saut, le second saut, le planeur
             bool canAct = !InputLocked && factor > 0f;
-            float lift = me != null && Time.time < me.FeatherUntil ? 1.8f : 1f;
-            if (controller.isGrounded)
+            Gliding = false;
+            if (grounded)
             {
                 airJumpUsed = false;
+                lastGround = transform.position;
+                airTop = transform.position.y;
                 if (verticalVelocity < 0f) verticalVelocity = -2f;
-                if (canAct && FiefInput.JumpPressed) verticalVelocity = cfg.jumpSpeed * lift;
+                if (canAct && FiefInput.JumpPressed) verticalVelocity = cfg.jumpSpeed;
             }
-            else if (canAct && FiefInput.JumpPressed && !airJumpUsed && me != null && me.Has(Power.DoubleSaut))
+            else
             {
-                airJumpUsed = true;
-                verticalVelocity = cfg.jumpSpeed * 1.05f * lift;
-                Sfx.Whoosh();
-                Ambiance.Burst(null, transform.position + Vector3.up * 0.2f, PowerInfo.Tint(Power.DoubleSaut));
+                airTop = Mathf.Max(airTop, transform.position.y);
+                if (canAct && FiefInput.JumpPressed && !airJumpUsed && me != null && me.Has(Ability.DoubleSaut))
+                {
+                    airJumpUsed = true;
+                    verticalVelocity = cfg.jumpSpeed * 1.05f;
+                    Sfx.Whoosh();
+                    Ambiance.Burst(null, transform.position + Vector3.up * 0.2f, AbilityInfo.Tint(Ability.DoubleSaut));
+                }
+                else if (canAct && FiefInput.JumpHeld && me != null && me.Has(Ability.Planeur) && verticalVelocity < -2.5f)
+                {
+                    Gliding = true;
+                    verticalVelocity = -2.5f;
+                }
             }
             verticalVelocity += cfg.gravity * dt;
 
-            // --- LA RUEE (R) : un bond droit devant, toutes les 6 s.
-            if (canAct && FiefInput.DashPressed && me != null && me.Has(Power.Ruee) && Time.time >= dashReadyAt)
-            {
-                dashReadyAt = Time.time + DashCooldown;
-                dashTime = DashDuration;
-                dashDir = wish.sqrMagnitude > 0.01f ? wish.normalized : forward;
-                if (verticalVelocity < 1f) verticalVelocity = 1f;
-                Sfx.Whoosh();
-                if (orbitCamera != null) orbitCamera.Shake(0.12f);
-                Ambiance.Burst(null, transform.position + Vector3.up, PowerInfo.Tint(Power.Ruee));
-            }
-            Vector3 dash = Vector3.zero;
-            if (dashTime > 0f)
-            {
-                dashTime -= dt;
-                dash = dashDir * DashSpeed;
-            }
+            // --- la Couronne glisse des mains de qui tombe (sans planer)
+            if (me != null && me.CarriesCrown && !grounded && !Gliding && verticalVelocity < -13f)
+                Crown.Slip(me, lastGround);
 
-            // La poussee s'amortit.
-            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-5f * dt));
+            // --- les mouvements imposes : ruee, grappin, poussee
+            Vector3 extra = Vector3.zero;
+            if (dashTime > 0f) { dashTime -= dt; extra += dashVelocity; }
+            if (pullTime > 0f)
+            {
+                pullTime -= dt;
+                Vector3 to = pullPoint - transform.position;
+                if (to.magnitude < 1.6f) pullTime = 0f;
+                else
+                {
+                    extra += to.normalized * pullSpeed;
+                    verticalVelocity = Mathf.Max(verticalVelocity, to.normalized.y * pullSpeed * 0.5f);
+                    airTop = transform.position.y;
+                }
+            }
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
 
-            Vector3 motion = wish * speed + dash + knock + Vector3.up * verticalVelocity;
+            Vector3 motion = wish * speed + extra + knock + Vector3.up * verticalVelocity;
+            if (pullTime > 0f) motion.y = Mathf.Max(motion.y, (pullPoint - transform.position).normalized.y * pullSpeed);
             controller.Move(motion * dt);
 
+            Remember(dt);
             Footsteps();
             DriveRig(cfg);
             KeepInsideMap(cfg);
+        }
+
+        /// <summary>Retomber : une secousse, et avec le Rebond une onde de choc si l'on tombait de haut.</summary>
+        void Land(Seeker me)
+        {
+            float fall = airTop - transform.position.y;
+            if (orbitCamera != null) orbitCamera.Shake(Mathf.Clamp01(fall / 20f) * 0.3f);
+            if (fall > 4f && me != null && me.Has(Ability.Rebond))
+            {
+                Combat.Blast(transform.position, 5f, 13f, 5f, me);
+                Ambiance.Burst(null, transform.position + Vector3.up * 0.3f, AbilityInfo.Tint(Ability.Rebond));
+                Sfx.Crash();
+            }
+            if (fall > 3f) Sfx.Thud();
+        }
+
+        void Remember(float dt)
+        {
+            trailTimer += dt;
+            if (trailTimer < 0.1f) return;
+            trailTimer = 0f;
+            trailAt = (trailAt + 1) % trail.Length;
+            trail[trailAt] = transform.position;
         }
 
         /// <summary>Transmet la vitesse reelle au squelette : c'est elle qui cadence la marche.</summary>
@@ -209,58 +250,43 @@ namespace Fief
             rig.RunSpeed = cfg.moveSpeed * cfg.sprintMultiplier;
         }
 
-        /// <summary>Un bruit de pas tous les 2,3 m parcourus au sol.</summary>
+        /// <summary>Un bruit de pas tous les 1,9 m parcourus au sol.</summary>
         void Footsteps()
         {
             if (!controller.isGrounded) return;
-
             Vector3 flat = controller.velocity;
             flat.y = 0f;
             strideAccumulator += flat.magnitude * Time.deltaTime;
-
-            if (strideAccumulator >= 1.9f)
-            {
-                strideAccumulator = 0f;
-                Sfx.Step();
-                // Hors du chateau, le sol est jonche de feuilles : elles froissent.
-                Vector3 p = transform.position;
-                if (!Castle.Covers(p.x, p.z, 0f)) Sfx.LeafStep();
-            }
+            if (strideAccumulator < 1.9f) return;
+            strideAccumulator = 0f;
+            Sfx.Step();
+            Vector3 p = transform.position;
+            if (!Castle.Covers(p.x, p.z, 0f)) Sfx.LeafStep();
         }
 
         /// <summary>
-        /// Filet de securite : on ne sort pas de la carte, et si on passe a travers
-        /// le sol on est remis DESSUS.
-        ///
-        /// LE BUG QU'IL A CAUSE. Ce filet remettait le joueur a y = +2 m des qu'il
-        /// passait sous y = -20 m -- deux altitudes ABSOLUES, calibrees pour l'ancienne
-        /// carte. Le relief de la sylve creuse des vallons jusqu'a -26,1 m (recalcule a
-        /// l'identique dans Tools/monde.py). En y entrant, on se retrouvait "sous -20",
-        /// donc renvoye a +2 m : 28 m au-dessus du sol, au niveau des cimes. On
-        /// retombait, on retouchait le fond du vallon, et ca recommencait. A l'infini.
-        ///
-        /// La regle est maintenant RELATIVE AU SOL : on n'est secouru que si l'on est
-        /// vraiment passe dessous, et on est repose juste au-dessus. Plus aucune
-        /// altitude en dur, donc plus rien a recalibrer si le relief change.
-        /// </summary>
-        /// <summary>
-        /// Deplacer le joueur d'un coup (les gardes le jettent dehors). Un
-        /// CharacterController ignore qu'on change sa position a la main : on le
-        /// coupe, on deplace, on le rallume.
+        /// Deplacer le joueur d'un coup. Un CharacterController ignore qu'on change sa
+        /// position a la main : on le coupe, on deplace, on le rallume.
         /// </summary>
         public void Teleport(Vector3 position, float yaw)
         {
-            Scripted = false;                   // un teleport interrompt une escalade
+            Scripted = false;
             knock = Vector3.zero;
             dashTime = 0f;
+            pullTime = 0f;
             controller.enabled = false;
             transform.position = position;
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             verticalVelocity = 0f;
+            airTop = position.y;
             controller.enabled = true;
             if (orbitCamera != null) orbitCamera.yaw = yaw;
         }
 
+        /// <summary>
+        /// Filet de securite : on ne sort pas de la carte, et si on passe a travers le
+        /// sol on est remis DESSUS (regle relative au sol, jamais une altitude en dur).
+        /// </summary>
         void KeepInsideMap(GameConfig cfg)
         {
             float limit = cfg.mapSize * 0.5f - 3f;
@@ -268,7 +294,6 @@ namespace Fief
             bool clamped = false;
             if (Mathf.Abs(p.x) > limit) { p.x = Mathf.Sign(p.x) * limit; clamped = true; }
             if (Mathf.Abs(p.z) > limit) { p.z = Mathf.Sign(p.z) * limit; clamped = true; }
-
             float ground = Ground.Sample(p.x, p.z);
             if (p.y < ground - 4f)
             {
@@ -276,12 +301,10 @@ namespace Fief
                 clamped = true;
                 verticalVelocity = 0f;
             }
-            if (clamped)
-            {
-                controller.enabled = false;
-                transform.position = p;
-                controller.enabled = true;
-            }
+            if (!clamped) return;
+            controller.enabled = false;
+            transform.position = p;
+            controller.enabled = true;
         }
     }
 }

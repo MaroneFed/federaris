@@ -60,8 +60,9 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
    *Sinon : dans la fenêtre `Project` en bas, double-clique `Assets/_Fief/Scenes/Main.unity`.*
 2. Appuie sur le **bouton ▶ Play** en haut au centre.
 3. L'**écran-titre** apparaît : FIEF, LA COURONNE, et la version en bas à droite.
-4. **Jouer** ▸ le **salon** : clique les places pour ajouter/retirer des bots, choisis le
-   nombre de manches et la durée ▸ **COMMENCER**.
+4. **Jouer** ▸ le **salon** : règle Joueurs, Manches, Durée avec **← →** (ou clique les
+   ‹ ›) ▸ **Commencer** ▸ choisis ta **première capacité** ▸ la manche 1 commence.
+   Tous les menus se font **au clavier** (↑ ↓ ← → Entrée Échap) ou à la souris.
 
 > **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Reparer la scene Main`**,
 > puis re-Play. Le monde est entièrement généré par le code : il n'y a jamais rien à
@@ -74,14 +75,15 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 | **ZQSD** / WASD | Se déplacer |
 | **Souris** | Regarder |
 | **Maj** | Courir |
-| **Espace** | Sauter (deux fois avec le pouvoir Double saut) |
-| **Clic gauche** | Épée — ou se servir de l'objet en main |
-| **Clic droit** | Pousser (le porteur lâche la Couronne) |
-| **1 / 2 / 3**, molette | Les objets |
-| **E** | Prendre, ouvrir, poser la Couronne, tirer le levier |
+| **Espace** | Sauter (encore en l'air : Double saut ; maintenu : Planeur) |
+| **Clic gauche** | **Pousser** (le porteur lâche la Couronne) |
+| **Clic droit** | Ta 1re capacité |
+| **R** | Ta 2e capacité |
+| **C** | Ta 3e capacité |
+| **V** | Le don d'un sanctuaire (pour la manche) |
+| **E** (maintenu) | Prendre la Couronne, prendre un don, poser au Monument |
 | **F** | Grimper à un arbre |
-| **R** | Ruée (le pouvoir) |
-| **Tab** | Le score du match |
+| **Tab** | Le score et les capacités de chacun |
 | **Échap** | Pause |
 | **F3** | Diagnostic |
 
@@ -89,13 +91,14 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 
 > **« Un match de 30 minutes contre trois bots est-il haletant du début à la fin ? »**
 
-1. Trouve le château (sa tour de guet dépasse de la brume) et entre : la herse est
-   baissée — passe par la **poterne** (nord) ou la **brèche** (est), puis tire le
-   **levier** dans la cour.
-2. Monte le donjon jusqu'à la terrasse, prends la **Couronne** (E maintenu). Le **Roi
-   Creux** se réveille.
-3. Porte-la au **Monument** (la colonne bleue) sans te faire pousser.
-4. Entre deux manches, choisis un **pouvoir**.
+1. Avant la manche 1, choisis ta première **capacité** (lis la phrase : elle dit tout).
+2. Va à la **citadelle** (la tour de 64 m perce la brume). En chemin, un **sanctuaire**
+   (cristal qui flotte, E maintenu) te donne une capacité de plus, sur **V**.
+3. Monte la **rampe en spirale** de la tour : saute les trous, évite les pendules et
+   les rayons des **Yeux**, pousse les bots dans le vide.
+4. Prends la **Couronne** au sommet (E maintenu) et porte-la au **Monument** (la colonne
+   bleue). Si tu sautes de la tour, elle reste en haut !
+5. Entre deux manches, choisis une **capacité** de plus.
 
 **Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et
 à quel moment tu as eu envie de lâcher.
@@ -123,15 +126,16 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | Je veux changer… | Fichier |
 |---|---|
 | Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
-| Les manches, le départage, le choix des pouvoirs | `Scripts/Match/Match.cs` |
-| Les dix pouvoirs (noms, effets, couleurs) | `Scripts/Match/Powers.cs` |
-| Les objets de la forêt | `Scripts/Match/Items.cs` (effets : `Scripts/Player/ToolUser.cs`) |
-| La Couronne, le Monument, les coffres | `Scripts/World/Crown.cs`, `Monument.cs`, `Chest.cs` |
-| La Garde Pâle et le Roi Creux | `Scripts/World/Guard.cs` ; où ils se tiennent : `Garrison.cs` |
-| Le château, le donjon | `Scripts/World/Castle.cs`, `Keep.cs`, `Gatehouse.cs` (herse, levier, porte dérobée) |
+| Les manches, le départage, le choix des capacités | `Scripts/Match/Match.cs` |
+| Les 26 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` |
+| Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
+| Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
+| La Couronne, le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |
+| Les Yeux (sentinelles) | `Scripts/World/Eye.cs` |
+| La citadelle, la tour, les pendules | `Scripts/World/Castle.cs`, `Tower.cs` |
 | Les bots | `Scripts/World/Rival.cs` |
 | L'écran de jeu | `Scripts/UI/Hud.cs` |
-| Titre, salon, pause, fin de manche, pouvoirs, podium | `Scripts/UI/Menus.cs` |
+| Titre, salon, pause, fin de manche, choix des capacités, podium | `Scripts/UI/Menus.cs` |
 | Les sons (synthétisés par le code) | `Scripts/Core/Sfx.cs` |
 | Les couleurs du jeu | `Scripts/Core/Palette.cs` |
 
@@ -143,14 +147,15 @@ Assets/_Fief/
                          et reconstruit à chaque manche.
   Scripts/
     Core/     GameBootstrap (construit la manche), GameConfig (réglages), Sfx, Proto
-    Match/    le match, les pouvoirs, les objets (C# pur : survit aux manches)
+    Match/    le match, les capacités (C# pur : survit aux manches)
     Season/   le joueur (Seeker), le chrono, les stats
-    Player/   déplacement, caméra, interactions, épée/poussée/objets, entrées
-    World/    forêt, château, Garde Pâle, Couronne, Monument, bots, bêtes
-    UI/       écran de jeu, menus, pictogrammes, style
+    Player/   déplacement, caméra, interactions, poussée et capacités, entrées
+    World/    forêt, citadelle, tour, Yeux, Couronne, Monument, sanctuaires, bots
+    UI/       écran de jeu, menus (texte seul, sans icône), style
   Editor/     menu FIEF (outils éditeur, jamais dans le build)
 docs/
   LA-SAISON.md    <- LA référence : les règles du jeu
+  100-RAISONS.md  <- les 100 raisons pour lesquelles c'était nul, et ce qu'on a corrigé
   RESEAU.md       <- le jeu en ligne : ce qui est prêt, ce qui reste
   ARCHITECTURE.md <- pourquoi c'est découpé comme ça
   v2-ideas.md     <- la règle anti-dérive : toute idée hors-phase va ici
@@ -159,5 +164,5 @@ docs/
 ## 8. Ce qui n'est PAS dans cette phase (et c'est voulu)
 
 Le jeu en ligne (Phase 3 — l'architecture est prête : `docs/RESEAU.md`), l'arc,
-d'autres pièges et pouvoirs (Phase 2), l'équilibrage fin (Phase 4).
+d'autres pièges et capacités (Phase 2), l'équilibrage fin (Phase 4).
 → Voir `docs/v2-ideas.md`.

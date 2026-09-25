@@ -4,38 +4,35 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// CE QU'ON LANCE : le fumigene et la fiole de lenteur. Une petite boule qui part
-    /// en cloche, tombe sous son poids, et eclate la ou elle touche (sol, mur, tronc).
+    /// LA BOULE DE GIVRE (la capacite Givre) : elle part en cloche, tombe sous son
+    /// poids, et eclate la ou elle touche. Ceux qui sont dans l'eclat (sauf le lanceur)
+    /// sont ralentis trois secondes.
     ///
     /// Pas de Rigidbody : on avance la boule a la main, image par image, et on lance
-    /// un rayon sur le bout de chemin parcouru. Si le rayon touche quelque chose, c'est
-    /// la qu'elle eclate. C'est le plus simple, et ca ne rate jamais un mur fin.
-    ///
-    /// Toi et les bots passez par Launch : en Phase 3, c'est l'hote qui l'appellera.
+    /// un rayon sur le bout de chemin parcouru. C'est le plus simple, et ca ne rate
+    /// jamais un mur fin.
     /// </summary>
     public class Thrown : MonoBehaviour
     {
         Seeker by;
-        Item kind;
         Vector3 velocity;
         float age;
 
-        const float Gravity = -16f;
-        public const float SlowSeconds = 5f;
-        public const float SlowRadius = 3.8f;
+        const float Gravity = -14f;
+        public const float SlowSeconds = 3f;
+        public const float SlowRadius = 4.5f;
+        static readonly Color Frost = new Color(0.6f, 0.9f, 1f);
 
-        /// <summary>Lancer "kind" depuis "from", a la vitesse "velocity".</summary>
-        public static void Launch(Seeker by, Item kind, Vector3 from, Vector3 velocity)
+        public static void Launch(Seeker by, Vector3 from, Vector3 velocity)
         {
-            GameObject go = new GameObject(ItemInfo.Name(kind) + " (lancé)");
+            GameObject go = new GameObject("Boule de givre");
             go.transform.position = from;
             Thrown t = go.AddComponent<Thrown>();
             t.by = by;
-            t.kind = kind;
             t.velocity = velocity;
             Proto.BeginVisualOnly();
-            GameObject ball = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.22f, ItemInfo.Tint(kind), "Boule");
-            ball.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(ItemInfo.Tint(kind), kind == Item.Lenteur ? 2.2f : 0.6f);
+            GameObject ball = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.4f, Frost, "Givre");
+            ball.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Frost, 2.5f);
             Proto.EndVisualOnly();
             Sfx.Whoosh();
         }
@@ -46,7 +43,7 @@ namespace Fief
             Vector3 flat = new Vector3(forward.x, 0f, forward.z).normalized;
             float up = Mathf.Clamp(forward.y, -0.3f, 0.8f);
             float speed = Mathf.Sqrt(Mathf.Max(1f, reach) * -Gravity * 0.75f);
-            return (flat + Vector3.up * (0.45f + up)).normalized * speed;
+            return (flat + Vector3.up * (0.35f + up)).normalized * speed;
         }
 
         void Update()
@@ -56,53 +53,44 @@ namespace Fief
             age += dt;
             velocity += Vector3.up * Gravity * dt;
             Vector3 step = velocity * dt;
+            // Un joueur sur la trajectoire : elle eclate sur lui.
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s == by || s.Body == null) continue;
+                if ((s.Body.position + Vector3.up - transform.position).magnitude < 1.2f) { Burst(transform.position); return; }
+            }
             RaycastHit hit;
             if (Physics.Raycast(transform.position, step.normalized, out hit, step.magnitude + 0.05f, ~0, QueryTriggerInteraction.Ignore)
                 && (by == null || by.Body == null || !hit.collider.transform.IsChildOf(by.Body)))
             {
-                Land(hit.point + hit.normal * 0.1f);
+                Burst(hit.point + hit.normal * 0.1f);
                 return;
             }
             transform.position += step;
-            transform.Rotate(400f * dt, 200f * dt, 0f);
-            if (age > 5f || transform.position.y < Ground.Sample(transform.position.x, transform.position.z) - 1f)
-                Land(transform.position);
+            if (age > 5f) Burst(transform.position);
         }
 
-        void Land(Vector3 at)
+        void Burst(Vector3 at)
         {
-            if (kind == Item.Fumigene) Smoke.Make(at);
-            else if (kind == Item.Lenteur) Splash(at);
-            Destroy(gameObject);
-        }
-
-        /// <summary>La fiole eclate : qui est dans la flaque (sauf le lanceur) est ralenti.</summary>
-        void Splash(Vector3 at)
-        {
-            Color purple = ItemInfo.Tint(Item.Lenteur);
-            Ambiance.Burst(null, at + Vector3.up * 0.3f, purple);
+            Ambiance.Burst(null, at + Vector3.up * 0.3f, Frost);
             Sfx.Chip();
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s == by || !s.Alive || s.Body == null) continue;
+                if (s == by || s.Body == null) continue;
                 if ((s.Body.position - at).magnitude > SlowRadius) continue;
                 s.SlowUntil = Time.time + SlowSeconds;
-                if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(purple);
+                if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(Frost.r, Frost.g, Frost.b, 0.6f));
             }
-            // Une flaque luisante, qui s'efface.
-            Proto.BeginVisualOnly();
-            GameObject pool = Proto.Cylinder(null, Ground.Place(at.x, at.z, 0.03f), new Vector3(SlowRadius * 1.6f, 0.01f, SlowRadius * 1.6f), purple, "Flaque");
-            pool.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(purple * 0.6f, 0.8f);
-            Proto.EndVisualOnly();
-            Destroy(pool, SlowSeconds);
+            Destroy(gameObject);
         }
     }
 
     /// <summary>
-    /// LA FUMEE du fumigene : dix metres de nuage gris qui tiennent douze secondes. Un
-    /// garde ne voit pas au travers (Guard.InSight demande a Blocks) : c'est ce qui
-    /// permet de lui passer sous le nez -- ou de semer une poursuite.
+    /// LA FUMEE de la Nuee : dix metres de nuage gris qui tiennent huit secondes. Un Oeil
+    /// ne voit pas au travers (Eye.Sees demande a Blocks), un bot non plus : c'est ce
+    /// qui permet de passer sous leur nez -- ou de semer une poursuite.
     /// </summary>
     public static class Smoke
     {
@@ -113,7 +101,7 @@ namespace Fief
         }
 
         public const float Radius = 5f;
-        public const float Seconds = 12f;
+        public const float Seconds = 8f;
 
         static readonly List<Cloud> Clouds = new List<Cloud>();
 

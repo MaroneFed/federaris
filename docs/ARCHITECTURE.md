@@ -25,20 +25,22 @@ un script éditeur qui *écrit* dans `GameConfig` ce qu'il a posé dans la scèn
 
 | Classe C# pure (testable, sérialisable, réplicable) | MonoBehaviour (a besoin d'Unity) |
 |---|---|
-| `Match` (places, manches, départage), `Match.Draft` (le choix des pouvoirs), `PlayerSlot`, `Loadout` (les trois objets), `Seeker` (la vie, les états), `Season` (le chrono), `Stats` | `PlayerController`, `ToolUser`, `Rival` (les bots), `Guard`, `Crown`, `Monument`, `Chest`, `Hud`, `Menus` |
+| `Match` (places, manches, départage), `Match.Draft` (le choix des capacités), `PlayerSlot` (ses capacités), `AbilityInfo` (les 26 capacités), `Seeker` (les états, les recharges, le don), `Season` (le chrono), `Stats` | `PlayerController`, `AbilityUser`, `Rival` (les bots), `Eye`, `Crown`, `Monument`, `Shrine`, `Hud`, `Menus` |
 
 Toute la **règle du jeu** est dans la colonne de gauche. Elle ne connaît ni le réseau,
 ni l'affichage. C'est elle qui partira côté hôte en Phase 3. La preuve qu'elle est pure :
-`Match` et `Loadout` se testent dans un petit programme .NET, sans Unity (c'est ce que
-Claude a fait le 26/09 : manches, départage, choix des pouvoirs, objets en main).
+`Match` se teste dans un petit programme .NET, sans Unity (c'est ce que Claude a fait
+le 26/09 : manches, départage, choix des pouvoirs).
 
 ## 3. Autorité de l'hôte : déjà en place, sans réseau
 
 Décision verrouillée : *l'hôte décide de tout ce qui compte* (Couronne, coups, fin de
 manche). C'est déjà respecté, même en solo : chaque geste passe par **une méthode qui
 prend le joueur qui agit** — `Crown.TryTakeFor(s)`, `Monument.TryDeliver(s)`,
-`Chest.TryOpenFor(s)`, `Combat.Shove(s, …)`, `Combat.Hit(…, s, …)`, `Lever.PullFor(s)`,
-`SecretDoor.UseFor(s)`, `Match.Draft.TryPick(place, carte)`. Toi et les bots passez par
+`Shrine.TryTakeFor(s)`, `AbilityCaster.Cast(s, capacité, œil, visée)`, `Combat.Shove(s, …)`,
+`Combat.Hit(victime, …, s)`, `Match.Draft.TryPick(place, carte)`. Les capacités ne
+bougent un corps qu'à travers l'interface **`IMover`** (Push, Dash, PullTo, Blink),
+que `PlayerController` et `Rival` implémentent tous les deux. Toi et les bots passez par
 les mêmes. La manche ne se termine **qu'à un endroit** : `Menus.EndRound(place)`.
 
 **En Phase 3 :** ces méthodes ne s'exécutent que chez l'hôte ; un invité envoie son
@@ -67,7 +69,7 @@ une opération sans risque, et aucun asset ne sera à re-lier.
 ## 7. Ce qu'il ne faut pas faire
 
 - **Ne mets pas de logique de jeu dans un `OnGUI`.** L'UI lit et demande, point.
-- **Ne change pas la Couronne, les objets ou les victoires** en dehors des méthodes
+- **Ne change pas la Couronne, les capacités ou les victoires** en dehors des méthodes
   `Try…` / `…For(seeker)`. Le jour où le réseau arrive, chaque entorse devient une
   triche exploitable.
 - **N'ajoute pas de feature hors-phase.** Elle va dans `v2-ideas.md`.

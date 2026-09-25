@@ -165,16 +165,15 @@ namespace Fief
         }
 
         /// <summary>
-        /// Un coffre (un objet de la foret) : chaque lieu-dit en cache un. C'est ce qui
-        /// donne une raison d'y aller. Son contenu change a chaque manche.
-        /// "local" est une position dans le repere du lieu-dit ; le coffre est pose au sol.
+        /// Un petit sanctuaire (un don pour la manche) : chaque lieu-dit en garde un.
+        /// C'est ce qui donne une raison d'y aller. Son don change a chaque manche.
+        /// "local" est une position dans le repere du lieu-dit ; il est pose au sol.
         /// </summary>
         static void Chest(Transform t, Vector3 local)
         {
             Vector3 w = t.TransformPoint(local);
             System.Random rng = new System.Random(Match.RoundSeed ^ Mathf.RoundToInt(w.x * 7f + w.z * 13f));
-            Item content = ItemInfo.Common[rng.Next(ItemInfo.Common.Length)];
-            Fief.Chest.Build(t, Ground.Place(w.x, w.z, 0f), content, false, t.eulerAngles.y);
+            Shrine.Build(t, Ground.Place(w.x, w.z, 0f), Shrine.RandomGift(rng), true);
         }
 
         // ------------------------------------------------------------------ le Grand Chene

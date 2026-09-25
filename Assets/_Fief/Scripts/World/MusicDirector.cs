@@ -119,13 +119,13 @@ namespace Fief
             if (menus != null && menus.Current != Menus.State.Playing && menus.Current != Menus.State.Paused) return Mood.Title;
 
             bool tense = false;
-            for (int i = 0; i < Guard.All.Count && !tense; i++) if (Guard.All[i] != null && Guard.All[i].Chasing) tense = true;
             Seeker me = Game.Me;
+            // Un Oeil te vise, un bot te fonce dessus.
+            if (me != null && Eye.ChargingAt(me)) tense = true;
+            if (Rival.HuntingPlayer) tense = true;
             if (me != null && Time.time - me.LastHurt < 6f) tense = true;
             // Quelqu'un porte la Couronne : tout le monde court.
             if (Crown.Holder != null) tense = true;
-            // Une bete te chasse.
-            for (int i = 0; i < Beast.All.Count && !tense; i++) if (Beast.All[i] != null && Beast.All[i].Hunting(me)) tense = true;
             if (Game.Season != null && Game.Season.Running && Game.Season.Remaining < 120f) tense = true;
 
             if (tense) calmTimer = 12f;

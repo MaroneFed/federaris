@@ -8,30 +8,25 @@ namespace Fief
     /// sa place a un vrai joueur en ligne (voir docs/RESEAU.md). On ne lui parle pas.
     ///
     /// Ce qu'il fait, comme toi :
-    ///   - au debut, il FOUILLE un peu la foret (les coffres proches ; avec detecteur
-    ///     et pelle, un tresor enterre) -- plus ou moins longtemps selon son caractere ;
-    ///   - puis il MONTE A LA COURONNE : il entre par la herse si elle est levee
-    ///     (sinon par la poterne ou la breche -- et il tire le levier en passant), il
-    ///     traverse le donjon par les escaliers, ou prend l'escalier derobe s'il a la cle ;
-    ///   - s'il la tient, il file au MONUMENT et la pose ;
-    ///   - si un autre la tient, il le CHASSE : il le pousse (clic droit), il frappe ;
+    ///   - au debut, il passe par un SANCTUAIRE proche s'il n'a pas de don ;
+    ///   - puis il MONTE LA TOUR : une porte de la citadelle, le pied de la rampe, la
+    ///     spirale (il saute les trous), la Couronne ;
+    ///   - s'il la tient, il redescend la rampe et file au MONUMENT ;
+    ///   - si un autre la tient, il le CHASSE : il le pousse, le crochete, le gele ;
     ///   - si elle roule par terre, il se jette dessus ;
-    ///   - il se sert de ses objets : elixir quand il saigne, fumigene quand les gardes
-    ///     le talonnent, fiole de lenteur sur le porteur, piege sur la route du Monument.
+    ///   - il se sert de TOUTES ses capacites, par le meme code que toi
+    ///     (AbilityCaster.Cast) : ruee pour rattraper, onde quand on l'entoure, voile
+    ///     quand un Oeil le vise, mur et mine pour couvrir sa fuite...
     ///
     /// COMMENT IL PENSE. Toutes les 0,5 s il choisit un BUT, du plus urgent au moins
-    /// urgent. Puis, chaque image, il marche vers la cible de ce but -- en suivant,
-    /// s'il le faut, un CHEMIN de points (une entree du chateau, les escaliers).
+    /// urgent, et un CHEMIN de points (une porte, la rampe). Chaque image, il marche
+    /// vers le prochain point.
     ///
     /// COMMENT IL MARCHE. Pres de toi (moins de 70 m) il a un vrai corps
-    /// (CharacterController) : il bute sur les troncs et les contourne. Loin de toi,
-    /// personne ne le voit : il glisse en ligne droite, pour presque rien.
-    ///
-    /// Tout ce qu'il fait passe par les memes portes que toi (Crown.TryTakeFor,
-    /// Monument.TryDeliver, Combat.Shove, Chest.TryOpenFor) : c'est ce qui permettra
-    /// a un joueur en ligne de prendre sa place sans rien changer au reste.
+    /// (CharacterController) : il bute, saute les trous, tombe si on le pousse. Loin de
+    /// toi, personne ne le voit : il glisse le long du chemin, pour presque rien.
     /// </summary>
-    public class Rival : MonoBehaviour
+    public class Rival : MonoBehaviour, IMover
     {
         public static readonly List<Rival> All = new List<Rival>();
 
@@ -41,58 +36,60 @@ namespace Fief
             get
             {
                 for (int i = 0; i < All.Count; i++)
-                    if (All[i] != null && (All[i].goal == Goal.Hunt || All[i].goal == Goal.Fight) && All[i].prey != null
-                        && All[i].prey.IsPlayer && All[i].seeker.Alive) return true;
+                    if (All[i] != null && All[i].goal == Goal.Hunt && All[i].prey != null && All[i].prey.IsPlayer) return true;
                 return false;
             }
         }
 
-        enum Goal { Scout, Chest, Dig, Raid, Grab, Deliver, Hunt, Fight, Flee, Lever }
+        enum Goal { Shrine, Raid, Grab, Deliver, Hunt, Fight, Roam }
 
         [System.NonSerialized] public Seeker seeker;
 
         // --- caractere
-        float boldness;         // envie d'aller vite au chateau (0-1)
+        float boldness;         // envie d'aller vite a la tour (0-1)
         float temper;           // envie de se battre (0-1)
-        float scoutUntil;       // jusqu'ou (temps de manche) il fouille la foret
+        float scoutUntil;
 
         // --- etat
-        Goal goal = Goal.Scout;
+        Goal goal = Goal.Roam;
         Vector3 target;
         float think;
         float work;
-        Chest chest;
-        Chest buried;
-        Remains carcass;
+        Shrine shrine;
         Seeker prey;
         float preyTimer;
-        float strikeTimer;
-        float shoveReadyAt;
-        float fleeTimer;
-        Vector3 fleeFrom;
-        float deadTimer;
-        float itemTimer;
+        float castTimer;
         float barkTimer;
+        float fellAt = -99f;
         System.Random rng;
         readonly List<Vector3> path = new List<Vector3>();
-        Vector3 wander;
 
         // --- corps
         CharacterController body;
         float fallSpeed;
         Vector3 knock;
+        float dashTime;
+        Vector3 dashVelocity;
+        float pullTime;
+        Vector3 pullPoint;
+        float pullSpeed;
         float stuck;
-        float dashReadyAt;
-        bool airJumped;
         float detourTimer;
         float detourSign = 1f;
+        bool airJumped;
+        bool gliding;
+        Vector3 lastGround;
+        float airTop;
         Transform figure;
         CharacterRig rig;
         Vector3 lastPosition;
         Light lantern;
+        readonly Vector3[] trail = new Vector3[50];
+        int trailAt;
+        float trailTimer;
 
-        const float WalkSpeed = 5.2f;
-        const float RunSpeed = 7.4f;
+        const float WalkSpeed = 5.6f;
+        const float RunSpeed = 7.6f;
 
         // ================================================================== construction
 
@@ -119,11 +116,11 @@ namespace Fief
             r.rng = new System.Random(seed);
             r.boldness = 0.3f + (float)r.rng.NextDouble() * 0.7f;
             r.temper = 0.3f + (float)r.rng.NextDouble() * 0.7f;
-            r.scoutUntil = Mathf.Lerp(100f, 25f, r.boldness);
+            r.scoutUntil = Mathf.Lerp(45f, 10f, r.boldness);
             r.lastPosition = spawn;
-            r.wander = spawn;
+            r.lastGround = spawn;
+            for (int i = 0; i < r.trail.Length; i++) r.trail[i] = spawn;
 
-            // LE CORPS : exactement celui du joueur, a sa couleur.
             Color colour = slot.Colour;
             CharacterRig rig = CharacterRig.Build(root.transform, colour, Palette.Shade(colour, 0.62f));
             rig.RunSpeed = RunSpeed;
@@ -135,10 +132,7 @@ namespace Fief
             return r;
         }
 
-        void OnDestroy()
-        {
-            All.Remove(this);
-        }
+        void OnDestroy() { All.Remove(this); }
 
         /// <summary>Le bot de ce joueur, ou null (toi, ou un joueur en ligne).</summary>
         public static Rival Of(Seeker s)
@@ -150,7 +144,39 @@ namespace Fief
         /// <summary>La silhouette (ce qu'on voit), pour le recul d'un coup.</summary>
         public Transform Figure { get { return figure; } }
 
-        /// <summary>Deplace d'un coup (l'escalier derobe, la releve).</summary>
+        // ================================================================== IMover
+
+        public void Push(Vector3 velocity)
+        {
+            knock += new Vector3(velocity.x, 0f, velocity.z);
+            if (velocity.y > 0f) fallSpeed = Mathf.Max(fallSpeed, velocity.y);
+            dashTime = 0f;
+            pullTime = 0f;
+        }
+
+        public void Dash(Vector3 direction, float speed, float seconds)
+        {
+            dashVelocity = direction.normalized * speed;
+            dashTime = seconds;
+            if (fallSpeed < 1f) fallSpeed = 1f;
+        }
+
+        public void PullTo(Vector3 point, float speed)
+        {
+            pullPoint = point;
+            pullSpeed = speed;
+            pullTime = 1.4f;
+        }
+
+        public void Blink(Vector3 position) { Teleport(position); }
+
+        public Vector3 PastPosition(float seconds)
+        {
+            int back = Mathf.Clamp(Mathf.RoundToInt(seconds / 0.1f), 1, trail.Length - 1);
+            return trail[((trailAt - back) % trail.Length + trail.Length) % trail.Length];
+        }
+
+        /// <summary>Deplace d'un coup.</summary>
         public void Teleport(Vector3 position)
         {
             bool was = body.enabled;
@@ -158,15 +184,13 @@ namespace Fief
             transform.position = position;
             lastPosition = position;
             body.enabled = was;
+            knock = Vector3.zero;
+            dashTime = 0f;
+            pullTime = 0f;
+            fallSpeed = 0f;
+            airTop = position.y;
             path.Clear();
             think = 0f;
-        }
-
-        /// <summary>On le projette (une poussee, un coup du Roi).</summary>
-        public void Push(Vector3 velocity)
-        {
-            knock += new Vector3(velocity.x, 0f, velocity.z);
-            if (velocity.y > 0f) fallSpeed = Mathf.Max(fallSpeed, velocity.y);
         }
 
         // ================================================================== boucle
@@ -176,26 +200,16 @@ namespace Fief
             Season season = Game.Season;
             if (season == null || !season.Running || Time.deltaTime <= 0f) return;
             float dt = Time.deltaTime;
-
-            if (deadTimer > 0f)
-            {
-                deadTimer -= dt;
-                if (deadTimer <= 0f) Revive();
-                return;
-            }
             if (preyTimer > 0f) preyTimer -= dt;
-            if (fleeTimer > 0f) fleeTimer -= dt;
-            if (strikeTimer > 0f) strikeTimer -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
-            if (itemTimer > 0f) itemTimer -= dt;
-            // La vie remonte apres un moment de calme (trois fois plus vite avec Sang vif).
-            if (seeker.Alive && Time.time - seeker.LastHurt > 6f) seeker.Heal((seeker.Has(Power.SangVif) ? 9f : 3f) * dt);
+            if (castTimer > 0f) castTimer -= dt;
 
             think -= dt;
             if (think <= 0f) { think = 0.5f; Think(season); }
+            if (castTimer <= 0f) { castTimer = 0.4f; UseAbilities(); }
 
-            UseItems();
             Act(dt);
+            Remember(dt);
             Animate(dt);
         }
 
@@ -205,152 +219,94 @@ namespace Fief
             Goal was = goal;
             Vector3 me = transform.position;
 
-            // 1. Il porte la Couronne : au Monument, et vite.
-            if (seeker.CarriesCrown && Monument.Instance != null)
-            {
-                SetGoal(Goal.Deliver, Monument.Instance.transform.position, was);
-                return;
-            }
+            if (seeker.CarriesCrown && Monument.Instance != null) { SetGoal(Goal.Deliver, Monument.Instance.transform.position, was); return; }
+            if (Crown.Where == Crown.State.Dropped && (Crown.Position - me).magnitude < 160f) { SetGoal(Goal.Grab, Crown.Position, was); return; }
 
-            // 2. Il fuit : a bout de forces sous les coups.
-            if (fleeTimer > 0f)
-            {
-                Vector3 away = me - fleeFrom;
-                away.y = 0f;
-                goal = Goal.Flee;
-                target = me + (away.sqrMagnitude > 0.01f ? away.normalized : transform.forward) * 20f;
-                path.Clear();
-                return;
-            }
-
-            // 3. La Couronne roule par terre : il se jette dessus.
-            if (Crown.Where == Crown.State.Dropped && Flat(Crown.Position - me).magnitude < 150f)
-            {
-                SetGoal(Goal.Grab, Crown.Position, was);
-                return;
-            }
-
-            // 4. Un autre la porte : il le chasse.
             Seeker holder = Crown.Holder;
             if (holder != null && holder != seeker && holder.Body != null)
             {
-                // Par les portes et les escaliers s'il le faut (le chemin est refait a
-                // chaque pensee : le porteur bouge).
                 prey = holder;
                 preyTimer = 5f;
                 SetGoal(Goal.Hunt, holder.Body.position, was);
                 return;
             }
-
-            // 5. On l'a frappe : il rend les coups (un moment).
-            if (prey != null && preyTimer > 0f && prey.Alive && prey.Body != null && seeker.CanStrike)
+            if (prey != null && preyTimer > 0f && prey.Body != null && !prey.Hidden && seeker.CanShove && (prey.Body.position - me).magnitude < 25f)
             {
                 SetGoal(Goal.Fight, prey.Body.position, was);
                 return;
             }
             prey = null;
 
-            // 6. La herse est baissee, il est dans la cour, pres du levier : il le tire
-            //    (c'est son chemin de retour, avec la Couronne).
-            if (Lever.Instance != null && !Portcullis.IsOpen && Castle.Inside(me) && me.y < 3f
-                && Flat(Lever.Instance.transform.position - me).magnitude < 16f && Lever.Instance.CanInteract)
+            // Le debut : un sanctuaire proche, s'il n'a pas de don.
+            if (season.Elapsed < scoutUntil && !seeker.HasGift)
             {
-                SetGoal(Goal.Lever, Lever.Instance.transform.position, was);
-                return;
+                if (shrine == null || shrine.Spent) shrine = NearestShrine(90f);
+                if (shrine != null) { SetGoal(Goal.Shrine, shrine.transform.position, was); return; }
             }
 
-            // 7. Le debut de la manche : il fouille la foret.
-            bool early = season.Elapsed < scoutUntil && Crown.Where == Crown.State.OnPedestal;
-            if (early)
-            {
-                // Un tresor enterre : detecteur et pelle en main.
-                if (seeker.Items.Has(Item.Detecteur) && seeker.Items.Has(Item.Pelle))
-                {
-                    float d;
-                    Chest b = Chest.NearestBuried(me, out d);
-                    if (b != null && d < 60f) { buried = b; SetGoal(Goal.Dig, b.transform.position, was); return; }
-                }
-                // Un coffre, pas trop loin.
-                if (!seeker.Items.Full)
-                {
-                    if (goal == Goal.Chest && chest != null && !chest.Opened) { SetGoal(Goal.Chest, chest.transform.position, was); return; }
-                    chest = NearestChest(90f);
-                    if (chest != null) { SetGoal(Goal.Chest, chest.transform.position, was); return; }
-                    carcass = NearestCarcass();
-                    if (carcass != null) { SetGoal(Goal.Chest, carcass.transform.position, was); return; }
-                }
-                // Rien a portee : il avance au hasard, vers le chateau en gros.
-                if (Flat(wander - me).magnitude < 4f || was != Goal.Scout)
-                {
-                    Vector3 towards = -Flat(me).normalized;
-                    float a = ((float)rng.NextDouble() - 0.5f) * 140f;
-                    wander = me + Quaternion.Euler(0f, a, 0f) * towards * (25f + (float)rng.NextDouble() * 25f);
-                }
-                goal = Goal.Scout;
-                target = wander;
-                path.Clear();
-                return;
-            }
+            if (Crown.Where == Crown.State.OnPedestal) { SetGoal(Goal.Raid, Tower.CrownSpot, was); return; }
 
-            // 8. A la Couronne.
-            if (Crown.Where == Crown.State.OnPedestal)
-            {
-                SetGoal(Goal.Raid, Keep.CrownSpot, was);
-                return;
-            }
-
-            // Rien d'autre : il rode pres du Monument (la Couronne finira par y venir).
             Vector3 camp = Monument.Instance != null ? Monument.Instance.transform.position : Vector3.zero;
             float t = Time.time * 0.1f + seeker.Index;
-            SetGoal(Goal.Scout, camp + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 12f, was);
+            SetGoal(Goal.Roam, camp + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 10f, was);
         }
 
         void SetGoal(Goal g, Vector3 at, Goal was)
         {
-            bool fresh = g != was || (at - target).sqrMagnitude > 9f;
+            bool fresh = g != was || (at - target).sqrMagnitude > 9f || path.Count == 0 && (at - transform.position).magnitude > 6f;
             goal = g;
             target = at;
             if (fresh) PlanPath(at);
         }
 
+        Shrine NearestShrine(float range)
+        {
+            Shrine best = null;
+            float bestD = range;
+            for (int i = 0; i < Shrine.All.Count; i++)
+            {
+                Shrine s = Shrine.All[i];
+                if (s == null || s.Spent) continue;
+                float d = Flat(s.transform.position - transform.position).magnitude;
+                if (d < bestD) { bestD = d; best = s; }
+            }
+            return best;
+        }
+
         // ================================================================== les chemins
 
         /// <summary>
-        /// Le chemin vers "to" : descendre du donjon s'il y est (par les escaliers, a
-        /// l'envers), sortir de l'enceinte par l'entree la plus proche s'il faut, y
-        /// entrer de meme, puis monter au bon etage -- ou prendre l'escalier derobe.
+        /// Le chemin vers "to" : redescendre la rampe s'il est sur la tour (et que "to"
+        /// n'y est pas), sortir ou entrer par la porte la plus proche, puis monter la
+        /// rampe jusqu'a la hauteur voulue.
         /// </summary>
         void PlanPath(Vector3 to)
         {
             path.Clear();
             Vector3 from = transform.position;
-            bool fromKeep = Castle.InKeep(from);
-            bool toKeep = Castle.InKeep(to);
-            bool fromCastle = Castle.Inside(from);
-            bool toCastle = Castle.Inside(to);
-            int fromLevel = Keep.LevelOf(from.y), toLevel = Keep.LevelOf(to.y);
-
-            if (fromKeep && !(toKeep && toLevel == fromLevel))
+            bool fromTower = Tower.On(from), toTower = Tower.On(to);
+            if (fromTower && toTower)
             {
-                List<Vector3> down = Keep.PathTo(fromLevel);
-                for (int i = down.Count - 1; i >= 0; i--) path.Add(down[i]);
+                path.AddRange(Tower.Path(Tower.Progress(from), Tower.Progress(to)));
+                return;
             }
-            if (fromCastle && !toCastle)
+            if (fromTower)
+            {
+                path.AddRange(Tower.Path(Tower.Progress(from), 0f));
+                path.Add(Tower.Foot);
+                from = Tower.Foot;
+            }
+            bool fromIn = Castle.Inside(from), toIn = Castle.Inside(to);
+            if (fromIn && !toIn)
             {
                 Vector3[] exit = Castle.EntryFrom(to);
                 for (int i = exit.Length - 1; i >= 0; i--) path.Add(exit[i]);
             }
-            else if (!fromCastle && toCastle)
+            else if (!fromIn && toIn) path.AddRange(Castle.EntryFrom(from));
+            if (toTower)
             {
-                path.AddRange(Castle.EntryFrom(from));
-            }
-
-            if (toKeep && !(fromKeep && toLevel == fromLevel))
-            {
-                SecretDoor door = SecretDoor.Instance;
-                bool secret = toLevel == 3 && door != null && (door.Open || seeker.Items.Has(Item.Cle));
-                if (secret) path.Add(door.transform.position + door.transform.forward * 0.8f);
-                else path.AddRange(Keep.PathTo(toLevel));
+                path.Add(Tower.Foot);
+                path.AddRange(Tower.Path(0f, Tower.Progress(to)));
             }
         }
 
@@ -361,91 +317,39 @@ namespace Fief
             {
                 Vector3 p = path[0];
                 Vector3 d = p - transform.position;
-                bool sameFloor = Mathf.Abs(d.y) < 1.6f || !Castle.InKeep(transform.position);
+                bool sameLevel = Mathf.Abs(d.y) < 2.5f;
+                // Tombe loin de son chemin (pousse de la rampe) : il en refait un.
+                if (Mathf.Abs(d.y) > 6f && Tower.On(p) && !Tower.On(transform.position)) { PlanPath(target); if (path.Count == 0) break; p = path[0]; d = p - transform.position; sameLevel = Mathf.Abs(d.y) < 2.5f; }
                 d.y = 0f;
-                if (d.magnitude < 1.2f && sameFloor)
-                {
-                    path.RemoveAt(0);
-                    // La porte derobee : il l'ouvre (ou la prend) et se retrouve la-haut.
-                    SecretDoor door = SecretDoor.Instance;
-                    if (door != null && Flat(p - door.transform.position).magnitude < 1.5f && door.UseFor(seeker)) { path.Clear(); return target; }
-                    continue;
-                }
+                if (d.magnitude < 1.5f && sameLevel) { path.RemoveAt(0); continue; }
                 return p;
             }
             return target;
-        }
-
-        // ================================================================== choisir
-
-        Chest NearestChest(float range)
-        {
-            Chest best = null;
-            float bestD = range;
-            for (int i = 0; i < Chest.All.Count; i++)
-            {
-                Chest c = Chest.All[i];
-                if (c == null || c.Opened || c.Hidden) continue;
-                if (Castle.Inside(c.transform.position)) continue;      // ceux du chateau, en passant seulement
-                float d = Flat(c.transform.position - transform.position).magnitude;
-                if (d < bestD) { bestD = d; best = c; }
-            }
-            return best;
-        }
-
-        Remains NearestCarcass()
-        {
-            Remains best = null;
-            float bestD = 40f;
-            for (int i = 0; i < Remains.All.Count; i++)
-            {
-                Remains r = Remains.All[i];
-                if (r == null || !r.HasLoot) continue;
-                float d = Flat(r.transform.position - transform.position).magnitude;
-                if (d < bestD) { bestD = d; best = r; }
-            }
-            return best;
         }
 
         // ================================================================== agir
 
         void Act(float dt)
         {
-            float speed = (goal == Goal.Scout || goal == Goal.Chest ? WalkSpeed : RunSpeed) * seeker.SpeedFactor;
-
             if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null) target = prey.Body.position;
             if (goal == Goal.Grab) target = Crown.Position;
             Vector3 step = Waypoint();
             float distance = Flat(target - transform.position).magnitude;
             float dy = Mathf.Abs(target.y - transform.position.y);
-            float reach = goal == Goal.Hunt || goal == Goal.Fight ? 1.9f : goal == Goal.Deliver ? 3.2f : goal == Goal.Raid ? 2f : 1.8f;
-            bool arrived = path.Count == 0 && distance <= reach && (dy < 2.4f || !Castle.InKeep(target));
+            float reach = goal == Goal.Deliver ? 3.2f : goal == Goal.Hunt || goal == Goal.Fight ? 1.8f : 1.8f;
+            bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
 
-            // Pendant la chasse, la poussee part des qu'il est a portee -- meme en courant.
-            if (goal == Goal.Hunt && prey != null && prey.Body != null && distance < 2.5f && Time.time >= shoveReadyAt && !seeker.CarriesCrown)
+            // La poussee : des qu'il est a portee de sa proie.
+            if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null && seeker.CanShove
+                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.7f)
             {
-                shoveReadyAt = Time.time + (seeker.Has(Power.Poigne) ? 1.5f : 3f);
+                seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * 1.3f;
                 if (rig != null) rig.PlaySwing();
                 Combat.Shove(seeker, prey.Body.position - transform.position);
+                if (goal == Goal.Fight && rng.NextDouble() < 0.4) preyTimer = 0f;
             }
 
-            // LA RUEE, s'il a le pouvoir : sur le porteur, sur la Couronne qui roule, ou
-            // pour semer ceux qui le talonnent quand c'est lui qui la porte.
-            if (seeker.Has(Power.Ruee) && Time.time >= dashReadyAt && !arrived)
-            {
-                bool worth = goal == Goal.Hunt && distance > 3.5f && distance < 11f
-                             || goal == Goal.Grab && distance > 4f && distance < 12f
-                             || goal == Goal.Deliver && Guard.ChasersOf(seeker) > 0;
-                Vector3 toward = Flat(step - transform.position);
-                if (worth && toward.sqrMagnitude > 0.5f)
-                {
-                    dashReadyAt = Time.time + PlayerController.DashCooldown;
-                    Push(toward.normalized * 30f + Vector3.up * 1.5f);
-                    Burst(PowerInfo.Tint(Power.Ruee));
-                    if (PlayerWithin(30f)) Sfx.Whoosh();
-                }
-            }
-
+            float speed = (goal == Goal.Roam ? WalkSpeed : RunSpeed) * seeker.SpeedFactor;
             if (!arrived)
             {
                 work = 0f;
@@ -463,195 +367,146 @@ namespace Fief
                     if (Monument.Instance != null && Monument.Instance.TryDeliver(seeker)) Bark("Victoire !");
                     think = 0f;
                     break;
-
                 case Goal.Raid:
                 case Goal.Grab:
                     work += dt;
-                    if (work < (Crown.Where == Crown.State.OnPedestal ? 1.2f : 0.5f)) break;
+                    if (work < (Crown.Where == Crown.State.OnPedestal ? 1.2f : 0.4f)) break;
                     work = 0f;
                     if (Crown.Instance != null && Crown.Instance.TryTakeFor(seeker)) Bark("À moi !");
                     think = 0f;
                     break;
-
-                case Goal.Chest:
-                    work += dt;
-                    if (work < 0.8f) break;
-                    work = 0f;
-                    if (chest != null && !chest.Opened) chest.TryOpenFor(seeker);
-                    else if (carcass != null) carcass.TakeFor(seeker);
-                    chest = null;
-                    carcass = null;
-                    think = 0f;
-                    break;
-
-                case Goal.Dig:
-                    work += dt;
-                    if (work < 1.6f) break;
-                    work = 0f;
-                    if (buried != null && buried.Hidden) { buried.Unearth(); chest = buried; goal = Goal.Chest; }
-                    buried = null;
-                    break;
-
-                case Goal.Lever:
+                case Goal.Shrine:
                     work += dt;
                     if (work < 1f) break;
                     work = 0f;
-                    if (Lever.Instance != null) Lever.Instance.PullFor(seeker);
+                    if (shrine != null) shrine.TryTakeFor(seeker);
+                    shrine = null;
                     think = 0f;
                     break;
-
-                case Goal.Hunt:
-                case Goal.Fight:
-                    if (prey != null && prey.Body != null) Figures.Face(transform, prey.Body.position, 360f);
-                    if (strikeTimer <= 0f && prey != null && seeker.CanStrike)
-                    {
-                        strikeTimer = 0.9f;
-                        if (rig != null) rig.PlaySwing();
-                        if (PlayerWithin(25f)) Sfx.Whoosh();
-                        Combat.Hit(prey, seeker, Combat.SwordDamage);
-                        if (prey != null && !prey.Alive) { prey = null; Bark("Et voilà."); think = 0f; }
-                    }
-                    break;
-
                 default:
                     think = 0f;
                     break;
             }
         }
 
-        /// <summary>Ses objets, au bon moment -- comme un joueur qui sait ce qu'il fait.</summary>
-        void UseItems()
+        // ================================================================== les capacites
+
+        /// <summary>
+        /// Ses capacites, au bon moment -- comme un joueur qui sait ce qu'il fait. Il
+        /// passe par AbilityCaster.Cast, exactement comme toi.
+        /// </summary>
+        void UseAbilities()
         {
-            if (itemTimer > 0f || !seeker.Alive || seeker.Rooted) return;
-            Loadout kit = seeker.Items;
-            itemTimer = 0.6f;
+            if (seeker.Stunned) return;
+            List<Ability> list = seeker.Slot.Actives;
+            if (seeker.HasGift) list.Add(seeker.Gift);
             Vector3 me = transform.position;
-
-            if (kit.Has(Item.Elixir) && seeker.Health < seeker.MaxHealth * 0.4f)
-            {
-                kit.TryRemove(Item.Elixir);
-                seeker.Heal(seeker.MaxHealth);
-                Burst(ItemInfo.Tint(Item.Elixir));
-                return;
-            }
-            if (kit.Has(Item.Plume)) { kit.TryRemove(Item.Plume); seeker.FeatherUntil = Time.time + 30f; return; }
-            if (seeker.CarriesCrown) return;          // les deux mains prises
-
-            int chasers = Guard.ChasersOf(seeker);
-            if (kit.Has(Item.CapeOmbre) && (chasers > 0 || goal == Goal.Raid && Castle.Inside(me)))
-            {
-                kit.TryRemove(Item.CapeOmbre);
-                seeker.HiddenUntil = Time.time + 10f;
-                Burst(ItemInfo.Tint(Item.CapeOmbre));
-                return;
-            }
-            if (kit.Has(Item.Fumigene) && chasers >= 2)
-            {
-                kit.TryRemove(Item.Fumigene);
-                Thrown.Launch(seeker, Item.Fumigene, me + Vector3.up * 1.5f, Vector3.down * 2f + transform.forward);
-                return;
-            }
+            Vector3 eye = me + Vector3.up * 1.6f;
             Seeker holder = Crown.Holder;
-            if (holder != null && holder != seeker && holder.Body != null)
+            bool carrying = seeker.CarriesCrown;
+            Vector3 toWaypoint = Waypoint() - me;
+            float farToGo = Flat(target - me).magnitude;
+            int near = 0;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+                if (Game.Seekers[i] != seeker && Game.Seekers[i].Body != null && (Game.Seekers[i].Body.position - me).magnitude < 5.5f) near++;
+
+            for (int i = 0; i < list.Count; i++)
             {
-                Vector3 to = holder.Body.position - me;
-                float d = Flat(to).magnitude;
-                if (kit.Has(Item.Lenteur) && d > 4f && d < 15f)
+                Ability a = list[i];
+                if (AbilityCaster.WhyNot(seeker, a) != null) continue;
+                Vector3 aim = Vector3.zero;
+                bool go = false;
+                Vector3 toPrey = prey != null && prey.Body != null ? prey.Body.position + Vector3.up - eye : Vector3.zero;
+                float preyD = prey != null && prey.Body != null ? toPrey.magnitude : 999f;
+                switch (a)
                 {
-                    kit.TryRemove(Item.Lenteur);
-                    Thrown.Launch(seeker, Item.Lenteur, me + Vector3.up * 1.6f, Thrown.Lob(to.normalized, d));
-                    return;
+                    case Ability.Ruee:
+                    case Ability.Clignement:
+                        // Pour rattraper, ou pour fuir -- jamais sur la rampe (le vide).
+                        go = !Tower.On(me) && body.isGrounded && (farToGo > 14f && (goal == Goal.Hunt || goal == Goal.Grab || goal == Goal.Deliver || goal == Goal.Raid));
+                        aim = Flat(toWaypoint);
+                        break;
+                    case Ability.Grappin:
+                        go = prey != null && preyD > 9f && preyD < 30f && (goal == Goal.Hunt);
+                        aim = toPrey;
+                        break;
+                    case Ability.Crochet:
+                        go = prey != null && prey.CarriesCrown && preyD > 5f && preyD < 22f;
+                        aim = toPrey;
+                        break;
+                    case Ability.Souffle:
+                        go = prey != null && preyD < 10f && (prey.CarriesCrown || goal == Goal.Fight);
+                        aim = toPrey;
+                        break;
+                    case Ability.Gel:
+                        go = prey != null && prey.CarriesCrown && preyD > 6f && preyD < 18f;
+                        aim = toPrey;
+                        break;
+                    case Ability.Onde:
+                        go = near > 0 && (carrying || holder != null && holder.Body != null && (holder.Body.position - me).magnitude < 5.5f || near >= 2);
+                        break;
+                    case Ability.Bond:
+                        go = prey != null && prey.Body.position.y - me.y > 4f && Flat(toPrey).magnitude < 8f;
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.Echange:
+                        go = prey != null && prey.CarriesCrown && Monument.Instance != null && preyD > 12f && preyD < 32f
+                             && Flat(prey.Body.position - Monument.Instance.transform.position).magnitude < Flat(me - Monument.Instance.transform.position).magnitude - 15f;
+                        aim = toPrey;
+                        break;
+                    case Ability.Voile:
+                        go = carrying && (Eye.ChargingAt(seeker) || Chasers(12f) > 0) || Eye.ChargingAt(seeker);
+                        break;
+                    case Ability.Nuee:
+                        go = Eye.ChargingAt(seeker) || carrying && Chasers(8f) > 0;
+                        break;
+                    case Ability.Mur:
+                        go = carrying && Chasers(10f) > 0 && !Tower.On(me);
+                        aim = -transform.forward;
+                        break;
+                    case Ability.Mine:
+                        go = carrying && Chasers(18f) > 0 && body.isGrounded || goal == Goal.Roam && rng.NextDouble() < 0.05;
+                        break;
+                    case Ability.Rappel:
+                        go = Time.time - fellAt < 3.5f && (goal == Goal.Raid || carrying);
+                        break;
                 }
-                // Un piege sur la route du Monument, s'il y est avant le porteur.
-                if (kit.Has(Item.Piege) && Monument.Instance != null && Monument.Instance.Within(me, 25f))
+                if (!go) continue;
+                if (aim.sqrMagnitude < 0.01f) aim = transform.forward;
+                if (AbilityCaster.Cast(seeker, a, eye, aim.normalized))
                 {
-                    Vector3 at = me + Flat(to).normalized * 2f;
-                    if (Trap.WhyNot(seeker, at) == null)
-                    {
-                        kit.TryRemove(Item.Piege);
-                        Trap.Place(seeker, at, (float)rng.NextDouble() * 360f);
-                    }
+                    if (rig != null) rig.PlaySwing();
+                    castTimer = 1f;
+                    return;
                 }
             }
         }
 
-        void Burst(Color c)
+        /// <summary>Combien d'autres joueurs a moins de "metres".</summary>
+        int Chasers(float metres)
         {
-            if (PlayerWithin(40f)) Ambiance.Burst(null, transform.position + Vector3.up * 1.2f, c);
+            int n = 0;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s != seeker && s.Body != null && (s.Body.position - transform.position).magnitude < metres) n++;
+            }
+            return n;
         }
 
         // ================================================================== les coups
 
-        /// <summary>On vient de le frapper. S'il peut se battre, il se retourne ; sinon il fuit.</summary>
-        public void OnHit(Seeker attacker)
+        /// <summary>On vient de le projeter. S'il peut, il se retourne contre celui qui l'a fait.</summary>
+        public void OnHit(Seeker by)
         {
-            if (!seeker.Alive) return;
-            if (attacker == null)
+            if (by == null) { Bark("Aïe !"); return; }
+            if (!seeker.CarriesCrown && rng.NextDouble() < 0.35 + temper * 0.5)
             {
-                // Un garde, une bete : a bout de forces, il decroche.
-                if (seeker.Health < 30f && !seeker.CarriesCrown)
-                {
-                    fleeTimer = 6f;
-                    fleeFrom = transform.position + transform.forward;
-                    think = 0f;
-                }
-                Bark("Aïe !");
-                return;
+                prey = by;
+                preyTimer = 5f + temper * 6f;
+                think = 0f;
             }
-            if (seeker.CanStrike && (seeker.Health > 30f || rng.NextDouble() < temper))
-            {
-                prey = attacker;
-                preyTimer = 8f + temper * 10f;
-                Bark("Tu vas le regretter !");
-            }
-            else if (!seeker.CarriesCrown)
-            {
-                fleeTimer = 5f;
-                fleeFrom = attacker.Body != null ? attacker.Body.position : transform.position;
-                Bark("Laisse-moi !");
-            }
-            think = 0f;
-        }
-
-        /// <summary>On vient de le pousser : il se retourne contre celui qui l'a fait.</summary>
-        public void OnShoved(Seeker by)
-        {
-            if (!seeker.Alive || by == null || seeker.CarriesCrown) return;
-            if (rng.NextDouble() < 0.4 + temper * 0.5) { prey = by; preyTimer = 6f; think = 0f; }
-        }
-
-        /// <summary>Une bete le mord et il est a bout : il fuit.</summary>
-        public void FleeFrom(Vector3 from)
-        {
-            if (seeker.CarriesCrown) return;
-            fleeTimer = 6f;
-            fleeFrom = from;
-            think = 0f;
-        }
-
-        public void Die()
-        {
-            deadTimer = Combat.RespawnSeconds;
-            prey = null;
-            path.Clear();
-            knock = Vector3.zero;
-            if (body != null) body.enabled = false;
-            if (figure != null) figure.gameObject.SetActive(false);
-            if (lantern != null) lantern.enabled = false;
-            transform.position += Vector3.down * 50f;          // hors de vue, le temps de se relever
-        }
-
-        void Revive()
-        {
-            seeker.Health = seeker.MaxHealth;
-            Vector3 at = Combat.RespawnPoint(seeker, transform.position + Vector3.up * 50f);
-            transform.position = at;
-            lastPosition = at;
-            if (figure != null) figure.gameObject.SetActive(true);
-            if (lantern != null) lantern.enabled = true;
-            goal = Goal.Scout;
-            wander = at;
-            think = 0f;
+            Bark("Tu vas le regretter !");
         }
 
         // ================================================================== marcher
@@ -667,58 +522,103 @@ namespace Fief
                 detourTimer -= dt;
                 dir = Quaternion.Euler(0f, 70f * detourSign, 0f) * dir;
             }
-            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-5f * dt));
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
+            Vector3 extra = Vector3.zero;
+            if (dashTime > 0f) { dashTime -= dt; extra += dashVelocity; }
+            if (pullTime > 0f)
+            {
+                pullTime -= dt;
+                Vector3 p = pullPoint - transform.position;
+                if (p.magnitude < 1.6f) pullTime = 0f;
+                else { extra += p.normalized * pullSpeed; fallSpeed = Mathf.Max(fallSpeed, p.normalized.y * pullSpeed); }
+            }
 
-            bool seen = PlayerWithin(70f) || knock.sqrMagnitude > 1f;
+            bool seen = PlayerWithin(70f) || knock.sqrMagnitude > 1f || extra.sqrMagnitude > 1f;
             if (body.enabled != seen) body.enabled = seen;
 
             if (seen)
             {
-                fallSpeed = body.isGrounded && fallSpeed <= 0f ? -1f : fallSpeed - 22f * dt;
-                // Bloque par un rebord : il saute (plus haut avec la plume).
-                float lift = Time.time < seeker.FeatherUntil ? 1.8f : 1f;
-                if (body.isGrounded) airJumped = false;
-                if (stuck > 0.25f && body.isGrounded && speed > 0f) fallSpeed = 7f * lift;
-                // Le Double saut : toujours bloque en l'air, il saute encore.
-                else if (stuck > 0.25f && !body.isGrounded && !airJumped && speed > 0f && seeker.Has(Power.DoubleSaut) && fallSpeed < 2f)
+                bool grounded = body.isGrounded;
+                gliding = false;
+                if (grounded)
+                {
+                    if (airTop - transform.position.y > 4f) Land(airTop - transform.position.y);
+                    airJumped = false;
+                    lastGround = transform.position;
+                    airTop = transform.position.y;
+                    if (fallSpeed <= 0f) fallSpeed = -1f;
+                }
+                else
+                {
+                    airTop = Mathf.Max(airTop, transform.position.y);
+                    fallSpeed -= 22f * dt;
+                    if (seeker.Has(Ability.Planeur) && fallSpeed < -2.5f && (seeker.CarriesCrown || airTop - transform.position.y > 5f)) { fallSpeed = -2.5f; gliding = true; }
+                }
+                // Au bord d'un trou (ou bloque) : il saute. Deux fois, s'il sait.
+                if (grounded && speed > 0f && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
+                else if (!grounded && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
                 {
                     airJumped = true;
-                    fallSpeed = 7.3f * lift;
+                    fallSpeed = 7.3f;
                 }
+                // La Couronne glisse s'il tombe.
+                if (seeker.CarriesCrown && !grounded && !gliding && fallSpeed < -13f) Crown.Slip(seeker, lastGround);
+
                 Vector3 before = transform.position;
-                body.Move((dir * speed + knock + Vector3.up * fallSpeed) * dt);
+                body.Move((dir * speed + extra + knock + Vector3.up * fallSpeed) * dt);
                 float moved = Flat(transform.position - before).magnitude;
                 if (speed > 0f && moved < speed * dt * 0.3f)
                 {
                     stuck += dt;
-                    if (stuck > 0.6f) { detourTimer = 1.1f; detourSign = -detourSign; stuck = 0f; }
+                    if (stuck > 0.7f) { detourTimer = 1f; detourSign = -detourSign; stuck = 0f; }
                 }
                 else stuck = 0f;
             }
             else if (speed > 0f)
             {
-                // Loin de toi : il glisse. Dans le donjon (et sur la breche), il suit la
-                // hauteur du chemin au lieu du sol.
+                // Loin de toi : il glisse. Sur la rampe, il suit la hauteur du chemin.
                 Vector3 p = transform.position + dir * speed * dt;
                 float ground = Ground.Sample(p.x, p.z);
-                p.y = Castle.InKeep(p) || destination.y > ground + 1f ? Mathf.MoveTowards(transform.position.y, destination.y, speed * dt) : ground;
+                p.y = Tower.On(p) || destination.y > ground + 1f ? Mathf.MoveTowards(transform.position.y, destination.y, speed * dt * 0.8f + 0.02f) : ground;
                 transform.position = p;
+                lastGround = p;
+                airTop = p.y;
             }
 
             if (speed > 0f)
-            {
-                Quaternion look = Quaternion.LookRotation(dir, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, look, 360f * dt);
-            }
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 360f * dt);
+        }
+
+        /// <summary>Vrai s'il n'y a plus de sol un metre et demi devant (le bord d'un trou de la rampe).</summary>
+        bool EdgeAhead(Vector3 dir)
+        {
+            Vector3 probe = transform.position + dir * 1.5f + Vector3.up * 0.6f;
+            return !Physics.Raycast(probe, Vector3.down, 2.6f, ~0, QueryTriggerInteraction.Ignore);
+        }
+
+        void Land(float fall)
+        {
+            if (fall > 8f) fellAt = Time.time;
+            if (fall > 4f && seeker.Has(Ability.Rebond)) Combat.Blast(transform.position, 5f, 13f, 5f, seeker);
+        }
+
+        void Remember(float dt)
+        {
+            trailTimer += dt;
+            if (trailTimer < 0.1f) return;
+            trailTimer = 0f;
+            trailAt = (trailAt + 1) % trail.Length;
+            trail[trailAt] = transform.position;
         }
 
         void Animate(float dt)
         {
             if (figure == null) return;
-            // Loin de toi, le corps s'eteint : personne ne le voit. La lanterne et le
-            // halo, eux, restent : c'est comme ca qu'on repere un joueur dans la brume.
-            bool near = PlayerWithin(60f);
+            // Loin de toi, ou sous le Voile, le corps s'eteint. La lanterne et le halo
+            // restent (sauf sous le Voile) : c'est comme ca qu'on repere un joueur.
+            bool near = PlayerWithin(60f) && !seeker.Hidden;
             if (figure.gameObject.activeSelf != near) figure.gameObject.SetActive(near);
+            if (lantern != null) lantern.enabled = !seeker.Hidden;
             Vector3 moved = Flat(transform.position - lastPosition);
             lastPosition = transform.position;
             if (rig != null) rig.Speed = Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
@@ -750,11 +650,8 @@ namespace Fief
 
     /// <summary>
     /// CE QUI FAIT QU'ON SE RECONNAIT DE LOIN (Martin : "je veux que les gens puissent
-    /// se voir"). Chaque joueur porte :
-    ///   - une ECHARPE et un ruban a sa couleur ;
-    ///   - une LANTERNE a sa couleur au bout du baton, qui eclaire autour de lui ;
-    ///   - un HALO au-dessus de la tete, une petite flamme a sa couleur qui perce la
-    ///     brume : on voit ou sont les autres a cinquante metres.
+    /// se voir"). Chaque joueur porte une echarpe et un ruban a sa couleur, une LANTERNE
+    /// a sa couleur au bout du baton, et un HALO au-dessus de la tete.
     /// </summary>
     public static class PlayerLook
     {

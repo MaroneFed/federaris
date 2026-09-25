@@ -151,3 +151,12 @@ emplacements de construction.
   du sabotage, et une histoire à raconter après la partie.
 - Rumeur publique au marché : « quelqu'un a payé cher pour des renseignements ».
 - Les prix du marché visibles de loin depuis une Tour de guet.
+
+### Le 27/09 (venues des « 100 raisons », voir `docs/100-RAISONS.md`)
+
+- Un **terrain d'essai** où l'on teste les 26 capacités avant de jouer (tutoriel jouable).
+- **Événements de manche** : pluie qui rend la rampe glissante, éclipse (la brume se
+  referme), la Couronne qui change de tour à mi-manche. (Phase 4)
+- **Raccourcis en forêt** : tunnels, ponts de branches entre les arbres géants.
+- **Manette** (le nouvel Input System le permet). (Phase 5)
+- Remplacer les cubes gris de la citadelle par des murs Kenney/Synty (sans toucher au jeu).

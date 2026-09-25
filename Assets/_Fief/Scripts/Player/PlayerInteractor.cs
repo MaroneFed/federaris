@@ -35,7 +35,7 @@ namespace Fief
                 holdTimer = 0f;
             }
 
-            if (current == null || InputLocked || Game.Me != null && !Game.Me.Alive)
+            if (current == null || InputLocked || Game.Me != null && Game.Me.Stunned)
             {
                 holdTimer = 0f;
                 HoldDuration = 0f;
@@ -52,8 +52,8 @@ namespace Fief
 
             if (FiefInput.InteractHeld)
             {
-                // Un coffre, une depouille, la Couronne tombee : on se baisse pour les prendre.
-                if (current is Chest || current is Remains) OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
+                // Un sanctuaire : on se baisse pour prendre le cristal.
+                if (current is Shrine) OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
 
                 // Pendant le maintien, le personnage s'active vraiment : un geste toutes
                 // les 0,55 s. Sans ca, maintenir E est une barre de chargement.

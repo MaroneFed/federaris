@@ -31,9 +31,9 @@ namespace Fief
         }
 
         [Header("Monde")]
-        [Tooltip("Côté de la carte en mètres. 420 m se traverse en une minute à pied -- " +
-                 "assez petit pour s'y retrouver, assez grand pour s'y perdre dans la brume.")]
-        public float mapSize = 420f;
+        [Tooltip("Côté de la carte en mètres. 320 m (27/09, réduite de 420) : on croise " +
+                 "les autres, on voit la tour de partout, la course au Monument dure 30 s.")]
+        public float mapSize = 320f;
         [Tooltip("Graine du générateur aléatoire : même graine = même map.")]
         public int worldSeed = 1337;
 
@@ -42,7 +42,7 @@ namespace Fief
                  "le plus important du jeu : il décide de l'enfermement. À 14 m un tronc " +
                  "est à moitié effacé à 7 m -- on ne voit jamais ce qu'il y a deux arbres " +
                  "plus loin. Remonte à 20 ou 30 pour respirer.")]
-        public float sightDistance = 14f;
+        public float sightDistance = 18f;
 
         [Tooltip("Couleur de la brume et du fond. Gris-vert, et PLUS CLAIRE que les " +
                  "troncs proches : c'est ce qui les découpe en silhouettes. Une brume plus " +
@@ -102,7 +102,7 @@ namespace Fief
         public float mouseSensitivity = 0.13f;
 
         [Header("Interaction")]
-        [Tooltip("Portée de la touche E (coffres, Couronne, Monument), en mètres.")]
+        [Tooltip("Portée de la touche E (sanctuaires, Couronne, Monument), en mètres.")]
         public float interactRadius = 3.6f;
 
         [Header("Le match (voir docs/LA-SAISON.md)")]
