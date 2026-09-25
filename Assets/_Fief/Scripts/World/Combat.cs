@@ -38,9 +38,10 @@ namespace Fief
                 Vector3 to = r.transform.position - me.Body.position;
                 to.y = 0f;
                 if (to.magnitude > Reach || Vector3.Angle(flatForward, to) > 55f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
+                if (me.Kit.Wear(1)) Toasts.Show("Épée brisée", new Color(0.8f, 0.6f, 0.4f));
                 Hit(r.seeker, me, damage);
                 Punch.Apply(r.Figure, me.Body.position);
+                Hud.HitStop(0.06f);
                 return;                             // un coup, une cible
             }
             // Les betes : loups, revenants.
@@ -51,8 +52,9 @@ namespace Fief
                 Vector3 to = b.transform.position - me.Body.position;
                 to.y = 0f;
                 if (to.magnitude > Reach + 0.4f || Vector3.Angle(flatForward, to) > 60f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
+                if (me.Kit.Wear(1)) Toasts.Show("Épée brisée", new Color(0.8f, 0.6f, 0.4f));
                 b.Hurt(damage, me);
+                Hud.HitStop(0.05f);
                 return;
             }
             // Les gardes du chateau.
@@ -64,8 +66,9 @@ namespace Fief
                 if (Mathf.Abs(to.y) > 2f) continue;
                 to.y = 0f;
                 if (to.magnitude > Reach + 0.2f || Vector3.Angle(flatForward, to) > 55f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
+                if (me.Kit.Wear(1)) Toasts.Show("Épée brisée", new Color(0.8f, 0.6f, 0.4f));
                 g.Hurt(damage, me);
+                Hud.HitStop(0.06f);
                 return;
             }
         }
@@ -167,7 +170,10 @@ namespace Fief
                 if (r != null) r.Die();
                 if (killer != null && killer.IsPlayer) Stats.RivalsDowned++;
                 if (killer != null && killer.IsPlayer)
-                    Toasts.Show(victim.Name + " est tombé. Fouille-le (E).", victim.Colour);
+                {
+                    Sfx.Coin();
+                    if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.25f);
+                }
             }
         }
 
@@ -307,7 +313,6 @@ namespace Fief
             if (loot > 0) Pickup.FlyLoot(transform.position + Vector3.up * 0.5f, loot);
             TakeFor(me);
             Sfx.HarvestTap(ResourceType.Deadwood);
-            Toasts.Show(Empty ? "Tu as tout repris." : "Sac plein : il en reste.", UiStyle.InkDim);
         }
 
         /// <summary>Fouiller : toi ou un rival. Renvoie les etoiles emportees.</summary>

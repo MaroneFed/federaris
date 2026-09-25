@@ -22,10 +22,10 @@ namespace Fief
 
         static readonly Step[] Steps =
         {
-            new Step { text = "Ramasse de la pierre-lune",   hint = "Dans les creux qui luisent  ·  ★2 chacune" },
-            new Step { text = "Dépose-la à ta stèle",        hint = "Le fil d'or  ·  E" },
-            new Step { text = "Vole un trésor au château",   hint = "La couronne est tout en haut  ·  ★40" },
-            new Step { text = "Construis un piège",          hint = "T  ·  avec le bois et le fer" }
+            new Step { text = "Pierre-lune  ★2",           hint = "" },
+            new Step { text = "Dépose à ta stèle",         hint = "" },
+            new Step { text = "Pille le château",          hint = "" },
+            new Step { text = "T : pose un piège",         hint = "" }
         };
 
         static int done;
@@ -72,7 +72,7 @@ namespace Fief
             if (done < Steps.Length)
             {
                 text = Steps[done].text;
-                hint = Steps[done].hint;
+                hint = "";
                 kicker = (done + 1) + "/" + Steps.Length;
                 ink = Color.Lerp(UiStyle.Ink, Palette.Gold, flash);
             }

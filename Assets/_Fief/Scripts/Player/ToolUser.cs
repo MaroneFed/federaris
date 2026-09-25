@@ -75,7 +75,7 @@ namespace Fief
             // --- on grimpe (ou on descend) : rien d'autre pendant ce temps
             if (climbing)
             {
-                Hint = climbingUp ? "Tu grimpes..." : "Tu redescends...";
+                Hint = null;
                 Climb();
                 return;
             }
@@ -83,7 +83,7 @@ namespace Fief
             // --- descendre de l'arbre
             if (perch != null)
             {
-                Hint = "F : redescendre";
+                Hint = "F|↓";
                 if (FiefInput.ClimbPressed) ClimbDown();
                 return;
             }
@@ -102,9 +102,9 @@ namespace Fief
                 {
                     int done;
                     Chops.TryGetValue(hit.collider, out done);
-                    Hint = "Clic : abattre  (" + done + " / " + ChopsNeeded(hit.collider) + ")   ·   F : grimper";
+                    Hint = "clic|" + done + "/" + ChopsNeeded(hit.collider) + ";F|↑";
                 }
-                else Hint = Forest.IsGiant(hit.collider) ? "F : grimper tout en haut" : "F : grimper";
+                else Hint = Forest.IsGiant(hit.collider) ? "F|↑↑" : "F|↑";
             }
 
             // --- poser un piege
@@ -133,7 +133,7 @@ namespace Fief
                 RaycastHit near;
                 if (Physics.Raycast(eye.position, eye.forward, out near, 2.8f, ~0, QueryTriggerInteraction.Ignore))
                     wall = near.collider.GetComponentInParent<Barricade>();
-                if (wall != null) { wall.Hit(); if (me.Kit.Wear(1)) Toasts.Show("Ton outil s'est brisé.", new Color(0.8f, 0.6f, 0.4f)); }
+                if (wall != null) { wall.Hit(); if (me.Kit.Wear(1)) Toasts.Show("Outil brisé", new Color(0.8f, 0.6f, 0.4f)); }
                 else if (kit.Holding(ToolKind.Hache) && tree) Chop(hit, kit);
                 else if (kit.Holding(ToolKind.Epee)) Combat.PlayerStrike(eye);
                 else Sfx.Whoosh();
@@ -167,7 +167,7 @@ namespace Fief
             if (kit.Wear(1))
             {
                 Sfx.Deny();
-                Toasts.Show("Ta hache s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
+                Toasts.Show("Hache brisée", new Color(0.8f, 0.6f, 0.4f));
             }
 
             if (done < ChopsNeeded(c)) return;
@@ -261,7 +261,6 @@ namespace Fief
                        new Vector3(hug.x, ground + 0.05f, hug.z),
                        new Vector3(hug.x, spot.y - 0.2f, hug.z),
                        spot + Vector3.up * 0.05f, giant > 0f ? 1.6f + perchHeight * 0.12f : 1.6f);
-            if (giant > 0f) Toasts.Show("Tout en haut : la brume s'ouvre.", UiStyle.InkDim);
         }
 
         static void AddRail(Transform parent, Vector3 at, Vector3 size)

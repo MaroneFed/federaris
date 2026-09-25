@@ -97,7 +97,6 @@ namespace Fief
                     Vector3 at = Combat.RespawnPoint(me, me.Body != null ? me.Body.position : Vector3.zero);
                     if (Game.Player != null) Game.Player.Teleport(at, Game.PlayerTransform.eulerAngles.y);
                     me.Health = Seeker.MaxHealth;
-                    Toasts.Show("Debout, à ta stèle. Ta dépouille t'attend.", UiStyle.InkDim);
                 }
                 return;
             }
@@ -124,9 +123,7 @@ namespace Fief
                 UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f, Screen.width, UiStyle.S(70)), UiStyle.Spaced("TU ES TOMBÉ"), big,
                                new Color(0.85f, 0.3f, 0.25f, a));
                 big.alignment = previous;
-                UiStyle.Tinted(new Rect(0f, Screen.height * 0.38f + UiStyle.S(76), Screen.width, UiStyle.S(24)),
-                               killedBy, UiStyle.Centered,
-                               new Color(0.9f, 0.85f, 0.78f, a));
+
                 return;
             }
 
@@ -144,6 +141,23 @@ namespace Fief
 
         public void OpenPanel(IPanel newPanel) { panel = newPanel; }
 
+        /// <summary>On vient de deposer : sa pastille du classement s'illumine.</summary>
+        public void FlashScore() { scoreFlash = 1f; }
+        float scoreFlash;
+
+        /// <summary>
+        /// LA MICRO-PAUSE D'IMPACT : quand ton epee touche, le temps s'arrete un
+        /// vingtieme de seconde. C'est ce qui fait qu'un coup "porte" dans tous les
+        /// jeux d'action. (La pause, elle, met le temps a 0 : on n'y touche pas.)
+        /// </summary>
+        public static void HitStop(float seconds)
+        {
+            if (!Mathf.Approximately(Time.timeScale, 1f)) return;
+            Time.timeScale = 0.05f;
+            hitStop = seconds;
+        }
+        static float hitStop;
+
         /// <summary>Le sac est plein et on a voulu prendre : ses cases clignotent en rouge.</summary>
         public static void FlashBag() { bagFlash = 1f; }
         static float bagFlash;
@@ -152,6 +166,12 @@ namespace Fief
         void Update()
         {
             Toasts.Tick(Time.unscaledDeltaTime);
+            if (hitStop > 0f)
+            {
+                hitStop -= Time.unscaledDeltaTime;
+                if (hitStop <= 0f && Mathf.Approximately(Time.timeScale, 0.05f)) Time.timeScale = 1f;
+            }
+            if (scoreFlash > 0f) scoreFlash = Mathf.Max(0f, scoreFlash - Time.unscaledDeltaTime * 0.8f);
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
             TickLife();
             if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.3f);
@@ -210,8 +230,25 @@ namespace Fief
             DrawBuildError();
             if (showDiagnostic) DrawDiagnostic();
 
+            DrawDanger();
             if (panel != null) panel.Draw();
             DrawLife();
+        }
+
+        /// <summary>
+        /// On te court apres (un garde, un rival arme) : les bords de l'ecran battent
+        /// en rouge, au rythme d'un coeur. Pas un mot : on comprend.
+        /// </summary>
+        void DrawDanger()
+        {
+            if (!Guard.HuntingPlayer && !Rival.HuntingPlayer) return;
+            float beat = Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3.2f)), 6f);
+            Color c = new Color(0.7f, 0.05f, 0.03f, 0.18f + 0.22f * beat);
+            float e = UiStyle.S(40);
+            UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, e), c);
+            UiStyle.FadeBand(new Rect(0f, Screen.height - e, Screen.width, e), c);
+            UiStyle.Fill(new Rect(0f, 0f, e * 0.5f, Screen.height), new Color(c.r, c.g, c.b, c.a * 0.7f));
+            UiStyle.Fill(new Rect(Screen.width - e * 0.5f, 0f, e * 0.5f, Screen.height), new Color(c.r, c.g, c.b, c.a * 0.7f));
         }
 
         // ---------------------------------------------------------------- horloge
@@ -277,6 +314,7 @@ namespace Fief
                 Seeker s = ranking[i];
                 Rect r = new Rect(x + i * (pw + gap), y, pw, ph);
                 UiStyle.Fill(r, new Color(0.04f, 0.035f, 0.03f, 0.72f));
+                if (s.IsPlayer && scoreFlash > 0f) UiStyle.Fill(r, new Color(1f, 0.8f, 0.35f, 0.5f * scoreFlash));
                 if (s.IsPlayer)
                 {
                     Color g = Palette.Gold;
@@ -472,31 +510,56 @@ namespace Fief
             IInteractable target = interactor.Current;
             if (target == null) return;
 
-            float w = UiStyle.S(430);
-            float h = UiStyle.S(50);
-            Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(216), w, h);
+            // Une touche et quelques mots ; la barre dessous se remplit si on doit maintenir.
+            GUIStyle label = UiStyle.Label;
+            float textW = label.CalcSize(new GUIContent(target.Prompt)).x;
+            float capW = UiStyle.S(30);
+            float w = Mathf.Min(Screen.width - UiStyle.S(40), textW + capW + UiStyle.S(40));
+            float h = UiStyle.S(40);
+            Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height - UiStyle.S(210), w, h);
+            UiStyle.Fill(box, new Color(0.03f, 0.025f, 0.02f, 0.7f));
 
-            UiStyle.DropShadow(box, UiStyle.S(14));
-            GUI.Box(box, GUIContent.none, UiStyle.CardBox);
-
-            float capW = UiStyle.S(34);
-            Rect cap = new Rect(box.x + UiStyle.S(13), box.y + (h - capW) * 0.5f, capW, capW);
+            Rect cap = new Rect(box.x + UiStyle.S(8), box.y + (h - capW) * 0.5f, capW, capW);
             UiStyle.Pill(cap);
             UiStyle.Tinted(cap, "E", UiStyle.Centered, Palette.Gold);
+            GUI.Label(new Rect(cap.xMax + UiStyle.S(10), box.y, box.width - capW - UiStyle.S(24), h), target.Prompt, label);
 
-            GUIStyle label = UiStyle.Label;
-            GUI.Label(new Rect(cap.xMax + UiStyle.S(13), box.y, box.width - capW - UiStyle.S(40), h * 0.62f),
-                      target.Prompt, label);
-
-            string hint = target.HoldDuration > 0f ? "maintenir" : "appuyer";
-            GUI.Label(new Rect(cap.xMax + UiStyle.S(13), box.y + h * 0.54f,
-                               box.width - capW - UiStyle.S(40), h * 0.42f), hint, UiStyle.Tiny);
-
-            if (target.HoldDuration > 0f && interactor.HoldProgress01 > 0.001f)
+            if (target.HoldDuration > 0f)
             {
-                Rect bar = new Rect(box.x + UiStyle.S(6), box.yMax - UiStyle.S(5),
-                                    box.width - UiStyle.S(12), UiStyle.S(4));
+                Rect bar = new Rect(box.x, box.yMax - UiStyle.S(3), box.width, UiStyle.S(3));
                 UiStyle.Bar(bar, interactor.HoldProgress01, Palette.Gold, new Color(0f, 0f, 0f, 0.5f));
+            }
+        }
+
+        /// <summary>"F|↑;clic|3/5" : une rangee de touches dessinees, chacune suivie d'un signe.</summary>
+        static void KeyHints(string hint, float y)
+        {
+            string[] pairs = hint.Split(';');
+            float cap = UiStyle.S(24), gap = UiStyle.S(18);
+            float total = 0f;
+            for (int i = 0; i < pairs.Length; i++)
+            {
+                string[] kv = pairs[i].Split('|');
+                float keyW = Mathf.Max(cap, UiStyle.Tiny.CalcSize(new GUIContent(kv[0])).x + UiStyle.S(12));
+                float valW = kv.Length > 1 ? UiStyle.Label.CalcSize(new GUIContent(kv[1])).x + UiStyle.S(6) : 0f;
+                total += keyW + valW + (i > 0 ? gap : 0f);
+            }
+            float x = (Screen.width - total) * 0.5f;
+            for (int i = 0; i < pairs.Length; i++)
+            {
+                string[] kv = pairs[i].Split('|');
+                float keyW = Mathf.Max(cap, UiStyle.Tiny.CalcSize(new GUIContent(kv[0])).x + UiStyle.S(12));
+                Rect k = new Rect(x, y, keyW, cap);
+                UiStyle.Pill(k);
+                UiStyle.Tinted(k, kv[0], UiStyle.CenteredSmall, Palette.Gold);
+                x += keyW + UiStyle.S(6);
+                if (kv.Length > 1)
+                {
+                    float valW = UiStyle.Label.CalcSize(new GUIContent(kv[1])).x;
+                    UiStyle.Tinted(new Rect(x, y, valW + 4f, cap), kv[1], UiStyle.Label, new Color(0.95f, 0.9f, 0.8f, 0.9f));
+                    x += valW;
+                }
+                x += gap;
             }
         }
 
@@ -535,9 +598,8 @@ namespace Fief
                     UiStyle.Icon(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), UiStyle.Shape.Dot, new Color(1f, 1f, 1f, 0.7f));
                 }
             }
-            if (!string.IsNullOrEmpty(ToolUser.Hint) && panel == null)
-                UiStyle.Tinted(new Rect(0f, Screen.height * 0.5f + UiStyle.S(26), Screen.width, UiStyle.S(20)), ToolUser.Hint,
-                               UiStyle.CenteredSmall, new Color(0.95f, 0.9f, 0.8f, 0.9f));
+            // Sous le reticule : des touches dessinees, pas des phrases ("F ↑" : grimper).
+            if (!string.IsNullOrEmpty(ToolUser.Hint) && panel == null) KeyHints(ToolUser.Hint, Screen.height * 0.5f + UiStyle.S(24));
         }
 
         // ---------------------------------------------------------------- trouvaille

@@ -185,7 +185,6 @@ namespace Fief
             if (found && !toldOnce)
             {
                 toldOnce = true;
-                Toasts.Show("Un feu-follet s'éloigne... et t'attend. Suis-le.", Glow);
             }
             return found;
         }

@@ -140,9 +140,7 @@ namespace Fief
                 bellsRung = due;
                 tollsLeft = due;
                 tollTimer = 0f;
-                int minutesLeft = Mathf.RoundToInt(season.Remaining / 60f);
-                Toasts.Show("Encore " + minutesLeft + " minutes.",
-                            new Color(0.86f, 0.80f, 0.64f));
+
             }
 
             if (tollsLeft <= 0) return;

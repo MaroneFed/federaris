@@ -147,6 +147,11 @@ namespace Fief
                 UiStyle.Fill(new Rect(at.x - 1f, at.y - s, 2f, s * 2f), new Color(0.35f, 0.12f, 0.08f));
             }
 
+            // La Couronne, dans les mains d'un autre.
+            Seeker crown = Treasure.CrownHolder;
+            if (crown != null && crown != me && crown.Body != null)
+                Mark(r, crown.Body.position, UiStyle.Shape.Diamond, new Color(1f, 0.75f, 0.2f), 15f * (1f + 0.2f * Mathf.Sin(Time.unscaledTime * 6f)));
+
             // Le voleur de ton or, tant qu'il court avec.
             for (int i = 0; i < Rival.All.Count; i++)
             {

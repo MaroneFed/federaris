@@ -277,6 +277,25 @@ namespace Fief
             HollowCount++;
         }
 
+        /// <summary>
+        /// Deux eclats de pierre-lune a quelques pas de chaque stele (26/09 : que la
+        /// premiere minute ait deja quelque chose a faire). Petits : ce n'est qu'une
+        /// mise en route, le vrai gisement est dans les creux.
+        /// </summary>
+        public static void SeedNear(Transform parent, Vector3 stele, GameConfig cfg, System.Random rng)
+        {
+            int placed = 0;
+            for (int tries = 0; tries < 40 && placed < 2; tries++)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float d = 10f + (float)rng.NextDouble() * 10f;
+                float x = stele.x + Mathf.Cos(a) * d, z = stele.z + Mathf.Sin(a) * d;
+                if (Physics.CheckSphere(Ground.Place(x, z, 0.8f), 0.7f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                Moonstone(parent, Ground.Place(x, z, 0f), rng, cfg);
+                placed++;
+            }
+        }
+
         static ResourceNode Moonstone(Transform parent, Vector3 at, System.Random rng, GameConfig cfg)
         {
             GameObject go = new GameObject("Pierre-lune");

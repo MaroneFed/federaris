@@ -33,6 +33,17 @@ namespace Fief
 
         /// <summary>Le dernier a avoir pille TA stele, et jusqu'a quand on le voit sur la boussole.</summary>
         public static Rival ThiefOfMe;
+
+        /// <summary>Vrai si un rival, au moins, te court apres l'epee a la main.</summary>
+        public static bool HuntingPlayer
+        {
+            get
+            {
+                for (int i = 0; i < All.Count; i++)
+                    if (All[i] != null && All[i].aggro != null && All[i].aggro.IsPlayer && All[i].aggroTimer > 0f && All[i].seeker.Alive) return true;
+                return false;
+            }
+        }
         public static float ThiefUntil;
         public bool IsHuntedThief { get { return ThiefOfMe == this && Time.time < ThiefUntil && seeker.Hoard.Carried > 0 && seeker.Alive; } }
 
@@ -581,9 +592,7 @@ namespace Fief
                 Sfx.Alarm();
                 Me().Discover(seeker);
                 if (Game.Hud != null && Game.Me.Body != null)
-                    Game.Hud.ShowDiscovery("TA STÈLE PILLÉE", seeker.Name + " : -★" + taken,
-                                           "Il file " + Hud.Direction(Game.Me.Body.position, transform.position) + ". Rattrape-le !", "",
-                                           new Color(1f, 0.4f, 0.3f));
+                    Game.Hud.ShowDiscovery("", "-★" + taken, seeker.Name, "", new Color(1f, 0.4f, 0.3f));
             }
             NotifyTheft(s.owner, seeker);
         }
@@ -697,12 +706,23 @@ namespace Fief
         void LookForPrey()
         {
             if (!armed || !seeker.Kit.Holding(ToolKind.Epee) || seeker.Health < 50f) return;
+            // La Couronne se voit de partout : a moins de 90 m, il y va.
+            Seeker crown = Treasure.CrownHolder;
+            if (crown != null && crown != seeker && crown.Body != null && Flat(crown.Body.position - transform.position).magnitude < 90f)
+            {
+                aggro = crown;
+                aggroTimer = 30f;
+                Bark("La couronne !");
+                return;
+            }
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
                 if (s == seeker || !s.Alive || s.Body == null || s.Hoard.Carried < 8) continue;
-                if (Flat(s.Body.position - transform.position).magnitude > 12f) continue;
-                if (rng.NextDouble() > aggression * 0.12f) continue;
+                // Plus il porte, plus on le sent de loin.
+                float range = s.Hoard.Carried >= 15 ? 35f : 14f;
+                if (Flat(s.Body.position - transform.position).magnitude > range) continue;
+                if (rng.NextDouble() > aggression * 0.2f) continue;
                 aggro = s;
                 aggroTimer = 20f;
                 Bark("Donne-moi ça !");

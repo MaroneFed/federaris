@@ -290,8 +290,6 @@ namespace Fief
             if (Game.Season != null) Game.Season.Begin();
 
             Toasts.Clear();
-            Toasts.Show("La brume se referme derrière toi.", Palette.Gold);
-            Toasts.Show("F1 pour les commandes.", UiStyle.Ink);
         }
 
         /// <summary>Deux rappels : a cinq minutes, puis a une minute de la cloche.</summary>
@@ -301,13 +299,20 @@ namespace Fief
             if (bellWarnings == 0 && left <= 300f)
             {
                 bellWarnings = 1;
-                Toasts.Show("Cinq minutes avant la cloche.",
-                            new Color(0.92f, 0.62f, 0.32f));
+                Sfx.Bell();
             }
-            else if (bellWarnings == 1 && left <= 60f)
+            else if (bellWarnings == 1 && left <= 180f)
             {
                 bellWarnings = 2;
-                Toasts.Show("Une minute avant la cloche.", new Color(0.92f, 0.45f, 0.32f));
+                // LE SPRINT FINAL : tous les coffres du chateau se remplissent.
+                Treasure.RefillAll();
+                Sfx.Bell();
+                if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LES COFFRES SE REMPLISSENT", "3:00", "", Palette.Gold);
+            }
+            else if (bellWarnings == 2 && left <= 60f)
+            {
+                bellWarnings = 3;
+                Sfx.Bell();
             }
         }
 

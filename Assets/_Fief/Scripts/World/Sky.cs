@@ -186,13 +186,11 @@ namespace Fief
             if (inStorm && !stormAnnounced)
             {
                 stormAnnounced = true;
-                Toasts.Show("L'orage éclate.", new Color(0.7f, 0.78f, 0.95f));
                 nextFlash = 6f;
             }
             if (!inStorm && stormAnnounced && !stormOver && elapsed >= stormEnd)
             {
                 stormOver = true;
-                Toasts.Show("L'orage s'éloigne.", UiStyle.InkDim);
             }
 
             stormLevel = Mathf.MoveTowards(stormLevel, inStorm ? 1f : 0f, dt / 12f);

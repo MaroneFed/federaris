@@ -99,8 +99,6 @@ namespace Fief
             {
                 Sfx.Deny();
                 Hud.FlashBag();
-                Toasts.Show("Sac plein.",
-                            new Color(0.95f, 0.45f, 0.35f));
                 return;
             }
 
@@ -110,7 +108,6 @@ namespace Fief
             {
                 Sfx.Deny();
                 Hud.FlashBag();
-                Toasts.Show("Sac plein.", Palette.Iron);
                 return;
             }
 

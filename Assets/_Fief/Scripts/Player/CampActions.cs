@@ -86,7 +86,6 @@ namespace Fief
             Camp.Build(at, yaw);
 
             Sfx.Build();
-            Toasts.Show("Camp planté.", Palette.Gold);
         }
 
         /// <summary>
@@ -148,7 +147,6 @@ namespace Fief
             src.Play();
             Destroy(go, src.clip.length + 0.2f);
             OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 0.3f);
-            Toasts.Show("Tu tends l'oreille... ta stèle répond, quelque part.", Stele.RuneBlue);
         }
 
         // ------------------------------------------------------------------ les caches
@@ -198,10 +196,7 @@ namespace Fief
 
             CacheSpot.Build(cache, Random.Range(0f, 360f));
             Sfx.Harvest(ResourceType.Moonstone);
-            int left = Game.Hoard.MaxCaches - Game.Hoard.Caches.Count;
-            Toasts.Show("Cache " + cache.Number + " creusée. Toi seul sais qu'elle est là."
-                        + (left > 0 ? "  (encore " + left + ")" : "  (c'était la dernière)"),
-                        new Color(0.80f, 0.66f, 0.46f));
+
         }
 
         /// <summary>Meme regle que la recolte : un sac lourd rend le geste lent.</summary>

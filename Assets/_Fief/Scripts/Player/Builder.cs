@@ -284,9 +284,7 @@ namespace Fief
             string line = Name(sel) + (why != null ? "   ·   " + why : "");
             UiStyle.Tinted(new Rect(back.x, back.yMax - UiStyle.S(2), back.width, UiStyle.S(20)), line, UiStyle.CenteredSmall,
                            why != null ? new Color(0.95f, 0.5f, 0.4f) : UiStyle.Ink);
-            UiStyle.Tinted(new Rect(back.x, back.yMax + UiStyle.S(16), back.width, UiStyle.S(18)),
-                           Placed(sel) ? "clic : poser   ·   molette : tourner   ·   clic droit : fermer" : "clic : fabriquer   ·   clic droit : fermer",
-                           UiStyle.CenteredSmall, UiStyle.InkFaint);
+
         }
     }
 }

@@ -470,7 +470,7 @@ namespace Fief
             Discovered = true;
             Sfx.Discovery();
             if (Game.Hud != null)
-                Game.Hud.ShowDiscovery("LIEU-DIT", Landmarks.Name(kind), "", "", new Color(0.86f, 0.80f, 0.64f));
+                Game.Hud.ShowDiscovery("", Landmarks.Name(kind), "", "", new Color(0.86f, 0.80f, 0.64f));
         }
     }
 }

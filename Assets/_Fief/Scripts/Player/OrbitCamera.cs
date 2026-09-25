@@ -40,7 +40,7 @@ namespace Fief
         public static float Crouch;
         float crouched;
         public float baseFieldOfView = 62f;
-        public float sprintFieldOfView = 7.5f;
+        public float sprintFieldOfView = 4f;
 
         float shake;
         float bobPhase;
@@ -138,7 +138,7 @@ namespace Fief
                 bobPhase += walk * (Mathf.PI / 1.9f) * dt;
                 float moving = Mathf.Clamp01(walk / 1.2f);
                 float vertical = Mathf.Abs(Mathf.Sin(bobPhase)) * bobAmount * moving;
-                float lateral = Mathf.Sin(bobPhase * 0.5f) * bobAmount * 0.75f * moving;
+                float lateral = Mathf.Sin(bobPhase * 0.5f) * bobAmount * 0.35f * moving;
                 bobOffset = Mathf.Lerp(bobOffset, vertical, 1f - Mathf.Exp(-16f * dt));
 
                 // S'accroupir : on descend de 70 cm et on regarde vers ses mains.

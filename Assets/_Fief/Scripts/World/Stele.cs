@@ -172,8 +172,7 @@ namespace Fief
                     {
                         announcedToPlayer = true;
                         Sfx.Discovery();
-                        Game.Hud.ShowDiscovery("TU AS TROUVÉ", "La stèle de " + owner.Name,
-                                               h.Banked > 0 ? "★" + h.Banked + " dessus. Pille-la (E)." : "Vide, pour l'instant.", "", owner.Colour);
+                        Game.Hud.ShowDiscovery("", "Stèle de " + owner.Name, "★" + h.Banked, "", owner.Colour);
                     }
                 }
             }
@@ -281,6 +280,11 @@ namespace Fief
                 Sfx.Stash();
                 Sfx.Coin();
                 FloatingTexts.Spawn(transform.position + Vector3.up * 1.9f, "+★" + stars, Palette.Gold);
+                // Ca doit se SENTIR : une gerbe d'or, un coup sourd, le classement qui brille.
+                Ambiance.Burst(null, transform.position + Vector3.up * 1.2f, new Color(1f, 0.8f, 0.35f));
+                Ambiance.Burst(null, transform.position + Vector3.up * 0.6f, new Color(1f, 0.9f, 0.55f));
+                if (Game.Hud != null) { Game.Hud.FlashScore(); if (Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(stars >= 20 ? 0.3f : 0.12f); }
+                if (stars >= 20) Sfx.Bell();
                 RefreshPile();
                 return;
             }
@@ -298,7 +302,7 @@ namespace Fief
             Sfx.Discovery();
             Pickup.FlyLoot(transform.position + Vector3.up, taken);
             if (Game.Hud != null)
-                Game.Hud.ShowDiscovery("STÈLE PILLÉE", "★" + taken + " à " + owner.Name, "Rapporte-les à ta stèle !", "", owner.Colour);
+                Game.Hud.ShowDiscovery("", "+★" + taken, owner.Name, "", owner.Colour);
             Rival.NotifyTheft(owner, me);
         }
     }

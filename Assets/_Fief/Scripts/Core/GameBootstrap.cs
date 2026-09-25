@@ -92,6 +92,9 @@ namespace Fief
                 // Apres les rivaux (il faut leurs Seeker) et apres la foret (il faut
                 // ses troncs pour trouver une place libre).
                 SteleSites.PlaceAll(worldRoot, Game.Seekers);
+                // Deux eclats de pierre-lune pres de chaque stele : on commence en agissant.
+                for (int i = 0; i < Game.Seekers.Count; i++)
+                    if (Game.Seekers[i].Hoard.StelePlanted) Gathering.SeedNear(worldRoot, Game.Seekers[i].Hoard.StelePosition, config, rng);
 
                 // Ce qui veut ton mal : trois meutes de loups (apres les steles, pour
                 // ne pas naitre au milieu d'elles).
@@ -307,7 +310,9 @@ namespace Fief
                 ? CameraClearFlags.Skybox
                 : CameraClearFlags.SolidColor;
             cam.backgroundColor = Palette.Sky;
-            cam.fieldOfView = 62f;
+            // 78 degres (etait 62) : un champ trop etroit en premiere personne donne
+            // la nausee a beaucoup de joueurs (Martin, 26/09 : "ca donne mal a la tete").
+            cam.fieldOfView = 78f;
             cam.nearClipPlane = 0.10f;
             cam.farClipPlane = 3000f;
             camGo.AddComponent<AudioListener>();

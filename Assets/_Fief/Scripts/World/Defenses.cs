@@ -193,8 +193,7 @@ namespace Fief
             if (owner == Game.Me && Game.Me.Body != null)
             {
                 Sfx.Alarm();
-                Toasts.Show("Alarme ! " + intruder.Name + ", " + Hud.Direction(Game.Me.Body.position, transform.position) + ".",
-                            new Color(1f, 0.6f, 0.35f));
+                Toasts.Show("Alarme ! " + intruder.Name, new Color(1f, 0.6f, 0.35f));
             }
             else
             {

@@ -132,6 +132,24 @@ Ils ont une voix (un cri, un murmure), pas de bulles de texte.
 
 ---
 
+## Ce qui fait monter la tension (26/09, « défonce tout »)
+
+- **Qui porte la Couronne est vu de tous** (boussole, carte) et les rivaux armés à moins
+  de 90 m lui tombent dessus, jusqu'à ce qu'il la dépose.
+- **À 3:00 de la fin, tous les coffres se remplissent** d'un coup : le sprint final se
+  joue au château.
+- Porter beaucoup d'or se sent de loin : les rivaux armés viennent chercher qui porte
+  ★15 ou plus à 35 m.
+- **Deux éclats de pierre-lune près de chaque stèle** : la première minute a déjà
+  quelque chose à faire.
+- Déposer se **sent** (gerbe d'or, secousse, ta pastille du classement qui s'allume) ;
+  chaque coup d'épée qui touche fige le temps un vingtième de seconde.
+- Quand on te court après, les bords de l'écran battent en rouge.
+- **Confort** : champ de vision 78° (au lieu de 62°), balancement de tête divisé par
+  deux — c'était la cause probable du mal de tête. On peut toujours courir.
+- **Presque plus de texte** : les touches sont dessinées sous le réticule (F ↑), les
+  messages se limitent à l'essentiel, l'objectif tient en trois mots.
+
 ## Le reste
 
 - **Chacun sa stèle**, fixe, tirée au hasard ; on naît à côté. Un **fil d'or**, que toi

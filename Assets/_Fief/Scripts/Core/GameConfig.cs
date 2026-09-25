@@ -88,7 +88,7 @@ namespace Fief
         public float sprintMultiplier = 1.55f;
         [Tooltip("Charge (0-1) au-delà de laquelle on ne peut plus courir. Un joueur très charge "
                + "reste donc rattrapable : c'est ce qui le rend vulnérable en Phase 2.")]
-        public float sprintMaxLoad = 0.75f;
+        public float sprintMaxLoad = 1.01f;     // on court toujours (26/09 : plus d'action)
         public float turnSpeed = 720f;
         public float jumpSpeed = 5.0f;
         public float gravity = -22f;
@@ -100,7 +100,7 @@ namespace Fief
                + "pour qu'on voie le tissu autour de soi en baissant les yeux.")]
         public float eyeForward = 0.13f;
         [Tooltip("Amplitude du balancement de tête à la marche.")]
-        public float headBob = 0.045f;
+        public float headBob = 0.022f;          // divise par deux : le balancement donnait mal a la tete
         public float cameraDistance = 10f;
         public float cameraMinDistance = 3.5f;
         public float cameraMaxDistance = 32f;

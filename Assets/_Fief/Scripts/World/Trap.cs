@@ -201,8 +201,7 @@ namespace Fief
             Combat.Kill(victim, owner, "dans un piège de " + (owner != null ? owner.Name : "quelqu'un"));
             if (owner == Game.Me && !victim.IsPlayer)
             {
-                string where = Game.PlayerTransform != null ? Hud.Direction(Game.PlayerTransform.position, transform.position) : "";
-                Toasts.Show(victim.Name + " pris au piège, " + where + ".", new Color(0.95f, 0.55f, 0.3f));
+                Toasts.Show("Piège ! " + victim.Name, new Color(0.95f, 0.55f, 0.3f));
             }
             Destroy(gameObject, 25f);
         }

@@ -25,6 +25,35 @@ namespace Fief
 
         public static readonly List<Treasure> All = new List<Treasure>();
 
+        /// <summary>
+        /// Qui court avec la Couronne. TOUT LE MONDE le voit sur sa boussole, et les
+        /// rivaux armes lui tombent dessus : prendre la Couronne, c'est devenir la
+        /// proie de la Saison, jusqu'a ce qu'on la depose (ou qu'on tombe).
+        /// </summary>
+        public static Seeker CrownHolder
+        {
+            get
+            {
+                if (crownHolder != null && (!crownHolder.Alive || crownHolder.Hoard.Carried < Stars(Kind.Couronne))) crownHolder = null;
+                return crownHolder;
+            }
+        }
+        static Seeker crownHolder;
+
+        /// <summary>
+        /// A trois minutes de la cloche, tous les tresors se remplissent d'un coup :
+        /// le chateau redevient l'endroit ou il faut etre. C'est le sprint final.
+        /// </summary>
+        public static void RefillAll()
+        {
+            for (int i = 0; i < All.Count; i++)
+            {
+                Treasure t = All[i];
+                if (t == null || t.Available) continue;
+                t.respawnAt = 0f;
+            }
+        }
+
         [System.NonSerialized] public Kind kind;
         Transform visual;
         Light glow;
@@ -251,6 +280,12 @@ namespace Fief
             if (visual != null) visual.gameObject.SetActive(false);
             if (glow != null) glow.enabled = false;
             if (Guarded) Guard.Alert(transform.position, kind == Kind.Couronne ? 40f : 18f, s);
+            if (kind == Kind.Couronne)
+            {
+                crownHolder = s;
+                if (!s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", s.Name, "", s.Colour);
+                Sfx.Bell();
+            }
             return true;
         }
 
@@ -273,7 +308,7 @@ namespace Fief
             FloatingTexts.Spawn(transform.position + Vector3.up * 1.8f, "★" + Value, Palette.Gold);
             Stats.Treasures++;
             if (kind == Kind.Couronne && Game.Hud != null)
-                Game.Hud.ShowDiscovery("LA COURONNE", "★40 dans ton sac", "Cours à ta stèle !", "", Palette.Gold);
+                Game.Hud.ShowDiscovery("", "LA COURONNE", "★40", "", Palette.Gold);
         }
     }
 }

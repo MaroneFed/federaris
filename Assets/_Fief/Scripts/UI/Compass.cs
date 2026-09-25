@@ -179,6 +179,21 @@ namespace Fief
                     Add(r.transform.position, UiStyle.Shape.Diamond, new Color(1f, 0.3f, 0.22f), 16f, "VOLEUR " + r.seeker.Name, true);
             }
 
+            // La Couronne, dans les mains d'un autre : tout le monde la voit.
+            Seeker crown = Treasure.CrownHolder;
+            if (crown != null && crown != self && crown.Body != null)
+                Add(crown.Body.position, UiStyle.Shape.Diamond, new Color(1f, 0.8f, 0.3f), 17f, "COURONNE", true);
+
+            // Une depouille pleine, pas loin : de l'or par terre.
+            for (int i = 0; i < Remains.All.Count; i++)
+            {
+                Remains rm = Remains.All[i];
+                if (rm == null || rm.IsMine || !rm.HasLoot) continue;
+                Vector3 d = rm.transform.position - me;
+                d.y = 0f;
+                if (d.magnitude < 80f) Add(rm.transform.position, UiStyle.Shape.Dot, new Color(0.95f, 0.75f, 0.3f), 10f, "", false);
+            }
+
             // Une de tes alarmes vient de sonner : on sait ou.
             for (int i = 0; i < Alarm.All.Count; i++)
             {

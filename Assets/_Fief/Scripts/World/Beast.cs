@@ -411,8 +411,7 @@ namespace Fief
             if (kind == Kind.Loup) AudioSource.PlayClipAtPoint(Sfx.Howl(), transform.position + Vector3.up, 0.9f);
             else Sfx.CurseToll();
             if (prey == Game.Me)
-                Toasts.Show(kind == Kind.Loup ? "Des loups !" : "Un revenant se lève.",
-                            new Color(0.95f, 0.5f, 0.35f));
+                Toasts.Show(kind == Kind.Loup ? "Loups !" : "Revenant !", new Color(0.95f, 0.5f, 0.35f));
         }
 
         // ================================================================== coups et mort
@@ -446,8 +445,6 @@ namespace Fief
                 killer.SyncWeight();
                 if (killer.IsPlayer) { Sfx.Coin(); FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f, "★" + goldCarried, Palette.Gold); }
             }
-            else if (killer != null && killer.IsPlayer)
-                Toasts.Show("Le loup s'effondre.", UiStyle.InkDim);
             body.enabled = false;
             dying = 0f;
             AudioSource voiceOff = GetComponent<AudioSource>();

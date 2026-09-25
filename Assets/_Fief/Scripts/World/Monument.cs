@@ -300,13 +300,10 @@ namespace Fief
             if (s.IsPlayer)
             {
                 if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("TU TIENS", Name(kind), Gift(kind) + " toutes les 40 s.",
-                                           "Tant que personne ne te le reprend.", Tint(kind));
+                    Game.Hud.ShowDiscovery("", Name(kind), Gift(kind) + " / 40 s", "", Tint(kind));
             }
             else if (before == Game.Me)
-                Toasts.Show(s.Name + " t'a pris ton " + Name(kind) + ".", s.Colour);
-            else
-                Toasts.Show(s.Name + " tient désormais l'" + Name(kind) + ".", s.Colour);
+                Toasts.Show("-" + Name(kind), s.Colour);
         }
 
         void Paint(Color c)
