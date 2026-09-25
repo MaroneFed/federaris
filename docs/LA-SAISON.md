@@ -106,7 +106,7 @@ lieu, pas de nombre.
 
 | | **Bois mort** | **Pierre-lune** | **Fer ancien** |
 |---|---|---|---|
-| Où | fagots au pied des arbres morts | pierres qui luisent, **dans les creux** | les réserves **du château** |
+| Où | faisceaux dressés au pied des arbres morts (un appui : six branches), troncs couchés | pierres qui luisent, **dans les creux** | les réserves **du château** |
 | Poids | 1 kg | 3 kg | 2 kg |
 | Valeur pour le mage | 1 | 4 | 10 |
 | Abondance | partout | rare, on la voit briller | **54 lingots pour toute la Saison**, ne reviennent pas ; gardés en Phase 2 |
@@ -182,12 +182,21 @@ tout déposer dans la stèle — mais si elle est sans surveillance, c'est mauva
 - **Le piège qui en naît** : une réserve pleine attire. Qui trouve ta stèle sans toi à côté
   la pille (E maintenu 3 s : ta relique en trophée, et tout ce qui rentre dans son sac).
 
-## La boussole ne montre rien (décidé par Martin le 25/09/2026)
+## S'orienter : boussole, carte, fil d'or (révisé par Martin le 26/09/2026)
 
-« Faut rien indiquer sur la boussole, comme ça ça force à retenir. » Les points cardinaux,
-et c'est tout : ni ta stèle, ni le château, ni le mage. On se repère au Grand Chêne, au
-chant de sa stèle (15 m), aux torches du château, à la colonne du mage au-dessus des
-arbres. Le mage dit ses secrets **en mots** (« à cent quarante pas au nord-est »).
+Le 25/09, la boussole avait été vidée (« comme ça ça force à retenir »). Le 26/09, Martin
+revient dessus : « on se perd complètement dans la map… si on ne se souvient pas où est
+la stèle, ni le château, c'est bof ». Donc :
+
+- **La Sylve fait 420 × 420 m** (au lieu de 700). Toutes les distances de placement ont
+  suivi : stèles à 75-165 m du centre, mage à 60-150 m, deux meutes de loups, 24 creux.
+- **La boussole** montre ce que TU sais : le château, ta stèle, ton camp, tes caches, ta
+  dépouille, les lieux-dits découverts, les stèles rivales trouvées, le voleur de ta
+  relique, le mage pendant sa descente. Ce qui est à plus de 150 m s'estompe.
+- **La carte (touche M)** : un parchemin vu de dessus, qui ne dévoile que ce qu'on a
+  parcouru (et d'office les abords du château). Avec une légende.
+- **Le fil d'or** : un mince trait de lumière au-dessus de ta stèle, que toi seul vois. Il
+  brille plus fort quand la Malédiction approche et que ton sac n'est pas vide.
 
 **Le filet de sécurité (26/09)** : touche **H**, « tendre l'oreille ». Ta stèle joue trois
 notes claires, en 3D, audibles à 400 m : on sait de quel côté elle est, pas à quelle
@@ -355,6 +364,19 @@ L'outil tenu se voit à l'écran, **sans mains** (voir CLAUDE.md, le corps invis
   `Assets/_Fief/Resources/Fonts`.
 
 ---
+
+## L'écran : peu de mots (Martin, 26/09/2026 : « il y a trop de texte, ça donne pas envie »)
+
+- **En haut** : la boussole, et dessous trois pastilles sans phrase — le mage (point
+  bleu), la cloche (le chrono), la Malédiction (triangle violet).
+- **En bas** : l'inventaire en cases à pictogrammes — deux outils, trois ressources, la
+  relique, l'or ; la jauge de poids au-dessus du sac. La molette change d'outil.
+- **À droite** : une seule carte d'objectif, puis seulement ce qui presse.
+- **À gauche** : les messages, en quelques mots, trois au plus.
+- **Personne ne parle en bulles** : rivaux et gardes ont une voix (cri ou murmure),
+  pas de texte au-dessus de la tête.
+- **Polices** : Grenze (titres) et Alegreya Sans (texte), toutes deux sous licence OFL.
+- **Le récit d'ouverture** : cinq phrases courtes qui passent toutes seules (Échap saute).
 
 ## Ce qui est dans la Phase 1 (solo) — et ce qui n'y est pas
 
