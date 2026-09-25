@@ -87,8 +87,11 @@ namespace Fief
 
         /// <summary>
         /// Deux polices. D'abord celles du jeu, rangees dans Resources/Fonts :
-        /// Titre.ttf (Cinzel, des capitales gravees comme sur une pierre) et
-        /// Texte.ttf (EB Garamond, un livre ancien qui se lit bien). Toutes deux
+        /// Titre.ttf (Grenze, demi-gras : a mi-chemin entre la lettre gothique et
+        /// le romain, du caractere sans cesser d'etre lisible) et Texte.ttf
+        /// (Alegreya Sans, medium : une linéale douce, nette sur fond sombre).
+        /// Changees le 26/09 (Martin : "c'est la police d'ecriture... ca donne pas
+        /// envie") -- Cinzel et Garamond faisaient livre de bibliotheque. Toutes deux
         /// sous licence OFL : libres, meme pour un jeu vendu, a condition de garder
         /// le fichier de licence a cote.
         ///
@@ -102,9 +105,9 @@ namespace Fief
             if (bodyFont == null)
             {
                 bodyFont = Resources.Load<Font>("Fonts/Texte");
-                // Le Garamond a de petites minuscules : on le grossit un peu pour
-                // qu'il se lise aussi bien qu'un Georgia de meme taille.
-                if (bodyFont != null) bodyBoost = 1.12f;
+                // L'Alegreya a de petites minuscules : on la grossit un peu pour
+                // qu'elle se lise aussi bien qu'un Arial de meme taille.
+                if (bodyFont != null) bodyBoost = 1.08f;
             }
             if (titleFont == null)
                 titleFont = TryFont(new[] { "Palatino Linotype", "Book Antiqua", "Palatino", "Constantia", "Georgia", "Times New Roman" });

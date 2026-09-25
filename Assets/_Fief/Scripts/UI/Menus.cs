@@ -160,41 +160,36 @@ namespace Fief
         // ------------------------------------------------------------------ le recit
 
         /// <summary>
-        /// L'histoire, en courtes phrases qui s'ecrivent une a une devant la foret de
-        /// nuit. Chaque phrase dit UNE regle, sans en avoir l'air : la stele, la
-        /// Malediction, les rivaux, les loups, les gardes mal payes, la cloche. Un clic
-        /// (ou Espace) acheve la phrase, un second passe a la suivante ; Echap saute
-        /// tout.
+        /// L'histoire, en cinq phrases courtes qui apparaissent et s'effacent toutes
+        /// seules, chacune le temps de se lire (Martin, 26/09 : "que ce ne soit pas
+        /// toi qui gères, que ce soit fait automatiquement, avec un temps", et "il y
+        /// a trop de texte"). Plus de lettre à lettre ni de clic : on regarde. Échap
+        /// saute tout.
         /// </summary>
-        static readonly string[][] Story =
+        static readonly string[] Story =
         {
-            new[] { "I", "Il y a cent hivers, un roi voulut enfermer la magie dans une pierre." },
-            new[] { "II", "La pierre se brisa. Sur les ruines de son royaume, la forêt poussa, noire et sans fin : la Sylve." },
-            new[] { "III", "Depuis, chaque automne, un mage erre sous ses arbres. Une colonne de lumière annonce sa venue. Avec ce qu'on lui porte, il forge des reliques." },
-            new[] { "IV", "Tu t'éveilles devant une stèle. La tienne. Regarde bien autour de toi : rien ne te montrera le chemin du retour." },
-            new[] { "V", "Car la forêt a faim. Après chaque passage du mage, un glas sonne, et la Malédiction dévore tout ce que tu portes. Ce que tu confies à ta stèle, elle le garde." },
-            new[] { "VI", "Mais une stèle ne se défend pas. Trois autres chercheurs rôdent dans la Sylve. Ils pilleront la tienne si tu la laisses seule." },
-            new[] { "VII", "Les loups, eux, ne cherchent rien. Au pied du château, des revenants gardent trois autels qui paient qui les tient." },
-            new[] { "VIII", "Le château a une garde. Elle est mal payée. Souviens-t'en." },
-            new[] { "IX", "Quand la cloche sonnera, dans trente minutes, seule comptera la relique posée sur ta stèle." }
+            "La Sylve. Une forêt sans fin,\nautour d'un château mort.",
+            "Chaque automne, un mage y erre.\nIl forge des reliques.",
+            "Ta stèle garde ce que tu lui confies.\nLa forêt reprend ce que tu portes.",
+            "Trois rivaux rôdent.\nLes loups, eux, ne cherchent rien.",
+            "Trente minutes.\nUne relique sur ta stèle."
         };
 
-        const float TypeSpeed = 42f;        // lettres par seconde
-        const float BeatHold = 3.2f;        // la phrase reste, entiere, avant la suivante
+        const float BeatFade = 0.7f;        // fondu d'entrée et de sortie
         int beat;
         float beatTime;
 
-        float BeatLength(int b)
+        /// <summary>Le temps de lire : une seconde et demie, plus un peu par lettre.</summary>
+        static float BeatLength(int b)
         {
-            return b < Story.Length ? Story[b][1].Length / TypeSpeed + BeatHold : 3.2f;
+            return b < Story.Length ? 1.6f + Story[b].Length / 20f : 2.6f;
         }
 
-        /// <summary>Clic : finir la phrase, ou passer a la suivante.</summary>
-        void Advance()
+        static float StoryLength()
         {
-            float typed = beat < Story.Length ? Story[beat][1].Length / TypeSpeed : 0f;
-            if (beatTime < typed) { beatTime = typed; return; }
-            NextBeat();
+            float t = 0f;
+            for (int i = 0; i <= Story.Length; i++) t += BeatLength(i);
+            return t;
         }
 
         void NextBeat()
@@ -202,56 +197,41 @@ namespace Fief
             beat++;
             beatTime = 0f;
             if (beat > Story.Length) { entering = true; Current = State.Title; }
-            else Sfx.Step();
         }
 
         void DrawBriefing()
         {
-            beatTime += Time.unscaledDeltaTime * (Event.current.type == EventType.Repaint ? 1f : 0f);
+            if (Event.current.type == EventType.Repaint) beatTime += Time.unscaledDeltaTime;
             if (beatTime > BeatLength(beat)) NextBeat();
             if (Current != State.Briefing) return;
 
-            Event e = Event.current;
-            if (e.type == EventType.MouseDown || e.type == EventType.KeyDown && (e.keyCode == KeyCode.Space || e.keyCode == KeyCode.Return))
-            {
-                Advance();
-                e.Use();
-            }
-
             // La nuit tombe sur l'ecran-titre : on ne voit plus que la foret qui tourne.
-            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.72f));
+            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.78f));
             DrawEmbers(0.35f);
 
-            float w = Mathf.Min(UiStyle.S(880), Screen.width - UiStyle.S(80));
+            float w = Mathf.Min(UiStyle.S(900), Screen.width - UiStyle.S(80));
             float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height * 0.36f;
+            float y = Screen.height * 0.5f - UiStyle.S(60);
+
+            float fadeIn = Mathf.Clamp01(beatTime / BeatFade);
+            float fadeOut = Mathf.Clamp01((BeatLength(beat) - beatTime) / BeatFade);
+            float a = Mathf.SmoothStep(0f, 1f, Mathf.Min(fadeIn, fadeOut));
+            // La phrase monte doucement pendant qu'elle est lue.
+            float drift = (1f - fadeIn) * UiStyle.S(14);
 
             if (beat < Story.Length)
             {
-                string kicker = Story[beat][0];
-                string text = Story[beat][1];
-                int shown = Mathf.Clamp(Mathf.FloorToInt(beatTime * TypeSpeed), 0, text.Length);
-                float fadeIn = Mathf.Clamp01(beatTime * 2.5f);
-                float fadeOut = Mathf.Clamp01((BeatLength(beat) - beatTime) * 2f);
-                float a = Mathf.Min(fadeIn, fadeOut);
-
-                GUIStyle head = UiStyle.Head;
-                TextAnchor was = head.alignment;
-                head.alignment = TextAnchor.MiddleCenter;
-                UiStyle.Tinted(new Rect(x, y - UiStyle.S(70), w, UiStyle.S(30)), kicker, head, new Color(0.86f, 0.36f, 0.26f, a));
-                head.alignment = was;
-                UiStyle.Rule(new Rect(x + w * 0.35f, y - UiStyle.S(36), w * 0.3f, UiStyle.S(8)));
-
-                GUIStyle body = UiStyle.Title;
+                GUIStyle body = UiStyle.Big;
                 TextAnchor previous = body.alignment;
                 bool wrap = body.wordWrap;
                 int size = body.fontSize;
-                body.alignment = TextAnchor.UpperCenter;
+                body.alignment = TextAnchor.MiddleCenter;
                 body.wordWrap = true;
-                body.fontSize = UiStyle.S(27);
+                body.fontSize = UiStyle.S(40);
+                Rect line = new Rect(x, y + drift, w, UiStyle.S(120));
                 // L'ombre d'abord, puis le texte : lisible sur n'importe quel fond.
-                UiStyle.Tinted(new Rect(x + 2f, y + 2f, w, UiStyle.S(200)), text.Substring(0, shown), body, new Color(0f, 0f, 0f, a * 0.8f));
-                UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(200)), text.Substring(0, shown), body, new Color(0.93f, 0.87f, 0.74f, a));
+                UiStyle.Tinted(new Rect(line.x + 3f, line.y + 3f, line.width, line.height), Story[beat], body, new Color(0f, 0f, 0f, a * 0.85f));
+                UiStyle.Tinted(line, Story[beat], body, new Color(0.95f, 0.89f, 0.76f, a));
                 body.alignment = previous;
                 body.wordWrap = wrap;
                 body.fontSize = size;
@@ -259,25 +239,24 @@ namespace Fief
             else
             {
                 // La derniere image : le titre de la partie.
-                float a = Mathf.Clamp01(beatTime * 1.5f);
                 GUIStyle big = UiStyle.Big;
                 TextAnchor previous = big.alignment;
                 big.alignment = TextAnchor.MiddleCenter;
-                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(20), Screen.width, UiStyle.S(80)), UiStyle.Spaced("LA SAISON COMMENCE"), big,
+                UiStyle.Tinted(new Rect(0f, y + drift, Screen.width, UiStyle.S(120)), UiStyle.Spaced("LA SAISON COMMENCE"), big,
                                new Color(0.93f, 0.78f, 0.45f, a));
                 big.alignment = previous;
             }
 
-            // Les points de progression, et de quoi passer.
-            for (int i = 0; i <= Story.Length; i++)
-            {
-                float d = UiStyle.S(7);
-                float px = Screen.width * 0.5f + (i - Story.Length * 0.5f) * UiStyle.S(18);
-                UiStyle.Icon(new Rect(px, Screen.height - UiStyle.S(70), d, d), UiStyle.Shape.Diamond,
-                             i == beat ? Palette.Gold : i < beat ? UiStyle.InkDim : UiStyle.InkFaint);
-            }
+            // Un fil d'or qui se remplit : on sait combien de temps il reste.
+            float done = 0f;
+            for (int i = 0; i < beat; i++) done += BeatLength(i);
+            done = Mathf.Clamp01((done + beatTime) / StoryLength());
+            float bw = UiStyle.S(260);
+            Rect bar = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(64), bw, UiStyle.S(2));
+            UiStyle.Fill(bar, new Color(1f, 1f, 1f, 0.12f));
+            UiStyle.Fill(new Rect(bar.x, bar.y, bar.width * done, bar.height), new Color(0.93f, 0.75f, 0.4f, 0.8f));
             UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(48), Screen.width - UiStyle.S(30), UiStyle.S(20)),
-                           "Clic ou Espace : continuer        Échap : passer le récit", RightTiny(), UiStyle.InkFaint);
+                           "Échap : passer", RightTiny(), UiStyle.InkFaint);
         }
 
         static GUIStyle rightTiny;
