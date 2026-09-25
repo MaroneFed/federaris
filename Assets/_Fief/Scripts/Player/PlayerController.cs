@@ -88,6 +88,7 @@ namespace Fief
         {
             knock += new Vector3(velocity.x, 0f, velocity.z);
             if (velocity.y > 0f) verticalVelocity = Mathf.Max(verticalVelocity, velocity.y);
+            if (velocity.y > 20f && orbitCamera != null) orbitCamera.Kick(14f);
             dashTime = 0f;
             pullTime = 0f;
         }
@@ -97,7 +98,7 @@ namespace Fief
             dashVelocity = direction.normalized * speed;
             dashTime = seconds;
             if (verticalVelocity < 1f) verticalVelocity = 1f;
-            if (orbitCamera != null) orbitCamera.Shake(0.1f);
+            if (orbitCamera != null) { orbitCamera.Shake(0.1f); orbitCamera.Kick(10f); }
         }
 
         public void PullTo(Vector3 point, float speed)
@@ -106,6 +107,7 @@ namespace Fief
             pullSpeed = speed;
             pullTime = 1.4f;
             dashTime = 0f;
+            if (orbitCamera != null) orbitCamera.Kick(12f);
         }
 
         public void Blink(Vector3 position)

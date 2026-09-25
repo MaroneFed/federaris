@@ -72,6 +72,14 @@ namespace Fief
             cinePitch = pitchOut;
         }
 
+        float kick;
+
+        /// <summary>Le champ de vision s'ouvre d'un coup (ruee, grappin, courant) : la vitesse se sent.</summary>
+        public void Kick(float degrees)
+        {
+            kick = Mathf.Max(kick, degrees);
+        }
+
         /// <summary>Secousse breve (atterrissage). L'amplitude est en metres.</summary>
         public void Shake(float amount)
         {
@@ -158,8 +166,9 @@ namespace Fief
                 if (view != null)
                 {
                     bool running = Game.Player != null && Game.Player.IsSprinting;
-                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f);
-                    view.fieldOfView = Mathf.Lerp(view.fieldOfView, wantedFov, 1f - Mathf.Exp(-5f * dt));
+                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f) + kick;
+                    kick = Mathf.MoveTowards(kick, 0f, dt * 30f);
+                    view.fieldOfView = Mathf.Lerp(view.fieldOfView, wantedFov, 1f - Mathf.Exp(-9f * dt));
                 }
 
                 Vector3 jolt1 = Vector3.zero;

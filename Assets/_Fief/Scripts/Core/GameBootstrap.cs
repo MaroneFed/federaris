@@ -197,7 +197,8 @@ namespace Fief
             cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
             cam.backgroundColor = Palette.Sky;
             // 78 degres : un champ trop etroit en premiere personne donne la nausee.
-            cam.fieldOfView = 78f;
+            Settings.Load();
+            cam.fieldOfView = Settings.Fov;
             cam.nearClipPlane = 0.10f;
             cam.farClipPlane = 3000f;
             camGo.AddComponent<AudioListener>();
@@ -245,6 +246,9 @@ namespace Fief
             Menus menus = go.AddComponent<Menus>();
             hud.menus = menus;
             Game.Menus = menus;
+            // Les reglages du joueur (sensibilite, volume, champ de vision) : apres la
+            // camera et la config, qu'ils modifient.
+            Settings.Apply();
         }
     }
 }

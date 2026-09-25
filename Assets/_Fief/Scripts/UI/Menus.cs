@@ -83,6 +83,8 @@ namespace Fief
             Current = s;
             stateTime = 0f;
             showControls = false;
+            showSettings = false;
+            confirmAbandon = false;
             selected = 0;
         }
 
@@ -104,10 +106,12 @@ namespace Fief
             {
                 WarnOfTime(season);
                 // Le temps est ecoule : celui qui tient la Couronne gagne ; sinon personne.
-                if (season.Over) EndRound(Crown.Holder != null ? Crown.Holder.Index : -1);
+                if (season.Over) { endedByTime = true; EndRound(Crown.Holder != null ? Crown.Holder.Index : -1); }
             }
             if (Current == State.Briefing && stateTime > BriefingLength && !leaving) Enter();
             if (Current == State.Draft) TickDraft(dt);
+            if (Current == State.Playing) TickCountdown(dt);
+            if (goFlash > 0f) goFlash = Mathf.Max(0f, goFlash - dt * 1.2f);
             if (Current == State.RoundOver && stateTime > 9f && !leaving) AfterRound();
 
             if (!leaving) Keyboard();
@@ -129,16 +133,16 @@ namespace Fief
 
             // Un seul endroit decide qui a la main : souris libre et joueur fige des
             // qu'un menu est ouvert.
-            bool blocked = Blocking || leaving;
-            Cursor.lockState = blocked ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = blocked && !leaving && Current != State.Briefing;
+            bool blocked = Blocking || leaving || countdown > 0f;
+            Cursor.lockState = blocked && countdown <= 0f ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = blocked && !leaving && Current != State.Briefing && countdown <= 0f;
 
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (Game.Player != null) Game.Player.InputLocked = blocked;
-            if (cam != null) cam.InputLocked = blocked;
+            if (cam != null) cam.InputLocked = blocked && countdown <= 0f;     // pendant le compte, on regarde autour de soi
             if (Game.Hud != null && Game.Hud.interactor != null) Game.Hud.interactor.InputLocked = blocked;
 
-            float wantVeil = Current == State.Paused || showControls || Current == State.Lobby || Current == State.Online ? 0.82f
+            float wantVeil = Current == State.Paused || showControls || showSettings || Current == State.Lobby || Current == State.Online ? 0.82f
                            : Current == State.RoundOver && stateTime < 1.3f ? 0.1f     // on regarde d'abord le ralenti
                            : Current == State.RoundOver || Current == State.Draft || Current == State.Ended ? 0.86f : 0f;
             veil = Mathf.MoveTowards(veil, wantVeil, dt * 3f);
@@ -175,10 +179,12 @@ namespace Fief
         {
             if (FiefInput.CancelPressed)
             {
-                if (showControls) { showControls = false; selected = 0; }
+                confirmAbandon = false;
+                if (showSettings) { showSettings = false; selected = 1; }
+                else if (showControls) { showControls = false; selected = 0; }
                 else if (Current == State.Lobby || Current == State.Online) Go(State.Title);
                 else if (Current == State.Briefing) Enter();
-                else if (Current == State.Playing) Pause();
+                else if (Current == State.Playing && countdown <= 0f) Pause();
                 else if (Current == State.Paused) Resume();
                 return;
             }
@@ -188,6 +194,19 @@ namespace Fief
             if (showControls)
             {
                 if (FiefInput.ConfirmPressed) { showControls = false; selected = 0; Sfx.Pop(); }
+                return;
+            }
+            if (showSettings)
+            {
+                int rows = Settings.Labels.Length + 1;
+                if (FiefInput.UpPressed) { selected = (selected + rows - 1) % rows; Sfx.Pop(); }
+                if (FiefInput.DownPressed) { selected = (selected + 1) % rows; Sfx.Pop(); }
+                if (selected < Settings.Labels.Length)
+                {
+                    if (FiefInput.LeftPressed) { Settings.Step(selected, -1); Sfx.Pop(); }
+                    if (FiefInput.RightPressed || FiefInput.ConfirmPressed) { Settings.Step(selected, 1); Sfx.Pop(); }
+                }
+                else if (FiefInput.ConfirmPressed) { showSettings = false; selected = 0; Sfx.Pop(); }
                 return;
             }
 
@@ -206,8 +225,8 @@ namespace Fief
 
             int count = Entries();
             if (count <= 0) return;
-            if (FiefInput.UpPressed) { selected = (selected + count - 1) % count; Sfx.Pop(); }
-            if (FiefInput.DownPressed) { selected = (selected + 1) % count; Sfx.Pop(); }
+            if (FiefInput.UpPressed) { selected = (selected + count - 1) % count; confirmAbandon = false; Sfx.Pop(); }
+            if (FiefInput.DownPressed) { selected = (selected + 1) % count; confirmAbandon = false; Sfx.Pop(); }
             if (Current == State.Lobby)
             {
                 if (FiefInput.LeftPressed) Adjust(selected, -1);
@@ -222,7 +241,7 @@ namespace Fief
             switch (Current)
             {
                 case State.Title: return TitleItems.Length;
-                case State.Lobby: return 5;
+                case State.Lobby: return LobbyRows + 2;
                 case State.Online: return 1;
                 case State.Paused: return PauseItems.Length;
                 case State.RoundOver: return stateTime > 1.8f ? 1 : 0;
@@ -231,9 +250,16 @@ namespace Fief
             return 0;
         }
 
-        static readonly string[] TitleItems = { "Jouer", "En ligne", "Commandes", "Quitter" };
-        static readonly string[] PauseItems = { "Reprendre", "Commandes", "Abandonner le match", "Quitter le jeu" };
+        static readonly string[] TitleItems = { "Jouer", "En ligne", "Réglages", "Commandes", "Quitter" };
+        static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
         static readonly string[] EndItems = { "Nouveau match", "Quitter" };
+
+        /// <summary>Le salon : les lignes a regler (joueurs, bots, manches, duree), puis Commencer et Retour.</summary>
+        const int LobbyRows = 4;
+
+        bool showSettings;
+        /// <summary>"Abandonner le match" demande une seconde pression (on ne perd pas un match d'un clic egare).</summary>
+        bool confirmAbandon;
 
         /// <summary>Valider l'entree "i" de l'ecran courant (Entree, ou clic).</summary>
         void Activate(int i)
@@ -245,12 +271,13 @@ namespace Fief
                 case State.Title:
                     if (i == 0) Go(State.Lobby);
                     else if (i == 1) Go(State.Online);
-                    else if (i == 2) { showControls = true; selected = 0; }
+                    else if (i == 2) { showSettings = true; selected = 0; }
+                    else if (i == 3) { showControls = true; selected = 0; }
                     else Quit();
                     break;
                 case State.Lobby:
-                    if (i <= 2) Adjust(i, 1);
-                    else if (i == 3) StartMatch();
+                    if (i < LobbyRows) Adjust(i, 1);
+                    else if (i == LobbyRows) StartMatch();
                     else Go(State.Title);
                     break;
                 case State.Online:
@@ -258,8 +285,15 @@ namespace Fief
                     break;
                 case State.Paused:
                     if (i == 0) Resume();
-                    else if (i == 1) { showControls = true; selected = 0; }
-                    else if (i == 2) { Match.Abandon(); Curtain(Reload); }
+                    else if (i == 1) { showSettings = true; selected = 0; }
+                    else if (i == 2) { showControls = true; selected = 0; }
+                    else if (i == 3)
+                    {
+                        if (!confirmAbandon) { confirmAbandon = true; break; }
+                        confirmAbandon = false;
+                        Match.Abandon();
+                        Curtain(Reload);
+                    }
                     else Quit();
                     break;
                 case State.RoundOver:
@@ -272,12 +306,13 @@ namespace Fief
             }
         }
 
-        /// <summary>Le salon : regler une ligne (joueurs, manches, duree) d'un cran.</summary>
+        /// <summary>Le salon : regler une ligne (joueurs, bots, manches, duree) d'un cran.</summary>
         void Adjust(int row, int step)
         {
             if (row == 0) lobbyBots = Mathf.Clamp(lobbyBots + step, 1, 3);
-            else if (row == 1) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
-            else if (row == 2) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
+            else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
+            else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
+            else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
             else return;
             Sfx.Pop();
         }
@@ -336,10 +371,38 @@ namespace Fief
                 if (cam.target != null) cam.yaw = cam.target.eulerAngles.y;
                 cam.pitch = 3f;
             }
-            // L'horloge ne part qu'ici : l'intro ne mange pas le temps de la manche.
-            if (Game.Season != null) Game.Season.Begin();
+            // Le compte a rebours : trois secondes ou tout le monde est fige sur sa
+            // ligne de depart. L'horloge (et les bots, les Yeux) ne partent qu'au "PARTEZ".
+            countdown = 3f;
+            lastCount = 4;
             Toasts.Clear();
+        }
+
+        float countdown;
+        int lastCount;
+        float goFlash;
+
+        void TickCountdown(float dt)
+        {
+            if (countdown <= 0f) return;
+            countdown -= dt;
+            int n = Mathf.CeilToInt(countdown);
+            if (n != lastCount && n > 0) { lastCount = n; Sfx.Beep(1f); }
+            if (countdown > 0f) return;
+            countdown = 0f;
+            goFlash = 1f;
+            if (Game.Season != null) Game.Season.Begin();
             Sfx.Bell();
+        }
+
+        void DrawCountdown()
+        {
+            if (countdown > 0f)
+            {
+                float frac = countdown - Mathf.Floor(countdown);
+                Headline(Screen.height * 0.34f, Mathf.Lerp(90f, 130f, frac), Mathf.CeilToInt(countdown).ToString(), new Color(1f, 0.86f, 0.55f, 0.5f + 0.5f * frac));
+            }
+            else if (goFlash > 0f) Headline(Screen.height * 0.34f, 96f, "PARTEZ !", new Color(1f, 0.86f, 0.55f, goFlash));
         }
 
         /// <summary>
@@ -350,7 +413,9 @@ namespace Fief
         public void EndRound(int winner)
         {
             if (Current != State.Playing && Current != State.Paused) return;
-            if (Game.Season != null) Game.Season.Stop();
+            if (Game.Season != null) { roundTime = Game.Season.Elapsed; Game.Season.Stop(); }
+            byTime = endedByTime;
+            endedByTime = false;
             // LE RALENTI : une seconde et demie ou le monde retient son souffle.
             Time.timeScale = winner >= 0 ? 0.25f : 1f;
             slowMotion = winner >= 0 ? 1.6f : 0f;
@@ -494,7 +559,8 @@ namespace Fief
             if (Current == State.Title || Current == State.Lobby || Current == State.Online) GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
             if (veil > 0.001f) UiStyle.Fill(screen, new Color(0.015f, 0.014f, 0.012f, 0.84f * veil));
 
-            if (showControls) DrawControls();
+            if (showSettings) DrawSettings();
+            else if (showControls) DrawControls();
             else
             {
                 switch (Current)
@@ -507,6 +573,7 @@ namespace Fief
                     case State.RoundOver: DrawRoundOver(); break;
                     case State.Draft: DrawDraft(); break;
                     case State.Ended: DrawEnd(); break;
+                    case State.Playing: DrawCountdown(); break;
                 }
             }
 
@@ -642,25 +709,12 @@ namespace Fief
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("NOUVEAU MATCH"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
             y += UiStyle.S(80);
 
-            string[] labels = { "Joueurs", "Manches", "Durée max" };
-            string[] values = { (lobbyBots + 1).ToString(), lobbyRounds.ToString(), lobbyMinutes + " min" };
-            for (int i = 0; i < 3; i++)
+            string[] labels = { "Joueurs", "Bots", "Manches", "Durée max" };
+            string[] values = { (lobbyBots + 1).ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min" };
+            for (int i = 0; i < LobbyRows; i++)
             {
-                Rect row = new Rect(x, y, UiStyle.S(520), UiStyle.S(44));
-                if (Entry(row, labels[i], i, false, 1f)) { }
-                // La valeur, avec ses deux fleches cliquables.
-                bool on = selected == i;
-                GUIStyle vs = Style(UiStyle.Head, 24, TextAnchor.MiddleCenter);
-                Color vc = on ? new Color(1f, 0.84f, 0.5f) : UiStyle.Ink;
-                float vx = x + UiStyle.S(250);
-                Rect minus = new Rect(vx, y, UiStyle.S(40), row.height);
-                Rect value = new Rect(vx + UiStyle.S(40), y, UiStyle.S(110), row.height);
-                Rect plus = new Rect(vx + UiStyle.S(150), y, UiStyle.S(40), row.height);
-                Shadow(minus, "‹", vs, new Color(vc.r, vc.g, vc.b, on ? 0.9f : 0.35f));
-                Shadow(value, values[i], vs, vc);
-                Shadow(plus, "›", vs, new Color(vc.r, vc.g, vc.b, on ? 0.9f : 0.35f));
-                if (GUI.Button(minus, GUIContent.none, GUIStyle.none)) { selected = i; Adjust(i, -1); }
-                if (GUI.Button(plus, GUIContent.none, GUIStyle.none)) { selected = i; Adjust(i, 1); }
+                int row = i;
+                ValueRow(x, y, labels[i], values[i], i, step => Adjust(row, step));
                 y += UiStyle.S(48);
 
                 // Sous "Joueurs" : qui joue, a sa couleur.
@@ -677,6 +731,13 @@ namespace Fief
                     }
                     y += UiStyle.S(20);
                 }
+                // Sous "Bots" : ce que ca change, en une ligne.
+                if (i == 1)
+                {
+                    string[] what = { "plus lents, sans courants ni embuscade", "aussi rapides que toi", "rapides, vifs, sans pitié" };
+                    Shadow(new Rect(x + UiStyle.S(16), y - UiStyle.S(8), UiStyle.S(500), UiStyle.S(20)), what[Match.BotLevel], Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), UiStyle.InkFaint);
+                    y += UiStyle.S(20);
+                }
             }
 
             // Une estimation, en un mot : une manche dure rarement tout son temps.
@@ -684,11 +745,50 @@ namespace Fief
             Shadow(new Rect(x + UiStyle.S(16), y, UiStyle.S(500), UiStyle.S(20)), "un match d'environ " + estimate + " min", Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), UiStyle.InkFaint);
             y += UiStyle.S(50);
 
-            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(50)), "Commencer", 3, true, 1f)) Activate(3);
+            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(50)), "Commencer", LobbyRows, true, 1f)) Activate(LobbyRows);
             y += UiStyle.S(56);
-            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(38)), "Retour", 4, false, 1f)) Activate(4);
+            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(38)), "Retour", LobbyRows + 1, false, 1f)) Activate(LobbyRows + 1);
 
             Footer("↑ ↓  choisir     ← →  régler     Entrée  valider     Échap  retour");
+        }
+
+        /// <summary>Une ligne a regler : "Joueurs   ‹ 4 ›". Les fleches se cliquent ; au clavier, gauche/droite.</summary>
+        void ValueRow(float x, float y, string label, string value, int index, System.Action<int> adjust)
+        {
+            Rect row = new Rect(x, y, UiStyle.S(520), UiStyle.S(44));
+            Entry(row, label, index, false, 1f);
+            bool on = selected == index;
+            GUIStyle vs = Style(UiStyle.Head, 24, TextAnchor.MiddleCenter);
+            Color vc = on ? new Color(1f, 0.84f, 0.5f) : UiStyle.Ink;
+            float vx = x + UiStyle.S(270);
+            Rect minus = new Rect(vx, y, UiStyle.S(40), row.height);
+            Rect val = new Rect(vx + UiStyle.S(40), y, UiStyle.S(130), row.height);
+            Rect plus = new Rect(vx + UiStyle.S(170), y, UiStyle.S(40), row.height);
+            Shadow(minus, "‹", vs, new Color(vc.r, vc.g, vc.b, on ? 0.9f : 0.35f));
+            Shadow(val, value, vs, vc);
+            Shadow(plus, "›", vs, new Color(vc.r, vc.g, vc.b, on ? 0.9f : 0.35f));
+            if (GUI.Button(minus, GUIContent.none, GUIStyle.none)) { selected = index; adjust.Invoke(-1); }
+            if (GUI.Button(plus, GUIContent.none, GUIStyle.none)) { selected = index; adjust.Invoke(1); }
+        }
+
+        // ------------------------------------------------------------------ les reglages
+
+        /// <summary>LES REGLAGES : sensibilite, volume, champ de vision, plein ecran. Garde d'une partie a l'autre.</summary>
+        void DrawSettings()
+        {
+            float x = Left;
+            float y = Screen.height * 0.5f - UiStyle.S(170);
+            Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("RÉGLAGES"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
+            y += UiStyle.S(80);
+            for (int i = 0; i < Settings.Labels.Length; i++)
+            {
+                int row = i;
+                ValueRow(x, y, Settings.Labels[i], Settings.Value(i), i, step => { Settings.Step(row, step); Sfx.Pop(); });
+                y += UiStyle.S(48);
+            }
+            y += UiStyle.S(24);
+            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", Settings.Labels.Length, false, 1f)) { showSettings = false; selected = 0; }
+            Footer("↑ ↓  choisir     ← →  régler     Échap  retour");
         }
 
         // ------------------------------------------------------------------ en ligne
@@ -806,7 +906,8 @@ namespace Fief
             {
                 bool primary = i == 0;
                 float h = UiStyle.S(primary ? 48 : 38);
-                if (Entry(new Rect(x, y, UiStyle.S(460), h), PauseItems[i], i, primary, 1f)) Activate(i);
+                string label = i == 3 && confirmAbandon ? "Abandonner ? Encore une fois pour confirmer" : PauseItems[i];
+                if (Entry(new Rect(x, y, UiStyle.S(620), h), label, i, primary, 1f)) Activate(i);
                 y += h + UiStyle.S(4);
             }
             Footer("↑ ↓  choisir     Entrée  valider     Échap  reprendre");
@@ -818,6 +919,9 @@ namespace Fief
         /// FIN DE MANCHE : qui l'a gagnee (son nom, a sa couleur, en grand), et le
         /// score en une ligne. Puis le choix des capacites -- tout seul, ou Entree.
         /// </summary>
+        bool endedByTime, byTime;
+        float roundTime;
+
         void DrawRoundOver()
         {
             // Le ralenti d'abord (le monde, la Couronne sur l'autel), puis le verdict.
@@ -830,7 +934,13 @@ namespace Fief
                 Headline(y, 60, w.IsLocal ? "TU REMPORTES LA MANCHE" : w.Name.ToUpperInvariant() + " REMPORTE LA MANCHE", new Color(c.r, c.g, c.b, a));
             }
             else Headline(y, 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
-            y += UiStyle.S(100);
+            y += UiStyle.S(84);
+            // Comment : on doit comprendre pourquoi la manche s'arrete.
+            string how = w == null ? "Le temps s'est écoulé, et personne ne tenait la Couronne."
+                       : byTime ? (w.IsLocal ? "Tu tenais la Couronne quand le temps s'est écoulé." : w.Name + " tenait la Couronne quand le temps s'est écoulé.")
+                       : (w.IsLocal ? "Tu as porté la Couronne au Monument" : w.Name + " a porté la Couronne au Monument") + " en " + Hud.Clock(roundTime) + ".";
+            Centered(y, UiStyle.S(26), how, UiStyle.Label, new Color(0.9f, 0.86f, 0.78f, a));
+            y += UiStyle.S(50);
             ScoreLine(y, a);
             y += UiStyle.S(70);
 
@@ -912,6 +1022,16 @@ namespace Fief
                 float bw = UiStyle.S(360);
                 if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, UiStyle.S(48)), label, 0, true, 1f)) FinishDraft();
             }
+
+            // Ce que les autres viennent de prendre : on sait ce qui nous attend.
+            string taken = "";
+            for (int i = 0; i < Match.Draft.Picked.Count; i++)
+            {
+                PlayerSlot who = Match.Slots[Match.Draft.PickedBy[i]];
+                if (who.IsLocal) continue;
+                taken += (taken.Length > 0 ? "   ·   " : "") + who.Name + " a pris " + AbilityInfo.Name(Match.Draft.Picked[i]);
+            }
+            if (taken.Length > 0) Centered(Screen.height - UiStyle.S(122), UiStyle.S(24), taken, UiStyle.Label, new Color(0.86f, 0.8f, 0.7f, 0.85f));
 
             // Ce que tu as deja, en bas : on sait ce qu'on echange.
             if (Match.Local != null && Match.Local.Abilities.Count > 0)

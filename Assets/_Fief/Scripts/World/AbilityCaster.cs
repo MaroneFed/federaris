@@ -30,6 +30,32 @@ namespace Fief
     /// </summary>
     public static class AbilityCaster
     {
+        // Les portees des capacites qui visent (le HUD s'en sert pour dire "-> Mahaut").
+        public const float GrappinRange = 34f;
+        public const float CrochetRange = 24f;
+        public const float EchangeRange = 32f;
+        public const float AimAngle = 12f;
+
+        /// <summary>Qui (ou quoi) une capacite visee toucherait maintenant : le nom d'un joueur, "accroche", ou null.</summary>
+        public static string AimedAt(Seeker s, Ability a, Vector3 eye, Vector3 aim)
+        {
+            if (s == null || s.Body == null) return null;
+            if (a == Ability.Crochet || a == Ability.Echange)
+            {
+                Seeker t = Combat.Aimed(s, eye, aim, a == Ability.Crochet ? CrochetRange : EchangeRange, AimAngle);
+                return t != null ? t.Name : null;
+            }
+            if (a == Ability.Grappin)
+            {
+                RaycastHit hit;
+                return RayFrom(s, eye, aim, GrappinRange, out hit) ? "accroche" : null;
+            }
+            return null;
+        }
+
+        /// <summary>Vrai pour les capacites qui visent quelque chose (le HUD dit si la visee est bonne).</summary>
+        public static bool Aims(Ability a) { return a == Ability.Crochet || a == Ability.Echange || a == Ability.Grappin; }
+
         public static IMover MoverOf(Seeker s)
         {
             if (s == null) return null;
@@ -74,7 +100,7 @@ namespace Fief
                 case Ability.Grappin:
                 {
                     RaycastHit hit;
-                    if (!RayFrom(s, eye, aim, 34f, out hit)) { s.Refund(a); return false; }
+                    if (!RayFrom(s, eye, aim, GrappinRange, out hit)) { s.Refund(a); return false; }
                     // Contre un mur ou un rebord (normale a l'horizontale) : on vise un peu
                     // au-dessus, pour arriver PAR-DESSUS le rebord et s'y hisser.
                     Vector3 grip = hit.point + hit.normal * 0.6f;
@@ -86,7 +112,7 @@ namespace Fief
 
                 case Ability.Crochet:
                 {
-                    Seeker t = Combat.Aimed(s, eye, aim, 24f, 12f);
+                    Seeker t = Combat.Aimed(s, eye, aim, CrochetRange, AimAngle);
                     if (t == null) { s.Refund(a); return false; }
                     Vector3 toMe = Combat.Flat(pos - t.Body.position);
                     float d = toMe.magnitude;
@@ -143,7 +169,7 @@ namespace Fief
 
                 case Ability.Echange:
                 {
-                    Seeker t = Combat.Aimed(s, eye, aim, 32f, 12f);
+                    Seeker t = Combat.Aimed(s, eye, aim, EchangeRange, AimAngle);
                     IMover other = MoverOf(t);
                     if (t == null || other == null) { s.Refund(a); return false; }
                     Vector3 mine = pos, theirs = t.Body.position;

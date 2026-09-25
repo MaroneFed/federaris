@@ -59,6 +59,8 @@ namespace Fief
         public static readonly List<int> TieBreakers = new List<int>();
         /// <summary>Une graine par manche : le monument change de place, les coffres aussi.</summary>
         public static int RoundSeed { get; private set; }
+        /// <summary>Change a chaque nouveau match (les astuces du HUD se remontrent).</summary>
+        public static int MatchId { get; private set; }
 
         static readonly string[] BotNames = { "Mahaut", "Oswin", "Guerin" };
 
@@ -101,6 +103,7 @@ namespace Fief
             TieBreakers.Clear();
             Draft.Clear();
             RoundSeed = System.Environment.TickCount;
+            MatchId++;
             Active = true;
             Launched = false;
         }
@@ -197,6 +200,9 @@ namespace Fief
         {
             public static readonly List<Ability> Offer = new List<Ability>();
             public static readonly List<int> Order = new List<int>();
+            /// <summary>Ce que chacun a pris a ce choix, dans l'ordre (l'ecran le raconte).</summary>
+            public static readonly List<int> PickedBy = new List<int>();
+            public static readonly List<Ability> Picked = new List<Ability>();
             public static int Turn { get; private set; }
 
             public static bool Done { get { return Turn >= Order.Count; } }
@@ -206,6 +212,8 @@ namespace Fief
             {
                 Offer.Clear();
                 Order.Clear();
+                PickedBy.Clear();
+                Picked.Clear();
                 Turn = 0;
             }
 
@@ -270,6 +278,8 @@ namespace Fief
                 int lost = WouldReplace(slot, p);
                 if (lost >= 0) Slots[slot].Abilities.Remove((Ability)lost);
                 Slots[slot].Abilities.Add(p);
+                PickedBy.Add(slot);
+                Picked.Add(p);
                 Offer.RemoveAt(card);
                 Turn++;
                 while (!Done && !AnyNewFor(Current)) Turn++;

@@ -100,7 +100,90 @@ namespace Fief
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
             if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.4f);
             if (hurtFlash > 0f) hurtFlash = Mathf.Max(0f, hurtFlash - Time.unscaledDeltaTime * 2f);
+            if (hitSideTimer > 0f) hitSideTimer -= Time.unscaledDeltaTime;
+            if (tipTimer > 0f) tipTimer -= Time.unscaledDeltaTime;
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
+            if (Game.Season != null && Game.Season.Running && !Hidden)
+            {
+                WatchReady();
+                WatchTips();
+                TickLastSeconds(Game.Season.Remaining);
+            }
+        }
+
+        // ================================================================== ce qui se surveille
+
+        readonly Dictionary<Ability, bool> wasReady = new Dictionary<Ability, bool>();
+        readonly Dictionary<Ability, float> readyFlash = new Dictionary<Ability, float>();
+
+        /// <summary>Une capacite revient : une note claire, et sa ligne s'eclaire un instant.</summary>
+        void WatchReady()
+        {
+            Seeker me = Game.Me;
+            if (me == null) return;
+            List<Ability> list = me.Slot.Actives;
+            if (me.HasGift) list.Add(me.Gift);
+            for (int i = 0; i < list.Count; i++)
+            {
+                Ability a = list[i];
+                bool r = me.Ready(a, Time.time);
+                bool was;
+                if (wasReady.TryGetValue(a, out was) && !was && r)
+                {
+                    readyFlash[a] = Time.unscaledTime;
+                    Sfx.Beep(1.5f);
+                }
+                wasReady[a] = r;
+            }
+        }
+
+        int lastTick = -1;
+
+        /// <summary>Les dix dernieres secondes : un battement par seconde.</summary>
+        void TickLastSeconds(float left)
+        {
+            int s = Mathf.CeilToInt(left);
+            if (s == lastTick) return;
+            lastTick = s;
+            if (s <= 10 && s > 0) Sfx.Beep(s <= 3 ? 1.2f : 0.8f);
+        }
+
+        // ================================================================== les astuces
+
+        /// <summary>Les astuces deja montrees pendant ce match (une seule fois chacune).</summary>
+        static readonly HashSet<string> tipsShown = new HashSet<string>();
+        static int tipsMatch = -1;
+        string tipText;
+        float tipTimer;
+        const float TipDuration = 5.5f;
+
+        /// <summary>Une astuce, une seule fois par match, au moment ou elle sert.</summary>
+        public void Tip(string key, string text)
+        {
+            if (tipsShown.Contains(key) || tipTimer > 1f) return;
+            tipsShown.Add(key);
+            tipText = text;
+            tipTimer = TipDuration;
+        }
+
+        /// <summary>
+        /// LES ASTUCES AU BON MOMENT (27/09 -- « on comprend rien ») : pas de tutoriel,
+        /// une phrase quand on en a besoin. Le premier pas sur la rampe, le premier
+        /// courant, la premiere Couronne en main, le premier Oeil qui te voit.
+        /// </summary>
+        void WatchTips()
+        {
+            if (tipsMatch != Match.MatchId) { tipsMatch = Match.MatchId; tipsShown.Clear(); }
+            Seeker me = Game.Me;
+            if (me == null || me.Body == null) return;
+            Vector3 p = me.Body.position;
+            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. File au Monument — si tu sautes de haut, la Couronne reste là-haut.");
+            else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
+            else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
+            else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : clic gauche.");
+            else if (Eye.ChargingAt(me)) Tip("oeil", "Un Œil devient rouge quand il vise : fais un pas de côté au dernier moment.");
+            else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le pour qu'il la lâche.");
+            else if (me.HasGift) Tip("don", "Ton don est sur la touche V, pour cette manche.");
         }
 
         bool Hidden { get { return menus != null && menus.Blocking; } }
@@ -120,6 +203,7 @@ namespace Fief
             DrawCentre();
             DrawPrompt();
             DrawCard();
+            DrawTip();
             Toasts.Draw();
             DrawBuildError();
             if (showDiagnostic) DrawDiagnostic();
@@ -138,7 +222,15 @@ namespace Fief
             bool late = left < 60f;
             Color clock = late ? Color.Lerp(new Color(1f, 0.4f, 0.3f), UiStyle.Ink, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f)) : UiStyle.Ink;
             Rect clockRect = new Rect(0f, UiStyle.S(14), Screen.width, UiStyle.S(40));
-            Text(clockRect, Clock(left), BigCentered(), clock);
+            // Les dix dernieres secondes : le chrono grossit a chaque battement.
+            if (left <= 10f && left > 0f)
+            {
+                float beat = 1f - Mathf.Repeat(left, 1f);
+                GUIStyle huge = Sized(UiStyle.Title, Mathf.Lerp(1.9f, 1.4f, beat));
+                Text(new Rect(0f, UiStyle.S(10), Screen.width, UiStyle.S(64)), Mathf.CeilToInt(left).ToString(), huge, new Color(1f, 0.45f, 0.32f));
+                clockRect.y += UiStyle.S(20);
+            }
+            else Text(clockRect, Clock(left), BigCentered(), clock);
 
             string round = Match.IsTieBreak ? "DÉPARTAGE" : "MANCHE " + Match.RoundNumber + " / " + Match.Rounds;
             Text(new Rect(0f, clockRect.yMax, Screen.width, UiStyle.S(18)), UiStyle.Spaced(round), UiStyle.CenteredSmall, UiStyle.InkDim);
@@ -147,6 +239,28 @@ namespace Fief
             Color tint;
             CrownLine(out line, out tint);
             Text(new Rect(0f, clockRect.yMax + UiStyle.S(22), Screen.width, UiStyle.S(24)), line, UiStyle.Centered, tint);
+
+            // Ou j'en suis : mon tour de rampe, ou la distance du Monument si je porte.
+            Seeker me = Game.Me;
+            if (me == null || me.Body == null) return;
+            string mine = null;
+            if (me.CarriesCrown && Monument.Instance != null)
+                mine = "Monument à " + Mathf.RoundToInt(Combat.Flat(Monument.Instance.transform.position - me.Body.position).magnitude) + " m";
+            else if (Tower.On(me.Body.position))
+                mine = Tower.Progress(me.Body.position) >= 0.999f ? "Au sommet" : "Tour " + (Mathf.FloorToInt(Tower.Progress(me.Body.position) * Tower.Turns) + 1) + " sur " + Tower.Turns;
+            if (mine != null)
+                Text(new Rect(0f, clockRect.yMax + UiStyle.S(46), Screen.width, UiStyle.S(20)), mine, UiStyle.CenteredSmall, new Color(0.9f, 0.86f, 0.76f, 0.8f));
+        }
+
+        /// <summary>Ou se trouve un joueur, en quelques mots.</summary>
+        static string Where(Seeker s)
+        {
+            if (s == null || s.Body == null) return "";
+            Vector3 p = s.Body.position;
+            if (Tower.On(p)) return Tower.Progress(p) >= 0.999f ? "au sommet de la tour" : "sur la rampe";
+            if (Castle.Inside(p)) return "dans la citadelle";
+            if (Monument.Instance != null && Combat.Flat(Monument.Instance.transform.position - p).magnitude < 40f) return "près du Monument";
+            return "en forêt";
         }
 
         /// <summary>Une phrase qui dit ou est la Couronne, et quoi faire.</summary>
@@ -165,14 +279,14 @@ namespace Fief
                 }
                 else
                 {
-                    line = holder.Name + " porte la Couronne — pousse-le";
+                    line = holder.Name + " porte la Couronne, " + Where(holder) + " — pousse-le";
                     tint = holder.Colour;
                 }
                 return;
             }
             if (where == Crown.State.Dropped)
             {
-                line = "La Couronne est à terre — retour au sommet dans " + Mathf.CeilToInt(Crown.ReturnIn) + " s";
+                line = "La Couronne est à terre — passe dessus ! (retour au sommet dans " + Mathf.CeilToInt(Crown.ReturnIn) + " s)";
                 tint = new Color(1f, 0.78f, 0.4f);
                 return;
             }
@@ -255,6 +369,10 @@ namespace Fief
             Color tint = AbilityInfo.Tint(a);
             float h = UiStyle.S(24);
 
+            // Elle vient de revenir : sa ligne s'eclaire une demi-seconde.
+            float lit;
+            if (readyFlash.TryGetValue(a, out lit) && Time.unscaledTime - lit < 0.5f)
+                UiStyle.Fill(new Rect(x - UiStyle.S(6), y, keyW + nameW + UiStyle.S(80), h), new Color(tint.r, tint.g, tint.b, 0.25f * (1f - (Time.unscaledTime - lit) / 0.5f)));
             Text(new Rect(x, y, keyW, h), key.ToUpperInvariant(), UiStyle.Small, ready && !blocked ? Palette.Gold : UiStyle.InkFaint);
             Text(new Rect(x + keyW, y, nameW, h), AbilityInfo.Name(a), UiStyle.Label, ready && !blocked ? UiStyle.Ink : UiStyle.InkFaint);
 
@@ -264,7 +382,16 @@ namespace Fief
             {
                 // Le trait plein, a la couleur de la capacite.
                 UiStyle.Fill(new Rect(sx, y + h * 0.5f - 1f, UiStyle.S(60), UiStyle.S(3)), new Color(tint.r, tint.g, tint.b, 0.9f));
-                if (gift) Text(new Rect(sx + UiStyle.S(68), y, stateW, h), "don", UiStyle.Small, UiStyle.InkFaint);
+                // Une capacite qui vise : ce qu'elle toucherait maintenant.
+                string note = gift ? "don" : null;
+                Color nc = UiStyle.InkFaint;
+                if (AbilityCaster.Aims(a) && viewCamera != null)
+                {
+                    string at = AbilityCaster.AimedAt(me, a, viewCamera.transform.position, viewCamera.transform.forward);
+                    note = at != null ? "→ " + at : "rien en vue";
+                    nc = at != null ? new Color(tint.r, tint.g, tint.b, 1f) : UiStyle.InkFaint;
+                }
+                if (note != null) Text(new Rect(sx + UiStyle.S(68), y, stateW + UiStyle.S(60), h), note, UiStyle.Small, nc);
             }
             else
             {
@@ -288,7 +415,7 @@ namespace Fief
             float d = UiStyle.S(foe ? 6 : 3);
             Color c = foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : new Color(1f, 1f, 1f, 0.7f);
             UiStyle.Fill(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), c);
-            if (foe) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), "clic gauche  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
+            if (foe && Stats.Shoves < 3) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), "clic gauche  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
 
             // La recharge de la poussee : un trait fin sous le point.
             if (me != null && Time.time < me.ShoveReadyAt)
@@ -398,6 +525,18 @@ namespace Fief
                 UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(1f, 0.95f, 0.85f, hurtFlash * hurtFlash * 0.22f));
             if (me == null) return;
 
+            // D'ou vient le coup : le bord de l'ecran de ce cote rougit.
+            if (hitSideTimer > 0f)
+            {
+                float a = Mathf.Clamp01(hitSideTimer / 0.8f) * 0.55f;
+                Color red = new Color(0.9f, 0.08f, 0.05f, a);
+                float e = UiStyle.S(90);
+                if (hitSide.x > 0.4f) UiStyle.FadeBand(new Rect(Screen.width - e, 0f, e, Screen.height), red);
+                if (hitSide.x < -0.4f) UiStyle.FadeBand(new Rect(0f, 0f, e, Screen.height), red);
+                if (hitSide.y > 0.4f) UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, e), red);
+                if (hitSide.y < -0.4f) UiStyle.FadeBand(new Rect(0f, Screen.height - e, Screen.width, e), red);
+            }
+
             // Un Oeil charge sur toi : les bords battent en rouge, de plus en plus vite.
             if (Eye.ChargingAt(me))
             {
@@ -425,6 +564,16 @@ namespace Fief
         {
             UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, e), c);
             UiStyle.FadeBand(new Rect(0f, Screen.height - e, Screen.width, e), c);
+        }
+
+        // ================================================================== l'astuce
+
+        void DrawTip()
+        {
+            if (tipTimer <= 0f || string.IsNullOrEmpty(tipText)) return;
+            float a = Mathf.Clamp01((TipDuration - tipTimer) / 0.3f) * Mathf.Clamp01(tipTimer / 0.6f);
+            Rect r = new Rect(Screen.width * 0.2f, Screen.height * 0.68f, Screen.width * 0.6f, UiStyle.S(50));
+            Text(r, tipText, WrappedCentered(), new Color(0.96f, 0.92f, 0.8f, a));
         }
 
         // ================================================================== le grand titre
@@ -485,7 +634,34 @@ namespace Fief
             UiStyle.Tinted(r, text, style, c);
         }
 
-        static GUIStyle bigCentered, rightSmall, wrapped;
+        static GUIStyle bigCentered, rightSmall, wrapped, wrappedCentered;
+        static readonly Dictionary<int, GUIStyle> sized = new Dictionary<int, GUIStyle>();
+
+        /// <summary>Une copie du style "from", "k" fois plus grande et centree (jamais le style partage lui-meme).</summary>
+        static GUIStyle Sized(GUIStyle from, float k)
+        {
+            int px = Mathf.RoundToInt(from.fontSize * k);
+            GUIStyle s;
+            if (!sized.TryGetValue(px, out s))
+            {
+                s = new GUIStyle(from);
+                s.fontSize = px;
+                s.alignment = TextAnchor.MiddleCenter;
+                sized[px] = s;
+            }
+            return s;
+        }
+
+        static GUIStyle WrappedCentered()
+        {
+            if (wrappedCentered == null || wrappedCentered.fontSize != UiStyle.Label.fontSize)
+            {
+                wrappedCentered = new GUIStyle(UiStyle.Label);
+                wrappedCentered.wordWrap = true;
+                wrappedCentered.alignment = TextAnchor.UpperCenter;
+            }
+            return wrappedCentered;
+        }
 
         static GUIStyle BigCentered()
         {
