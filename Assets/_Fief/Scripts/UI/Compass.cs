@@ -37,6 +37,7 @@ namespace Fief
             public float size;
             public string label;
             public bool pulse;
+            public bool key;        // chateau, ta stele : jamais estompes
         }
 
         static readonly List<Mark> Marks = new List<Mark>();
@@ -114,10 +115,16 @@ namespace Fief
             float px = X(band, shown);
 
             float size = UiStyle.S(m.size) * (outside ? 0.7f : 1f);
+            // Le lointain s'estompe (au-dela de 150 m) : la bande reste lisible, et ce
+            // qui est proche ressort. Le chateau et ta stele ne s'estompent jamais.
+            float far = new Vector2(to.x, to.z).magnitude;
+            bool dim = !m.key && !m.pulse && far > 150f;
+            if (dim) size *= 0.75f;
             if (m.pulse) size *= 1f + 0.25f * Mathf.Sin(Time.unscaledTime * 7f);
             float cy = band.center.y;
             Color c = m.color;
             c.a *= outside ? 0.6f : Mathf.Max(0.5f, Fade(delta));
+            if (dim) c.a *= 0.55f;
 
             UiStyle.Icon(new Rect(px - size * 0.5f - 1f, cy - size * 0.5f - 1f, size + 2f, size + 2f), m.shape, new Color(0f, 0f, 0f, 0.7f * c.a));
             UiStyle.Icon(new Rect(px - size * 0.5f, cy - size * 0.5f, size, size), m.shape, c);
@@ -195,6 +202,7 @@ namespace Fief
             m.size = size;
             m.label = label;
             m.pulse = pulse;
+            m.key = shape == UiStyle.Shape.Square || label == "Ta stèle";
             Marks.Add(m);
         }
     }

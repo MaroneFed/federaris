@@ -31,6 +31,7 @@ namespace Fief
         Renderer glint;
         bool shown = true;
         bool sprung;
+        public bool Sprung { get { return sprung; } }
         float closing;
 
         public static readonly Color Iron = new Color(0.2f, 0.19f, 0.18f);

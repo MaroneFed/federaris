@@ -21,25 +21,40 @@ namespace Fief
         static bool[] seen = new bool[Cells * Cells];
         static float size = 420f;
 
+        static bool castleShown;
+
         public static void Reset(float mapSize)
         {
             size = mapSize;
             seen = new bool[Cells * Cells];
+            castleShown = false;
         }
 
-        /// <summary>Dévoiler les cases autour de soi (rayon ~25 m).</summary>
-        public static void Track(Vector3 p)
+        static void Reveal(Vector3 p, int radius)
         {
             float cell = size / Cells;
             int cx = Mathf.FloorToInt((p.x + size * 0.5f) / cell);
             int cz = Mathf.FloorToInt((p.z + size * 0.5f) / cell);
-            for (int dz = -1; dz <= 1; dz++)
-                for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -radius; dz <= radius; dz++)
+                for (int dx = -radius; dx <= radius; dx++)
                 {
                     int x = cx + dx, z = cz + dz;
                     if (x < 0 || z < 0 || x >= Cells || z >= Cells) continue;
                     seen[z * Cells + x] = true;
                 }
+        }
+
+        /// <summary>Dévoiler les cases autour de soi (rayon ~25 m).</summary>
+        public static void Track(Vector3 p)
+        {
+            // Le chateau, on le connait avant d'y etre alle : on le voit depassant des
+            // arbres, et tout le monde en parle. Ses abords sont dessines d'office.
+            if (!castleShown)
+            {
+                castleShown = true;
+                Reveal(Vector3.zero, Mathf.CeilToInt((Castle.HalfSize + 20f) / (size / Cells)));
+            }
+            Reveal(p, 1);
         }
 
         static Vector2 ToMap(Rect r, Vector3 world)
@@ -96,7 +111,11 @@ namespace Fief
             if (h != null)
             {
                 if (h.CampPlanted) Mark(r, h.CampPosition, UiStyle.Shape.Triangle, new Color(0.3f, 0.55f, 0.25f), 13f);
-                for (int i = 0; i < h.Caches.Count; i++) Mark(r, h.Caches[i].Position, UiStyle.Shape.Dot, new Color(0.55f, 0.35f, 0.18f), 9f);
+                for (int i = 0; i < h.Caches.Count; i++)
+                {
+                    Mark(r, h.Caches[i].Position, UiStyle.Shape.Dot, new Color(0.55f, 0.35f, 0.18f), 9f);
+                    Label(r, h.Caches[i].Position, h.Caches[i].Number.ToString(), new Color(0.35f, 0.2f, 0.1f), 11f);
+                }
                 if (h.StelePlanted)
                 {
                     Mark(r, h.StelePosition, UiStyle.Shape.Diamond, new Color(0.2f, 0.35f, 0.75f), 16f);
@@ -109,6 +128,31 @@ namespace Fief
                 if (st == null || st.owner == null || st.owner == me || me == null || !me.Knows(st.owner)) continue;
                 Mark(r, st.transform.position, UiStyle.Shape.Diamond, st.owner.Colour, 12f);
             }
+
+            // Tes pieges : de petites croix (toi seul sais ou ils sont).
+            for (int i = 0; i < Trap.All.Count; i++)
+            {
+                Trap t = Trap.All[i];
+                if (t == null || t.owner != me || t.Sprung) continue;
+                Vector2 at = ToMap(r, t.transform.position);
+                float s = UiStyle.S(4);
+                UiStyle.Fill(new Rect(at.x - s, at.y - 1f, s * 2f, 2f), new Color(0.35f, 0.12f, 0.08f));
+                UiStyle.Fill(new Rect(at.x - 1f, at.y - s, 2f, s * 2f), new Color(0.35f, 0.12f, 0.08f));
+            }
+
+            // Le mage, quand sa colonne est levee (ou avec la Corne) ; le voleur de ta relique.
+            Mage mage = Game.Mage;
+            if (mage != null && (mage.Beaconing || h != null && h.Has(Talisman.Corne) && mage.Present))
+                Mark(r, mage.Destination, UiStyle.Shape.Dot, new Color(0.3f, 0.5f, 0.95f), 14f * (1f + 0.2f * Mathf.Sin(Time.unscaledTime * 5f)));
+            for (int i = 0; i < Rival.All.Count; i++)
+            {
+                Rival rv = Rival.All[i];
+                if (rv != null && rv.seeker.Hoard.Trophy != null && rv.seeker.Hoard.TrophyFrom == me && Mathf.Sin(Time.unscaledTime * 8f) > -0.3f)
+                    Mark(r, rv.transform.position, UiStyle.Shape.Diamond, new Color(0.9f, 0.2f, 0.15f), 14f);
+            }
+            // Ce que le mage t'a murmure.
+            for (int i = 0; i < Secrets.All.Count; i++)
+                if (!Secrets.All[i].Resolved) Mark(r, Secrets.All[i].at, UiStyle.Shape.Diamond, new Color(0.55f, 0.35f, 0.8f), 11f);
 
             // Toi : une flèche qui pointe où tu regardes.
             Transform p = Game.PlayerTransform;
@@ -125,7 +169,30 @@ namespace Fief
             }
 
             // Le nord, en haut.
-            UiStyle.Tinted(new Rect(r.x, r.y + 6f, r.width, UiStyle.S(24)), "N", UiStyle.Head, new Color(0.45f, 0.12f, 0.08f));
+            GUIStyle head = UiStyle.Head;
+            TextAnchor was2 = head.alignment;
+            head.alignment = TextAnchor.MiddleCenter;
+            UiStyle.Tinted(new Rect(r.x, r.y + 6f, r.width, UiStyle.S(24)), "N", head, new Color(0.45f, 0.12f, 0.08f));
+            head.alignment = was2;
+            Legend(new Rect(r.x, r.yMax + UiStyle.S(6), r.width, UiStyle.S(20)));
+        }
+
+        /// <summary>La legende, sous le parchemin : une forme, un mot.</summary>
+        static void Legend(Rect r)
+        {
+            string[] words = { "ta stèle", "camp", "cache", "autel", "lieu-dit", "mage", "toi" };
+            UiStyle.Shape[] shapes = { UiStyle.Shape.Diamond, UiStyle.Shape.Triangle, UiStyle.Shape.Dot, UiStyle.Shape.Square,
+                                       UiStyle.Shape.Dot, UiStyle.Shape.Dot, UiStyle.Shape.Triangle };
+            Color[] colors = { new Color(0.35f, 0.5f, 0.9f), new Color(0.45f, 0.7f, 0.35f), new Color(0.7f, 0.48f, 0.26f), new Color(0.85f, 0.7f, 0.4f),
+                               new Color(0.6f, 0.55f, 0.48f), new Color(0.45f, 0.62f, 1f), new Color(0.9f, 0.3f, 0.2f) };
+            float step = r.width / words.Length;
+            for (int i = 0; i < words.Length; i++)
+            {
+                float x = r.x + step * i;
+                float d = UiStyle.S(9);
+                UiStyle.Icon(new Rect(x + UiStyle.S(6), r.center.y - d * 0.5f, d, d), shapes[i], colors[i]);
+                UiStyle.Tinted(new Rect(x + UiStyle.S(19), r.y, step - UiStyle.S(19), r.height), words[i], UiStyle.Tiny, UiStyle.InkDim);
+            }
         }
 
         static void Mark(Rect r, Vector3 world, UiStyle.Shape shape, Color c, float px)
@@ -151,8 +218,8 @@ namespace Fief
 
         public void Draw()
         {
-            float side = Mathf.Min(Screen.height - UiStyle.S(80), UiStyle.S(720));
-            Rect frame = new Rect((Screen.width - side) * 0.5f - 10f, (Screen.height - side) * 0.5f - 10f, side + 20f, side + 20f);
+            float side = Mathf.Min(Screen.height - UiStyle.S(110), UiStyle.S(720));
+            Rect frame = new Rect((Screen.width - side) * 0.5f - 10f, (Screen.height - side) * 0.5f - 22f, side + 20f, side + 20f + UiStyle.S(28));
             UiStyle.Frame(frame);
             Atlas.Draw(new Rect(frame.x + 10f, frame.y + 10f, side, side));
         }

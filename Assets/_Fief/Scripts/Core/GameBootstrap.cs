@@ -33,6 +33,7 @@ namespace Fief
         {
             config = GetComponent<GameConfig>();
             if (config == null) config = gameObject.AddComponent<GameConfig>();
+            else if (!config.keepInspectorValues) GameConfig.RestoreDefaults(config);
 
             Game.Reset();
             Toasts.Clear();

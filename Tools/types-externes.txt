@@ -141,3 +141,4 @@ Animation
 DirectorUpdateMode
 Vector2Int
 Event
+JsonUtility

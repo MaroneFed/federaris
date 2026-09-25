@@ -11,9 +11,28 @@ namespace Fief
     [DisallowMultipleComponent]
     public class GameConfig : MonoBehaviour
     {
+        /// <summary>
+        /// Unity ENREGISTRE les valeurs de l'Inspector dans la scene. Si la scene a ete
+        /// sauvegardee avec d'anciens reglages (une carte de 700 m...), ils l'emportent
+        /// sur le code, sans rien dire. Decoche (par defaut) : au lancement, on remet
+        /// les valeurs du code. Coche : on garde celles de l'Inspector.
+        /// </summary>
+        [Tooltip("Coché : garder les valeurs réglées dans l'Inspector. Décoché : le code fait foi à chaque lancement.")]
+        public bool keepInspectorValues;
+
+        /// <summary>Remet toutes les valeurs de ce composant a celles ecrites dans le code.</summary>
+        public static void RestoreDefaults(GameConfig target)
+        {
+            GameObject temp = new GameObject("reglages par defaut");
+            temp.SetActive(false);
+            GameConfig fresh = temp.AddComponent<GameConfig>();
+            JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(fresh), target);
+            Destroy(temp);
+        }
+
         [Header("Monde")]
-        [Tooltip("Côté de la carte en mètres. 700 m se traverse en 90 s à pied -- " +
-                 "mais avec 14 m de visibilité, on n'en a jamais l'impression.")]
+        [Tooltip("Côté de la carte en mètres. 420 m se traverse en une minute à pied -- " +
+                 "assez petit pour s'y retrouver, assez grand pour s'y perdre dans la brume.")]
         public float mapSize = 420f;
         [Tooltip("Graine du générateur aléatoire : même graine = même map.")]
         public int worldSeed = 1337;

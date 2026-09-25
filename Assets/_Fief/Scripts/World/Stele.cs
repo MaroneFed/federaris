@@ -168,9 +168,35 @@ namespace Fief
             return v;
         }
 
+        // LE FIL D'OR : au-dessus de TA stele, un mince fil de lumiere doree que toi
+        // seul vois, au-dessus des arbres (Martin, 26/09 : "il faut quand meme se
+        // souvenir ou est la stele"). Il s'efface quand on est tout pres, et brille
+        // plus fort quand la Malediction approche avec un sac plein.
+        LightBeam thread;
+
+        void Thread()
+        {
+            if (!Mine || Game.PlayerTransform == null) return;
+            if (thread == null)
+            {
+                thread = LightBeam.Build(transform, transform.position, new Color(1f, 0.82f, 0.45f), 0.7f, 46f);
+                if (thread == null) return;
+                thread.fadeSpeed = 0.8f;
+            }
+            Vector3 d = Game.PlayerTransform.position - transform.position;
+            d.y = 0f;
+            float far = d.magnitude;
+            Season season = Game.Season;
+            bool urgent = season != null && season.NextCurseIn >= 0f && season.NextCurseIn < 30f && Game.Inventory != null && !Game.Inventory.IsEmpty;
+            float want = far < 20f ? 0f : urgent ? 0.5f : 0.22f;
+            thread.targetAlpha = want;
+            thread.source = transform.position;
+        }
+
         void Update()
         {
             Watch();
+            Thread();
             pileTimer -= Time.deltaTime;
             if (pileTimer <= 0f) { pileTimer = 1f; RefreshPiles(); }
             Hoard h = owner != null ? owner.Hoard : null;
