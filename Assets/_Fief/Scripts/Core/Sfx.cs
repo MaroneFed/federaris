@@ -29,6 +29,7 @@ namespace Fief
         static AudioClip[] step;      // pas
         static AudioClip pop;         // depot / ramassage
         static AudioClip[] rustle;    // fourrager dans les branches, fourrer dans le sac
+        static AudioClip[] clatter;   // des branches seches qui s'entrechoquent
 
         public static bool Muted;
 
@@ -67,6 +68,8 @@ namespace Fief
             hammer = Impact("hammer", 120f, 0.34f, 0.5f, 11f);
             deny = Buzz("deny", 128f, 0.22f);
             pop = Impact("pop", 520f, 0.09f, 0.25f, 46f);
+            clatter = new AudioClip[2];
+            for (int i = 0; i < 2; i++) clatter[i] = Clatter("branchages" + i, 5 + i);
         }
 
         // ------------------------------------------------------------- lecture
@@ -75,7 +78,7 @@ namespace Fief
         {
             switch (type)
             {
-                case ResourceType.Deadwood: Play(Pick(rustle), 0.9f); Play(pop, 0.35f); break;
+                case ResourceType.Deadwood: Play(Pick(clatter), 0.9f); Play(Pick(rustle), 0.5f); break;
                 case ResourceType.Moonstone: Play(Pick(pick), 0.65f); break;
                 case ResourceType.Iron: Play(Pick(clang), 0.55f); break;
             }
@@ -577,6 +580,33 @@ namespace Fief
         }
 
         // ------------------------------------------------------------- synthese
+
+        /// <summary>
+        /// Des branches seches qu'on rassemble : cinq ou six petits coups de bois
+        /// creux, a des hauteurs differentes, qui se chevauchent sur un tiers de seconde.
+        /// </summary>
+        static AudioClip Clatter(string name, int knocks)
+        {
+            int count = Mathf.RoundToInt(Rate * 0.45f);
+            float[] data = new float[count];
+            for (int k = 0; k < knocks; k++)
+            {
+                int start = Mathf.RoundToInt(Rate * (k * 0.055f + (float)rng.NextDouble() * 0.03f));
+                float f = 620f + (float)rng.NextDouble() * 520f;
+                float low = 180f + (float)rng.NextDouble() * 90f;
+                float gain = 0.55f + (float)rng.NextDouble() * 0.45f;
+                for (int i = start; i < count; i++)
+                {
+                    float t = (float)(i - start) / Rate;
+                    float env = Mathf.Exp(-70f * t);
+                    if (env < 0.001f) break;
+                    float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+                    data[i] += gain * env * (Mathf.Sin(2f * Mathf.PI * f * t) * 0.5f + Mathf.Sin(2f * Mathf.PI * low * t) * 0.3f + noise * 0.35f);
+                }
+            }
+            for (int i = 0; i < count; i++) data[i] *= 0.6f;
+            return FromSamples(name, data);
+        }
 
         /// <summary>Un choc : bruit + une basse, le tout qui s'eteint tres vite.</summary>
         static AudioClip Impact(string name, float frequency, float duration, float noiseAmount, float decay)

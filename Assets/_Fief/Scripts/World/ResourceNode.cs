@@ -65,8 +65,8 @@ namespace Fief
             get
             {
                 if (Game.Inventory != null && Game.Inventory.SpaceFor(type) <= 0)
-                    return "Sac plein - rentre le vider à ta stèle";
-                return "Ramasser : " + ResourceInfo.Name(type) + "   (" + remaining + ")";
+                    return "Sac plein";
+                return ResourceInfo.Name(type) + "   ×" + remaining;
             }
         }
 
@@ -117,8 +117,8 @@ namespace Fief
             }
 
             Sfx.Harvest(type);
-            FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f,
-                                "+" + added + " " + ResourceInfo.Name(type), ResourceInfo.Tint(type));
+            Pickup.Fly(transform.position + Vector3.up * 0.5f, type, added);
+            FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f, "+" + added, ResourceInfo.Tint(type));
 
             remaining -= Mathf.Min(added, wanted);
             if (remaining <= 0)

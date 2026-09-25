@@ -29,8 +29,8 @@ namespace Fief
         public static int FagotCount;
         public static int LogSourceCount;
 
-        static readonly Color Stick = new Color(0.36f, 0.29f, 0.21f);
-        static readonly Color StickDark = new Color(0.25f, 0.20f, 0.15f);
+        /// <summary>Le bois mort, blanchi par les pluies : pale, presque os. Il sort de la penombre.</summary>
+        public static readonly Color Bleached = new Color(0.74f, 0.7f, 0.62f);
         static readonly Color Twine = new Color(0.44f, 0.38f, 0.27f);
         static readonly Color RockWet = new Color(0.17f, 0.18f, 0.19f);
         static readonly Color MoonGlow = new Color(0.62f, 0.80f, 1f);
@@ -60,81 +60,91 @@ namespace Fief
         }
 
         /// <summary>
-        /// Un fagot : quelques branches croisees et liees. Son collider est un DECLENCHEUR :
-        /// on le trouve avec E, mais on marche dessus sans buter.
+        /// Un FAISCEAU de bois mort (refait le 26/09 -- Martin : "le bois, j'aimerais
+        /// bien qu'il change"). Plus un fagot couche qu'on confondait avec les
+        /// racines : des branches blanchies, DRESSEES les unes contre les autres en
+        /// petite hutte, comme les laissent les bucherons. On le voit debout dans la
+        /// brume, pale sur le sol sombre, avec une touffe de lichen vert-de-gris.
+        ///
+        /// On le prend d'un appui (a peine un temps de maintien, plus long si le sac
+        /// est lourd), et les branches volent jusqu'a soi.
+        /// Son collider est un DECLENCHEUR : on marche au travers sans buter.
         /// </summary>
         public static void Fagot(Transform parent, Vector3 at, System.Random rng, GameConfig cfg)
         {
-            GameObject go = new GameObject("Fagot");
+            GameObject go = new GameObject("Faisceau de bois mort");
             go.transform.SetParent(parent, false);
             go.transform.position = at;
             go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
 
             BoxCollider trigger = go.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
-            trigger.center = new Vector3(0f, 0.3f, 0f);
-            trigger.size = new Vector3(1.4f, 0.7f, 1.4f);
+            trigger.center = new Vector3(0f, 0.6f, 0f);
+            trigger.size = new Vector3(1.3f, 1.2f, 1.3f);
 
-            // UN VRAI FAGOT : des branches rondes, couchees cote a cote, serrees par
-            // deux liens de corde ; quelques rameaux qui depassent, deux branches
-            // tombees a cote, des feuilles mortes. Le bois est PALE (ecorce morte,
-            // lichen) : dans la penombre, c'est ce qui le fait sortir du sol.
             Proto.BeginVisualOnly();
             GameObject visual = new GameObject("Visuel");
             visual.transform.SetParent(go.transform, false);
-            Color pale = new Color(0.52f, 0.47f, 0.4f);
-            Color[] barks = { pale, Stick, new Color(0.46f, 0.42f, 0.36f), StickDark };
-            int sticks = 7 + rng.Next(3);
-            float length = 1.2f + (float)rng.NextDouble() * 0.3f;
-            for (int i = 0; i < sticks; i++)
+            Color[] barks = { Bleached, new Color(0.64f, 0.6f, 0.53f), new Color(0.8f, 0.77f, 0.7f), new Color(0.55f, 0.5f, 0.43f) };
+
+            // Les perches : un cercle au sol, penchees vers un meme sommet.
+            int poles = 6 + rng.Next(3);
+            float height = 1.05f + (float)rng.NextDouble() * 0.3f;
+            Vector3 top = new Vector3(((float)rng.NextDouble() - 0.5f) * 0.1f, height, ((float)rng.NextDouble() - 0.5f) * 0.1f);
+            for (int i = 0; i < poles; i++)
             {
-                // En tas : deux rangs, celui du dessus plus etroit.
-                int row = i < 5 ? 0 : 1;
-                float across = row == 0 ? (i - 2f) * 0.085f : (i - 6f) * 0.085f;
-                float up = 0.05f + row * 0.08f;
-                float r = 0.028f + (float)rng.NextDouble() * 0.018f;
-                float len = length * (0.8f + (float)rng.NextDouble() * 0.3f);
-                GameObject s = Proto.Cylinder(visual.transform, new Vector3(across, up, ((float)rng.NextDouble() - 0.5f) * 0.2f),
-                                              new Vector3(r * 2f, len * 0.5f, r * 2f), barks[i % barks.Length], "Branche");
-                s.transform.localRotation = Quaternion.Euler(90f + ((float)rng.NextDouble() - 0.5f) * 8f, ((float)rng.NextDouble() - 0.5f) * 10f, 0f);
+                float a = (i + (float)rng.NextDouble() * 0.4f) / poles * Mathf.PI * 2f;
+                float spread = 0.38f + (float)rng.NextDouble() * 0.12f;
+                Vector3 foot = new Vector3(Mathf.Cos(a) * spread, 0f, Mathf.Sin(a) * spread);
+                Vector3 tip = top + (top - foot).normalized * (0.1f + (float)rng.NextDouble() * 0.15f);
+                Vector3 axis = tip - foot;
+                float r = 0.025f + (float)rng.NextDouble() * 0.015f;
+                GameObject pole = Proto.Cylinder(visual.transform, (foot + tip) * 0.5f, new Vector3(r * 2f, axis.magnitude * 0.5f, r * 2f),
+                                                 barks[i % barks.Length], "Perche");
+                pole.transform.localRotation = Quaternion.FromToRotation(Vector3.up, axis.normalized);
+                // Un moignon de rameau sur une perche sur deux.
+                if (i % 2 == 0)
+                {
+                    GameObject twig = Proto.Cube(visual.transform, foot + axis * 0.55f, new Vector3(0.018f, 0.018f, 0.22f), barks[(i + 1) % barks.Length], "Rameau");
+                    twig.transform.localRotation = Quaternion.Euler(-30f, a * Mathf.Rad2Deg, 0f);
+                }
             }
-            // Deux liens de corde.
-            for (int k = -1; k <= 1; k += 2)
-            {
-                GameObject band = Proto.Cylinder(visual.transform, new Vector3(0f, 0.09f, k * length * 0.25f),
-                                                 new Vector3(0.52f, 0.02f, 0.3f), Twine, "Lien");
-                band.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            }
-            // Des rameaux qui depassent en oblique.
+            // Un lien de corde pres du sommet.
+            GameObject band = Proto.Cylinder(visual.transform, top - new Vector3(0f, 0.12f, 0f), new Vector3(0.13f, 0.025f, 0.13f), Twine, "Lien");
+            band.transform.localRotation = Quaternion.identity;
+            // Le lichen vert-de-gris au pied, et deux buches courtes posees contre.
+            Color lichen = new Color(0.46f, 0.55f, 0.46f);
             for (int k = 0; k < 3; k++)
             {
-                GameObject twig = Proto.Cube(visual.transform, new Vector3(((float)rng.NextDouble() - 0.5f) * 0.3f, 0.18f, (k - 1) * 0.4f),
-                                             new Vector3(0.02f, 0.02f, 0.4f), StickDark, "Rameau");
-                twig.transform.localRotation = Quaternion.Euler(-25f - (float)rng.NextDouble() * 20f, (float)rng.NextDouble() * 360f, 0f);
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                Proto.Sphere(visual.transform, new Vector3(Mathf.Cos(a) * 0.3f, 0.04f, Mathf.Sin(a) * 0.3f),
+                             new Vector3(0.18f, 0.07f, 0.14f), lichen, "Lichen");
             }
-            // Deux branches tombees a cote, et quelques feuilles.
             for (int k = 0; k < 2; k++)
             {
-                GameObject loose = Proto.Cylinder(visual.transform, new Vector3(0.45f + k * 0.12f, 0.03f, ((float)rng.NextDouble() - 0.5f) * 0.6f),
-                                                  new Vector3(0.05f, 0.35f, 0.05f), Stick, "Branche tombée");
-                loose.transform.localRotation = Quaternion.Euler(90f, 40f + k * 50f, 0f);
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                GameObject log = Proto.Cylinder(visual.transform, new Vector3(Mathf.Cos(a) * 0.55f, 0.06f, Mathf.Sin(a) * 0.55f),
+                                                new Vector3(0.12f, 0.22f, 0.12f), barks[k + 1], "Bûche");
+                log.transform.localRotation = Quaternion.Euler(90f, a * Mathf.Rad2Deg + 90f, 0f);
+                Proto.Cylinder(visual.transform, new Vector3(Mathf.Cos(a) * 0.55f, 0.06f, Mathf.Sin(a) * 0.55f) + Quaternion.Euler(0f, a * Mathf.Rad2Deg + 90f, 0f) * new Vector3(0f, 0f, 0.221f),
+                               new Vector3(0.1f, 0.004f, 0.1f), new Color(0.82f, 0.7f, 0.5f), "Cerne").transform.localRotation = Quaternion.Euler(90f, a * Mathf.Rad2Deg + 90f, 0f);
             }
+            // Des feuilles mortes autour.
             Color[] leaves = { new Color(0.42f, 0.31f, 0.14f), new Color(0.36f, 0.15f, 0.10f), new Color(0.30f, 0.21f, 0.13f) };
             for (int k = 0; k < 6; k++)
             {
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float d = 0.35f + (float)rng.NextDouble() * 0.4f;
+                float d = 0.35f + (float)rng.NextDouble() * 0.45f;
                 GameObject leaf = Proto.Cube(visual.transform, new Vector3(Mathf.Cos(a) * d, 0.012f, Mathf.Sin(a) * d),
                                              new Vector3(0.12f, 0.006f, 0.08f), leaves[k % leaves.Length], "Feuille");
                 leaf.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
             }
             Proto.EndVisualOnly();
 
-            // UN SEUL GESTE pour tout le fagot (Martin detestait ramasser le bois
-            // brindille par brindille) : un peu plus long, mais on repart avec les six.
+            // UN SEUL APPUI pour tout le faisceau : on repart avec les six branches.
             ResourceNode node = go.AddComponent<ResourceNode>();
             node.yieldPerHarvest = 6;
-            node.harvestDuration = (cfg != null ? cfg.harvestDuration : 1.15f) * 1.3f;
+            node.harvestDuration = 0.35f;
             node.respawnDelay = 150f;
             node.Initialise(ResourceType.Deadwood, 6, visual.transform);
             FagotCount++;

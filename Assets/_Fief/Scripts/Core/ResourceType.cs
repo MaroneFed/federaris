@@ -80,7 +80,7 @@ namespace Fief
         {
             switch (type)
             {
-                case ResourceType.Deadwood: return new Color(0.66f, 0.55f, 0.40f);
+                case ResourceType.Deadwood: return new Color(0.80f, 0.74f, 0.62f);
                 case ResourceType.Moonstone: return new Color(0.62f, 0.78f, 0.95f);
                 case ResourceType.Iron: return new Color(0.74f, 0.52f, 0.40f);
             }
