@@ -442,8 +442,9 @@ namespace Fief
             Ambiance.Burst(null, transform.position + Vector3.up * 0.8f, kind == Kind.Loup ? new Color(0.5f, 0.12f, 0.1f) : GhostEyes);
             if (killer != null && goldCarried > 0)
             {
-                killer.Money.Add(goldCarried);
-                if (killer.IsPlayer) { Sfx.Coin(); Toasts.Show("+" + goldCarried + " or", Palette.Gold); }
+                killer.Hoard.TryPickLoot(goldCarried);
+                killer.SyncWeight();
+                if (killer.IsPlayer) { Sfx.Coin(); FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f, "★" + goldCarried, Palette.Gold); }
             }
             else if (killer != null && killer.IsPlayer)
                 Toasts.Show("Le loup s'effondre.", UiStyle.InkDim);

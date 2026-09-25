@@ -4,18 +4,16 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UNE STELE A SOI. Chaque chercheur (toi, chaque rival) plante la sienne, une
-    /// fois, ou il veut dans la sylve. A la cloche, seule compte la relique POSEE
-    /// sur sa propre stele.
+    /// UNE STELE A SOI : ton coffre-fort, et ton score.
     ///
-    /// Et c'est la toute la tension : une stele se voit. Sa banniere, sa rune, la
-    /// relique qui flotte au-dessus et luit. Qui la trouve peut VOLER ce qu'il y a
-    /// dessus. Il faut donc choisir : la planter pres de tout (pratique, exposee) ou
-    /// au fond d'un fourre (sure, loin de tout).
+    /// Chaque chercheur a la sienne, fixe, tiree au hasard ; on nait a cote. Tout le
+    /// butin (★) qu'on y DEPOSE compte a la cloche. Et ca se voit : un tas d'or
+    /// grandit a son pied. Un tas d'or, ca attire.
     ///
-    /// Ce que fait E devant une stele depend de QUI la regarde :
-    ///   - la tienne : poser ta relique, la reprendre, ou y fondre une relique volee ;
-    ///   - celle d'un rival : voler la relique posee dessus (E maintenu 3 s).
+    /// Ce que fait E devant une stele :
+    ///   - la tienne : deposer tout ton butin (et tes pierres-lune, ★2 chacune) ;
+    ///   - celle d'un autre, quand il n'est pas a cote : la PILLER (E maintenu 3 s),
+    ///     et emporter la moitie de son or.
     /// </summary>
     public class Stele : MonoBehaviour, IInteractable
     {
@@ -24,9 +22,6 @@ namespace Fief
         [System.NonSerialized] public Seeker owner;
 
         Light glow;
-        Transform relicShown;
-        int shownTier = -1;
-        Transform[] rings = new Transform[0];
         Renderer rune;
         Material runeOff;
         Material runeOn;
@@ -35,18 +30,12 @@ namespace Fief
 
         static readonly Color StoneBlack = new Color(0.14f, 0.14f, 0.15f);
         static readonly Color DaisStone = new Color(0.27f, 0.27f, 0.26f);
-        static readonly Color Pole = new Color(0.22f, 0.17f, 0.12f);
         public static readonly Color RuneBlue = new Color(0.55f, 0.72f, 1f);
 
-        const float RelicHeight = 1.85f;
-
         /// <summary>
-        /// Une stele DISCRETE (Martin, 24/09 : "quand meme un minimum cachee" -- et
-        /// en multijoueur, une stele enorme n'aurait aucun sens) : une pierre
-        /// levee d'un metre quarante, moussue, sans banniere. On ne la voit qu'a
-        /// quelques pas, dans la brume. Mais elle CHANTE : un bourdonnement tres
-        /// doux, qu'on entend a quinze metres. On peut la trouver a l'oreille --
-        /// toi, et les autres.
+        /// Une pierre levee d'un metre quarante, moussue, sans banniere. On ne la voit
+        /// qu'a quelques pas, dans la brume. Mais elle CHANTE : un bourdonnement tres
+        /// doux, qu'on entend a quinze metres. Et son or luit.
         /// </summary>
         public static Stele Build(Transform parent, Vector3 at, float yaw, Seeker owner)
         {
@@ -64,9 +53,8 @@ namespace Fief
             GameObject top = Proto.Cube(t, new Vector3(0.04f, 1.38f, 0f), new Vector3(0.5f, 0.16f, 0.3f), StoneBlack, "Tête");
             top.transform.localRotation = Quaternion.Euler(0f, 0f, 9f);
             Proto.Cube(t, new Vector3(-0.2f, 0.25f, -0.17f), new Vector3(0.3f, 0.5f, 0.04f), new Color(0.2f, 0.26f, 0.16f), "Mousse");
-            // Une rune de la couleur de son proprietaire : eteinte, elle se confond avec la pierre.
+            // Une rune de la couleur de son proprietaire : elle s'allume des qu'il y a de l'or.
             GameObject runeGo = Proto.Cube(t, new Vector3(0f, 0.9f, -0.17f), new Vector3(0.2f, 0.34f, 0.02f), owner.Colour, "Rune");
-            // Trois pierres plates a ses pieds.
             for (int i = 0; i < 3; i++)
             {
                 float a = i * 2.1f + 0.4f;
@@ -76,13 +64,6 @@ namespace Fief
             }
             Proto.EndVisualOnly();
 
-            GameObject relic = new GameObject("Relique");
-            relic.transform.SetParent(t, false);
-            relic.transform.localPosition = new Vector3(0f, RelicHeight, 0f);
-            relic.transform.localScale = Vector3.one * 0.55f;
-            stele.relicShown = relic.transform;
-            relic.SetActive(false);
-
             stele.rune = runeGo.GetComponent<Renderer>();
             stele.runeOff = MaterialFactory.Get(Palette.Shade(owner.Colour, 0.4f));
             stele.runeOn = MaterialFactory.GetGlow(owner.Colour, 1.6f);
@@ -90,10 +71,10 @@ namespace Fief
 
             GameObject lightGo = new GameObject("Lueur");
             lightGo.transform.SetParent(t, false);
-            lightGo.transform.localPosition = new Vector3(0f, 1.8f, -0.6f);
+            lightGo.transform.localPosition = new Vector3(0f, 0.8f, -0.9f);
             stele.glow = lightGo.AddComponent<Light>();
             stele.glow.type = LightType.Point;
-            stele.glow.color = RuneBlue;
+            stele.glow.color = new Color(1f, 0.8f, 0.45f);
             stele.glow.range = 3f;
             stele.glow.intensity = 0f;
             stele.glow.shadows = LightShadows.None;
@@ -134,31 +115,15 @@ namespace Fief
             return null;
         }
 
-        float sentinelCooldown;
-
-        /// <summary>
-        /// LA SENTINELLE (amelioration) : si un rival rode a moins de 12 m de TA
-        /// stele pendant que tu es loin, elle sonne -- et te dit ou elle est par
-        /// rapport a toi. Une fois toutes les 40 secondes, pas plus.
-        /// </summary>
-        void Watch()
+        /// <summary>Le proprietaire se tient a moins de 9 m : on ne pille pas sous son nez.</summary>
+        public bool Guarded
         {
-            if (sentinelCooldown > 0f) { sentinelCooldown -= Time.deltaTime; return; }
-            Seeker me = Game.Me;
-            if (me == null || owner != me || me.Hoard.Level(UpgradeKind.Sentinelle) <= 0 || me.Body == null) return;
-            if (Flat(me.Body.position - transform.position).magnitude < 25f) return;
-            for (int i = 0; i < Rival.All.Count; i++)
+            get
             {
-                Rival r = Rival.All[i];
-                if (r == null || !r.seeker.Alive) continue;
-                if (Flat(r.transform.position - transform.position).magnitude > 12f) continue;
-                sentinelCooldown = 40f;
-                Sfx.Alarm();
-                if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("SENTINELLE", r.seeker.Name + " rôde à ta stèle",
-                                           "Elle est " + Hud.Direction(me.Body.position, transform.position) + " !",
-                                           "Il vient pour ta réserve. Ou pour ta relique.", r.seeker.Colour);
-                return;
+                if (owner == null || owner.Body == null || !owner.Alive) return false;
+                Vector3 d = owner.Body.position - transform.position;
+                d.y = 0f;
+                return d.magnitude < 9f;
             }
         }
 
@@ -169,9 +134,8 @@ namespace Fief
         }
 
         // LE FIL D'OR : au-dessus de TA stele, un mince fil de lumiere doree que toi
-        // seul vois, au-dessus des arbres (Martin, 26/09 : "il faut quand meme se
-        // souvenir ou est la stele"). Il s'efface quand on est tout pres, et brille
-        // plus fort quand la Malediction approche avec un sac plein.
+        // seul vois, au-dessus des arbres. Il s'efface quand on est tout pres, et
+        // brille plus fort quand on porte du butin.
         LightBeam thread;
 
         void Thread()
@@ -183,41 +147,33 @@ namespace Fief
                 if (thread == null) return;
                 thread.fadeSpeed = 0.8f;
             }
-            Vector3 d = Game.PlayerTransform.position - transform.position;
-            d.y = 0f;
-            float far = d.magnitude;
-            Season season = Game.Season;
-            bool urgent = season != null && season.NextCurseIn >= 0f && season.NextCurseIn < 30f && Game.Inventory != null && !Game.Inventory.IsEmpty;
-            float want = far < 20f ? 0f : urgent ? 0.5f : 0.22f;
-            thread.targetAlpha = want;
+            float far = Flat(Game.PlayerTransform.position - transform.position).magnitude;
+            bool carrying = owner.Hoard.Carried > 0;
+            thread.targetAlpha = far < 20f ? 0f : carrying ? 0.5f : 0.22f;
             thread.source = transform.position;
         }
 
         void Update()
         {
-            Watch();
             Thread();
             pileTimer -= Time.deltaTime;
-            if (pileTimer <= 0f) { pileTimer = 1f; RefreshPiles(); }
+            if (pileTimer <= 0f) { pileTimer = 0.5f; RefreshPile(); }
             Hoard h = owner != null ? owner.Hoard : null;
-            bool lit = h != null && h.RelicOnStele && h.Relic != null;
+            bool lit = h != null && h.Banked > 0;
 
-            // Decouverte : passer a moins de 18 m d'une stele rivale, c'est la connaitre.
+            // Decouverte : passer a moins de 8 m d'une stele rivale, c'est la connaitre.
             Seeker me = Game.Me;
             if (me != null && owner != me && me.Body != null && !me.Knows(owner))
             {
-                Vector3 d = me.Body.position - transform.position;
-                d.y = 0f;
-                if (d.magnitude < 8f)
+                if (Flat(me.Body.position - transform.position).magnitude < 8f)
                 {
                     me.Discover(owner);
                     if (!announcedToPlayer && Game.Hud != null)
                     {
                         announcedToPlayer = true;
                         Sfx.Discovery();
-                        Game.Hud.ShowDiscovery("TU AS TROUVE", "La stèle de " + owner.Name,
-                                               lit ? "Une relique y flotte. Puissance " + h.FinalScore + "." : "Rien dessus. Pour l'instant.",
-                                               "Elle apparaît maintenant sur ta boussole.", owner.Colour);
+                        Game.Hud.ShowDiscovery("TU AS TROUVÉ", "La stèle de " + owner.Name,
+                                               h.Banked > 0 ? "★" + h.Banked + " dessus. Pille-la (E)." : "Vide, pour l'instant.", "", owner.Colour);
                     }
                 }
             }
@@ -227,51 +183,54 @@ namespace Fief
                 Material want = lit ? runeOn : runeOff;
                 if (rune.sharedMaterial != want) rune.sharedMaterial = want;
             }
-
-            int tier = lit ? Relic.Tier(h.FinalScore) : 0;
-            if (tier != shownTier) ShowTier(tier);
-
-            if (relicShown != null)
-            {
-                if (relicShown.gameObject.activeSelf != lit) relicShown.gameObject.SetActive(lit);
-                if (lit)
-                {
-                    relicShown.Rotate(0f, 40f * Time.deltaTime, 0f, Space.World);
-                    Vector3 p = relicShown.localPosition;
-                    p.y = RelicHeight + Mathf.Sin(Time.time * 1.3f) * 0.06f;
-                    relicShown.localPosition = p;
-                    for (int i = 0; i < rings.Length; i++)
-                        rings[i].Rotate(new Vector3(i == 1 ? 60f : 0f, i == 2 ? 50f : 0f, i == 0 ? 70f : 25f) * Time.deltaTime, Space.Self);
-                }
-            }
             if (glow != null)
             {
-                glow.intensity = Mathf.MoveTowards(glow.intensity, lit ? 0.6f + tier * 0.15f : 0f, Time.deltaTime * 2f);
-                glow.range = 3f + tier * 0.4f;
+                float tier = h != null ? Mathf.Clamp01(h.Banked / 150f) : 0f;
+                glow.intensity = Mathf.MoveTowards(glow.intensity, lit ? 0.5f + tier : 0f, Time.deltaTime * 2f);
+                glow.range = 3f + tier * 3f;
             }
+            if (hum != null && h != null) hum.maxDistance = 15f + Mathf.Min(15f, h.Banked / 10f);
         }
 
-        // ------------------------------------------------------------------ la relique posee
+        // ------------------------------------------------------------------ le tas d'or
 
-        /// <summary>
-        /// La relique posee change d'allure avec sa puissance. Babiole : un cube.
-        /// Fetiche : un joyau et un anneau. Relique : trois eclats en orbite. Tresor :
-        /// deux anneaux d'or. Legende : trois anneaux, huit eclats. Petite, mais elle
-        /// luit : de pres, on sait tout de suite ce qu'elle vaut.
-        /// </summary>
-        void ShowTier(int tier)
+        // Ce qui dort dans la stele SE VOIT : un tas de pieces qui grandit a son pied,
+        // avec des coupes et des coffrets. On sait d'un coup d'oeil ou on en est --
+        // et les pillards aussi.
+        Transform pile;
+        int shownPile = -1;
+        float pileTimer;
+
+        void RefreshPile()
         {
-            shownTier = tier;
-            if (relicShown == null) return;
-            for (int i = relicShown.childCount - 1; i >= 0; i--) Destroy(relicShown.GetChild(i).gameObject);
-            RelicModels.Build(relicShown, tier, out rings);
+            Hoard h = owner != null ? owner.Hoard : null;
+            if (h == null) return;
+            int stacks = Mathf.Min(24, (h.Banked + 7) / 8);
+            if (stacks == shownPile) return;
+            shownPile = stacks;
 
-            // Le chant monte avec la relique posee : une legende s'entend de plus loin.
-            if (hum != null)
+            if (pile != null) Destroy(pile.gameObject);
+            GameObject go = new GameObject("Or");
+            go.transform.SetParent(transform, false);
+            pile = go.transform;
+            Proto.BeginVisualOnly();
+            Material gold = MaterialFactory.GetGlow(new Color(0.95f, 0.76f, 0.3f), 1.1f);
+            System.Random rng = new System.Random(owner.Name.Length * 7);
+            for (int i = 0; i < stacks; i++)
             {
-                hum.volume = tier > 0 ? 0.45f + tier * 0.06f : 0.3f;
-                hum.maxDistance = 15f + tier * 2f;
+                // Des piles de pieces en demi-cercle devant la pierre, de plus en plus hautes.
+                float a = Mathf.PI * (0.15f + 0.7f * (i % 8) / 7f);
+                float r = 0.75f + (i / 8) * 0.28f;
+                int coins = 2 + rng.Next(4);
+                for (int k = 0; k < coins; k++)
+                {
+                    GameObject coin = Proto.Cylinder(pile, new Vector3(Mathf.Cos(a) * r, 0.02f + k * 0.035f, -Mathf.Sin(a) * r),
+                                                     new Vector3(0.16f, 0.016f, 0.16f), Color.white, "Pièces");
+                    coin.transform.localRotation = Quaternion.Euler(rng.Next(6), rng.Next(360), rng.Next(6));
+                    coin.GetComponent<Renderer>().sharedMaterial = gold;
+                }
             }
+            Proto.EndVisualOnly();
         }
 
         // ------------------------------------------------------------------ IInteractable
@@ -280,18 +239,6 @@ namespace Fief
 
         bool Mine { get { return owner != null && owner == Game.Me; } }
 
-        /// <summary>Ce qu'il y a a prendre sur la stele d'un autre : sa relique posee, sa reserve.</summary>
-        bool HasLoot
-        {
-            get
-            {
-                Hoard o = owner.Hoard;
-                bool relic = o.RelicOnStele && o.Relic != null && Game.Me.Hoard.Trophy == null;
-                bool store = o.Store != null && !o.Store.Contents.IsEmpty;
-                return relic || store;
-            }
-        }
-
         public bool CanInteract
         {
             get
@@ -299,10 +246,8 @@ namespace Fief
                 Seeker me = Game.Me;
                 if (me == null || owner == null) return false;
                 if (Game.Season != null && Game.Season.Over) return false;
-                if (Mine) return true;
-                // On ne pille pas une stele sous le nez de son proprietaire.
-                if (Rival.IsGuarding(owner, transform.position)) return false;
-                return HasLoot;
+                if (Mine) return me.Hoard.Carried > 0 || me.Bag.Get(ResourceType.Moonstone) > 0;
+                return owner.Hoard.Banked > 0 && !Guarded;
             }
         }
 
@@ -314,16 +259,10 @@ namespace Fief
                 if (me == null || owner == null) return "";
                 if (Mine)
                 {
-                    Hoard h = me.Hoard;
-                    if (h.Trophy != null) return "Ta stèle  ·  fondre la relique volée";
-                    if (h.RelicInHand) return "Ta stèle  ·  poser la relique";
-                    return me.Bag.IsEmpty ? "Ta stèle" : "Ta stèle  ·  vider le sac";
+                    int stars = me.Hoard.Carried + me.Bag.Get(ResourceType.Moonstone) * Hoard.MoonstoneStars;
+                    return "Déposer  ★" + stars;
                 }
-                Hoard o = owner.Hoard;
-                string what = o.RelicOnStele && o.Relic != null ? "sa relique (" + o.FinalScore + ")" : "";
-                if (o.Store != null && !o.Store.Contents.IsEmpty)
-                    what += (what.Length > 0 ? " et " : "") + "sa réserve (" + o.Store.Contents.TotalUnits + ")";
-                return "PILLER la stèle de " + owner.Name + " : " + what;
+                return "Piller " + owner.Name + "  ★" + Mathf.CeilToInt(owner.Hoard.Banked * Hoard.PillageShare);
             }
         }
 
@@ -336,226 +275,31 @@ namespace Fief
 
             if (Mine)
             {
-                // D'abord, ce qu'on est venu faire neuf fois sur dix : vider son sac.
-                int stored = me.Hoard.RequestStoreAll(me.Bag);
+                int stars = me.Hoard.RequestBank(me.Bag);
                 me.SyncWeight();
-                if (stored > 0)
-                {
-                    Sfx.Stash();
-                    Toasts.Show("+" + stored + " en réserve", Palette.Gold);
-                    RefreshPiles();
-                }
-                // Une relique volee ou la sienne en main : l'onglet Relique d'abord.
-                int first = me.Hoard.Trophy != null || me.Hoard.RelicInHand ? 1 : 0;
-                if (Game.Hud != null) Game.Hud.OpenPanel(new StelePanel(this, first));
-                Sfx.Pop();
+                if (stars <= 0) return;
+                Sfx.Stash();
+                Sfx.Coin();
+                FloatingTexts.Spawn(transform.position + Vector3.up * 1.9f, "+★" + stars, Palette.Gold);
+                RefreshPile();
                 return;
             }
-            Loot(me);
+            Pillage(me);
         }
 
-        /// <summary>"34 bois, 6 lune, 2 fer" -- ou "vide".</summary>
-        public static string StoreSummary(Hoard h)
+        /// <summary>Piller la stele d'un autre : la moitie de son or passe dans ton butin porte.</summary>
+        void Pillage(Seeker me)
         {
-            if (h == null || h.Store == null || h.Store.Contents.IsEmpty) return "vide";
-            Inventory c = h.Store.Contents;
-            string s = "";
-            string[] shortNames = { "bois", "lune", "fer" };
-            for (int i = 0; i < ResourceInfo.Count; i++)
-            {
-                int n = c.Get((ResourceType)i);
-                if (n <= 0) continue;
-                if (s.Length > 0) s += ", ";
-                s += n + " " + (i < shortNames.Length ? shortNames[i] : ResourceInfo.Name((ResourceType)i));
-            }
-            return s;
-        }
-
-        // ------------------------------------------------------------------ la reserve, visible
-
-        // Ce qui dort dans la reserve SE VOIT autour de la pierre : un tas de bois,
-        // des cristaux, des lingots. On sait d'un coup d'oeil ou on en est -- et
-        // les pillards aussi. Une stele pleine, ca attire.
-        Transform piles;
-        int[] shownPiles = new int[3];
-        float pileTimer;
-
-        void RefreshPiles()
-        {
-            Hoard h = owner != null ? owner.Hoard : null;
-            if (h == null || h.Store == null) return;
-            Inventory c = h.Store.Contents;
-            int wood = Mathf.Min(12, (c.Get(ResourceType.Deadwood) + 3) / 4);
-            int moon = Mathf.Min(9, (c.Get(ResourceType.Moonstone) + 1) / 2);
-            int iron = Mathf.Min(10, (c.Get(ResourceType.Iron) + 1) / 2);
-            if (wood == shownPiles[0] && moon == shownPiles[1] && iron == shownPiles[2]) return;
-            shownPiles[0] = wood; shownPiles[1] = moon; shownPiles[2] = iron;
-
-            if (piles != null) Destroy(piles.gameObject);
-            GameObject go = new GameObject("Réserve");
-            go.transform.SetParent(transform, false);
-            piles = go.transform;
-            Proto.BeginVisualOnly();
-            // Le bois : des buches empilees en pyramide, a gauche de la pierre.
-            Color[] barks = { new Color(0.42f, 0.34f, 0.24f), new Color(0.34f, 0.27f, 0.19f), new Color(0.5f, 0.44f, 0.36f) };
-            for (int i = 0; i < wood; i++)
-            {
-                int row = i < 5 ? 0 : i < 9 ? 1 : 2;
-                int inRow = row == 0 ? i : row == 1 ? i - 5 : i - 9;
-                float x = -1.1f + (inRow - (row == 0 ? 2f : row == 1 ? 1.5f : 1f)) * 0.15f;
-                GameObject log = Proto.Cylinder(piles, new Vector3(x, 0.07f + row * 0.13f, 0.5f), new Vector3(0.14f, 0.36f, 0.14f), barks[i % 3], "Bûche");
-                log.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            }
-            // La pierre-lune : des cristaux plantes a droite, qui luisent.
-            Material glow = MaterialFactory.GetGlow(new Color(0.62f, 0.8f, 1f), 1.4f);
-            for (int i = 0; i < moon; i++)
-            {
-                float a = i * 1.1f;
-                GameObject shard = Proto.Cone(piles, new Vector3(0.95f + Mathf.Cos(a) * 0.22f, 0f, 0.4f + Mathf.Sin(a) * 0.22f),
-                                              0.05f, 0.22f + (i % 3) * 0.06f, new Color(0.62f, 0.8f, 1f), "Cristal", 6);
-                shard.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * 18f, a * 40f, Mathf.Cos(a) * 18f);
-                shard.GetComponent<Renderer>().sharedMaterial = glow;
-            }
-            // Le fer : des lingots croises, derriere.
-            Color ingot = ResourceInfo.Tint(ResourceType.Iron);
-            for (int i = 0; i < iron; i++)
-            {
-                int layer = i / 3;
-                GameObject bar = Proto.Cube(piles, new Vector3((i % 3 - 1) * 0.13f, 0.04f + layer * 0.07f, -0.6f),
-                                            new Vector3(0.1f, 0.06f, 0.3f), ingot, "Lingot");
-                bar.transform.localRotation = Quaternion.Euler(0f, layer % 2 == 0 ? 0f : 90f, 0f);
-            }
-            Proto.EndVisualOnly();
-        }
-
-        /// <summary>Piller la stele d'un autre : sa relique posee (en trophee), et sa reserve.</summary>
-        void Loot(Seeker me)
-        {
-            Hoard h = me.Hoard;
-            Hoard o = owner.Hoard;
-            string relicLine = "";
-            if (o.RelicOnStele && o.Relic != null && h.Trophy == null)
-            {
-                Relic taken = o.TrySurrenderRelic();
-                if (taken != null && h.TryTakeTrophy(taken, owner))
-                    relicLine = "Sa relique (puissance " + taken.Power + ") : porte-la à TA stèle pour la fondre.";
-            }
-            int units = o.RequestLoot(me.Bag);
-            Stats.Looted += units;
+            int taken = me.Hoard.RequestPillage(owner.Hoard);
             me.SyncWeight();
-            owner.SyncWeight();
-            if (relicLine.Length == 0 && units == 0)
-            {
-                Sfx.Deny();
-                Toasts.Show("Ton sac est plein : tu ne peux rien emporter.", UiStyle.InkDim);
-                return;
-            }
+            if (taken <= 0) { Sfx.Deny(); return; }
+            Stats.Looted += taken;
+            Sfx.Coin();
             Sfx.Discovery();
+            Pickup.FlyLoot(transform.position + Vector3.up, taken);
             if (Game.Hud != null)
-                Game.Hud.ShowDiscovery("STÈLE PILLÉE", "celle de " + owner.Name,
-                                       relicLine.Length > 0 ? relicLine : units + " ressources emportées de sa réserve.",
-                                       relicLine.Length > 0 && units > 0 ? "Et " + units + " ressources de sa réserve." : "Il saura que c'est toi.",
-                                       owner.Colour);
+                Game.Hud.ShowDiscovery("STÈLE PILLÉE", "★" + taken + " à " + owner.Name, "Rapporte-les à ta stèle !", "", owner.Colour);
             Rival.NotifyTheft(owner, me);
-        }
-
-        // ------------------------------------------------------------------ les gestes, partages
-        //
-        // Le panneau de la stele (StelePanel) appelle ces trois-la. Ils ne font que
-        // demander a Hoard, puis le dire.
-
-        public static void PlaceRelic(Seeker me)
-        {
-            if (me == null || !me.Hoard.TryPlaceOnStele()) return;
-            me.SyncWeight();
-            Sfx.Build();
-            Toasts.Show("Relique posée.", RuneBlue);
-        }
-
-        public static void TakeRelic(Seeker me)
-        {
-            if (me == null || !me.Hoard.TryTakeFromStele()) return;
-            me.SyncWeight();
-            Sfx.Pop();
-            Toasts.Show("Relique reprise : elle ne compte plus.", Palette.Gold);
-        }
-
-        public static void AbsorbTrophy(Seeker me)
-        {
-            Hoard h = me != null ? me.Hoard : null;
-            if (h == null || h.Trophy == null) return;
-            string from = h.TrophyFrom != null ? h.TrophyFrom.Name : "quelqu'un";
-            int gained = h.RequestAbsorbTrophy();
-            if (h.RelicInHand) h.TryPlaceOnStele();
-            me.SyncWeight();
-            Sfx.Build();
-            if (Game.Hud != null)
-                Game.Hud.ShowDiscovery("LA RELIQUE DE " + from.ToUpperInvariant(), "fondue dans la tienne",
-                                       "+" + gained + "   ·   puissance " + h.Relic.Power, "Le vol ne rend que 60 % : le reste s'est perdu.",
-                                       RuneBlue);
-        }
-    }
-
-    /// <summary>
-    /// Les allures de la relique selon son palier. Partage par les steles et le
-    /// Registre du chateau.
-    /// </summary>
-    public static class RelicModels
-    {
-        public static void Build(Transform parent, int tier, out Transform[] rings)
-        {
-            Color blue = Stele.RuneBlue;
-            Color accent = tier >= 4 ? new Color(0.95f, 0.78f, 0.35f) : blue;
-            Material core = MaterialFactory.GetGlow(blue, 2.4f + tier * 0.3f);
-            Material gold = MaterialFactory.GetGlow(accent, 2.2f);
-
-            Proto.BeginVisualOnly();
-            if (tier <= 1)
-            {
-                GameObject cube = Proto.Cube(parent, Vector3.zero, Vector3.one * 0.38f, blue, "Babiole");
-                cube.transform.localRotation = Quaternion.Euler(45f, 0f, 45f);
-                cube.GetComponent<Renderer>().sharedMaterial = core;
-                rings = new Transform[0];
-                Proto.EndVisualOnly();
-                return;
-            }
-
-            float size = 0.28f + tier * 0.09f;
-            GameObject top = Proto.Cone(parent, Vector3.zero, size, size * 1.2f, blue, "Joyau", 6);
-            GameObject bottom = Proto.Cone(parent, Vector3.zero, size, size * 1.5f, blue, "Joyau", 6);
-            bottom.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
-            top.GetComponent<Renderer>().sharedMaterial = core;
-            bottom.GetComponent<Renderer>().sharedMaterial = core;
-
-            int ringCount = tier <= 3 ? 1 : tier == 4 ? 2 : 3;
-            rings = new Transform[ringCount];
-            for (int r = 0; r < ringCount; r++)
-            {
-                GameObject ring = new GameObject("Anneau");
-                ring.transform.SetParent(parent, false);
-                ring.transform.localRotation = Quaternion.Euler(r * 60f, r * 40f, 0f);
-                float radius = size * 2.1f + r * 0.16f;
-                for (int k = 0; k < 14; k++)
-                {
-                    float a = k / 14f * Mathf.PI * 2f;
-                    GameObject seg = Proto.Cube(ring.transform, new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius),
-                                                new Vector3(0.05f, 0.05f, radius * 0.47f), accent, "Maillon");
-                    seg.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
-                    seg.GetComponent<Renderer>().sharedMaterial = gold;
-                }
-                rings[r] = ring.transform;
-            }
-
-            int shards = tier == 3 ? 3 : tier == 4 ? 6 : tier >= 5 ? 8 : 0;
-            for (int k = 0; k < shards; k++)
-            {
-                float a = k / (float)shards * Mathf.PI * 2f;
-                Vector3 p = new Vector3(Mathf.Cos(a), Mathf.Sin(a * 2f) * 0.3f, Mathf.Sin(a)) * (size * 3.2f);
-                GameObject shard = Proto.Cone(parent, p, 0.07f, 0.26f, accent, "Éclat", 4);
-                shard.transform.localRotation = Quaternion.Euler(k * 37f, k * 53f, 0f);
-                shard.GetComponent<Renderer>().sharedMaterial = gold;
-            }
-            Proto.EndVisualOnly();
         }
     }
 }

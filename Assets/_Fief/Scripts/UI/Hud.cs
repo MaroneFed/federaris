@@ -38,7 +38,6 @@ namespace Fief
         string cardKicker, cardTitle, cardLine1, cardLine2;
         Color cardTint;
         float cardTimer;
-        bool wasBrewed;
         const float CardDuration = 6.5f;
 
         /// <summary>
@@ -56,7 +55,6 @@ namespace Fief
             cardLine2 = "";
             cardTint = tint;
             cardTimer = CardDuration;
-            cardItem = -1;
         }
 
         // --- les coups, la chute
@@ -141,29 +139,8 @@ namespace Fief
             }
         }
 
-        int cardItem = -1;
         float flash;
         Color flashTint;
-        float slowMo;
-
-        /// <summary>
-        /// LA TROUVAILLE D'UN TALISMAN : l'ecran flashe a sa couleur, le temps ralentit
-        /// une seconde, et la carte montre l'objet EN 3D qui tourne (voir Showcase).
-        /// </summary>
-        public void ShowItem(Talisman t, int count)
-        {
-            ShowDiscovery("TALISMAN  " + count + " / " + TalismanInfo.Count, TalismanInfo.Name(t),
-                          TalismanInfo.Effect(t), "", TalismanInfo.Tint(t));
-            cardItem = (int)t;
-            cardTimer = CardDuration + 2f;
-            flash = 1f;
-            flashTint = TalismanInfo.Tint(t);
-            if (menus != null && !menus.Blocking)
-            {
-                slowMo = 1.1f;
-                Time.timeScale = 0.3f;
-            }
-        }
 
         public void OpenPanel(IPanel newPanel) { panel = newPanel; }
 
@@ -178,30 +155,21 @@ namespace Fief
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
             TickLife();
             if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.3f);
-            if (slowMo > 0f)
-            {
-                slowMo -= Time.unscaledDeltaTime;
-                // On ne rend le temps normal que s'il est toujours ralenti par nous
-                // (la pause, elle, le met a zero : on n'y touche pas).
-                if (slowMo <= 0f && Mathf.Approximately(Time.timeScale, 0.3f)) Time.timeScale = 1f;
-            }
             // La carte : on dévoile ce qu'on traverse, et M l'ouvre.
-            if (Game.PlayerTransform != null) Atlas.Track(Game.PlayerTransform.position);
+            if (Game.PlayerTransform != null)
+            {
+                // En haut d'un grand arbre ou sur la terrasse du donjon, on voit loin :
+                // la carte se devoile largement.
+                Vector3 p = Game.PlayerTransform.position;
+                float above = p.y - Ground.Sample(p.x, p.z);
+                Atlas.Track(p, above > 12f ? 4 : above > 6f ? 2 : 1);
+            }
             if (FiefInput.MapPressed && menus != null && !menus.Blocking)
             {
                 if (panel is MapPanel) ClosePanel();
                 else if (panel == null) { OpenPanel(new MapPanel()); Sfx.Pop(); }
             }
 
-            if (FiefInput.SatchelPressed && menus != null && !menus.Blocking)
-            {
-                if (panel is TalismanPanel) ClosePanel();
-                else if (panel == null) { OpenPanel(new TalismanPanel()); Objectives.VictoriesSeen(); }
-            }
-
-            bool brewed = Game.Brewed;
-            if (wasBrewed && !brewed) Toasts.Show("Fin de l'infusion.", new Color(0.66f, 0.84f, 0.56f));
-            wasBrewed = brewed;
             FloatingTexts.Tick(Time.unscaledDeltaTime);
 
             if (panel != null && !panel.IsStillValid) panel = null;
@@ -231,6 +199,7 @@ namespace Fief
             FloatingTexts.Draw(viewCamera != null ? viewCamera : Camera.main);
             DrawSeason();
             DrawPack();
+            Builder.Draw();
             DrawPrompt();
             DrawDigging();
             DrawTools();
@@ -265,16 +234,10 @@ namespace Fief
         }
 
         /// <summary>
-        /// Le haut de l'ecran : la boussole, et dessous TROIS PASTILLES sans phrase
-        /// (Martin, 26/09 : "le texte au-dessus, j'aime pas") :
-        ///
-        ///   [point bleu  3:12]   [ 24:05 ]   [triangle violet  0:48]
-        ///        le mage          la cloche       la Malediction
-        ///
-        /// Le point bleu brille quand le mage est la (le chiffre dit alors quand il
-        /// repart). Le triangle violet palpite dans les vingt dernieres secondes, et
-        /// le losange de ta stele sur la boussole palpite avec lui si ton sac n'est
-        /// pas vide : c'est la qu'il faut courir.
+        /// Le haut de l'ecran : la boussole, l'horloge de la Saison, et dessous LE
+        /// CLASSEMENT : quatre pastilles, une par chercheur, a sa couleur, avec le
+        /// butin (★) qui dort dans sa stele. La tienne a un bord dore. On sait
+        /// toujours qui mene -- et qui aller piller.
         /// </summary>
         void DrawSeason()
         {
@@ -284,12 +247,10 @@ namespace Fief
             Transform eye = viewCamera != null ? viewCamera.transform : null;
             float bandW = Mathf.Min(UiStyle.S(620), Screen.width - UiStyle.S(40));
             Rect band = new Rect((Screen.width - bandW) * 0.5f, UiStyle.S(14), bandW, UiStyle.S(30));
-            float curse = season.NextCurseIn;
-            bool bagged = Game.Inventory != null && !Game.Inventory.IsEmpty;
-            Compass.UrgeStele = curse >= 0f && curse < 20f && bagged;
+            Compass.UrgeStele = Game.Hoard != null && Game.Hoard.Carried >= 10;
             if (eye != null && Game.PlayerTransform != null) Compass.Draw(band, eye, Game.PlayerTransform.position);
 
-            // --- la cloche, au milieu
+            // --- la cloche
             float left = season.Remaining;
             bool late = left < 180f;
             float cw = UiStyle.S(104), ch = UiStyle.S(34);
@@ -303,39 +264,38 @@ namespace Fief
             UiStyle.Tinted(plate, Clock(left), clockStyle, clock);
             clockStyle.alignment = previous;
 
-            float pw = UiStyle.S(88), ph = UiStyle.S(26);
-            float gap = UiStyle.S(10);
-
-            // --- le mage, a gauche
-            Rect magePill = new Rect(plate.x - gap - pw, top + (ch - ph) * 0.5f, pw, ph);
-            Color blue = new Color(0.62f, 0.78f, 1f);
-            if (season.MagePresent)
+            // --- le classement
+            ranking.Clear();
+            ranking.AddRange(Game.Seekers);
+            ranking.Sort((a, b) => b.Score.CompareTo(a.Score));
+            float pw = UiStyle.S(78), ph = UiStyle.S(24), gap = UiStyle.S(6);
+            float total = ranking.Count * pw + (ranking.Count - 1) * gap;
+            float x = (Screen.width - total) * 0.5f;
+            float y = plate.yMax + UiStyle.S(6);
+            for (int i = 0; i < ranking.Count; i++)
             {
-                float glow = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
-                Pill(magePill, UiStyle.Shape.Dot, new Color(blue.r, blue.g, blue.b, glow), Clock(season.MageTimeLeft), blue,
-                     season.MageTimeLeft / Mathf.Max(1f, season.MageStay));
-            }
-            else if (season.NextMageIn >= 0f)
-                Pill(magePill, UiStyle.Shape.Dot, new Color(blue.r, blue.g, blue.b, 0.45f), Clock(season.NextMageIn), UiStyle.InkDim, -1f);
-            else
-                Pill(magePill, UiStyle.Shape.Dot, new Color(0.4f, 0.4f, 0.45f, 0.4f), "—", UiStyle.InkFaint, -1f);
-
-            // --- la Malediction, a droite
-            Rect cursePill = new Rect(plate.xMax + gap, top + (ch - ph) * 0.5f, pw, ph);
-            Color violet = Curse.Violet;
-            if (curse < 0f)
-                Pill(cursePill, UiStyle.Shape.Triangle, new Color(0.4f, 0.4f, 0.45f, 0.4f), "—", UiStyle.InkFaint, -1f);
-            else
-            {
-                bool urgent = curse < 20f;
-                float pulse = urgent ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 8f) : curse < 120f ? 1f : 0.6f;
-                Color ink = urgent ? Color.Lerp(violet, Color.white, 0.4f) : curse < 120f ? violet : UiStyle.InkDim;
-                Pill(cursePill, UiStyle.Shape.Triangle, new Color(violet.r, violet.g, violet.b, pulse), Clock(curse), ink,
-                     curse < 120f ? curse / 120f : -1f);
-                if (urgent) UiStyle.FadeBand(new Rect(cursePill.x - UiStyle.S(4), cursePill.yMax + UiStyle.S(2), cursePill.width + UiStyle.S(8), 2f),
-                                             new Color(violet.r, violet.g, violet.b, pulse));
+                Seeker s = ranking[i];
+                Rect r = new Rect(x + i * (pw + gap), y, pw, ph);
+                UiStyle.Fill(r, new Color(0.04f, 0.035f, 0.03f, 0.72f));
+                if (s.IsPlayer)
+                {
+                    Color g = Palette.Gold;
+                    UiStyle.Fill(new Rect(r.x, r.y, r.width, 1f), g);
+                    UiStyle.Fill(new Rect(r.x, r.yMax - 1f, r.width, 1f), g);
+                    UiStyle.Fill(new Rect(r.x, r.y, 1f, r.height), g);
+                    UiStyle.Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), g);
+                }
+                UiStyle.Fill(new Rect(r.x + 2f, r.y + 3f, UiStyle.S(4), r.height - 6f), s.Colour);
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(10), r.y, UiStyle.S(24), r.height), (i + 1).ToString(), UiStyle.Tiny, UiStyle.InkFaint);
+                GUIStyle st = UiStyle.Label;
+                TextAnchor was = st.alignment;
+                st.alignment = TextAnchor.MiddleRight;
+                UiStyle.Tinted(new Rect(r.x, r.y, r.width - UiStyle.S(8), r.height), "★" + s.Score, st, s.IsPlayer ? Palette.Gold : UiStyle.Ink);
+                st.alignment = was;
             }
         }
+
+        readonly System.Collections.Generic.List<Seeker> ranking = new System.Collections.Generic.List<Seeker>();
 
         /// <summary>Une pastille : une icone, un chiffre, et un filet qui se vide (fill &lt; 0 : pas de filet).</summary>
         static void Pill(Rect r, UiStyle.Shape shape, Color icon, string text, Color ink, float fill)
@@ -375,7 +335,7 @@ namespace Fief
             Kit kit = me.Kit;
 
             float size = UiStyle.S(54), gap = UiStyle.S(5), group = UiStyle.S(20);
-            float total = size * 7f + gap * 4f + group * 2f;
+            float total = size * 6f + gap * 3f + group * 2f;
             float x = (Screen.width - total) * 0.5f;
             float y = Screen.height - size - UiStyle.S(18);
 
@@ -431,46 +391,19 @@ namespace Fief
             UiStyle.Tinted(new Rect(bagX, gauge.y - UiStyle.S(18), bagW, UiStyle.S(16)),
                            full ? "PLEIN" : Mathf.RoundToInt(inv.Weight) + " / " + Mathf.RoundToInt(inv.MaxWeight) + " kg",
                            RightSmall(), full ? new Color(0.95f, 0.45f, 0.35f) : UiStyle.InkFaint);
-            if (Game.Brewed)
-                UiStyle.Tinted(new Rect(bagX, gauge.y - UiStyle.S(18), bagW, UiStyle.S(16)),
-                               "infusion " + Clock(hoard.BrewUntil - Game.Season.Elapsed), UiStyle.Tiny, new Color(0.66f, 0.84f, 0.56f));
-
-            // --- la relique
-            float endX = x;
+            // --- le butin porte : ce qu'il faut rapporter a sa stele
             {
                 Rect r = new Rect(x, y, size, size);
-                bool has = hoard.Relic != null || hoard.Trophy != null;
-                Slot(r, hoard.RelicInHand || hoard.Trophy != null);
-                if (has)
+                int carried = hoard.Carried;
+                Slot(r, carried > 0);
+                Pictos.Draw(Inset(r, 0.16f), Pictos.Kind.Or, carried <= 0);
+                if (carried > 0)
                 {
-                    Pictos.Draw(Inset(r, 0.12f), Pictos.Kind.Relique, hoard.RelicOnStele && hoard.Trophy == null);
-                    string power = hoard.Trophy != null ? "volée" : hoard.Relic.Power.ToString();
-                    Count(r, power, hoard.Trophy != null ? new Color(1f, 0.55f, 0.4f) : Palette.Gold);
-                    if (hoard.RelicOnStele && hoard.Trophy == null)
-                        UiStyle.Tinted(new Rect(r.x, r.y + UiStyle.S(2), r.width - UiStyle.S(5), UiStyle.S(14)), "stèle", RightTiny(), Stele.RuneBlue);
+                    Count(r, "★" + carried, Palette.Gold);
+                    float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f);
+                    UiStyle.Fill(new Rect(r.x, r.y - UiStyle.S(4), r.width, 2f), new Color(0.95f, 0.78f, 0.35f, 0.4f + 0.5f * pulse));
                 }
-                else Pictos.Draw(Inset(r, 0.12f), Pictos.Kind.Relique, true);
-                x += size + gap;
-            }
-            // --- l'or
-            {
-                Rect r = new Rect(x, y, size, size);
-                Slot(r, false);
-                int gold = Game.Wallet != null ? Game.Wallet.Gold : 0;
-                Pictos.Draw(Inset(r, 0.18f), Pictos.Kind.Or, gold <= 0);
-                Count(r, gold.ToString(), new Color(0.95f, 0.8f, 0.4f));
                 x += size;
-            }
-
-            // Les six talismans, en petits losanges au-dessus de la relique et de l'or.
-            float chip = UiStyle.S(9);
-            float cw = (x - endX) / TalismanInfo.Count;
-            for (int i = 0; i < TalismanInfo.Count; i++)
-            {
-                Talisman tal = TalismanInfo.All[i];
-                bool owned = hoard.Has(tal);
-                Rect cr = new Rect(endX + cw * (i + 0.5f) - chip * 0.5f, y - UiStyle.S(13), chip, chip);
-                UiStyle.Icon(cr, UiStyle.Shape.Diamond, owned ? TalismanInfo.Tint(tal) : new Color(1f, 1f, 1f, 0.12f));
             }
 
             // Les Autels que tu tiens, au-dessus des outils : un carre par autel, et
@@ -582,18 +515,6 @@ namespace Fief
             // se passe au centre de l'ecran.
             float y = Screen.height - UiStyle.S(54) - UiStyle.S(18) - UiStyle.S(26);
 
-            // Une relique dans les mains : on ne peut pas frapper, et ca se voit.
-            Hoard carried = me.Hoard;
-            if (carried.RelicInHand || carried.Trophy != null)
-            {
-                Color blue = Stele.RuneBlue;
-                blue.a = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-                string what = carried.Trophy != null ? "Relique de " + carried.TrophyFrom.Name : "Relique en main";
-                float d = UiStyle.S(10);
-                UiStyle.Icon(new Rect(Screen.width * 0.5f - d * 0.5f, y - UiStyle.S(62), d, d), UiStyle.Shape.Diamond, blue);
-                UiStyle.Tinted(new Rect(0f, y - UiStyle.S(50), Screen.width, UiStyle.S(22)), what, UiStyle.CenteredSmall, blue);
-            }
-
             // Le reticule : un point discret ; un losange dore quand quelque chose est a
             // portee de main (E) ; rouge quand un ennemi est a portee d'epee.
             {
@@ -630,44 +551,15 @@ namespace Fief
             float alpha = Mathf.Clamp01(age / 0.4f) * Mathf.Clamp01(cardTimer / 0.8f);
             bool detailed = !string.IsNullOrEmpty(cardLine1);
 
-            bool item = cardItem >= 0;
-            float w = UiStyle.S(item ? 620 : 520);
-            float h = UiStyle.S(item ? 200 : detailed ? 150 : 86);
-            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(156) - (1f - Mathf.Clamp01(age / 0.4f)) * UiStyle.S(12), w, h);
+            float w = UiStyle.S(520);
+            float h = UiStyle.S(detailed ? 130 : 86);
+            Rect box = new Rect((Screen.width - w) * 0.5f, UiStyle.S(170) - (1f - Mathf.Clamp01(age / 0.4f)) * UiStyle.S(12), w, h);
 
-            // L'eclair de la trouvaille : tout l'ecran, a la couleur de l'objet.
             if (flash > 0f) UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height),
                                          new Color(flashTint.r, flashTint.g, flashTint.b, flash * flash * 0.45f));
 
             Color was = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, alpha);
-            if (item)
-            {
-                // L'objet en 3D, a gauche ; les mots a droite.
-                Showcase.Show((Talisman)cardItem, 0.2f);
-                UiStyle.Frame(box);
-                UiStyle.Fill(new Rect(box.x + UiStyle.S(10), box.y, box.width - UiStyle.S(20), 2f), cardTint);
-                float pic = h - UiStyle.S(24);
-                Rect frame = new Rect(box.x + UiStyle.S(14), box.y + UiStyle.S(12), pic, pic);
-                GUI.Box(frame, GUIContent.none, UiStyle.CardBox);
-                if (Showcase.Image != null) GUI.DrawTexture(frame, Showcase.Image, ScaleMode.ScaleToFit, true);
-                float tx = frame.xMax + UiStyle.S(18);
-                float tw = box.xMax - tx - UiStyle.S(18);
-                float ty = box.y + UiStyle.S(16);
-                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(16)), cardKicker, UiStyle.Small, UiStyle.InkDim);
-                ty += UiStyle.S(22);
-                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(40)), cardTitle, UiStyle.Title, cardTint);
-                ty += UiStyle.S(46);
-                GUIStyle body = UiStyle.Label;
-                bool wrap = body.wordWrap;
-                body.wordWrap = true;
-                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(44)), cardLine1, body, UiStyle.Ink);
-                body.wordWrap = wrap;
-                ty += UiStyle.S(48);
-                UiStyle.Tinted(new Rect(tx, ty, tw, UiStyle.S(18)), cardLine2, UiStyle.Tiny, UiStyle.InkFaint);
-                GUI.color = was;
-                return;
-            }
             UiStyle.Frame(box);
             UiStyle.Fill(new Rect(box.x + UiStyle.S(10), box.y, box.width - UiStyle.S(20), 2f), cardTint);
 
@@ -737,12 +629,10 @@ namespace Fief
             {
                 Rival r = Rival.All[i];
                 if (r == null) continue;
-                bool thief = r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == Game.Me;
                 float d = FlatDistance(me, r.transform.position);
-                if (thief)
-                    DrawMarker(cam, r.transform.position + Vector3.up * 2.4f, "VOLEUR : " + r.seeker.Name, new Color(1f, 0.4f, 0.3f));
-                else if (d < 16f)
-                    DrawMarker(cam, r.transform.position + Vector3.up * 2.4f, r.seeker.Name, r.seeker.Colour);
+                if (d < 16f && r.seeker.Alive)
+                    DrawMarker(cam, r.transform.position + Vector3.up * 2.4f,
+                               r.seeker.Hoard.Carried > 0 ? r.seeker.Name + "  ★" + r.seeker.Hoard.Carried : r.seeker.Name, r.seeker.Colour);
             }
         }
 
@@ -866,14 +756,6 @@ namespace Fief
                          p.x.ToString("0") + " / " + p.y.ToString("0.0") + " / " + p.z.ToString("0"));
                 y = Line(x, y, inner, "Sol sous les pieds", Ground.Sample(p.x, p.z).ToString("0.0") + " m");
 
-                // Pour tester sans chercher une demi-heure : ou est le mage. En jeu,
-                // aucun repere ne le montre -- on le trouve a l'oreille.
-                Mage mage = Game.Mage;
-                y = Line(x, y, inner, "Mage",
-                         mage != null && mage.Present
-                             ? "a " + FlatDistance(p, mage.transform.position).ToString("0") + " m, "
-                               + Direction(p, mage.transform.position)
-                             : "absent");
             }
 
             if (cam != null)
@@ -986,11 +868,11 @@ namespace Fief
                 { "ZQSD", "se déplacer" },
                 { "Maj", "courir" },
                 { "Souris", "caméra" },
-                { "E", "prendre, parler" },
+                { "E", "prendre, déposer, piller" },
                 { "C", "planter le camp" },
                 { "G", "creuser une cache" },
-                { "Tab", "ta besace" },
-                { "1 / 2 + clic", "outil" },
+                { "T", "construire" },
+                { "1 / 2 + clic", "épée, hache" },
                 { "F", "grimper dans un arbre" },
                 { "H", "écouter ta stèle" },
                 { "M", "la carte" },

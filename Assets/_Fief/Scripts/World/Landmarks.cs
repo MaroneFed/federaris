@@ -162,13 +162,17 @@ namespace Fief
                 }
             }
 
-            // Les deux talismans du chateau.
-            Transform castle = root;
-            Vector3 throne = new Vector3(0f, Castle.HallFloor + 1.75f,
-                                         Castle.KeepCentre.z + Castle.KeepHalfDepth - 1.6f - 0.75f);
-            TalismanPickup.Build(castle, throne, Talisman.Lanterne);
-            // Aux pieds du roi sans tete (troisieme paire, a gauche), au bord de l'allee.
-            TalismanPickup.Build(castle, new Vector3(-3.9f, Ground.Sample(-3.9f, -74f) + 1.0f, -74f), Talisman.Couronne);
+        }
+
+        /// <summary>
+        /// Un coffre enfoui (★8) : chaque lieu-dit en cache un. C'est ce qui donne une
+        /// raison d'y aller -- et d'y revenir, car il se remplit a nouveau.
+        /// "local" est une position dans le repere du lieu-dit ; le coffre est pose au sol.
+        /// </summary>
+        static void Chest(Transform t, Vector3 local)
+        {
+            Vector3 w = t.TransformPoint(local);
+            Treasure.Build(t, Ground.Place(w.x, w.z, 0f), Treasure.Kind.Coffre, false);
         }
 
         // ------------------------------------------------------------------ le Grand Chene
@@ -210,7 +214,7 @@ namespace Fief
             }
             Proto.EndVisualOnly();
 
-            TalismanPickup.Build(t, centre + new Vector3(0f, 1.3f, -r - 0.7f), Talisman.Corne);
+            Chest(t, centre + new Vector3(0f, 0f, -r - 1.2f));
             Ambiance.Fireflies(t, t.TransformPoint(centre + new Vector3(0f, 2.5f, 0f)), 900);
         }
 
@@ -268,7 +272,7 @@ namespace Fief
             light.range = 11f;
             light.shadows = LightShadows.None;
 
-            TalismanPickup.Build(t, new Vector3(0f, 1.9f, 0f), Talisman.Coeur);
+            Chest(t, new Vector3(0f, 0f, -2.4f));
         }
 
         // ------------------------------------------------------------------ la cabane
@@ -346,7 +350,7 @@ namespace Fief
             Proto.Cube(t, new Vector3(0.4f, 0.03f, -hz - 2.2f), new Vector3(0.6f, 0.04f, 0.6f), new Color(0.08f, 0.08f, 0.08f), "Cendres");
             Proto.EndVisualOnly();
 
-            TalismanPickup.Build(t, new Vector3(-0.9f, 1.5f, 1.2f), Talisman.Besace);
+            Chest(t, new Vector3(-0.9f, 0f, 1.2f));
         }
 
         // ------------------------------------------------------------------ le Tertre
@@ -384,7 +388,7 @@ namespace Fief
                 s.transform.localRotation = Quaternion.Euler(R(rng, -6f, 6f), -a * Mathf.Rad2Deg, R(rng, -6f, 6f));
             }
 
-            TalismanPickup.Build(t, door + new Vector3(0f, 1.2f, -1.2f), Talisman.Pelle);
+            Chest(t, door + new Vector3(0f, 0f, -1.6f));
         }
 
         // ------------------------------------------------------------------ la Tour

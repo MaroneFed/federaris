@@ -14,7 +14,7 @@ namespace Fief
     /// </summary>
     public static class Pictos
     {
-        public enum Kind { Bois, Pierre, Fer, Or, Hache, Epee, Piege, Relique }
+        public enum Kind { Bois, Pierre, Fer, Or, Hache, Epee, Piege, Relique, Barricade, Alarme }
 
         public static Kind Of(ResourceType t)
         {
@@ -110,6 +110,31 @@ namespace Fief
                     for (int i = 0; i < 6; i++)
                         Bar(r, 0.5f + Mathf.Cos(i * 1.047f) * 0.24f, 0.55f + Mathf.Sin(i * 1.047f) * 0.24f, 0.05f, 0.14f,
                             i * 60f + 90f, new Color(0.75f, 0.73f, 0.7f, a));
+                    break;
+                }
+                case Kind.Barricade:
+                {
+                    Color wood = new Color(0.62f, 0.48f, 0.32f, a), dark = new Color(0.42f, 0.3f, 0.2f, a);
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float x = 0.22f + i * 0.19f;
+                        Bar(r, x, 0.56f, 0.12f, 0.62f, 0f, wood);
+                        Shape(r, x, 0.23f, 0.13f, UiStyle.Shape.Triangle, wood);
+                    }
+                    Bar(r, 0.5f, 0.45f, 0.78f, 0.07f, -8f, dark);
+                    Bar(r, 0.5f, 0.7f, 0.78f, 0.07f, 6f, dark);
+                    break;
+                }
+                case Kind.Alarme:
+                {
+                    Color brass = new Color(0.86f, 0.68f, 0.3f, a);
+                    Bar(r, 0.5f, 0.3f, 0.8f, 0.04f, 0f, new Color(0.7f, 0.66f, 0.58f, a));     // le fil
+                    Shape(r, 0.3f, 0.5f, 0.3f, UiStyle.Shape.Dot, brass);
+                    Shape(r, 0.7f, 0.5f, 0.3f, UiStyle.Shape.Dot, brass);
+                    Bar(r, 0.3f, 0.38f, 0.04f, 0.14f, 0f, brass);
+                    Bar(r, 0.7f, 0.38f, 0.04f, 0.14f, 0f, brass);
+                    Shape(r, 0.3f, 0.6f, 0.09f, UiStyle.Shape.Dot, new Color(0.3f, 0.22f, 0.1f, a));
+                    Shape(r, 0.7f, 0.6f, 0.09f, UiStyle.Shape.Dot, new Color(0.3f, 0.22f, 0.1f, a));
                     break;
                 }
                 case Kind.Relique:

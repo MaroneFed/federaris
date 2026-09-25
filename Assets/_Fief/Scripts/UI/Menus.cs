@@ -89,6 +89,7 @@ namespace Fief
                 else if (Current == State.Playing)
                 {
                     if (panelOpen) Game.Hud.ClosePanel();
+                    else if (Builder.IsOpen) Builder.Close();
                     else Pause();
                 }
                 else if (Current == State.Paused) Resume();
@@ -168,11 +169,11 @@ namespace Fief
         /// </summary>
         static readonly string[] Story =
         {
-            "La Sylve. Une forêt sans fin,\nautour d'un château mort.",
-            "Chaque automne, un mage y erre.\nIl forge des reliques.",
-            "Ta stèle garde ce que tu lui confies.\nLa forêt reprend ce que tu portes.",
-            "Trois rivaux rôdent.\nLes loups, eux, ne cherchent rien.",
-            "Trente minutes.\nUne relique sur ta stèle."
+            "La Sylve. Une forêt noire,\nautour d'un château.",
+            "Dans le château dort un trésor.\nLa couronne est tout en haut.",
+            "Ses gardes veillent.\nIls frappent fort.",
+            "Trois autres le veulent.\nIls pilleront ta stèle.",
+            "Trente minutes.\nLe plus d'or sur ta stèle gagne."
         };
 
         const float BeatFade = 0.7f;        // fondu d'entrée et de sortie
@@ -312,7 +313,7 @@ namespace Fief
 
         void EndSeason()
         {
-            Victories.DecideByRelic();
+            Victories.Decide();
             Current = State.Ended;
             ended = 0f;
             if (Game.Hud != null) Game.Hud.ClosePanel();
@@ -561,11 +562,9 @@ namespace Fief
             Season s = Game.Season;
             if (s != null)
             {
-                string mage = s.MagePresent ? "mage " + Hud.Clock(s.MageTimeLeft) : s.NextMageIn >= 0f ? "mage dans " + Hud.Clock(s.NextMageIn) : "plus de mage";
-                float c = s.NextCurseIn;
-                string curse = c >= 0f ? "Malédiction " + Hud.Clock(c) : "plus de Malédiction";
+                int mine = Game.Me != null ? Game.Me.Score : 0;
                 UiStyle.Tinted(new Rect(box.x, y - UiStyle.S(14), w, UiStyle.S(20)),
-                               "Cloche " + Hud.Clock(s.Remaining) + "   ·   " + mage + "   ·   " + curse, UiStyle.CenteredSmall, UiStyle.InkDim);
+                               "Cloche " + Hud.Clock(s.Remaining) + "   ·   ta stèle ★" + mine, UiStyle.CenteredSmall, UiStyle.InkDim);
                 y += UiStyle.S(16);
             }
 
@@ -576,20 +575,6 @@ namespace Fief
             if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Recommencer la Saison", false, 1f)) Restart();
             y += UiStyle.S(40);
             if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Quitter le jeu", false, 1f)) Quit();
-        }
-
-        /// <summary>
-        /// Ce que vaut la relique, dit avec des mots. En solo, il n'y a personne a
-        /// battre : ces paliers donnent un but a la partie suivante. Ils sont regles
-        /// par la simulation de Saison (Tools/saison.py) : un flaneur fait un
-        /// talisman (~140), un joueur regulier un tresor (~990), un expert qui va
-        /// aux six apparitions ~1340 -- et seul celui qui se sert AUSSI de ses caches
-        /// pour faire deux voyages par apparition atteint la legende (~1550).
-        /// </summary>
-        public static string Rank(int power)
-        {
-            // "fetiche" et plus "talisman" : les talismans sont devenus des objets.
-            return Relic.TierName(Relic.Tier(power));
         }
 
         void DrawEnd()
@@ -622,13 +607,13 @@ namespace Fief
             bool won = Victories.Winner != null && Victories.Winner.IsPlayer;
 
             // Le titre de la victoire, puis qui, puis comment.
-            UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(30)), Victories.Title(Victories.Kind), UiStyle.Head,
+            UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(30)), won ? "Victoire !" : Victories.Winner != null ? "Défaite" : "Personne", UiStyle.Head,
                            won ? Palette.Gold : new Color(0.9f, 0.5f, 0.4f));
             y += UiStyle.S(28);
             string verdict;
-            if (Victories.Winner == null) verdict = "Personne ne l'emporte.";
-            else if (won) verdict = "C'est toi. " + Victories.How(Victories.Kind);
-            else verdict = Victories.Winner.Name + " l'emporte. " + (hoard.RelicOnStele ? "Ta relique : " + Rank(hoard.FinalScore) + "." : "");
+            if (Victories.Winner == null) verdict = "Aucune stèle n'a d'or.";
+            else if (won) verdict = "Le plus gros butin : ★" + Victories.Winner.Score + ".";
+            else verdict = Victories.Winner.Name + " l'emporte avec ★" + Victories.Winner.Score + ".";
             GUIStyle wrappedVerdict = UiStyle.Small;
             bool wrapV = wrappedVerdict.wordWrap;
             wrappedVerdict.wordWrap = true;
@@ -650,7 +635,7 @@ namespace Fief
                 GUIStyle right = UiStyle.Label;
                 TextAnchor previous = right.alignment;
                 right.alignment = TextAnchor.MiddleRight;
-                string what = sk.Score > 0 ? sk.Score + "   " + Relic.TierName(Relic.Tier(sk.Score)) : "rien sur sa stèle";
+                string what = "★" + sk.Score;
                 GUI.Label(new Rect(row.x, row.y, row.width - UiStyle.S(16), row.height), what, right);
                 right.alignment = previous;
                 y += rowH;
@@ -659,14 +644,14 @@ namespace Fief
             // Le bilan en six cases : un chiffre, un mot (plus de phrase-journal).
             string[] numbers =
             {
-                hoard.TalismanCount + "/" + TalismanInfo.Count,
-                hoard.Store != null ? hoard.Store.Contents.TotalUnits.ToString() : "0",
+                Stats.Treasures.ToString(),
+                Stats.Built.ToString(),
                 Stats.Deaths.ToString(),
-                "-" + Stats.CurseLost,
                 "-" + Stats.Robbed + " / +" + Stats.Looted,
+                Stats.GuardsDowned.ToString(),
                 (Stats.RivalsDowned + Stats.BeastsDowned + Stats.TrapKills).ToString()
             };
-            string[] words = { "talismans", "en réserve", "chutes", "Malédiction", "pillé / pris", "abattus" };
+            string[] words = { "trésors", "constructions", "chutes", "pillé / pris", "gardes abattus", "autres abattus" };
             float cellW = bw / 3f, cellH = UiStyle.S(44);
             for (int i = 0; i < numbers.Length; i++)
             {
@@ -698,12 +683,12 @@ namespace Fief
             { "Souris", "Regarder" },
             { "Maj", "Courir" },
             { "Espace", "Sauter" },
-            { "E", "Prendre, parler, ta stèle" },
+            { "E", "Prendre, déposer, piller" },
             { "C", "Planter le camp" },
             { "G (maintenir)", "Creuser une cache" },
-            { "Tab", "Besace, artisanat" },
-            { "1 / 2", "Changer d'outil" },
-            { "Clic gauche", "Frapper, abattre, poser" },
+            { "T", "Construire : pièges, barricades, alarmes" },
+            { "1 / 2 ou molette", "Épée, hache" },
+            { "Clic gauche", "Frapper, abattre" },
             { "F", "Grimper" },
             { "H", "Écouter ta stèle" },
             { "M", "La carte" },

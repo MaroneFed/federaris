@@ -54,7 +54,7 @@ namespace Fief
         /// <summary>Ce que coute un outil : bois mort, pierre-lune, fer ancien.</summary>
         public static int[] Cost(ToolKind k)
         {
-            if (k == ToolKind.Hache) return new[] { 3, 2, 0 };
+            if (k == ToolKind.Hache) return new[] { 3, 0, 1 };
             if (k == ToolKind.Epee) return new[] { 2, 0, 3 };
             if (k == ToolKind.Piege) return new[] { 3, 0, 2 };
             return new[] { 0, 0, 0 };

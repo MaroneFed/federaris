@@ -17,8 +17,8 @@ namespace Fief
     ///   carre dore        le chateau
     ///   point gris        les lieux-dits decouverts
     ///   losange colore    les steles rivales que tu as trouvees
-    ///   losange rouge     un rival qui emporte TA relique (il clignote)
-    ///   point bleu        le mage -- seulement avec la Corne d'appel
+    ///   losange rouge     un rival qui emporte TON or (il clignote)
+    ///   point orange      une de tes alarmes, quand elle sonne
     ///
     /// Regarde un signe (qu'il soit au centre) : sa distance s'affiche dessous.
     ///
@@ -161,7 +161,7 @@ namespace Fief
                 for (int i = 0; i < h.Caches.Count; i++)
                     Add(h.Caches[i].Position, UiStyle.Shape.Dot, new Color(0.78f, 0.58f, 0.36f), 9f, "Cache " + h.Caches[i].Number, false);
                 if (h.StelePlanted)
-                    Add(h.StelePosition, UiStyle.Shape.Diamond, Stele.RuneBlue, 15f, "Ta stèle", h.Trophy != null || UrgeStele);
+                    Add(h.StelePosition, UiStyle.Shape.Diamond, Stele.RuneBlue, 15f, "Ta stèle", UrgeStele);
             }
 
             for (int i = 0; i < Stele.All.Count; i++)
@@ -171,31 +171,27 @@ namespace Fief
                 Add(st.transform.position, UiStyle.Shape.Diamond, st.owner.Colour, 12f, "Stèle de " + st.owner.Name, false);
             }
 
+            // Celui qui vient de piller ta stele, tant qu'il court avec ton or.
             for (int i = 0; i < Rival.All.Count; i++)
             {
                 Rival r = Rival.All[i];
-                if (r != null && r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == self)
+                if (r != null && r.IsHuntedThief)
                     Add(r.transform.position, UiStyle.Shape.Diamond, new Color(1f, 0.3f, 0.22f), 16f, "VOLEUR " + r.seeker.Name, true);
             }
 
-            // Le mage : pendant la descente et ses premieres secondes, TOUT LE MONDE le
-            // voit (c'est le largage). Ensuite, seulement avec la Corne d'appel.
-            Mage mage = Game.Mage;
-            if (mage != null && (mage.Beaconing || h != null && h.Has(Talisman.Corne) && mage.Present))
-                Add(mage.Destination, UiStyle.Shape.Dot, new Color(0.62f, 0.8f, 1f), 16f, mage.Present ? "Le mage" : "Le mage descend", true);
+            // Une de tes alarmes vient de sonner : on sait ou.
+            for (int i = 0; i < Alarm.All.Count; i++)
+            {
+                Alarm al = Alarm.All[i];
+                if (al != null && al.owner == self && Time.time - al.RangAt < 12f)
+                    Add(al.transform.position, UiStyle.Shape.Dot, new Color(1f, 0.55f, 0.25f), 14f, "Alarme", true);
+            }
 
             // Ta depouille : tout ce que tu portais t'y attend.
             for (int i = 0; i < Remains.All.Count; i++)
                 if (Remains.All[i] != null && Remains.All[i].IsMine)
                     Add(Remains.All[i].transform.position, UiStyle.Shape.Dot, new Color(0.95f, 0.4f, 0.3f), 12f, "Ta dépouille", false);
 
-            // Ce que le mage t'a murmure apres une forge.
-            for (int i = 0; i < Secrets.All.Count; i++)
-            {
-                Secrets.Secret s = Secrets.All[i];
-                if (s.Resolved) continue;
-                Add(s.at, UiStyle.Shape.Diamond, new Color(0.78f, 0.6f, 1f), 12f, s.label, false);
-            }
         }
 
         static void Add(Vector3 at, UiStyle.Shape shape, Color color, float size, string label, bool pulse)

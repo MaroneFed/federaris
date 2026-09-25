@@ -6,21 +6,20 @@ namespace Fief
     /// Point d'acces unique aux systemes de la partie en cours.
     ///
     /// ATTENTION / PHASE 3 : ces champs statiques marchent tant qu'il n'y a qu'un
-    /// seul joueur dans le processus. En multijoueur, Inventory, Wallet et Hoard
+    /// seul joueur dans le processus. En multijoueur, Inventory et Hoard
     /// deviendront des composants PAR JOUEUR, et Season restera cote hote. C'est
     /// pour ca que toute la regle du jeu vit dans des classes C# pures (Season,
-    /// Hoard, Relic, Cache, Inventory) et que tout changement passe par une methode
+    /// Hoard, Cache, Inventory) et que tout changement passe par une methode
     /// Request* ou Try* : le jour du reseau, ce sont elles qu'on protege.
     /// </summary>
     public static class Game
     {
         public static GameConfig Config;
         public static Inventory Inventory;
-        public static Wallet Wallet;
         public static Season Season;
         public static Hoard Hoard;
 
-        /// <summary>Toi, en tant que chercheur de relique (ton sac, ta bourse, ton Hoard).</summary>
+        /// <summary>Toi, en tant que chercheur (ton sac, ton Hoard).</summary>
         public static Seeker Me;
         /// <summary>Tous les chercheurs de la Saison : toi d'abord, puis les rivaux.</summary>
         public static readonly System.Collections.Generic.List<Seeker> Seekers =
@@ -30,8 +29,6 @@ namespace Fief
         public static PlayerController Player;
         public static CharacterRig Rig;
         public static Transform PlayerTransform;
-        public static Mage Mage;
-        public static Garrison Garrison;
 
         /// <summary>Le centre du chateau, et donc de la stele.</summary>
         public static Vector3 CastleCentre;
@@ -39,15 +36,6 @@ namespace Fief
         /// <summary>Renseigne si la construction du monde a echoue : affiche en rouge a l'ecran.</summary>
         public static string BuildError;
         public static long BuildMilliseconds;
-
-        /// <summary>
-        /// Vrai tant que l'infusion de l'Ermite fait effet : le poids du sac ne
-        /// ralentit plus les gestes (recolter, creuser).
-        /// </summary>
-        public static bool Brewed
-        {
-            get { return Hoard != null && Season != null && Hoard.BrewActive(Season.Elapsed); }
-        }
 
         public static bool Ready
         {
@@ -58,7 +46,6 @@ namespace Fief
         {
             Config = null;
             Inventory = null;
-            Wallet = null;
             Season = null;
             Hoard = null;
             Hud = null;
@@ -66,8 +53,6 @@ namespace Fief
             Player = null;
             Rig = null;
             PlayerTransform = null;
-            Mage = null;
-            Garrison = null;
             Me = null;
             Seekers.Clear();
             CastleCentre = Vector3.zero;

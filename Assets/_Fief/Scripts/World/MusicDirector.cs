@@ -119,25 +119,15 @@ namespace Fief
             if (menus != null && (menus.Current == Menus.State.Title || menus.Current == Menus.State.Briefing)) return Mood.Title;
 
             bool tense = false;
-            Mage mage = Game.Mage;
-            if (mage != null && (mage.Announced || mage.Beaconing)) tense = true;
             for (int i = 0; i < Guard.All.Count && !tense; i++) if (Guard.All[i] != null && Guard.All[i].Chasing) tense = true;
             Seeker me = Game.Me;
             if (me != null && Time.time - me.LastHurt < 6f) tense = true;
             for (int i = 0; i < Rival.All.Count && !tense; i++)
-            {
-                Rival r = Rival.All[i];
-                if (r != null && r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == me) tense = true;
-            }
-            if (me != null && me.Hoard.Trophy != null) tense = true;
+                if (Rival.All[i] != null && Rival.All[i].IsHuntedThief) tense = true;
+            // Porter beaucoup d'or, c'est etre une cible.
+            if (me != null && me.Hoard.Carried >= 20) tense = true;
             // Une bete te chasse.
             for (int i = 0; i < Beast.All.Count && !tense; i++) if (Beast.All[i] != null && Beast.All[i].Hunting(me)) tense = true;
-            // La Malediction dans moins de trente secondes, et le sac n'est pas vide.
-            if (Game.Season != null && Game.Inventory != null && !Game.Inventory.IsEmpty)
-            {
-                float curse = Game.Season.NextCurseIn;
-                if (curse >= 0f && curse < 30f) tense = true;
-            }
             if (Game.Season != null && Game.Season.Running && Game.Season.Remaining < 120f) tense = true;
 
             if (tense) calmTimer = 12f;

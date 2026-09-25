@@ -5,11 +5,10 @@ namespace Fief
     /// <summary>
     /// LE COMBAT : simple et lisible (decision verrouillee), mais il compte.
     ///
-    ///   - On ne frappe qu'avec une EPEE (Tab, Artisanat : 2 bois, 3 fer).
-    ///     Quatre coups tuent. Un coup, c'est un arc devant soi, a 2,4 m.
-    ///   - QUI PORTE UNE RELIQUE NE PEUT PAS FRAPPER (la sienne en main, ou une
-    ///     volee). Les autres, si. Porter, c'est etre une cible.
-    ///   - Tomber, c'est tout lacher : le sac, les outils, la relique. Il reste une
+    ///   - On ne frappe qu'avec une EPEE (T, construire : 2 bois, 3 fer).
+    ///     Quatre coups tuent. Un coup, c'est un arc devant soi, a 2,4 m. On frappe
+    ///     les rivaux, les betes, et les gardes du chateau.
+    ///   - Tomber, c'est tout lacher : le sac, les outils, le butin porte. Il reste une
     ///     DEPOUILLE que n'importe qui peut fouiller. On se releve a sa stele (ou a
     ///     son camp) quelques secondes plus tard, les mains vides.
     ///   - La vie remonte doucement apres huit secondes sans coup.
@@ -25,18 +24,13 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null) return;
-            if (!me.CanStrike)
-            {
-                Sfx.Deny();
-                Toasts.Show("Tu portes une relique : tu ne peux pas frapper.", new Color(0.9f, 0.6f, 0.4f));
-                return;
-            }
+            if (!me.CanStrike) return;
             Sfx.Whoosh();
 
             Vector3 flatForward = eye.forward;
             flatForward.y = 0f;
             flatForward.Normalize();
-            float damage = SwordDamage * (me.Hoard.Level(UpgradeKind.Lame) > 0 ? UpgradeInfo.LameFactor : 1f);
+            float damage = SwordDamage;
             for (int i = 0; i < Rival.All.Count; i++)
             {
                 Rival r = Rival.All[i];
@@ -59,6 +53,19 @@ namespace Fief
                 if (to.magnitude > Reach + 0.4f || Vector3.Angle(flatForward, to) > 60f) continue;
                 if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
                 b.Hurt(damage, me);
+                return;
+            }
+            // Les gardes du chateau.
+            for (int i = 0; i < Guard.All.Count; i++)
+            {
+                Guard g = Guard.All[i];
+                if (g == null || !g.Alive) continue;
+                Vector3 to = g.transform.position - me.Body.position;
+                if (Mathf.Abs(to.y) > 2f) continue;
+                to.y = 0f;
+                if (to.magnitude > Reach + 0.2f || Vector3.Angle(flatForward, to) > 55f) continue;
+                if (me.Kit.Wear(1)) Toasts.Show("Ton épée s'est brisée.", new Color(0.8f, 0.6f, 0.4f));
+                g.Hurt(damage, me);
                 return;
             }
         }
@@ -86,6 +93,15 @@ namespace Fief
                 Vector3 to = b.transform.position - me.Body.position;
                 to.y = 0f;
                 if (to.magnitude <= Reach + 0.4f && Vector3.Angle(f, to) <= 60f) return true;
+            }
+            for (int i = 0; i < Guard.All.Count; i++)
+            {
+                Guard g = Guard.All[i];
+                if (g == null || !g.Alive) continue;
+                Vector3 to = g.transform.position - me.Body.position;
+                if (Mathf.Abs(to.y) > 2f) continue;
+                to.y = 0f;
+                if (to.magnitude <= Reach + 0.2f && Vector3.Angle(f, to) <= 55f) return true;
             }
             return false;
         }
@@ -137,12 +153,6 @@ namespace Fief
         static void Fall(Seeker victim, Seeker killer, string how)
         {
             Vector3 at = victim.Body != null ? victim.Body.position : Vector3.zero;
-            // Celui qui abat son voleur reprend sa relique, tout de suite.
-            if (killer != null && victim.Hoard.Trophy != null && victim.Hoard.TrophyFrom == killer)
-            {
-                killer.Hoard.TryRecover(victim.Hoard.TrySurrenderTrophy());
-                killer.SyncWeight();
-            }
             Remains.Drop(victim, at);
 
             if (victim.IsPlayer)
@@ -173,8 +183,7 @@ namespace Fief
     /// <summary>
     /// UNE DEPOUILLE : ce qu'un chercheur portait quand il est tombe. Un sac eventre,
     /// une lanterne renversee. On la fouille (E maintenu) : on prend ce qui rentre
-    /// dans son sac, la relique s'il y en avait une (elle devient un trophee, sauf si
-    /// c'est la tienne), et les outils s'il reste une place.
+    /// dans son sac, tout son butin (★), et les outils s'il reste une place.
     /// </summary>
     public class Remains : MonoBehaviour, IInteractable
     {
@@ -188,7 +197,7 @@ namespace Fief
         public bool IsMine { get { return owner != null && owner == Game.Me && !Empty; } }
 
         readonly Inventory contents = new Inventory();
-        Relic relic;
+        int loot;
         Seeker owner;
         Tool[] tools = new Tool[2];
 
@@ -211,9 +220,7 @@ namespace Fief
                 int n = victim.Bag.TryRemove(t, victim.Bag.Get(t));
                 r.contents.TryAdd(t, n);
             }
-            Hoard h = victim.Hoard;
-            if (h.Trophy != null) r.relic = h.TrySurrenderTrophy();
-            else if (h.RelicInHand) r.relic = h.TrySurrenderRelic();
+            r.loot = victim.Hoard.DropCarried();
             for (int i = 0; i < victim.Kit.Slots.Length; i++) r.tools[i] = victim.Kit.Slots[i];
             victim.Kit.Clear();
             victim.SyncWeight();
@@ -269,13 +276,16 @@ namespace Fief
             glow.intensity = 0.7f;
             glow.shadows = LightShadows.None;
             lightGo.AddComponent<LampFlicker>();
-            if (r.relic != null)
-                Ambiance.Sparkles(go.transform, new Vector3(0f, 0.4f, 0f), Stele.RuneBlue);
+            if (r.loot > 0)
+                Ambiance.Sparkles(go.transform, new Vector3(0f, 0.4f, 0f), Palette.Gold);
         }
+
+        /// <summary>Il y reste quelque chose a prendre.</summary>
+        public bool HasLoot { get { return !Empty; } }
 
         bool Empty
         {
-            get { return contents.IsEmpty && relic == null && tools[0] == null && tools[1] == null; }
+            get { return contents.IsEmpty && loot <= 0 && tools[0] == null && tools[1] == null; }
         }
 
         public Transform Anchor { get { return transform; } }
@@ -285,7 +295,7 @@ namespace Fief
             get
             {
                 string who = owner == Game.Me ? "ta dépouille" : "la dépouille de " + owner.Name;
-                return "Fouiller " + who + (relic != null ? "  (une relique !)" : "");
+                return "Fouiller " + who + (loot > 0 ? "  ★" + loot : "");
             }
         }
         public float HoldDuration { get { return 1.5f; } }
@@ -294,6 +304,15 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null) return;
+            if (loot > 0) Pickup.FlyLoot(transform.position + Vector3.up * 0.5f, loot);
+            TakeFor(me);
+            Sfx.HarvestTap(ResourceType.Deadwood);
+            Toasts.Show(Empty ? "Tu as tout repris." : "Sac plein : il en reste.", UiStyle.InkDim);
+        }
+
+        /// <summary>Fouiller : toi ou un rival. Renvoie les etoiles emportees.</summary>
+        public int TakeFor(Seeker me)
+        {
             int taken = 0;
             for (int i = 0; i < ResourceInfo.Count; i++)
             {
@@ -302,12 +321,9 @@ namespace Fief
                 me.Bag.TryAdd(t, n);
                 taken += n;
             }
-            if (relic != null)
-            {
-                bool mine = owner == me;
-                if (mine && me.Hoard.TryRecover(relic)) relic = null;
-                else if (!mine && me.Hoard.TryTakeTrophy(relic, owner)) relic = null;
-            }
+            int stars = loot;
+            me.Hoard.TryPickLoot(loot);
+            loot = 0;
             for (int i = 0; i < tools.Length; i++)
             {
                 int slot = me.Kit.FreeSlot;
@@ -316,9 +332,8 @@ namespace Fief
                 tools[i] = null;
             }
             me.SyncWeight();
-            Sfx.HarvestTap(ResourceType.Deadwood);
-            Toasts.Show(Empty ? "Tu as tout repris." : "Sac plein : il en reste.", UiStyle.InkDim);
             if (Empty) Destroy(gameObject, 0.1f);
+            return stars;
         }
     }
 }

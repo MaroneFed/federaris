@@ -107,11 +107,8 @@ namespace Fief
         public float mouseSensitivity = 0.13f;
 
         [Header("Inventaire")]
-        [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, la relique = 5.")]
+        [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, le butin = 0,35 kg l'étoile.")]
         public float maxWeight = 60f;
-        [Tooltip("L'or au départ. Il ne sert qu'a SOUDOYER les gardes du château. On en trouve " +
-                 "d'autre dans les bourses perdues de la forêt.")]
-        public int startingGold = 40;
 
         [Header("Récolte")]
         public float interactRadius = 3.6f;
@@ -126,19 +123,8 @@ namespace Fief
         public float nodeRespawnDelay = 55f;
 
         [Header("La Saison (voir docs/LA-SAISON.md)")]
-        [Tooltip("Durée d'une Saison, en minutes. À la cloche, seule compte la relique posée sur la stèle.")]
+        [Tooltip("Durée d'une Saison, en minutes. À la cloche, le plus gros butin (★) sur sa stèle gagne.")]
         public float seasonMinutes = 30f;
-        [Tooltip("Première apparition du mage, en secondes. Assez tôt pour qu'on le rencontre " +
-                 "avant d'avoir oublié qu'il existe.")]
-        public float mageFirstAppearance = 120f;
-        [Tooltip("Écart entre deux apparitions, en secondes. Le rater, c'est attendre ça.")]
-        public float mageInterval = 270f;
-        [Tooltip("Durée d'une apparition, en secondes. Il faut le trouver avant qu'il parte.")]
-        public float mageStay = 150f;
-        [Tooltip("Le mage apparaît au moins à cette distance de toi : il faut marcher.")]
-        public float mageMinDistance = 60f;
-        [Tooltip("Et au plus à celle-ci : il doit rester atteignable dans le temps imparti.")]
-        public float mageMaxDistance = 150f;
         [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
                  "tente se voit.")]
         public float campCapacity = 60f;

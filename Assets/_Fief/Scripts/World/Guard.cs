@@ -4,31 +4,33 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UN GARDE DU CHATEAU.
+    /// UN GARDE (refait le 26/09 -- Martin : "faut qu'il y ait plein de gardes, des
+    /// gardes qui rodent pour essayer de te choper" ; et "les gardes, t'es pas cense
+    /// les acheter"). On ne leur parle plus. Ils GARDENT.
     ///
     /// Il fait sa ronde, sa lanterne braquee devant lui : le cone de lumiere qu'on
-    /// voit balayer le sol, c'est EXACTEMENT ce qu'il voit. Reste hors du cone, et
-    /// il ne te voit pas.
+    /// voit balayer le sol, c'est EXACTEMENT ce qu'il voit. Reste hors du cone.
     ///
-    /// Il ne s'occupe pas des promeneurs. Il s'occupe des VOLEURS : de qui porte du
-    /// Fer ancien, et de qui entre dans une reserve. S'il en voit un, un "?"
-    /// apparait au-dessus de sa tete, puis un "!" -- et il court. S'il te
-    /// rattrape, il te prend ton fer et te jette dehors, devant la grande porte.
-    /// Chargee de fer, tu cours moins vite que lui. C'est voulu.
+    /// Qui l'interesse :
+    ///   - au chateau : quiconque est DANS le donjon ou une reserve, et quiconque
+    ///     porte du butin dans l'enceinte ;
+    ///   - les RODEURS, qui tournent dans la foret autour du chateau : quiconque
+    ///     porte du butin.
+    /// S'il en voit un, sa lanterne rougit, il crie, et il COURT. S'il te rattrape,
+    /// il frappe (quatre coups te couchent). On peut le fuir, le semer dans la
+    /// brume -- ou le tuer : quatre coups d'epee. Il revient a son poste une minute
+    /// et demie plus tard.
     ///
-    /// ET IL EST MAL PAYE. Parle-lui : pour quelques pieces il regarde ailleurs
-    /// trois minutes (son cone palit), et pour davantage il ouvre la POTERNE, la
-    /// porte derobee du mur nord. Rien d'autre ne l'ouvre. C'est le coeur du jeu.
-    ///
-    /// Les rivaux aussi volent du fer. Les gardes les chassent aussi.
+    /// Prendre un tresor fait du bruit : les gardes proches accourent (Alert).
     /// </summary>
-    public class Guard : MonoBehaviour, IInteractable, IDialogue
+    public class Guard : MonoBehaviour
     {
         public static readonly List<Guard> All = new List<Guard>();
 
-        enum State { Patrol, Chase, Return }
+        enum State { Patrol, Chase, Return, Dead }
 
-        [System.NonSerialized] public GuardInfo info;
+        [System.NonSerialized] public string guardName;
+        [System.NonSerialized] public bool roamer;
 
         State state = State.Patrol;
         Vector3[] route;
@@ -39,18 +41,38 @@ namespace Fief
         Walker walker;
         Light cone;
         float lookSweep;
+        float stuck, detour, detourSign = 1f;
 
         Seeker chased;
         float chaseTimer;
+        float lostTimer;
+        float strikeTimer;
         float barkTimer;
+        float deadTimer;
+        float health = MaxHealth;
 
         public float Suspicion { get; private set; }
         public bool Chasing { get { return state == State.Chase; } }
+        public bool Alive { get { return state != State.Dead; } }
 
-        const float SightRange = 16f;
-        const float SightAngle = 34f;       // demi-angle : le cone fait 68 degres
-        const float WalkSpeed = 1.7f;
-        const float RunSpeed = 6.4f;
+        /// <summary>Vrai si un garde, au moins, te court apres.</summary>
+        public static bool HuntingPlayer
+        {
+            get
+            {
+                for (int i = 0; i < All.Count; i++)
+                    if (All[i] != null && All[i].state == State.Chase && All[i].chased != null && All[i].chased.IsPlayer) return true;
+                return false;
+            }
+        }
+
+        const float MaxHealth = 100f;
+        const float SightRange = 17f;
+        const float SightAngle = 36f;       // demi-angle : le cone fait 72 degres
+        const float WalkSpeed = 1.8f;
+        const float RunSpeed = 6.2f;
+        const float Damage = 22f;
+        const float RespawnSeconds = 90f;
 
         static readonly Color Tabard = new Color(0.42f, 0.10f, 0.10f);
         static readonly Color TabardDark = new Color(0.28f, 0.07f, 0.07f);
@@ -58,13 +80,12 @@ namespace Fief
         static readonly Color Skin = new Color(0.55f, 0.46f, 0.40f);
         static readonly Color ConeCalm = new Color(1f, 0.82f, 0.55f);
         static readonly Color ConeAlarm = new Color(1f, 0.3f, 0.2f);
-        static readonly Color ConeBribed = new Color(0.5f, 0.6f, 0.75f);
 
         // ================================================================== construction
 
-        public static Guard Build(Transform parent, GuardInfo info, Vector3[] route)
+        public static Guard Build(Transform parent, string name, Vector3[] route, bool roamer)
         {
-            GameObject root = new GameObject("GARDE " + info.Name);
+            GameObject root = new GameObject((roamer ? "RÔDEUR " : "GARDE ") + name);
             root.transform.SetParent(parent, false);
             root.transform.position = route[0];
 
@@ -72,10 +93,12 @@ namespace Fief
             cc.height = 1.9f;
             cc.radius = 0.38f;
             cc.center = new Vector3(0f, 0.95f, 0f);
-            cc.stepOffset = 0.4f;
+            cc.stepOffset = 0.45f;
+            cc.slopeLimit = 50f;
 
             Guard g = root.AddComponent<Guard>();
-            g.info = info;
+            g.guardName = name;
+            g.roamer = roamer;
             g.route = route;
             g.body = cc;
 
@@ -93,7 +116,7 @@ namespace Fief
             w.RunSpeed = RunSpeed;
             g.walker = w;
             // Un vrai modele dans Resources/Modeles/Gardes ? Il remplace les cubes.
-            ModelSkin.TryDress(w, "Gardes", look.height, info.Name.Length + All.Count);
+            ModelSkin.TryDress(w, "Gardes", look.height, name.Length + All.Count);
 
             Color cross = new Color(0.8f, 0.78f, 0.72f);
             Color wood = new Color(0.25f, 0.19f, 0.13f);
@@ -144,7 +167,7 @@ namespace Fief
             Proto.EndVisualOnly();
 
             // LE CONE : une lumiere "spot", exactement l'angle et la portee de sa vue.
-            GameObject coneGo = new GameObject("Regard de " + info.Name);
+            GameObject coneGo = new GameObject("Regard de " + name);
             coneGo.transform.SetParent(root.transform, false);
             coneGo.transform.localPosition = new Vector3(0f, 1.7f, 0.2f);
             coneGo.transform.localRotation = Quaternion.Euler(22f, 0f, 0f);
@@ -173,17 +196,17 @@ namespace Fief
             if (season == null || !season.Running || Time.deltaTime <= 0f) return;
             float dt = Time.deltaTime;
             if (barkTimer > 0f) barkTimer -= dt;
+            if (strikeTimer > 0f) strikeTimer -= dt;
 
-            bool talking = Game.Hud != null && Game.Hud.PanelOpen && NearPlayer(4.5f);
-            if (talking)
+            if (state == State.Dead)
             {
-                Figures.Face(transform, Game.PlayerTransform.position, 120f);
-                walker.Gaze = Game.PlayerTransform;
-                ColourCone(season);
+                deadTimer -= dt;
+                if (deadTimer <= 0f) Revive();
                 return;
             }
 
-            Watch(season, dt);
+            // Loin de toi, un rodeur ne coute presque rien : il glisse sur sa ronde.
+            Watch(dt);
 
             switch (state)
             {
@@ -193,17 +216,16 @@ namespace Fief
                     if (Walk(route[next], WalkSpeed * 1.6f, dt)) state = State.Patrol;
                     break;
             }
-            ColourCone(season);
-            // Il te regarde quand tu es pres, ou quand il te soupconne.
-            walker.Gaze = NearPlayer(9f) || Suspicion > 0.2f && NearPlayer(SightRange) ? Game.PlayerTransform : null;
+            ColourCone();
+            walker.Gaze = state == State.Chase && chased != null ? chased.Body : NearPlayer(8f) ? Game.PlayerTransform : null;
         }
 
         /// <summary>
-        /// Regarder. Pour chaque chercheur (toi, les rivaux) : est-il SUSPECT (du fer
-        /// sur lui, ou dans une reserve) et VISIBLE (dans le cone, pas cache par un
-        /// mur) ? Si oui, la suspicion monte -- vite de pres, lentement de loin.
+        /// Regarder. Pour chaque chercheur : est-il SUSPECT et VISIBLE (dans le cone,
+        /// pas cache par un mur) ? Si oui, la suspicion monte -- vite de pres,
+        /// lentement de loin. A 1, il court.
         /// </summary>
-        void Watch(Season season, float dt)
+        void Watch(float dt)
         {
             if (state == State.Chase) return;
 
@@ -212,9 +234,7 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s.Body == null || !Suspect(s)) continue;
-                if (s.IsPlayer && info.Bribed(season.Elapsed)) continue;
-                if (info.SwornTo == s) continue;          // il a jure : il ne te voit plus jamais
+                if (s.Body == null || !s.Alive || !Suspect(s)) continue;
                 float d;
                 if (!InSight(s.Body.position, out d)) continue;
                 if (d < bestDistance) { bestDistance = d; seen = s; }
@@ -222,19 +242,11 @@ namespace Fief
 
             if (seen != null)
             {
-                float rate = bestDistance < 6f ? 2.6f : 1.1f;
+                float rate = bestDistance < 6f ? 3f : 1.2f;
                 Suspicion = Mathf.Min(1f, Suspicion + rate * dt);
                 if (Suspicion > 0.2f) Figures.Face(transform, seen.Body.position, 90f);
-                if (Suspicion > 0.35f) Bark("Qui va la ?");
-                if (Suspicion >= 1f)
-                {
-                    state = State.Chase;
-                    chased = seen;
-                    chaseTimer = 0f;
-                    barkTimer = 0f;
-                    Bark(seen.IsPlayer ? "HALTE ! Voleur !" : "Halte, " + seen.Name + " !");
-                    if (seen.IsPlayer) Sfx.Deny();
-                }
+                if (Suspicion > 0.35f) Bark("Qui va là ?");
+                if (Suspicion >= 1f) StartChase(seen);
             }
             else
             {
@@ -242,9 +254,43 @@ namespace Fief
             }
         }
 
-        static bool Suspect(Seeker s)
+        bool Suspect(Seeker s)
         {
-            return s.Bag.Get(ResourceType.Iron) > 0 || Castle.InStoreroom(s.Body.position.x, s.Body.position.z);
+            Vector3 p = s.Body.position;
+            if (roamer) return s.Hoard.Carried > 0;
+            if (!Castle.Covers(p.x, p.z, 2f)) return false;
+            return s.Hoard.Carried > 0 || Castle.InKeep(p) || Castle.InStoreroom(p.x, p.z);
+        }
+
+        void StartChase(Seeker s)
+        {
+            if (state == State.Dead || s == null) return;
+            bool fresh = state != State.Chase;
+            state = State.Chase;
+            chased = s;
+            chaseTimer = 0f;
+            lostTimer = 0f;
+            Suspicion = 1f;
+            if (fresh)
+            {
+                barkTimer = 0f;
+                Bark("HALTE ! Au voleur !");
+                if (s.IsPlayer) Sfx.Alarm();
+            }
+        }
+
+        /// <summary>Un tresor vient d'etre pris : les gardes a portee accourent.</summary>
+        public static void Alert(Vector3 at, float radius, Seeker culprit)
+        {
+            for (int i = 0; i < All.Count; i++)
+            {
+                Guard g = All[i];
+                if (g == null || !g.Alive || g.roamer) continue;
+                Vector3 d = g.transform.position - at;
+                if (Mathf.Abs(d.y) > 7f) continue;          // un autre etage n'entend pas
+                d.y = 0f;
+                if (d.magnitude < radius) g.StartChase(culprit);
+            }
         }
 
         bool InSight(Vector3 target, out float distance)
@@ -254,12 +300,12 @@ namespace Fief
             distance = to.magnitude;
             if (distance > SightRange) return false;
             Vector3 flatTo = new Vector3(to.x, 0f, to.z);
-            if (distance > 2f && Vector3.Angle(transform.forward, flatTo) > SightAngle) return false;
+            if (distance > 2.2f && Vector3.Angle(transform.forward, flatTo) > SightAngle) return false;
 
             RaycastHit hit;
             if (Physics.Raycast(eye, to / distance, out hit, distance - 0.5f, ~0, QueryTriggerInteraction.Ignore))
             {
-                // Touche quelqu'un d'autre que lui-meme avant la cible : un mur, un tronc.
+                // Touche autre chose que lui-meme avant la cible : un mur, un tronc, un plancher.
                 if (hit.collider.transform != transform && !hit.collider.transform.IsChildOf(transform)) return false;
             }
             return true;
@@ -272,31 +318,47 @@ namespace Fief
                 pause -= dt;
                 // Il regarde a gauche, a droite, pendant ses pauses.
                 lookSweep += dt;
-                transform.Rotate(0f, Mathf.Sin(lookSweep * 0.9f) * 40f * dt, 0f);
+                transform.Rotate(0f, Mathf.Sin(lookSweep * 0.9f) * 50f * dt, 0f);
                 return;
             }
-            if (Walk(route[next], WalkSpeed, dt))
+            if (Walk(route[next], roamer ? WalkSpeed * 1.4f : WalkSpeed, dt))
             {
                 next = (next + 1) % route.Length;
-                pause = 3.5f;
+                pause = roamer ? 2f : 3f;
             }
         }
 
         void Chase(float dt)
         {
             chaseTimer += dt;
-            if (chased == null || chased.Body == null) { GiveUp(); return; }
+            if (chased == null || chased.Body == null || !chased.Alive) { GiveUp(); return; }
             Vector3 p = chased.Body.position;
 
-            // Hors du chateau, ou plus de fer et sorti des reserves : il abandonne.
-            if (!Castle.Covers(p.x, p.z, 10f) || chaseTimer > 30f || !Suspect(chased) && chaseTimer > 3f)
+            // Perdu de vue (la brume, un mur, un autre etage) : il cherche un moment.
+            float d;
+            bool seen = InSight(p, out d) || d < 3f;
+            lostTimer = seen ? 0f : lostTimer + dt;
+            float leash = roamer ? 90f : 30f;
+            bool tooFar = roamer ? Flat(p - route[0]).magnitude > leash + 60f : !Castle.Covers(p.x, p.z, leash);
+            if (tooFar || lostTimer > 7f || chaseTimer > 45f || Mathf.Abs(p.y - transform.position.y) > 4f && lostTimer > 2.5f)
             {
                 Bark("Et que je ne te revoie pas !");
                 GiveUp();
                 return;
             }
-            Walk(p, RunSpeed, dt);
-            if (Flat(p - transform.position).magnitude < 1.8f) Seize(chased);
+
+            float flat = Flat(p - transform.position).magnitude;
+            if (flat > 1.6f) Walk(p, RunSpeed, dt);
+            else Figures.Face(transform, p, 360f);
+            if (flat < 2.1f && strikeTimer <= 0f && Mathf.Abs(p.y - transform.position.y) < 1.8f)
+            {
+                strikeTimer = 1.25f;
+                if (walker != null) walker.PlaySwing();
+                if (NearPlayer(25f)) Sfx.HarvestTap(ResourceType.Iron);
+                Combat.Hit(chased, null, Damage, "sous la hallebarde de " + guardName);
+                if (chased != null && chased.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.3f);
+                if (chased == null || !chased.Alive) GiveUp();
+            }
         }
 
         void GiveUp()
@@ -306,44 +368,57 @@ namespace Fief
             Suspicion = 0f;
         }
 
-        /// <summary>Rattrape : il prend tout le fer, et jette le voleur devant la grande porte.</summary>
-        void Seize(Seeker s)
-        {
-            if (walker != null) walker.PlaySwing();
-            int iron = s.Bag.Get(ResourceType.Iron);
-            int taken = s.Bag.TryRemove(ResourceType.Iron, iron);
-            if (Game.Garrison != null) Game.Garrison.IronSeized += taken;
+        // ================================================================== les coups
 
-            float x = s.IsPlayer ? 0f : (Random.value - 0.5f) * 8f;
-            Vector3 outside = Ground.Place(x, -Castle.HalfSize - 9f, 0.1f);
-            if (s.IsPlayer)
-            {
-                if (Game.Player != null) Game.Player.Teleport(outside, 180f);
-                Sfx.Deny();
-                if (Game.Hud != null)
-                {
-                    Game.Hud.ClosePanel();
-                    Game.Hud.ShowDiscovery("LA GARDE", info.Name + " t'a jeté dehors",
-                                           taken > 0 ? "Il garde tes " + taken + " fer." : "Rien à te prendre, cette fois.",
-                                           "Les gardes sont mal payés. Parle-leur avant de voler.", ConeAlarm);
-                }
-            }
-            else
-            {
-                Rival r = Rival.Of(s);
-                if (r != null) r.Teleport(outside);
-                if (NearPlayer(35f)) Toasts.Show("La garde jette " + s.Name + " hors du château.", s.Colour);
-            }
-            GiveUp();
+        /// <summary>On le frappe : il encaisse, se retourne contre toi, et tombe au quatrieme coup.</summary>
+        public void Hurt(float amount, Seeker by)
+        {
+            if (state == State.Dead) return;
+            health -= amount;
+            Sfx.Thud();
+            FloatingTexts.Spawn(transform.position + Vector3.up * 2.2f, "-" + Mathf.RoundToInt(amount), new Color(1f, 0.35f, 0.3f));
+            Ambiance.Burst(null, transform.position + Vector3.up * 1.2f, new Color(0.55f, 0.1f, 0.08f));
+            if (walker != null) Punch.Apply(walker.transform, by != null && by.Body != null ? by.Body.position : transform.position - transform.forward);
+            if (health <= 0f) { Die(by); return; }
+            if (by != null) StartChase(by);
         }
 
-        void ColourCone(Season season)
+        void Die(Seeker by)
+        {
+            state = State.Dead;
+            deadTimer = RespawnSeconds;
+            chased = null;
+            Suspicion = 0f;
+            if (by != null && by.IsPlayer) Stats.GuardsDowned++;
+            if (body != null) body.enabled = false;
+            if (walker != null) walker.gameObject.SetActive(false);
+            if (cone != null) cone.enabled = false;
+            if (NearPlayer(40f) && !Sfx.Muted) AudioSource.PlayClipAtPoint(Sfx.Moan(), transform.position + Vector3.up, 0.8f);
+            // Il laisse tomber sa bourse : quelques pieces pour qui l'a abattu.
+            if (by != null)
+            {
+                by.Hoard.TryPickLoot(3);
+                by.SyncWeight();
+                if (by.IsPlayer) { Sfx.Coin(); FloatingTexts.Spawn(transform.position + Vector3.up * 1.4f, "★3", Palette.Gold); }
+            }
+        }
+
+        void Revive()
+        {
+            state = State.Patrol;
+            health = MaxHealth;
+            next = 1 % route.Length;
+            transform.position = route[0];
+            if (body != null) body.enabled = true;
+            if (walker != null) walker.gameObject.SetActive(true);
+            if (cone != null) cone.enabled = true;
+        }
+
+        void ColourCone()
         {
             if (cone == null) return;
-            bool bribed = info.Bribed(season.Elapsed);
-            Color want = state == State.Chase ? ConeAlarm : bribed ? ConeBribed : Color.Lerp(ConeCalm, ConeAlarm, Suspicion);
+            Color want = state == State.Chase ? ConeAlarm : Color.Lerp(ConeCalm, ConeAlarm, Suspicion);
             cone.color = Color.Lerp(cone.color, want, Time.deltaTime * 6f);
-            cone.intensity = bribed ? 0.8f : 2.2f;
         }
 
         // ================================================================== marcher
@@ -354,9 +429,25 @@ namespace Fief
             Vector3 to = Flat(destination - transform.position);
             if (to.magnitude < 0.3f) return true;
             Vector3 dir = to.normalized;
-            fall = body.isGrounded ? -1f : fall - 22f * dt;
-            body.Move((dir * speed + Vector3.up * fall) * dt);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 240f * dt);
+            // Coince contre un tronc (les rodeurs, en foret) : il contourne un moment.
+            if (detour > 0f)
+            {
+                detour -= dt;
+                dir = Quaternion.Euler(0f, 70f * detourSign, 0f) * dir;
+            }
+            if (body.enabled)
+            {
+                fall = body.isGrounded ? -1f : fall - 22f * dt;
+                Vector3 before = transform.position;
+                body.Move((dir * speed + Vector3.up * fall) * dt);
+                if (Flat(transform.position - before).magnitude < speed * dt * 0.3f)
+                {
+                    stuck += dt;
+                    if (stuck > 0.4f) { detour = 1f; detourSign = -detourSign; stuck = 0f; }
+                }
+                else stuck = 0f;
+            }
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 300f * dt);
             return false;
         }
 
@@ -371,114 +462,13 @@ namespace Fief
             if (barkTimer > 0f || !NearPlayer(25f)) return;
             barkTimer = 5f;
             // Une voix, pas un texte sur la tete (voir Sfx.Voice).
-            Sfx.Voice(transform.position, info.Name.Length + 1, line.EndsWith("!"));
+            Sfx.Voice(transform.position, guardName.Length + 1, line.EndsWith("!"));
         }
 
         static Vector3 Flat(Vector3 v)
         {
             v.y = 0f;
             return v;
-        }
-
-        // ================================================================== IInteractable
-
-        public Transform Anchor { get { return transform; } }
-        public bool CanInteract { get { return state == State.Patrol && Suspicion < 0.3f; } }
-        public string Prompt { get { return "Parler au garde " + info.Name; } }
-        public float HoldDuration { get { return 0f; } }
-
-        public void Interact()
-        {
-            if (Game.Hud == null) return;
-            Game.Hud.OpenPanel(new DialoguePanel(this));
-            Sfx.Pop();
-        }
-
-        // ================================================================== IDialogue
-
-        public string Speaker { get { return "LE GARDE " + info.Name.ToUpperInvariant(); } }
-        public Color Tint { get { return new Color(0.9f, 0.55f, 0.45f); } }
-
-        float Now { get { return Game.Season != null ? Game.Season.Elapsed : 0f; } }
-
-        public string Body
-        {
-            get
-            {
-                if (info.SwornTo == Game.Me && Game.Me != null)
-                    return "\"Je suis ton homme.\"\n\nGardes à toi : "
-                         + Game.Garrison.SwornCount(Game.Me) + " sur " + Game.Garrison.Guards.Count + ".";
-                if (info.Bribed(Now))
-                    return "\"Je ne te vois pas. Pendant " + Hud.Clock(info.BribedUntil - Now) + ". File.\"";
-
-                string mood = info.Loyalty < 0.3f ? "Il crache par terre."
-                            : info.Loyalty < 0.6f ? "Il regarde derrière lui."
-                            : "Il se tient droit.";
-                string wage = info.MonthsUnpaid > 0 ? "\"Pas payé depuis " + info.MonthsUnpaid + " mois.\"" : "\"On me paie. Pour l'instant.\"";
-                string rule = "\"Du fer sur toi, et je te jette dehors.\"";
-                string gold = "\n\nTu as " + (Game.Wallet != null ? Game.Wallet.Gold : 0) + " or.";
-                string posterne = Game.Garrison != null && Game.Garrison.PosterneOpen
-                    ? "\n\nLa poterne nord est ouverte."
-                    : "";
-                return wage + " " + mood + "\n\n" + rule + gold + posterne;
-            }
-        }
-
-        public int ChoiceCount { get { return 4; } }
-
-        public string ChoiceLabel(int index)
-        {
-            if (index == 0) return "Qu'il regarde ailleurs  ·  " + info.LookAwayPrice + " or";
-            if (index == 1) return "Qu'il ouvre la poterne  ·  " + info.PosternePrice + " or";
-            if (index == 2) return "Son serment  ·  " + info.OathPrice + " or";
-            return "Partir";
-        }
-
-        public bool ChoiceEnabled(int index)
-        {
-            Wallet purse = Game.Wallet;
-            if (purse == null || Game.Garrison == null) return index == 2;
-            if (index == 0) return !info.Bribed(Now) && purse.CanAfford(info.LookAwayPrice);
-            if (index == 1) return !Game.Garrison.PosterneOpen && purse.CanAfford(info.PosternePrice);
-            if (index == 2) return info.SwornTo != Game.Me && purse.CanAfford(info.OathPrice);
-            return true;
-        }
-
-        public bool Choose(int index)
-        {
-            if (index == 0 && Game.Garrison.RequestLookAway(Game.Wallet, info, Now))
-            {
-                Sfx.Coin();
-                Toasts.Show(info.Name + " empoche l'or et détourne les yeux.", new Color(0.95f, 0.8f, 0.4f));
-                return false;
-            }
-            if (index == 2 && Game.Garrison.RequestOath(Game.Me, info))
-            {
-                Sfx.Coin();
-                int sworn = Game.Garrison.SwornCount(Game.Me);
-                int all = Game.Garrison.Guards.Count;
-                if (sworn >= all)
-                {
-                    Victories.Declare(Game.Me, VictoryKind.Trahison);
-                    return true;
-                }
-                if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("SERMENT", info.Name + " est à toi",
-                                           sworn + " gardes sur " + all + ".",
-                                           "Quand les six auront jure, le château t'appartiendra.", new Color(0.95f, 0.8f, 0.4f));
-                return false;
-            }
-            if (index == 1 && Game.Garrison.RequestPosterne(Game.Wallet, info))
-            {
-                Sfx.Coin();
-                Poterne.OpenAll();
-                if (Game.Hud != null)
-                    Game.Hud.ShowDiscovery("LA POTERNE", "est ouverte",
-                                           "Pour " + info.PosternePrice + " or.",
-                                           "Une porte dérobée ne se force pas. Elle s'achète.", new Color(0.95f, 0.8f, 0.4f));
-                return true;
-            }
-            return true;
         }
     }
 }

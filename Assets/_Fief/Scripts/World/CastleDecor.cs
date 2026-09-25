@@ -48,7 +48,6 @@ namespace Fief
             Avenue(t, rng);
             GateLeaves(t);
             Banners(t);
-            ThroneRoom(t);
             Courtyard(t, rng);
             CastleDetails.Build(t, rng);
         }
@@ -209,10 +208,6 @@ namespace Fief
             Banner(t, new Vector3(-off, 12.5f, gateFace), 0f);
             Banner(t, new Vector3(off, 12.5f, gateFace), 0f);
 
-            // Dans la salle du trone, au mur du fond, tournes vers l'entree.
-            float back = Castle.KeepCentre.z + Castle.KeepHalfDepth - 1.6f - 0.12f;
-            Banner(t, new Vector3(-3.8f, 8.2f, back), 180f);
-            Banner(t, new Vector3(3.8f, 8.2f, back), 180f);
         }
 
         /// <summary>
@@ -242,94 +237,6 @@ namespace Fief
             GameObject crest = Proto.Cube(b, new Vector3(0f, -2.6f, -0.06f), new Vector3(0.7f, 0.7f, 0.02f), FadedGold, "Blason");
             crest.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
             Proto.EndVisualOnly();
-        }
-
-        // ================================================================== 4. la salle du trone
-
-        static void ThroneRoom(Transform t)
-        {
-            Vector3 c = Castle.KeepCentre;
-            float floor = Castle.HallFloor;
-            float ceiling = Castle.HallCeiling;
-            float back = c.z + Castle.KeepHalfDepth - 1.6f;      // face interieure du mur du fond
-
-            // Six piliers.
-            float[] rows = { c.z - 4.5f, c.z - 0.2f, c.z + 4.1f };
-            for (int i = 0; i < rows.Length; i++)
-            {
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    Vector3 p = new Vector3(side * 4.8f, 0f, rows[i]);
-                    Proto.Cube(t, new Vector3(p.x, (floor + ceiling) * 0.5f, p.z), new Vector3(1.1f, ceiling - floor, 1.1f), Stone, "Pilier");
-                    Proto.BeginVisualOnly();
-                    Proto.Cube(t, new Vector3(p.x, floor + 0.3f, p.z), new Vector3(1.5f, 0.6f, 1.5f), StoneDark, "Base");
-                    Proto.Cube(t, new Vector3(p.x, ceiling - 0.35f, p.z), new Vector3(1.5f, 0.7f, 1.5f), StoneDark, "Chapiteau");
-                    Proto.EndVisualOnly();
-                }
-            }
-
-            // Le tapis, use jusqu'a la trame au milieu.
-            Proto.BeginVisualOnly();
-            float carpetFrom = c.z - Castle.KeepHalfDepth + 0.2f, carpetTo = back - 2.2f;
-            Proto.Cube(t, new Vector3(0f, floor + 0.02f, (carpetFrom + carpetTo) * 0.5f),
-                       new Vector3(2.4f, 0.04f, carpetTo - carpetFrom), CrimsonDark, "Tapis");
-            Proto.Cube(t, new Vector3(0f, floor + 0.035f, (carpetFrom + carpetTo) * 0.5f),
-                       new Vector3(2.0f, 0.04f, carpetTo - carpetFrom - 0.4f), Crimson, "Tapis");
-            Proto.Cube(t, new Vector3(0.3f, floor + 0.05f, c.z - 1f), new Vector3(1.1f, 0.04f, 2.4f), new Color(0.2f, 0.13f, 0.1f), "Usure");
-            Proto.EndVisualOnly();
-
-            // L'estrade, deux marches, et le trone.
-            // Marches de 25 cm (le joueur en monte 42 seul) : dessus a +0,25 puis +0,5.
-            Proto.Cube(t, new Vector3(0f, floor + 0.025f, back - 1.0f), new Vector3(5.2f, 0.45f, 2.0f), StoneDark, "Estrade");
-            Proto.Cube(t, new Vector3(0f, floor + 0.15f, back - 0.6f), new Vector3(3.6f, 0.7f, 1.2f), StoneDark, "Estrade");
-            ThroneSeat(t, new Vector3(0f, floor + 0.5f, back - 0.55f));
-
-            // Deux braseros de part et d'autre de l'estrade.
-            Brazier(t, new Vector3(-2.9f, floor, back - 2.6f));
-            Brazier(t, new Vector3(2.9f, floor, back - 2.6f));
-
-            // Un lustre de fer, eteint, pendu au plafond par quatre chaines.
-            Proto.BeginVisualOnly();
-            Vector3 hub = new Vector3(0f, ceiling - 2.6f, c.z - 0.2f);
-            for (int i = 0; i < 10; i++)
-            {
-                float a = i / 10f * Mathf.PI * 2f;
-                GameObject seg = Proto.Cube(t, hub + new Vector3(Mathf.Cos(a) * 1.4f, 0f, Mathf.Sin(a) * 1.4f),
-                                            new Vector3(0.12f, 0.12f, 0.95f), Iron, "Lustre");
-                seg.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
-                if (i % 2 == 0)
-                    Proto.Cube(t, hub + new Vector3(Mathf.Cos(a) * 1.4f, 0.2f, Mathf.Sin(a) * 1.4f),
-                               new Vector3(0.1f, 0.3f, 0.1f), new Color(0.55f, 0.52f, 0.44f), "Chandelle");
-            }
-            for (int i = 0; i < 4; i++)
-            {
-                float a = (i * 90f + 45f) * Mathf.Deg2Rad;
-                Vector3 from = hub + new Vector3(Mathf.Cos(a) * 1.4f, 0f, Mathf.Sin(a) * 1.4f);
-                Vector3 to = new Vector3(hub.x, ceiling, hub.z);
-                Vector3 mid = (from + to) * 0.5f;
-                GameObject chain = Proto.Cube(t, mid, new Vector3(0.05f, (to - from).magnitude, 0.05f), Iron, "Chaîne");
-                chain.transform.localRotation = Quaternion.FromToRotation(Vector3.up, (to - from).normalized);
-            }
-            Proto.EndVisualOnly();
-        }
-
-        /// <summary>Un trone de bois noir, haut dossier, garni de fer. Vide.</summary>
-        static void ThroneSeat(Transform t, Vector3 seatBase)
-        {
-            Proto.BeginVisualOnly();
-            Proto.Cube(t, seatBase + new Vector3(0f, 0.45f, 0f), new Vector3(1.3f, 0.2f, 1.0f), TimberDark, "Siège");
-            Proto.Cube(t, seatBase + new Vector3(0f, 0.2f, 0f), new Vector3(1.2f, 0.4f, 0.9f), Timber, "Coffre");
-            Proto.Cube(t, seatBase + new Vector3(0f, 1.9f, 0.42f), new Vector3(1.3f, 3.2f, 0.2f), TimberDark, "Dossier");
-            Proto.Cube(t, seatBase + new Vector3(-0.72f, 0.85f, 0f), new Vector3(0.16f, 0.6f, 1.0f), Timber, "Accoudoir");
-            Proto.Cube(t, seatBase + new Vector3(0.72f, 0.85f, 0f), new Vector3(0.16f, 0.6f, 1.0f), Timber, "Accoudoir");
-            Proto.Cube(t, seatBase + new Vector3(0f, 2.6f, 0.3f), new Vector3(1.36f, 0.14f, 0.06f), FadedGold, "Ferrure");
-            Proto.Cube(t, seatBase + new Vector3(0f, 1.4f, 0.3f), new Vector3(1.36f, 0.14f, 0.06f), Iron, "Ferrure");
-            Proto.EndVisualOnly();
-            Proto.Cone(t, seatBase + new Vector3(-0.55f, 3.5f, 0.42f), 0.16f, 0.7f, FadedGold, "Pinacle", 4);
-            Proto.Cone(t, seatBase + new Vector3(0.55f, 3.5f, 0.42f), 0.16f, 0.7f, FadedGold, "Pinacle", 4);
-            Proto.Cone(t, seatBase + new Vector3(0f, 3.5f, 0.42f), 0.22f, 1.1f, FadedGold, "Pinacle", 4);
-            Proto.Blocker(t, seatBase + new Vector3(0f, 1.7f, 0.1f), new Vector3(1.6f, 3.4f, 1.2f), "Trône");
-            Throne.Build(t, seatBase + new Vector3(0f, 0.6f, -0.9f));
         }
 
         // ================================================================== 3. la cour

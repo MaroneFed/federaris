@@ -140,6 +140,18 @@ namespace Fief
                 density *= Mathf.Lerp(1f, 0.28f, flash);
             }
 
+            // EN HAUTEUR, LA BRUME S'OUVRE (26/09) : du haut d'un geant ou de la terrasse
+            // du donjon, on voit loin. Entre 8 et 24 m au-dessus du sol, la brume
+            // s'eclaircit jusqu'a un cinquieme de son epaisseur, et le plan lointain
+            // recule d'autant.
+            float clarity = 0f;
+            if (view != null)
+            {
+                Vector3 eye = view.transform.position;
+                clarity = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(8f, 24f, eye.y - Ground.Sample(eye.x, eye.z)));
+            }
+            density *= Mathf.Lerp(1f, 0.2f, clarity);
+
             RenderSettings.fogColor = haze;
             RenderSettings.fogDensity = density;
             RenderSettings.ambientSkyColor = Scale(daySky * tint, ambient);
@@ -149,7 +161,7 @@ namespace Fief
             if (view != null)
             {
                 view.backgroundColor = haze;
-                view.farClipPlane = dayFar * (1f + flash * 1.8f);
+                view.farClipPlane = dayFar * (1f + flash * 1.8f) * Mathf.Lerp(1f, 5f, clarity);
             }
             if (Atmosphere.Sun != null)
             {

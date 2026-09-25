@@ -3,16 +3,14 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// "QUE DOIS-JE FAIRE, LA, MAINTENANT ?" -- la question a laquelle le jeu ne
-    /// repondait pas (Martin : "on comprend rien au jeu").
+    /// "QUE DOIS-JE FAIRE, LA, MAINTENANT ?" -- une carte fine en haut a droite.
     ///
-    /// Un encart en haut a droite. D'abord, six PREMIERS PAS, dans l'ordre ; chacun
-    /// se coche tout seul quand on l'a fait, avec un petit son. Ensuite, une seule
-    /// ligne qui change selon la situation : le mage chante, ta relique est en
-    /// main, un voleur court avec elle, la cloche approche...
+    /// D'abord QUATRE PREMIERS PAS, qui disent a quoi sert tout le reste (Martin,
+    /// 26/09 : "tu recoltes du bois, tu sais meme pas pourquoi") : la pierre-lune
+    /// vaut de l'or, l'or va a la stele, le vrai butin est au chateau, le bois sert
+    /// a construire. Chacun se coche tout seul. Ensuite, seulement ce qui presse.
     ///
-    /// Il ne decide rien : il LIT l'etat du jeu (sac, Hoard, Saison) et le dit en
-    /// francais.
+    /// Il ne decide rien : il LIT l'etat du jeu et le dit en quelques mots.
     /// </summary>
     public static class Objectives
     {
@@ -22,30 +20,22 @@ namespace Fief
             public string hint;
         }
 
-        // Des mots, pas des paragraphes (Martin, 26/09 : "il y a trop de texte").
         static readonly Step[] Steps =
         {
-            new Step { text = "Ramasse du bois mort",         hint = "Arbres gris  ·  maintiens E" },
-            new Step { text = "Dépose-le à ta stèle",         hint = "Le fil d'or  ·  M : la carte" },
-            new Step { text = "Trouve de la pierre-lune",     hint = "Dans les creux qui luisent" },
-            new Step { text = "Porte ton sac au mage",        hint = "Sous la colonne bleue" },
-            new Step { text = "Pose ta relique sur ta stèle", hint = "Seule elle compte à la cloche" },
-            new Step { text = "Achète une amélioration",      hint = "À ta stèle" }
+            new Step { text = "Ramasse de la pierre-lune",   hint = "Dans les creux qui luisent  ·  ★2 chacune" },
+            new Step { text = "Dépose-la à ta stèle",        hint = "Le fil d'or  ·  E" },
+            new Step { text = "Vole un trésor au château",   hint = "La couronne est tout en haut  ·  ★40" },
+            new Step { text = "Construis un piège",          hint = "T  ·  avec le bois et le fer" }
         };
 
         static int done;
         static float flash;
-        static bool sawVictories;
 
         public static void Reset()
         {
             done = 0;
             flash = 0f;
-            sawVictories = false;
         }
-
-        /// <summary>Appele quand on ouvre la besace : la derniere etape est franchie.</summary>
-        public static void VictoriesSeen() { sawVictories = true; }
 
         static bool Completed(int step)
         {
@@ -54,24 +44,11 @@ namespace Fief
             if (h == null || bag == null) return false;
             switch (step)
             {
-                case 0: return bag.Get(ResourceType.Deadwood) >= 4 || Stored(h) > 0 || h.Relic != null;
-                case 1: return Stored(h) > 0 || h.Relic != null;
-                case 2: return bag.Get(ResourceType.Moonstone) >= 2 || h.Store != null && h.Store.Contents.Get(ResourceType.Moonstone) >= 2 || h.Relic != null;
-                case 3: return h.Relic != null;
-                case 4: return h.RelicOnStele;
-                default: return AnyUpgrade(h) || sawVictories;
+                case 0: return bag.Get(ResourceType.Moonstone) > 0 || h.Banked > 0;
+                case 1: return h.Banked > 0;
+                case 2: return Stats.Treasures > 0;
+                default: return Stats.Built > 0;
             }
-        }
-
-        static int Stored(Hoard h)
-        {
-            return h.Store != null ? h.Store.Contents.TotalUnits : 0;
-        }
-
-        static bool AnyUpgrade(Hoard h)
-        {
-            for (int i = 0; i < UpgradeInfo.Count; i++) if (h.Level((UpgradeKind)i) > 0) return true;
-            return false;
         }
 
         public static void Draw()
@@ -125,18 +102,10 @@ namespace Fief
             Hoard h = Game.Hoard;
             if (h == null) return "";
             for (int i = 0; i < Rival.All.Count; i++)
-            {
-                Rival r = Rival.All[i];
-                if (r != null && r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == Game.Me)
-                    return "Rattrape " + r.seeker.Name + " : ta relique !";
-            }
-            float curse = season.NextCurseIn;
-            if (curse >= 0f && curse < 45f && !Game.Inventory.IsEmpty && !season.MagePresent) return "Vide ton sac à ta stèle !";
-            if (h.Trophy != null) return "Rapporte la relique volée à ta stèle";
-            if (season.Remaining < 120f && h.RelicInHand) return "Pose ta relique, vite !";
-            if (Game.Mage != null && Game.Mage.Announced) return "Le mage descend : cours-y";
-            if (season.MagePresent && !Game.Inventory.IsEmpty) return "Porte ton sac au mage";
-            if (h.RelicInHand) return "Pose ta relique sur ta stèle";
+                if (Rival.All[i] != null && Rival.All[i].IsHuntedThief) return "Rattrape " + Rival.All[i].seeker.Name + " : ton or !";
+            if (Guard.HuntingPlayer) return "Les gardes ! Sème-les";
+            if (season.Remaining < 120f && h.Carried > 0) return "La cloche ! Dépose vite";
+            if (h.Carried >= 20) return "Rapporte ton butin à ta stèle";
             return "";
         }
     }

@@ -49,6 +49,9 @@ namespace Fief
             UpdateViewModel(kit.Held != null ? kit.Held.Kind : ToolKind.None);
             if (player.InputLocked) return;
 
+            // Le menu de construction (T) garde pour lui les chiffres, la molette et le clic.
+            if (Builder.IsOpen) { AnimateViewModel(); return; }
+
             int was = kit.Active;
             if (FiefInput.Slot1Pressed) kit.Select(0);
             if (FiefInput.Slot2Pressed) kit.Select(1);
@@ -99,9 +102,9 @@ namespace Fief
                 {
                     int done;
                     Chops.TryGetValue(hit.collider, out done);
-                    Hint = "Clic : abattre l'arbre  (" + done + " / " + ChopsNeeded(hit.collider) + ")      F : grimper";
+                    Hint = "Clic : abattre  (" + done + " / " + ChopsNeeded(hit.collider) + ")   ·   F : grimper";
                 }
-                else Hint = kit.Held == null ? "F : grimper dans l'arbre      (une hache pour l'abattre : Tab, Artisanat)" : "F : grimper dans l'arbre";
+                else Hint = Forest.IsGiant(hit.collider) ? "F : grimper tout en haut" : "F : grimper";
             }
 
             // --- poser un piege
@@ -123,10 +126,15 @@ namespace Fief
             // --- frapper
             if (FiefInput.UseHeld && kit.Held != null && swingTimer <= 0f)
             {
-                float penalty = Game.Brewed ? 1f : Mathf.Lerp(1f, 1.8f, me.Bag.Load01);
+                float penalty = Mathf.Lerp(1f, 1.8f, me.Bag.Load01);
                 swingTimer = (kit.Holding(ToolKind.Epee) ? 0.55f : 0.7f) * penalty;
                 swing = 1f;
-                if (kit.Holding(ToolKind.Hache) && tree) Chop(hit, kit);
+                Barricade wall = null;
+                RaycastHit near;
+                if (Physics.Raycast(eye.position, eye.forward, out near, 2.8f, ~0, QueryTriggerInteraction.Ignore))
+                    wall = near.collider.GetComponentInParent<Barricade>();
+                if (wall != null) { wall.Hit(); if (me.Kit.Wear(1)) Toasts.Show("Ton outil s'est brisé.", new Color(0.8f, 0.6f, 0.4f)); }
+                else if (kit.Holding(ToolKind.Hache) && tree) Chop(hit, kit);
                 else if (kit.Holding(ToolKind.Epee)) Combat.PlayerStrike(eye);
                 else Sfx.Whoosh();
             }
@@ -202,7 +210,7 @@ namespace Fief
         float climbDuration;
         Vector3 climbStart, climbBase, climbTop, climbEnd;
         int pullsDone;
-        const int Pulls = 5;
+        int Pulls = 5;
 
         /// <summary>
         /// S'installer dans l'arbre : une petite plate-forme de branches a quatre
@@ -218,7 +226,13 @@ namespace Fief
             toMe.y = 0f;
             toMe = toMe.sqrMagnitude > 0.01f ? toMe.normalized : Vector3.forward;
             float ground = Ground.Sample(centre.x, centre.z);
-            Vector3 spot = new Vector3(centre.x, ground + 4.2f, centre.z) + toMe * 0.9f;
+            // Un GEANT : on monte tout en haut, au-dessus de la canopee (voir Forest).
+            float giant = Forest.GiantPerch(trunk);
+            CapsuleCollider cap = trunk as CapsuleCollider;
+            float trunkRadius = cap != null ? cap.radius * trunk.transform.lossyScale.x : 0.3f;
+            float perchHeight = giant > 0f ? giant : 4.2f;
+            Vector3 spot = new Vector3(centre.x, ground + perchHeight, centre.z) + toMe * (trunkRadius + 0.6f);
+            Pulls = giant > 0f ? Mathf.RoundToInt(perchHeight / 1.6f) : 5;
 
             GameObject platform = new GameObject("Perchoir");
             platform.transform.position = spot;
@@ -242,12 +256,12 @@ namespace Fief
 
             // Le chemin : le pied du tronc, puis tout droit le long de l'ecorce,
             // puis le rebord de la plate-forme.
-            Vector3 hug = centre + toMe * 0.75f;
+            Vector3 hug = centre + toMe * (trunkRadius + 0.45f);
             StartClimb(true, transform.position,
                        new Vector3(hug.x, ground + 0.05f, hug.z),
                        new Vector3(hug.x, spot.y - 0.2f, hug.z),
-                       spot + Vector3.up * 0.05f, 1.6f);
-            Toasts.Show("Tu grimpes. F pour redescendre.", UiStyle.InkDim);
+                       spot + Vector3.up * 0.05f, giant > 0f ? 1.6f + perchHeight * 0.12f : 1.6f);
+            if (giant > 0f) Toasts.Show("Tout en haut : la brume s'ouvre.", UiStyle.InkDim);
         }
 
         static void AddRail(Transform parent, Vector3 at, Vector3 size)
@@ -260,13 +274,15 @@ namespace Fief
 
         void ClimbDown()
         {
+            float height = perch.position.y - Ground.Sample(perch.position.x, perch.position.z);
+            Pulls = height > 8f ? Mathf.RoundToInt(height / 2f) : 5;
             Vector3 trunkSide = perch.position - perch.forward * 0.15f;
             Vector3 landing = Ground.Place(perch.position.x + perch.forward.x * 1.2f, perch.position.z + perch.forward.z * 1.2f, 0.1f);
             float ground = Ground.Sample(trunkSide.x, trunkSide.z);
             StartClimb(false, transform.position,
                        new Vector3(trunkSide.x, transform.position.y - 0.1f, trunkSide.z),
                        new Vector3(trunkSide.x, ground + 0.1f, trunkSide.z),
-                       landing, 1.1f);
+                       landing, height > 8f ? 1.1f + height * 0.06f : 1.1f);
         }
 
         void StartClimb(bool up, Vector3 start, Vector3 baseAt, Vector3 top, Vector3 end, float duration)

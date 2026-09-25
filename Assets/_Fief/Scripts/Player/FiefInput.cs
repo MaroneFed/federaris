@@ -120,8 +120,39 @@ namespace Fief
             }
         }
 
-        /// <summary>Tab : ouvrir sa besace (les talismans trouves).</summary>
-        public static bool SatchelPressed { get { return KeyPressed(KeyCode.Tab); } }
+        /// <summary>Clic gauche, a l'instant : poser, fabriquer.</summary>
+        public static bool UsePressed
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                Mouse m = Mouse.current;
+                return m != null && m.leftButton.wasPressedThisFrame;
+#else
+                return Input.GetMouseButtonDown(0);
+#endif
+            }
+        }
+
+        /// <summary>Clic droit, a l'instant : annuler (le menu de construction).</summary>
+        public static bool AltPressed
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                Mouse m = Mouse.current;
+                return m != null && m.rightButton.wasPressedThisFrame;
+#else
+                return Input.GetMouseButtonDown(1);
+#endif
+            }
+        }
+
+        /// <summary>T : construire (pieges, barricades, alarmes, outils).</summary>
+        public static bool BuildPressed { get { return KeyPressed(KeyCode.T); } }
+        public static bool Slot3Pressed { get { return KeyPressed(KeyCode.Alpha3); } }
+        public static bool Slot4Pressed { get { return KeyPressed(KeyCode.Alpha4); } }
+        public static bool Slot5Pressed { get { return KeyPressed(KeyCode.Alpha5); } }
 
 
         static bool KeyHeld(KeyCode code)
@@ -160,9 +191,12 @@ namespace Fief
                 case KeyCode.C: return k.cKey;
                 case KeyCode.G: return k.gKey;
                 case KeyCode.P: return k.pKey;
-                case KeyCode.Tab: return k.tabKey;
                 case KeyCode.Alpha1: return k.digit1Key;
                 case KeyCode.Alpha2: return k.digit2Key;
+                case KeyCode.Alpha3: return k.digit3Key;
+                case KeyCode.Alpha4: return k.digit4Key;
+                case KeyCode.Alpha5: return k.digit5Key;
+                case KeyCode.T: return k.tKey;
                 case KeyCode.F: return k.fKey;
                 case KeyCode.H: return k.hKey;
                 case KeyCode.M: return k.mKey;

@@ -39,31 +39,22 @@ namespace Fief
             Toasts.Clear();
             Victories.Reset();
             Objectives.Reset();
-            Secrets.Reset();
             Stats.Reset();
             Atlas.Reset(config.mapSize);
 
             Game.Config = config;
             Game.Inventory = new Inventory();
             Game.Inventory.MaxWeight = config.maxWeight;
-            Game.Wallet = new Wallet(config.startingGold);
             Game.Season = new Season(config);
             Game.Hoard = new Hoard();
             Game.Hoard.MaxCaches = Mathf.Max(0, config.maxCaches);
             Game.Hoard.CacheCapacity = Mathf.Max(1f, config.cacheCapacity);
             Game.Hoard.CampCapacity = Mathf.Max(1f, config.campCapacity);
-            // La garde du chateau : six hommes, six soldes, six loyautes. Bertrand
-            // n'a rien touche depuis cinq mois ; Jehan, lui, croit encore au roi.
-            Game.Garrison = new Garrison();
-            Game.Garrison.Guards.Add(new GuardInfo("Bertrand", 4, 5, 0.15f));
-            Game.Garrison.Guards.Add(new GuardInfo("Aubin", 5, 1, 0.7f));
-            Game.Garrison.Guards.Add(new GuardInfo("Lambert", 3, 3, 0.35f));
-            Game.Garrison.Guards.Add(new GuardInfo("Jehan", 6, 0, 0.85f));
-            Game.Garrison.Guards.Add(new GuardInfo("Thibaut", 4, 2, 0.5f));
-            Game.Garrison.Guards.Add(new GuardInfo("Enguerrand", 3, 4, 0.25f));
-
-            Game.Me = new Seeker("Toi", new Color(0.92f, 0.78f, 0.42f), true, Game.Inventory, Game.Wallet, Game.Hoard);
+            Game.Me = new Seeker("Toi", new Color(0.92f, 0.78f, 0.42f), true, Game.Inventory, Game.Hoard);
             Game.Seekers.Add(Game.Me);
+            // On part equipe : une epee (1) et une hache (2). Ca s'use ; T en refait.
+            Game.Me.Kit.Slots[0] = new Tool(ToolKind.Epee);
+            Game.Me.Kit.Slots[1] = new Tool(ToolKind.Hache);
 
             System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
 
@@ -89,11 +80,6 @@ namespace Fief
                 // Ruines, fleurs-lune, corbeaux : apres la foret et les lieux-dits,
                 // pour tomber dans les trous qu'ils laissent.
                 Nature.Build(worldRoot, config);
-
-                // Le mage existe des le debut, invisible et muet : c'est l'agenda de
-                // la Saison qui le fait apparaitre. Il a besoin des colliders de la
-                // foret pour choisir une place libre, il vient donc apres elle.
-                Game.Mage = Mage.Build(worldRoot, config);
 
                 // Les trois Autels au pied du chateau, et leurs revenants. La foret
                 // leur a laisse la place (Monument.Near).
@@ -141,15 +127,13 @@ namespace Fief
             BuildHud(player);
 
             // La musique : tes morceaux s'ils sont dans Resources/Music, sinon la sienne.
-            Curse.Build();
-
             try { MusicDirector.Build(); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignorée : " + error.Message); }
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
                       + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs, "
-                      + Gathering.FagotCount + " fagots, " + Gathering.LogSourceCount + " troncs à bois mort, "
+                      + Gathering.FagotCount + " faisceaux, " + Gathering.LogSourceCount + " troncs à bois mort, "
                       + Gathering.MoonstoneCount + " pierres-lune dans " + Gathering.HollowCount + " creux.");
 
             // Les messages d'accueil sont affiches par Menus, a l'entree en jeu : ici
@@ -170,75 +154,73 @@ namespace Fief
         // ================================================================ habitants
 
         /// <summary>
-        /// Le Veilleur au chateau, l'Ermite dans sa tour, neuf feux-follets, et le
-        /// cerf blanc. Chacun est optionnel : s'il manque, le jeu tourne quand meme.
+        /// LES GARDES (quinze : Martin, 26/09, "faut qu'il y ait plein de gardes"),
+        /// les feux-follets, le cerf blanc, et tes trois rivaux.
         /// </summary>
         void BuildInhabitants()
         {
             GameObject folk = new GameObject("HABITANTS");
             folk.transform.SetParent(worldRoot, false);
 
-            Veilleur.Build(folk.transform);
-
-            // Les gardes et leurs rondes : deux a la grande porte, un devant chaque
-            // reserve, un qui fait le tour de la cour.
-            Vector3[][] routes =
+            // La cour : deux a la grande porte, un devant chaque reserve, deux qui
+            // font le tour de la cour, un derriere la poterne.
+            Vector3[][] yard =
             {
                 new[] { new Vector3(-5f, 0f, -35f), new Vector3(-5f, 0f, -27f) },
                 new[] { new Vector3(5f, 0f, -35f), new Vector3(5f, 0f, -27f) },
                 new[] { new Vector3(-26f, 0f, -20f), new Vector3(-26f, 0f, -8f) },
                 new[] { new Vector3(26f, 0f, -20f), new Vector3(26f, 0f, -8f) },
                 new[] { new Vector3(-31f, 0f, 26f), new Vector3(-19f, 0f, 26f) },
-                new[] { new Vector3(-13f, 0f, -6f), new Vector3(-13f, 0f, 6f), new Vector3(9f, 0f, 6f), new Vector3(9f, 0f, -6f) }
+                new[] { new Vector3(-13f, 0f, -6f), new Vector3(-13f, 0f, 6f), new Vector3(9f, 0f, 6f), new Vector3(9f, 0f, -6f) },
+                new[] { new Vector3(16f, 0f, 8f), new Vector3(16f, 0f, 30f), new Vector3(30f, 0f, 30f), new Vector3(30f, 0f, 8f) },
+                new[] { new Vector3(-4f, 0f, 35.5f), new Vector3(4f, 0f, 35.5f) }
             };
-            for (int i = 0; i < routes.Length && i < Game.Garrison.Guards.Count; i++)
+            string[] names = { "Bertrand", "Aubin", "Lambert", "Jehan", "Thibaut", "Enguerrand", "Gaspard", "Hugues",
+                               "Renaud", "Gautier", "Arnaud", "Mathieu", "Grégoire", "Tristan", "Baudouin" };
+            int n = 0;
+            for (int i = 0; i < yard.Length; i++)
             {
-                for (int k = 0; k < routes[i].Length; k++) routes[i][k] = Ground.Place(routes[i][k], 0.05f);
-                Guard.Build(folk.transform, Game.Garrison.Guards[i], routes[i]);
+                for (int k = 0; k < yard[i].Length; k++) yard[i][k] = Ground.Place(yard[i][k], 0.05f);
+                Guard.Build(folk.transform, names[n++ % names.Length], yard[i], false);
+            }
+            // Le donjon : un garde par niveau, terrasse comprise (voir Keep.cs).
+            for (int i = 0; i < Keep.GuardRoutes.Count; i++)
+                Guard.Build(folk.transform, names[n++ % names.Length], Keep.GuardRoutes[i], false);
+            // Les RODEURS : trois gardes qui tournent dans la foret autour du chateau,
+            // et courent apres quiconque porte du butin.
+            for (int r = 0; r < 3; r++)
+            {
+                Vector3[] ring = new Vector3[6];
+                for (int k = 0; k < ring.Length; k++)
+                {
+                    float a = (r * 120f + k * 60f + 20f) * Mathf.Deg2Rad;
+                    float radius = 72f + (k % 2) * 14f;
+                    ring[k] = Ground.Place(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius, 0.05f);
+                }
+                Guard.Build(folk.transform, names[n++ % names.Length], ring, true);
             }
 
-            // L'or, pour les acheter.
-            Purse.Scatter(worldRoot, config);
-            if (Landmarks.Tour != null) Ermite.Build(Landmarks.Tour);
             Wisp.SpawnAll(folk.transform, config, 6);
             WhiteStag.Build(folk.transform, config);
 
-            // Tes trois rivaux. Chacun son caractere : Mahaut pille, Oswin aime le
-            // fer du chateau, Guerin reste dans ses creux et ne vole presque jamais.
-            BuildRival(folk.transform, 0, "Mahaut la Rousse", new Color(0.86f, 0.36f, 0.26f), 0.7f, 0.25f, new[]
-            {
-                "Ne traîne pas dans mes pattes.",
-                "J'ai vu ta lanterne. Tout le monde l'a vue.",
-                "Le mage m'aime bien. Il me le dit en chantant.",
-                "Ta stèle ? Je sais où elle est. Peut-être."
-            });
-            BuildRival(folk.transform, 1, "Oswin le Borgne", new Color(0.36f, 0.58f, 0.88f), 0.35f, 0.6f, new[]
-            {
-                "Le fer du château, c'est pour ceux qui osent.",
-                "Un oeil me suffit pour te voir venir.",
-                "Les gardes ? Ils me connaissent.",
-                "Ta relique pèse combien ? Pas assez."
-            });
-            BuildRival(folk.transform, 2, "Guerin des Marais", new Color(0.46f, 0.76f, 0.36f), 0.15f, 0.1f, new[]
-            {
-                "Chut. Tu entends ? Non ? Tant mieux.",
-                "Je ne prends que ce que la forêt donne.",
-                "Les pierres-lune chantent, la nuit. Tu les as écoutées ?",
-                "Laisse ma stèle tranquille, et je laisserai la tienne."
-            });
+            // Tes trois rivaux. Ce sont de futurs JOUEURS : on ne leur parle pas. Chacun
+            // son style : Mahaut pille, Oswin monte au donjon, Guerin reste dans la foret.
+            BuildRival(folk.transform, 0, "Mahaut la Rousse", new Color(0.86f, 0.36f, 0.26f), 0.7f, 0.45f);
+            BuildRival(folk.transform, 1, "Oswin le Borgne", new Color(0.36f, 0.58f, 0.88f), 0.4f, 0.8f);
+            BuildRival(folk.transform, 2, "Guerin des Marais", new Color(0.46f, 0.76f, 0.36f), 0.2f, 0.25f);
 
             // Et ce qu'on entend : le vent, les betes, la cloche du chateau.
             Soundscape.Build(folk.transform);
         }
 
         /// <summary>Un rival, qui part de la lisiere, a un tiers de tour des autres.</summary>
-        void BuildRival(Transform parent, int index, string name, Color colour, float aggression, float ironLove, string[] taunts)
+        void BuildRival(Transform parent, int index, string name, Color colour, float aggression, float daring)
         {
             float a = (index * 120f + 60f) * Mathf.Deg2Rad;
             Vector3 spawn = Ground.Place(Mathf.Cos(a) * 150f, Mathf.Sin(a) * 150f, 0.1f);
-            Rival rival = Rival.Build(parent, name, colour, spawn, aggression, ironLove, taunts, config.worldSeed * 41 + index);
-            // Les deux plus agressifs partent avec une epee.
-            if (aggression >= 0.3f) rival.Arm();
+            Rival rival = Rival.Build(parent, name, colour, spawn, aggression, daring, config.worldSeed * 41 + index);
+            // Les deux plus hardis partent avec une epee.
+            if (aggression >= 0.3f || daring >= 0.6f) rival.Arm();
         }
 
         // ================================================================ joueur
@@ -351,11 +333,12 @@ namespace Fief
             go.AddComponent<CampActions>();
             // 1 / 2 : les outils ; clic : frapper ; F : grimper.
             go.AddComponent<ToolUser>();
+            // T : construire (pieges, barricades, alarmes, epee).
+            go.AddComponent<Builder>();
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;
             if (Game.Me != null) Game.Me.Body = go.transform;
-            RelicGlow.Attach(go.transform, Game.Me);
 
             // Les sons sont synthetises par le code et joues depuis le joueur.
             Sfx.Init(go);

@@ -50,6 +50,28 @@ namespace Fief
             Proto.EndVisualOnly();
         }
 
+        /// <summary>Du butin : des pieces d'or qui volent jusqu'au sac (une par tranche de 5 etoiles).</summary>
+        public static void FlyLoot(Vector3 origin, int stars)
+        {
+            int pieces = Mathf.Clamp(stars / 5 + 2, 2, 8);
+            Proto.BeginVisualOnly();
+            Material gold = MaterialFactory.GetGlow(new Color(0.95f, 0.76f, 0.3f), 1.6f);
+            for (int i = 0; i < pieces; i++)
+            {
+                Vector3 jitter = new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(0f, 0.2f), Random.Range(-0.3f, 0.3f));
+                GameObject go = Proto.Cylinder(null, origin + jitter, new Vector3(0.12f, 0.012f, 0.12f), Color.white, "Pièce");
+                go.GetComponent<Renderer>().sharedMaterial = gold;
+                go.transform.rotation = Random.rotation;
+                Pickup p = go.AddComponent<Pickup>();
+                p.from = go.transform.position;
+                p.lift = new Vector3(Random.Range(-0.4f, 0.4f), 1.1f + Random.Range(0f, 0.4f), Random.Range(-0.4f, 0.4f));
+                p.delay = i * 0.04f;
+                p.spin = Random.Range(360f, 720f);
+                p.size = go.transform.localScale;
+            }
+            Proto.EndVisualOnly();
+        }
+
         void Update()
         {
             age += Time.deltaTime;

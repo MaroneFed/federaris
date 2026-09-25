@@ -75,7 +75,7 @@ namespace Fief
 
         static string Gift(Kind k)
         {
-            return k == Kind.Or ? "5 or" : k == Kind.Bucheron ? "4 bois mort dans ta stèle" : "2 pierres-lune dans ta stèle";
+            return k == Kind.Or ? "★3" : k == Kind.Bucheron ? "5 bois" : "★2";
         }
 
         /// <summary>La foret, les steles, les creux laissent la place aux autels.</summary>
@@ -325,12 +325,10 @@ namespace Fief
         void Pay(Seeker s)
         {
             Hoard h = s.Hoard;
-            if (kind == Kind.Or) s.Money.Add(5);
-            else if (h.Store != null)
-            {
-                ResourceType t = kind == Kind.Bucheron ? ResourceType.Deadwood : ResourceType.Moonstone;
-                h.Store.Contents.TryAdd(t, kind == Kind.Bucheron ? 4 : 2);
-            }
+            // L'or va droit dans la stele de celui qui tient l'autel ; le bois, dans son sac.
+            if (kind == Kind.Or) h.RequestTribute(3);
+            else if (kind == Kind.Lune) h.RequestTribute(2);
+            else s.Bag.TryAdd(ResourceType.Deadwood, 5);
             if (s.IsPlayer)
             {
                 // Plus de message a chaque versement : un bruit de pieces, et une ligne

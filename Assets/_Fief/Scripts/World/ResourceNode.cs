@@ -84,7 +84,6 @@ namespace Fief
                 if (Game.Inventory.SpaceFor(type) <= 0) return 0f;
 
                 float penalty = Game.Config != null ? Game.Config.actionPenaltyFull : 2.4f;
-                if (Game.Brewed) penalty = 1f;      // l'infusion de l'Ermite
                 return harvestDuration * Mathf.Lerp(1f, penalty, Game.Inventory.Load01);
             }
         }
@@ -105,11 +104,8 @@ namespace Fief
                 return;
             }
 
-            // Le Coeur de lune double chaque pierre-lune ramassee -- sans vider le
-            // gisement plus vite : le double vient du talisman, pas de la pierre.
             int wanted = Mathf.Min(yieldPerHarvest, remaining);
-            bool doubled = type == ResourceType.Moonstone && Game.Hoard != null && Game.Hoard.Has(Talisman.Coeur);
-            int added = inv.TryAdd(type, doubled ? wanted * 2 : wanted);
+            int added = inv.TryAdd(type, wanted);
             if (added <= 0)
             {
                 Sfx.Deny();

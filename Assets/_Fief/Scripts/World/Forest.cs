@@ -385,6 +385,84 @@ namespace Fief
                         PlaceLog(root.transform, px - step * 0.3f, pz + step * 0.3f, rng, cfg);
                 }
             }
+
+            PlaceGiants(root.transform, cfg, rng);
+        }
+
+        // ------------------------------------------------------------------ les geants
+
+        /// <summary>Les geants plantes, et la hauteur de leur perchoir au-dessus du sol.</summary>
+        static readonly Dictionary<Collider, float> Giants = new Dictionary<Collider, float>();
+        public static readonly List<Vector3> GiantSpots = new List<Vector3>();
+
+        /// <summary>Vrai si ce fut est celui d'un GEANT, qu'on escalade jusqu'en haut.</summary>
+        public static bool IsGiant(Collider c)
+        {
+            return c != null && Giants.ContainsKey(c);
+        }
+
+        /// <summary>La hauteur du perchoir d'un geant (0 si ce n'en est pas un).</summary>
+        public static float GiantPerch(Collider c)
+        {
+            float h;
+            return c != null && Giants.TryGetValue(c, out h) ? h : 0f;
+        }
+
+        /// <summary>
+        /// LES GEANTS (26/09 -- Martin : "il faut des arbres plus hauts pour qu'on
+        /// puisse voir au loin"). Douze sapins immenses, trois fois la taille des
+        /// autres, disperses dans la foret. Des echelons de bois sont cloues sur leur
+        /// fut : on y grimpe (F) jusqu'a une plate-forme, au-dessus de la canopee. La,
+        /// la brume s'ouvre -- on voit a cent metres, et la carte se dessine d'un coup.
+        /// Mais on y est aussi une cible immobile.
+        /// </summary>
+        static void PlaceGiants(Transform parent, GameConfig cfg, System.Random rng)
+        {
+            Giants.Clear();
+            GiantSpots.Clear();
+            if (Firs.Count == 0) return;
+            Model model = Firs[0];
+            for (int i = 1; i < Firs.Count; i++) if (Firs[i].mesh.bounds.size.y > model.mesh.bounds.size.y) model = Firs[i];
+            float half = cfg.mapSize * 0.5f - 30f;
+            const float Scale = 2.8f;
+            Color rung = new Color(0.36f, 0.26f, 0.16f);
+            for (int tries = 0; tries < 600 && GiantSpots.Count < 12; tries++)
+            {
+                float x = ((float)rng.NextDouble() * 2f - 1f) * half;
+                float z = ((float)rng.NextDouble() * 2f - 1f) * half;
+                if (Castle.Covers(x, z, 12f) || Landmarks.Near(x, z, 6f) || Gathering.NearHollow(x, z, 10f) || Monument.Near(x, z, 8f)) continue;
+                bool far = true;
+                for (int k = 0; k < GiantSpots.Count && far; k++) if ((GiantSpots[k] - new Vector3(x, 0f, z)).magnitude < 75f) far = false;
+                if (!far) continue;
+
+                Vector3 foot = new Vector3(x, Ground.Sample(x, z) - 0.3f, z);
+                GameObject go = Spawn(parent, model, foot, Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f), Scale, "Géant");
+                CapsuleCollider trunk = go.GetComponent<CapsuleCollider>();
+                float height = model.mesh.bounds.size.y * Scale;
+                float perch = Mathf.Clamp(height * 0.62f, 14f, 30f);
+                if (trunk != null) Giants[trunk] = perch;
+                GiantSpots.Add(new Vector3(x, 0f, z));
+
+                // Les echelons, en spirale le long du fut, et la plate-forme la-haut.
+                float radius = model.radius * Scale + 0.12f;
+                Proto.BeginVisualOnly();
+                for (float y = 1f; y < perch; y += 0.55f)
+                {
+                    float a = y * 0.9f;
+                    Vector3 p = new Vector3(x + Mathf.Cos(a) * radius, foot.y + 0.3f + y, z + Mathf.Sin(a) * radius);
+                    GameObject r = Proto.Cube(parent, p, new Vector3(0.5f, 0.07f, 0.1f), rung, "Échelon");
+                    r.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
+                }
+                for (int k = 0; k < 8; k++)
+                {
+                    float a = k / 8f * Mathf.PI * 2f;
+                    GameObject plank = Proto.Cube(parent, new Vector3(x + Mathf.Cos(a) * (radius + 0.7f), foot.y + 0.3f + perch - 0.12f, z + Mathf.Sin(a) * (radius + 0.7f)),
+                                                  new Vector3(0.5f, 0.08f, 1.5f), rung, "Plate-forme");
+                    plank.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
+                }
+                Proto.EndVisualOnly();
+                TreeCount++;
+            }
         }
 
         /// <summary>

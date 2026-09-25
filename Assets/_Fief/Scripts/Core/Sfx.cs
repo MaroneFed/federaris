@@ -837,8 +837,13 @@ namespace Fief
 
         static AudioClip alarm, moan, leaf;
 
-        /// <summary>LA SENTINELLE : trois tintements aigus et rapides -- rien a voir avec le glas.</summary>
+        /// <summary>L'ALARME : trois tintements aigus et rapides -- rien a voir avec la cloche.</summary>
         public static void Alarm()
+        {
+            Play(AlarmClip(), 0.9f);
+        }
+
+        public static AudioClip AlarmClip()
         {
             if (alarm == null)
             {
@@ -858,7 +863,7 @@ namespace Fief
                 Normalize(data, 0.85f);
                 alarm = FromSamples("sentinelle", data);
             }
-            Play(alarm, 0.9f);
+            return alarm;
         }
 
         /// <summary>

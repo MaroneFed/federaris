@@ -3,10 +3,10 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UN CHERCHEUR DE RELIQUE : toi, ou l'un de tes rivaux.
+    /// UN CHERCHEUR : toi, ou l'un de tes rivaux.
     ///
-    /// Tout ce qu'un joueur possede est ici, dans une classe C# pure : son sac, sa
-    /// bourse, ses caches, sa stele, sa relique. Toi et les rivaux avez EXACTEMENT
+    /// Tout ce qu'un joueur possede est ici, dans une classe C# pure : son sac, ses
+    /// caches, sa stele, son butin. Toi et les rivaux avez EXACTEMENT
     /// les memes regles -- c'est ce qui rendra la Phase 3 (multijoueur) simple : un
     /// vrai joueur prendra la place d'un rival, sans rien reecrire.
     ///
@@ -19,7 +19,6 @@ namespace Fief
         public readonly Color Colour;
         public readonly bool IsPlayer;
         public readonly Inventory Bag;
-        public readonly Wallet Money;
         public readonly Hoard Hoard;
         public Transform Body;
 
@@ -30,13 +29,12 @@ namespace Fief
         public readonly System.Collections.Generic.List<Seeker> KnownSteles =
             new System.Collections.Generic.List<Seeker>();
 
-        public Seeker(string name, Color colour, bool isPlayer, Inventory bag, Wallet purse, Hoard hoard)
+        public Seeker(string name, Color colour, bool isPlayer, Inventory bag, Hoard hoard)
         {
             Name = name;
             Colour = colour;
             IsPlayer = isPlayer;
             Bag = bag;
-            Money = purse;
             Hoard = hoard;
         }
 
@@ -50,13 +48,14 @@ namespace Fief
             if (other != null && other != this && !KnownSteles.Contains(other)) KnownSteles.Add(other);
         }
 
-        /// <summary>Le poids porte hors du sac suit la relique et le trophee.</summary>
+        /// <summary>Le poids porte hors du sac : le butin.</summary>
         public void SyncWeight()
         {
             if (Bag != null && Hoard != null) Bag.ExtraWeight = Hoard.CarriedWeight;
         }
 
-        public int Score { get { return Hoard != null ? Hoard.FinalScore : 0; } }
+        /// <summary>Le score : le butin depose a sa stele.</summary>
+        public int Score { get { return Hoard != null ? Hoard.Banked : 0; } }
 
         // ------------------------------------------------------------------ la vie
 
@@ -66,12 +65,7 @@ namespace Fief
         /// <summary>Heure (Time.time) du dernier coup recu : la vie ne remonte qu'apres un moment de calme.</summary>
         public float LastHurt = -99f;
 
-        /// <summary>
-        /// LA REGLE DU PORTEUR (Martin, 24/09) : qui porte une relique -- la sienne en
-        /// main, ou une volee -- ne peut PAS frapper. Les autres, si. Porter, c'est
-        /// etre une cible.
-        /// </summary>
-        public bool CanStrike { get { return Alive && Hoard != null && !Hoard.RelicInHand && Hoard.Trophy == null; } }
+        public bool CanStrike { get { return Alive; } }
 
         /// <summary>Encaisser un coup. Vrai si ce coup est mortel.</summary>
         public bool TakeDamage(float amount, float now)

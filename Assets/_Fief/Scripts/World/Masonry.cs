@@ -36,7 +36,7 @@ namespace Fief
         static readonly Dictionary<Vector3Int, Mesh> Meshes = new Dictionary<Vector3Int, Mesh>();
 
         /// <summary>Ce qui garde sa couleur unie : statues, bois, fer, objets.</summary>
-        static readonly string[] Keep =
+        static readonly string[] Spared =
         {
             "Roi de pierre", "Sainte", "Mannequin", "Caisse de fer", "Charrette", "Étendard",
             "TRÔNE", "POTERNE", "LE REGISTRE", "Vantail", "Cage", "Arbre mort"
@@ -96,7 +96,7 @@ namespace Fief
             while (t != null && t != root)
             {
                 string n = t.name;
-                for (int k = 0; k < Keep.Length; k++) if (n.StartsWith(Keep[k])) return true;
+                for (int k = 0; k < Spared.Length; k++) if (n.StartsWith(Spared[k])) return true;
                 t = t.parent;
             }
             return false;

@@ -45,7 +45,10 @@ namespace Fief
         }
 
         /// <summary>Dévoiler les cases autour de soi (rayon ~25 m).</summary>
-        public static void Track(Vector3 p)
+        public static void Track(Vector3 p) { Track(p, 1); }
+
+        /// <summary>Devoiler autour de soi, sur "radius" cases (plus quand on est en hauteur).</summary>
+        public static void Track(Vector3 p, int radius)
         {
             // Le chateau, on le connait avant d'y etre alle : on le voit depassant des
             // arbres, et tout le monde en parle. Ses abords sont dessines d'office.
@@ -54,7 +57,7 @@ namespace Fief
                 castleShown = true;
                 Reveal(Vector3.zero, Mathf.CeilToInt((Castle.HalfSize + 20f) / (size / Cells)));
             }
-            Reveal(p, 1);
+            Reveal(p, radius);
         }
 
         static Vector2 ToMap(Rect r, Vector3 world)
@@ -129,6 +132,10 @@ namespace Fief
                 Mark(r, st.transform.position, UiStyle.Shape.Diamond, st.owner.Colour, 12f);
             }
 
+            // Les geants : on les voit depasser de la canopee, ils sont toujours sur la carte.
+            for (int i = 0; i < Forest.GiantSpots.Count; i++)
+                Mark(r, Forest.GiantSpots[i], UiStyle.Shape.Triangle, new Color(0.18f, 0.3f, 0.16f), 10f);
+
             // Tes pieges : de petites croix (toi seul sais ou ils sont).
             for (int i = 0; i < Trap.All.Count; i++)
             {
@@ -140,15 +147,20 @@ namespace Fief
                 UiStyle.Fill(new Rect(at.x - 1f, at.y - s, 2f, s * 2f), new Color(0.35f, 0.12f, 0.08f));
             }
 
-            // Le mage, quand sa colonne est levee (ou avec la Corne) ; le voleur de ta relique.
-            Mage mage = Game.Mage;
-            if (mage != null && (mage.Beaconing || h != null && h.Has(Talisman.Corne) && mage.Present))
-                Mark(r, mage.Destination, UiStyle.Shape.Dot, new Color(0.3f, 0.5f, 0.95f), 14f * (1f + 0.2f * Mathf.Sin(Time.unscaledTime * 5f)));
+            // Le voleur de ton or, tant qu'il court avec.
             for (int i = 0; i < Rival.All.Count; i++)
             {
                 Rival rv = Rival.All[i];
-                if (rv != null && rv.seeker.Hoard.Trophy != null && rv.seeker.Hoard.TrophyFrom == me && Mathf.Sin(Time.unscaledTime * 8f) > -0.3f)
+                if (rv != null && rv.IsHuntedThief && Mathf.Sin(Time.unscaledTime * 8f) > -0.3f)
                     Mark(r, rv.transform.position, UiStyle.Shape.Diamond, new Color(0.9f, 0.2f, 0.15f), 14f);
+            }
+            // Tes alarmes, et celles qui viennent de sonner.
+            for (int i = 0; i < Alarm.All.Count; i++)
+            {
+                Alarm al = Alarm.All[i];
+                if (al == null || al.owner != me) continue;
+                bool rang = Time.time - al.RangAt < 12f;
+                Mark(r, al.transform.position, UiStyle.Shape.Dot, rang ? new Color(1f, 0.5f, 0.2f) : new Color(0.55f, 0.45f, 0.2f), rang ? 12f : 7f);
             }
             // Ta depouille.
             for (int i = 0; i < Remains.All.Count; i++)
@@ -157,9 +169,6 @@ namespace Fief
                     Mark(r, Remains.All[i].transform.position, UiStyle.Shape.Dot, new Color(0.8f, 0.2f, 0.15f), 11f);
                     Label(r, Remains.All[i].transform.position, "ta dépouille", new Color(0.55f, 0.12f, 0.08f), 13f);
                 }
-            // Ce que le mage t'a murmure.
-            for (int i = 0; i < Secrets.All.Count; i++)
-                if (!Secrets.All[i].Resolved) Mark(r, Secrets.All[i].at, UiStyle.Shape.Diamond, new Color(0.55f, 0.35f, 0.8f), 11f);
 
             // Toi : une flèche qui pointe où tu regardes.
             Transform p = Game.PlayerTransform;
@@ -187,11 +196,11 @@ namespace Fief
         /// <summary>La legende, sous le parchemin : une forme, un mot.</summary>
         static void Legend(Rect r)
         {
-            string[] words = { "ta stèle", "camp", "cache", "autel", "lieu-dit", "mage", "toi" };
+            string[] words = { "ta stèle", "camp", "cache", "autel", "lieu-dit", "géant", "toi" };
             UiStyle.Shape[] shapes = { UiStyle.Shape.Diamond, UiStyle.Shape.Triangle, UiStyle.Shape.Dot, UiStyle.Shape.Square,
-                                       UiStyle.Shape.Dot, UiStyle.Shape.Dot, UiStyle.Shape.Triangle };
+                                       UiStyle.Shape.Dot, UiStyle.Shape.Triangle, UiStyle.Shape.Triangle };
             Color[] colors = { new Color(0.35f, 0.5f, 0.9f), new Color(0.45f, 0.7f, 0.35f), new Color(0.7f, 0.48f, 0.26f), new Color(0.85f, 0.7f, 0.4f),
-                               new Color(0.6f, 0.55f, 0.48f), new Color(0.45f, 0.62f, 1f), new Color(0.9f, 0.3f, 0.2f) };
+                               new Color(0.6f, 0.55f, 0.48f), new Color(0.3f, 0.5f, 0.28f), new Color(0.9f, 0.3f, 0.2f) };
             float step = r.width / words.Length;
             for (int i = 0; i < words.Length; i++)
             {

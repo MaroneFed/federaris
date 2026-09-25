@@ -91,8 +91,6 @@ namespace Fief
             float load = Game.Inventory != null ? Game.Inventory.Load01 : 0f;
             float t = Mathf.Pow(Mathf.Clamp01(load), Mathf.Max(0.1f, cfg.loadCurve));
             float speed = Mathf.Lerp(cfg.moveSpeedEmpty, cfg.moveSpeedFull, t);
-            // Les Bottes de cerf (amelioration de la stele).
-            if (Game.Hoard != null) speed *= 1f + UpgradeInfo.BottesFactor * Game.Hoard.Level(UpgradeKind.Bottes);
 
             // La course (Maj) n'est possible que le sac leger. Aller vite a vide,
             // rentrer lentement charge : c'est la mecanique de poids, en plus lisible.

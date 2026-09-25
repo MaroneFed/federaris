@@ -38,7 +38,7 @@ namespace Fief
 
         public static int MaxFor(Seeker s)
         {
-            return s == null ? 3 : 3 + UpgradeInfo.ColletsPerLevel * s.Hoard.Level(UpgradeKind.Collets);
+            return 4;
         }
 
         public static int CountOf(Seeker s)
