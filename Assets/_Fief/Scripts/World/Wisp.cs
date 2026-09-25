@@ -37,7 +37,7 @@ namespace Fief
             GameObject group = new GameObject("FEUX-FOLLETS");
             group.transform.SetParent(parent, false);
             System.Random rng = new System.Random((cfg != null ? cfg.worldSeed : 1) * 29 + 3);
-            float half = (cfg != null ? cfg.mapSize : 700f) * 0.5f - 60f;
+            float half = (cfg != null ? cfg.mapSize : 420f) * 0.5f - 60f;
             toldOnce = false;
 
             for (int i = 0; i < count; i++)

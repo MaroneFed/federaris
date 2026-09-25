@@ -20,9 +20,9 @@ namespace Fief
     /// </summary>
     public static class SteleSites
     {
-        const float MinRadius = 110f;
-        const float MaxRadius = 290f;
-        const float Apart = 120f;
+        const float MinRadius = 75f;
+        const float MaxRadius = 165f;
+        const float Apart = 85f;
 
         /// <summary>Plante une stele pour chaque chercheur, et amene chaque rival a la sienne.</summary>
         public static void PlaceAll(Transform parent, List<Seeker> seekers)
@@ -52,7 +52,7 @@ namespace Fief
 
         static Vector3 Find(System.Random rng, List<Vector3> taken)
         {
-            float half = (Game.Config != null ? Game.Config.mapSize : 700f) * 0.5f - 60f;
+            float half = (Game.Config != null ? Game.Config.mapSize : 420f) * 0.5f - 35f;
             float apart = Apart;
             // On relache les exigences si la foret est trop pleine : mieux vaut une
             // stele un peu trop pres qu'une stele introuvable.

@@ -14,7 +14,7 @@ namespace Fief
         [Header("Monde")]
         [Tooltip("Côté de la carte en mètres. 700 m se traverse en 90 s à pied -- " +
                  "mais avec 14 m de visibilité, on n'en a jamais l'impression.")]
-        public float mapSize = 700f;
+        public float mapSize = 420f;
         [Tooltip("Graine du générateur aléatoire : même graine = même map.")]
         public int worldSeed = 1337;
 
@@ -117,9 +117,9 @@ namespace Fief
         [Tooltip("Durée d'une apparition, en secondes. Il faut le trouver avant qu'il parte.")]
         public float mageStay = 150f;
         [Tooltip("Le mage apparaît au moins à cette distance de toi : il faut marcher.")]
-        public float mageMinDistance = 110f;
+        public float mageMinDistance = 60f;
         [Tooltip("Et au plus à celle-ci : il doit rester atteignable dans le temps imparti.")]
-        public float mageMaxDistance = 260f;
+        public float mageMaxDistance = 150f;
         [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
                  "tente se voit.")]
         public float campCapacity = 60f;

@@ -374,9 +374,9 @@ namespace Fief
             int seed = cfg != null ? cfg.worldSeed : 1;
             System.Random rng = new System.Random(seed * 31 + k * 7919 + 17);
 
-            float half = (cfg != null ? cfg.mapSize : 700f) * 0.5f - 40f;
-            float near = cfg != null ? cfg.mageMinDistance : 110f;
-            float far = cfg != null ? cfg.mageMaxDistance : 260f;
+            float half = (cfg != null ? cfg.mapSize : 420f) * 0.5f - 40f;
+            float near = cfg != null ? cfg.mageMinDistance : 60f;
+            float far = cfg != null ? cfg.mageMaxDistance : 150f;
             Vector3 me = Game.PlayerTransform != null ? Game.PlayerTransform.position : Vector3.zero;
 
             Vector2 best = Vector2.zero;

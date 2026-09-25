@@ -508,7 +508,7 @@ namespace Fief
             GameObject root = new GameObject("LOUPS");
             root.transform.SetParent(parent, false);
             System.Random rng = new System.Random(System.Environment.TickCount ^ 0x5bd1);
-            float half = (Game.Config != null ? Game.Config.mapSize : 700f) * 0.5f - 50f;
+            float half = (Game.Config != null ? Game.Config.mapSize : 420f) * 0.5f - 30f;
             int made = 0;
             for (int attempt = 0; attempt < 600 && made < packs; attempt++)
             {
@@ -517,9 +517,9 @@ namespace Fief
                 if (Castle.Covers(x, z, 50f) || Landmarks.Near(x, z, 20f)) continue;
                 bool clear = true;
                 for (int i = 0; i < Stele.All.Count && clear; i++)
-                    if (Stele.All[i] != null && Flat(Stele.All[i].transform.position - new Vector3(x, 0f, z)).magnitude < 75f) clear = false;
+                    if (Stele.All[i] != null && Flat(Stele.All[i].transform.position - new Vector3(x, 0f, z)).magnitude < 60f) clear = false;
                 for (int i = 0; i < All.Count && clear; i++)
-                    if (All[i].kind == Kind.Loup && Flat(All[i].home - new Vector3(x, 0f, z)).magnitude < 120f) clear = false;
+                    if (All[i].kind == Kind.Loup && Flat(All[i].home - new Vector3(x, 0f, z)).magnitude < 85f) clear = false;
                 if (!clear) continue;
                 List<Beast> pack = new List<Beast>();
                 for (int k = 0; k < 3; k++)

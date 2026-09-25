@@ -24,7 +24,7 @@ namespace Fief
             GameObject root = new GameObject("NATURE");
             root.transform.SetParent(parent, false);
             System.Random rng = new System.Random((cfg != null ? cfg.worldSeed : 1) * 71 + 5);
-            float half = (cfg != null ? cfg.mapSize : 700f) * 0.5f - 50f;
+            float half = (cfg != null ? cfg.mapSize : 420f) * 0.5f - 50f;
 
             // --- les ruines
             int ruins = 0;

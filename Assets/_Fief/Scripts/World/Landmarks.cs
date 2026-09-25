@@ -76,12 +76,12 @@ namespace Fief
             int seed = cfg != null ? cfg.worldSeed : 1;
             System.Random rng = new System.Random(seed * 13 + 5);
             // Pas dans le bourrelet du bord de carte (ou le sol remonte) : 80 m de marge.
-            float half = (cfg != null ? cfg.mapSize : 700f) * 0.5f - 80f;
+            float half = (cfg != null ? cfg.mapSize : 420f) * 0.5f - 40f;
 
             Kind[] kinds = { Kind.GrandChene, Kind.Cercle, Kind.Cabane, Kind.Tertre, Kind.Tour };
             for (int k = 0; k < kinds.Length; k++)
             {
-                for (float spacing = 150f; spacing >= 60f; spacing -= 30f)
+                for (float spacing = 110f; spacing >= 50f; spacing -= 20f)
                 {
                     if (TryPlace(kinds[k], rng, half, spacing)) break;
                 }

@@ -1,20 +1,45 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
 {
     /// <summary>
-    /// LA BOUSSOLE, en haut de l'ecran : une bande de cuir qui s'efface aux deux
-    /// bouts, des graduations tous les 15 degres, les points cardinaux (le Nord en
-    /// cramoisi), une aiguille de bronze au centre.
+    /// LA BOUSSOLE, en haut de l'ecran. Dans une foret sans horizon, c'est ton seul
+    /// sens de l'orientation -- elle devait donc etre belle ET tout dire.
     ///
-    /// ET RIEN D'AUTRE (Martin, 25/09/2026 : "faut rien indiquer sur la boussole,
-    /// comme ca ca force a retenir"). Ni ta stele, ni le mage, ni le chateau. Elle
-    /// dit ou est le nord -- le reste, c'est a toi de t'en souvenir : "ma stele est
-    /// au sud-ouest du chateau, apres le grand chene". C'est ca, se perdre dans une
-    /// foret, et c'est ca qui la rend immense.
+    /// Une bande de cuir qui s'efface aux deux bouts, des graduations tous les 15
+    /// degres, les points cardinaux en capitales (le Nord en cramoisi), une aiguille
+    /// de bronze au centre. Et dessus, des SIGNES, chacun a sa forme :
+    ///
+    ///   losange bleu      ta stele                (la ou tout se joue)
+    ///   triangle vert     ton camp
+    ///   point brun        tes caches
+    ///   carre dore        le chateau
+    ///   point gris        les lieux-dits decouverts
+    ///   losange colore    les steles rivales que tu as trouvees
+    ///   losange rouge     un rival qui emporte TA relique (il clignote)
+    ///   point bleu        le mage -- seulement avec la Corne d'appel
+    ///
+    /// Regarde un signe (qu'il soit au centre) : sa distance s'affiche dessous.
+    ///
+    /// (Le 25/09, la boussole avait ete videe "pour forcer a retenir". Martin, le
+    /// lendemain : "si on ne se souvient pas ou est la stele, ni le chateau, c'est
+    /// bof". Les signes sont revenus -- avec une carte plus petite.)
+    /// Un signe hors du champ se colle au bord, en plus petit.
     /// </summary>
     public static class Compass
     {
+        struct Mark
+        {
+            public Vector3 at;
+            public UiStyle.Shape shape;
+            public Color color;
+            public float size;
+            public string label;
+            public bool pulse;
+        }
+
+        static readonly List<Mark> Marks = new List<Mark>();
         const float HalfSpan = 95f;          // degres visibles de chaque cote
 
         public static void Draw(Rect band, Transform eye, Vector3 me)
@@ -54,6 +79,10 @@ namespace Fief
                 }
             }
 
+            // --- les signes
+            Collect(me);
+            for (int i = 0; i < Marks.Count; i++) DrawMark(band, Marks[i], heading, me);
+
             // --- l'aiguille : un triangle de bronze sous la bande, un losange dessus
             float n = UiStyle.S(12);
             UiStyle.Icon(new Rect(band.center.x - n * 0.5f, band.yMax + 1f, n, n), UiStyle.Shape.Triangle, UiStyle.EdgeGold);
@@ -70,6 +99,100 @@ namespace Fief
         static float Fade(float delta)
         {
             return Mathf.Clamp01(1.15f - Mathf.Abs(delta) / HalfSpan);
+        }
+
+        static void DrawMark(Rect band, Mark m, float heading, Vector3 me)
+        {
+            Vector3 to = m.at - me;
+            float bearing = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+            float delta = Mathf.DeltaAngle(heading, bearing);
+            bool outside = Mathf.Abs(delta) > HalfSpan - 6f;
+            float shown = Mathf.Clamp(delta, -(HalfSpan - 6f), HalfSpan - 6f);
+            float px = X(band, shown);
+
+            float size = UiStyle.S(m.size) * (outside ? 0.7f : 1f);
+            if (m.pulse) size *= 1f + 0.25f * Mathf.Sin(Time.unscaledTime * 7f);
+            float cy = band.center.y;
+            Color c = m.color;
+            c.a *= outside ? 0.6f : Mathf.Max(0.5f, Fade(delta));
+
+            UiStyle.Icon(new Rect(px - size * 0.5f - 1f, cy - size * 0.5f - 1f, size + 2f, size + 2f), m.shape, new Color(0f, 0f, 0f, 0.7f * c.a));
+            UiStyle.Icon(new Rect(px - size * 0.5f, cy - size * 0.5f, size, size), m.shape, c);
+
+            // Au centre (a moins de 8 degres), on lit son nom et sa distance.
+            if (!outside && Mathf.Abs(delta) < 8f)
+            {
+                float metres = new Vector2(to.x, to.z).magnitude;
+                string text = string.IsNullOrEmpty(m.label) ? Mathf.RoundToInt(metres) + " m" : m.label + "  " + Mathf.RoundToInt(metres) + " m";
+                UiStyle.Tinted(new Rect(px - UiStyle.S(110), band.yMax + UiStyle.S(12), UiStyle.S(220), UiStyle.S(18)), text,
+                               UiStyle.CenteredSmall, new Color(m.color.r, m.color.g, m.color.b, 0.95f));
+            }
+        }
+
+        /// <summary>Rassemble ce que TU sais. Rien d'autre : pas de triche.</summary>
+        static void Collect(Vector3 me)
+        {
+            Marks.Clear();
+            Seeker self = Game.Me;
+            Hoard h = Game.Hoard;
+
+            Add(Game.CastleCentre, UiStyle.Shape.Square, new Color(0.93f, 0.7f, 0.36f), 9f, "Château", false);
+
+            for (int i = 0; i < Landmarks.All.Count; i++)
+            {
+                Landmark lm = Landmarks.All[i];
+                if (lm != null && lm.Discovered)
+                    Add(lm.transform.position, UiStyle.Shape.Dot, new Color(0.72f, 0.7f, 0.64f), 8f, Landmarks.Name(lm.kind), false);
+            }
+
+            if (h != null)
+            {
+                if (h.CampPlanted) Add(h.CampPosition, UiStyle.Shape.Triangle, new Color(0.62f, 0.86f, 0.48f), 12f, "Ton camp", false);
+                for (int i = 0; i < h.Caches.Count; i++)
+                    Add(h.Caches[i].Position, UiStyle.Shape.Dot, new Color(0.78f, 0.58f, 0.36f), 9f, "Cache " + h.Caches[i].Number, false);
+                if (h.StelePlanted)
+                    Add(h.StelePosition, UiStyle.Shape.Diamond, Stele.RuneBlue, 15f, "Ta stèle", h.Trophy != null);
+            }
+
+            for (int i = 0; i < Stele.All.Count; i++)
+            {
+                Stele st = Stele.All[i];
+                if (st == null || st.owner == null || st.owner == self || self == null || !self.Knows(st.owner)) continue;
+                Add(st.transform.position, UiStyle.Shape.Diamond, st.owner.Colour, 12f, "Stèle de " + st.owner.Name, false);
+            }
+
+            for (int i = 0; i < Rival.All.Count; i++)
+            {
+                Rival r = Rival.All[i];
+                if (r != null && r.seeker.Hoard.Trophy != null && r.seeker.Hoard.TrophyFrom == self)
+                    Add(r.transform.position, UiStyle.Shape.Diamond, new Color(1f, 0.3f, 0.22f), 16f, "VOLEUR " + r.seeker.Name, true);
+            }
+
+            // Le mage : pendant la descente et ses premieres secondes, TOUT LE MONDE le
+            // voit (c'est le largage). Ensuite, seulement avec la Corne d'appel.
+            Mage mage = Game.Mage;
+            if (mage != null && (mage.Beaconing || h != null && h.Has(Talisman.Corne) && mage.Present))
+                Add(mage.Destination, UiStyle.Shape.Dot, new Color(0.62f, 0.8f, 1f), 16f, mage.Present ? "Le mage" : "Le mage descend", true);
+
+            // Ce que le mage t'a murmure apres une forge.
+            for (int i = 0; i < Secrets.All.Count; i++)
+            {
+                Secrets.Secret s = Secrets.All[i];
+                if (s.Resolved) continue;
+                Add(s.at, UiStyle.Shape.Diamond, new Color(0.78f, 0.6f, 1f), 12f, s.label, false);
+            }
+        }
+
+        static void Add(Vector3 at, UiStyle.Shape shape, Color color, float size, string label, bool pulse)
+        {
+            Mark m = new Mark();
+            m.at = at;
+            m.shape = shape;
+            m.color = color;
+            m.size = size;
+            m.label = label;
+            m.pulse = pulse;
+            Marks.Add(m);
         }
     }
 }

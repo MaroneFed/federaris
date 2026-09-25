@@ -176,6 +176,14 @@ namespace Fief
                 // (la pause, elle, le met a zero : on n'y touche pas).
                 if (slowMo <= 0f && Mathf.Approximately(Time.timeScale, 0.3f)) Time.timeScale = 1f;
             }
+            // La carte : on dévoile ce qu'on traverse, et M l'ouvre.
+            if (Game.PlayerTransform != null) Atlas.Track(Game.PlayerTransform.position);
+            if (FiefInput.MapPressed && menus != null && !menus.Blocking)
+            {
+                if (panel is MapPanel) ClosePanel();
+                else if (panel == null) { OpenPanel(new MapPanel()); Sfx.Pop(); }
+            }
+
             if (FiefInput.SatchelPressed && menus != null && !menus.Blocking)
             {
                 if (panel is TalismanPanel) ClosePanel();

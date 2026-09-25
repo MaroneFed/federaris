@@ -54,7 +54,7 @@ namespace Fief
             GroundCover g = go.AddComponent<GroundCover>();
             g.player = player;
             g.seed = cfg != null ? cfg.worldSeed : 1;
-            g.half = (cfg != null ? cfg.mapSize : 700f) * 0.5f;
+            g.half = (cfg != null ? cfg.mapSize : 420f) * 0.5f;
             for (int i = 0; i < Parts; i++) g.tris[i] = new List<int>();
             g.materials = new Material[]
             {

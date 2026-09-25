@@ -78,7 +78,7 @@ namespace Fief
             s.isTalisman = true;
             All.Add(s);
             return "\"Un talisman -- " + TalismanInfo.Name(best.talisman) + " -- dort " + Hud.Direction(me.Body.position, s.at)
-                   + ". Retiens-le : je ne le répéterai pas.\"";
+                   + ". Je l'ai mis sur ta boussole.\"";
         }
 
         static bool Known(Talisman t)
@@ -109,7 +109,7 @@ namespace Fief
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
                 float d = 60f + (float)rng.NextDouble() * 100f;
                 Vector3 p = me.Body.position + new Vector3(Mathf.Cos(a) * d, 0f, Mathf.Sin(a) * d);
-                float half = (Game.Config != null ? Game.Config.mapSize : 700f) * 0.5f - 40f;
+                float half = (Game.Config != null ? Game.Config.mapSize : 420f) * 0.5f - 40f;
                 if (Mathf.Abs(p.x) > half || Mathf.Abs(p.z) > half || Castle.Covers(p.x, p.z, 5f)) continue;
                 Secret s = new Secret();
                 s.at = Ground.Place(p.x, p.z, 0f);

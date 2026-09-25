@@ -40,6 +40,7 @@ namespace Fief
             Objectives.Reset();
             Secrets.Reset();
             Stats.Reset();
+            Atlas.Reset(config.mapSize);
 
             Game.Config = config;
             Game.Inventory = new Inventory();
@@ -233,7 +234,7 @@ namespace Fief
         void BuildRival(Transform parent, int index, string name, Color colour, float aggression, float ironLove, string[] taunts)
         {
             float a = (index * 120f + 60f) * Mathf.Deg2Rad;
-            Vector3 spawn = Ground.Place(Mathf.Cos(a) * 240f, Mathf.Sin(a) * 240f, 0.1f);
+            Vector3 spawn = Ground.Place(Mathf.Cos(a) * 150f, Mathf.Sin(a) * 150f, 0.1f);
             Rival rival = Rival.Build(parent, name, colour, spawn, aggression, ironLove, taunts, config.worldSeed * 41 + index);
             // Les deux plus agressifs partent avec une epee.
             if (aggression >= 0.3f) rival.Arm();
@@ -257,7 +258,7 @@ namespace Fief
             for (int i = 0; i < 240; i++)
             {
                 float a = i * 2.39996f;                 // angle d'or : repartition reguliere
-                float r = Mathf.Lerp(220f, 290f, (i % 12) / 11f);
+                float r = Mathf.Lerp(130f, 175f, (i % 12) / 11f);
                 float x = Mathf.Cos(a) * r;
                 float z = Mathf.Sin(a) * r;
 
