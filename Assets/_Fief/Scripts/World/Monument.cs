@@ -129,6 +129,15 @@ namespace Fief
             if (Instance == this) { Instance = null; sited = false; }
         }
 
+        /// <summary>Quand quelqu'un porte la Couronne, la colonne s'embrase : le Monument l'appelle.</summary>
+        void Update()
+        {
+            if (beam == null || Game.Season == null || !Game.Season.Running) return;
+            bool called = Crown.Holder != null;
+            beam.targetAlpha = called ? 0.85f + 0.15f * Mathf.Sin(Time.time * 3f) : 0.55f;
+            beam.fadeSpeed = 1.5f;
+        }
+
         /// <summary>A portee du monument (pour les bots comme pour toi).</summary>
         public bool Within(Vector3 p, float metres)
         {
@@ -147,7 +156,11 @@ namespace Fief
             if (Game.Season == null || !Game.Season.Running) return false;
             if (Match.IsTieBreak && !Match.TieBreakers.Contains(s.Index)) return false;
             Sfx.Bell();
+            Sfx.Discovery();
+            if (Crown.Instance != null) Crown.Instance.PlaceOn(transform.position + Vector3.up * 1.55f);
             Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, Blue);
+            Ambiance.Burst(null, transform.position + Vector3.up * 3f, new Color(1f, 0.8f, 0.35f));
+            if (beam != null) { beam.targetAlpha = 1f; beam.fadeSpeed = 4f; }
             if (Game.Menus != null) Game.Menus.EndRound(s.Index);
             return true;
         }

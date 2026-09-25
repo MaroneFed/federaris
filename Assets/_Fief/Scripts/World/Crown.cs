@@ -21,7 +21,7 @@ namespace Fief
         /// <summary>Qui la porte (null : sur son socle, ou par terre).</summary>
         public static Seeker Holder { get; private set; }
 
-        public enum State { OnPedestal, Carried, Dropped }
+        public enum State { OnPedestal, Carried, Dropped, Delivered }
         public static State Where { get { return Instance == null ? State.OnPedestal : Instance.state; } }
 
         /// <summary>Ou elle est, quoi qu'il arrive (sur son socle, sur une tete, par terre).</summary>
@@ -83,6 +83,8 @@ namespace Fief
             Proto.BeginVisualOnly();
             Model(v.transform, 1f);
             Proto.EndVisualOnly();
+            // Des paillettes d'or qui tournent autour d'elle, ou qu'elle aille.
+            Ambiance.Sparkles(v.transform, Vector3.zero, Gold);
 
             GameObject lightGo = new GameObject("Éclat");
             lightGo.transform.SetParent(v.transform, false);
@@ -149,7 +151,7 @@ namespace Fief
                 Renderer[] parts = visual.GetComponentsInChildren<Renderer>(true);
                 for (int i = 0; i < parts.Length; i++) parts[i].enabled = !mine;
             }
-            if (beam != null) { beam.targetAlpha = mine ? 0f : 0.45f; beam.fadeSpeed = mine ? 30f : 0.5f; }
+            if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.45f; beam.fadeSpeed = mine ? 30f : 0.5f; }
             // Tombee et oubliee (45 s), ou tombee hors d'atteinte : elle retourne sur son socle.
             if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.Sample(visual.position.x, visual.position.z) - 3f))
                 ReturnHome();
@@ -177,14 +179,14 @@ namespace Fief
             Sfx.Bell();
             if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "retourne au donjon", "", Gold);
         }
-        float BaseHeight() { return state == State.OnPedestal ? home.y : groundY; }
+        float BaseHeight() { return state == State.OnPedestal ? home.y : state == State.Delivered ? deliveredY : groundY; }
 
         // ================================================================== les gestes
 
         /// <summary>Prendre la couronne. Vrai si prise.</summary>
         public bool TryTakeFor(Seeker s)
         {
-            if (s == null || !s.Alive || state == State.Carried) return false;
+            if (s == null || !s.Alive || state == State.Carried || state == State.Delivered) return false;
             bool fromPedestal = state == State.OnPedestal;
             state = State.Carried;
             Holder = s;
@@ -194,8 +196,26 @@ namespace Fief
             // Au sommet du donjon : le Roi se leve, et toute la garde accourt.
             if (fromPedestal) Guard.Alert(transform.position, 30f, s);
             if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", s.IsPlayer ? "Au Monument !" : s.Name, "", s.Colour);
+            if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;
         }
+
+        /// <summary>
+        /// Posee au Monument : elle quitte les mains du porteur et se pose sur l'autel,
+        /// dans un eclat bleu. La manche est gagnee (voir Monument.TryDeliver).
+        /// </summary>
+        public void PlaceOn(Vector3 altar)
+        {
+            if (state != State.Carried) return;
+            state = State.Delivered;
+            Holder = null;
+            transform.position = altar - Vector3.up * 1.3f;
+            visual.position = altar;
+            deliveredY = altar.y;
+            if (beam != null) { beam.color = Monument.Blue; beam.targetAlpha = 1f; }
+        }
+
+        float deliveredY;
 
         /// <summary>La lacher, la ou l'on est (tombe, pousse, pris au piege).</summary>
         public void Drop(Vector3 at)
@@ -229,7 +249,7 @@ namespace Fief
         // ================================================================== IInteractable
 
         public Transform Anchor { get { return visual != null ? visual : transform; } }
-        public bool CanInteract { get { return state != State.Carried && Game.Season != null && Game.Season.Running && Game.Me != null && Game.Me.Alive; } }
+        public bool CanInteract { get { return state != State.Carried && state != State.Delivered && Game.Season != null && Game.Season.Running && Game.Me != null && Game.Me.Alive; } }
         public string Prompt { get { return "La Couronne"; } }
         public float HoldDuration { get { return state == State.OnPedestal ? 1.2f : 0.5f; } }
 

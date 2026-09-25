@@ -1,23 +1,45 @@
-# FIEF — Phase 1 (boucle économique solo)
+# FIEF — La Couronne
 
-> Bâtis ton fief, domine le marché, et prends les châteaux de tes rivaux.
+> Une Couronne au sommet d'un château gardé. Quatre joueurs dans une forêt noire.
+> Le premier qui la porte au Monument gagne la manche.
 
-Ce dossier est le projet Unity. **Tout ce qui suit prend 5 minutes.**
+Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 
 ---
+
+## 0. RÉCUPÉRER LA DERNIÈRE VERSION (à faire avant chaque test)
+
+**Le jeu est sur la branche `claude/pensive-dijkstra-848h9o`, pas sur `main`** (`main`
+ne contient qu'un ancien site web).
+
+**Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
+`La Couronne · v2 · 27/09` (et la même ligne dans la Console au lancement : `[FIEF] La
+Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
+Unity fait tourner une vieille copie.
+
+**Attention :** Unity Hub ▸ `Add project from repository` télécharge le projet **une
+seule fois**. Les mises à jour n'arrivent jamais toutes seules dans ce dossier-là.
+
+**La bonne méthode : GitHub Desktop** (gratuit, desktop.github.com)
+
+1. *Une seule fois* : `File` ▸ `Clone repository` ▸ onglet `URL` ▸
+   `https://github.com/MaroneFed/federaris` ▸ choisis un dossier ▸ `Clone`.
+2. *Une seule fois* : en haut, `Current branch` ▸ choisis **`claude/pensive-dijkstra-848h9o`**.
+3. *Une seule fois* : Unity Hub ▸ `Add` ▸ `Add project from disk` ▸ ce dossier `federaris`.
+4. **Avant chaque test** : GitHub Desktop ▸ bouton **`Fetch origin`**, puis **`Pull origin`**
+   s'il apparaît. Reviens dans Unity : il recompile tout seul (petite roue en bas à
+   droite). Sinon : menu `Assets` ▸ `Refresh` (`Ctrl+R`).
+
+**Si ça ne change toujours pas :** ouvre la Console (`Window` ▸ `General` ▸ `Console`).
+Une ligne rouge = une erreur de compilation, et Unity garde alors l'ancien code. Copie-
+la moi telle quelle.
 
 ## 1. Ouvrir le projet (2 min)
 
 Le projet Unity est **à la racine du dépôt** (`Assets/`, `ProjectSettings/`), pour qu'Unity
 Hub le détecte tout seul.
 
-**Méthode A — directement depuis GitHub (la plus simple)**
-
-1. Unity Hub ▸ `Add` ▸ **`Add project from repository`**.
-2. Dépôt : `MaroneFed/federaris` — Branche : `claude/pensive-dijkstra-848h9o`.
-3. Choisis où le télécharger ▸ **`Ajouter un projet`**.
-
-**Méthode B — si tu as déjà cloné le dépôt (GitHub Desktop, ZIP…)**
+Clone avec GitHub Desktop (section 0 ci-dessus), puis :
 
 1. Unity Hub ▸ `Add` ▸ `Add project from disk`.
 2. Sélectionne le dossier **`federaris`** lui-même (celui qui contient `Assets/`).
@@ -34,61 +56,49 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 
 ## 2. Lancer le jeu (30 s)
 
-1. Dans Unity, en haut : menu **`FIEF` ▸ `Ouvrir la scène Main`** (ou `Ctrl+Shift+M`).
+1. Dans Unity, en haut : menu **`FIEF` ▸ `Ouvrir la scene Main`** (ou `Ctrl+Shift+M`).
    *Sinon : dans la fenêtre `Project` en bas, double-clique `Assets/_Fief/Scenes/Main.unity`.*
 2. Appuie sur le **bouton ▶ Play** en haut au centre.
-3. L'**écran-titre** apparaît, avec la caméra qui tourne autour de ton fief.
-   Clique **COMMENCER LA SAISON**.
+3. L'**écran-titre** apparaît : FIEF, LA COURONNE, et la version en bas à droite.
+4. **Jouer** ▸ le **salon** : clique les places pour ajouter/retirer des bots, choisis le
+   nombre de manches et la durée ▸ **COMMENCER**.
 
-**Ce que tu dois voir :** un monde de **2200 × 2200 m — 484 hectares** en low-poly à
-facettes. Ton **château fort** (enceinte de 76 m, quatre tours, donjon de 28 m), des
-forêts épaisses, cinq lacs, des cerfs qui détalent, des moulins et des chapelles à
-découvrir, des caisses à fouiller, et des montagnes enneigées qui ferment l'horizon.
-
-**Les autres châteaux sont invisibles depuis le tien** : des collines-barrières sont
-posées sur les lignes de vue. Il faut ~2 min de marche pour rejoindre un voisin.
-
-> **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Réparer la scène Main`**,
-> puis re-Play. C'est le filet de sécurité : le monde est entièrement généré par le code,
-> il n'y a donc jamais rien à perdre dans la scène.
+> **Rien ne s'affiche / la scène est vide ?** Menu **`FIEF` ▸ `Reparer la scene Main`**,
+> puis re-Play. Le monde est entièrement généré par le code : il n'y a jamais rien à
+> perdre dans la scène.
 
 ## 3. Les commandes
 
 | Touche | Action |
 |---|---|
-| **ZQSD** / WASD / flèches | Se déplacer |
-| **V** | Première / troisième personne |
-| **Maj (Shift)** | Courir — seulement si le sac est léger |
-| **Souris** | Caméra orbitale |
-| **Molette** | Zoom |
-| **Espace** | Sauter |
-| **E** | Récolter (maintenir) / interagir |
-| **Échap** | Pause / fermer un panneau |
-| **F1** | Afficher les commandes |
+| **ZQSD** / WASD | Se déplacer |
+| **Souris** | Regarder |
+| **Maj** | Courir |
+| **Espace** | Sauter (deux fois avec le pouvoir Double saut) |
+| **Clic gauche** | Épée — ou se servir de l'objet en main |
+| **Clic droit** | Pousser (le porteur lâche la Couronne) |
+| **1 / 2 / 3**, molette | Les objets |
+| **E** | Prendre, ouvrir, poser la Couronne, tirer le levier |
+| **F** | Grimper à un arbre |
+| **R** | Ruée (le pouvoir) |
+| **Tab** | Le score du match |
+| **Échap** | Pause |
+| **F3** | Diagnostic |
 
 ## 4. Ce qu'il faut tester — la Porte 1
 
-> **« La boucle récolter → vendre → construire est-elle satisfaisante pendant 20 min, en solo ? »**
+> **« Un match de 30 minutes contre trois bots est-il haletant du début à la fin ? »**
 
-Le parcours :
+1. Trouve le château (sa tour de guet dépasse de la brume) et entre : la herse est
+   baissée — passe par la **poterne** (nord) ou la **brèche** (est), puis tire le
+   **levier** dans la cour.
+2. Monte le donjon jusqu'à la terrasse, prends la **Couronne** (E maintenu). Le **Roi
+   Creux** se réveille.
+3. Porte-la au **Monument** (la colonne bleue) sans te faire pousser.
+4. Entre deux manches, choisis un **pouvoir**.
 
-1. Pars vers un bosquet (repère **MARCHE** et **TON FIEF** sont affichés en permanence
-   avec la distance). **Maintiens E** sur un arbre.
-2. Regarde la **jauge de poids** en bas à gauche. Bois = 1 kg, Pierre = 2 kg, Fer = 3 kg,
-   pour **60 kg** de charge max. Plus tu es chargé, plus **tes gestes deviennent lents**
-   (jusqu'à ×2,4 par coup de hache) — la ligne « Gestes » sous la jauge te le dit.
-   Tu restes mobile (−26 % de vitesse seulement), mais **tu ne peux plus courir**.
-3. Va au marché central, **E**, et vends. **Regarde le prix chuter** pendant que tu écoules
-   ta cargaison : le prix se recalcule à chaque unité. Vendre 45 bois d'un coup rapporte
-   nettement moins que 2 fois 22 espacés.
-4. Rentre à ton fief, **E** sur un emplacement, construis.
-   Commence par le **Coffre** (150 or), puis la **Scierie** (300 or) qui produit toute seule.
-5. Recommence. Objectif : les 5 constructions payées (2380 or au total).
-   **Calibré pour ~27 min et 6 voyages** — c'est exactement la durée de la Porte 1.
-
-**Ce que tu dois me dire après 20 min :** est-ce que c'est *satisfaisant*, ou est-ce que
-ça traîne ? Les chiffres qui se règlent en 10 secondes sont dans `GameConfig`
-(voir §6) : vitesse, poids max, rendement de récolte, délai de repousse, prix de base.
+**Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et
+à quel moment tu as eu envie de lâcher.
 
 ## 5. Étape optionnelle (30 s) — activer le nouvel Input System
 
@@ -112,45 +122,42 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 
 | Je veux changer… | Fichier |
 |---|---|
-| Vitesse, poids max, prix, rendements, taille de la carte | `Scripts/Core/GameConfig.cs` |
-| Le personnage et son animation | `Scripts/Player/CharacterRig.cs` |
-| L'écran-titre et le menu pause | `Scripts/UI/Menus.cs` |
-| L'apparence de l'interface (panneaux, boutons) | `Scripts/UI/UiStyle.cs` |
-| **La carte** (zones de ressources, positions des fiefs) | `GameConfig.DefaultZones()` |
-| Les 5 constructions (coût, effet, prestige) | `Scripts/Building/BuildingCatalog.cs` |
-| La formule des prix dynamiques | `Scripts/Economy/Market.cs` |
-| Le relief, les lacs, les teintes du terrain | `Scripts/World/Ground.cs` |
-| Les forêts, le décor, les nuages, les repères | `Scripts/World/Scenery.cs` |
-| Le bourg du marché et ton fief | `Scripts/Core/GameBootstrap.cs` |
+| Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
+| Les manches, le départage, le choix des pouvoirs | `Scripts/Match/Match.cs` |
+| Les dix pouvoirs (noms, effets, couleurs) | `Scripts/Match/Powers.cs` |
+| Les objets de la forêt | `Scripts/Match/Items.cs` (effets : `Scripts/Player/ToolUser.cs`) |
+| La Couronne, le Monument, les coffres | `Scripts/World/Crown.cs`, `Monument.cs`, `Chest.cs` |
+| La Garde Pâle et le Roi Creux | `Scripts/World/Guard.cs` ; où ils se tiennent : `Garrison.cs` |
+| Le château, le donjon | `Scripts/World/Castle.cs`, `Keep.cs`, `Gatehouse.cs` (herse, levier, porte dérobée) |
+| Les bots | `Scripts/World/Rival.cs` |
+| L'écran de jeu | `Scripts/UI/Hud.cs` |
+| Titre, salon, pause, fin de manche, pouvoirs, podium | `Scripts/UI/Menus.cs` |
 | Les sons (synthétisés par le code) | `Scripts/Core/Sfx.cs` |
-| L'apparence des arbres/rochers | `Scripts/World/NodeFactory.cs` |
-| L'apparence des bâtiments | `Scripts/Building/BuildingFactory.cs` |
 | Les couleurs du jeu | `Scripts/Core/Palette.cs` |
 
 ## 7. Structure
 
 ```
 Assets/_Fief/
-  Scenes/Main.unity        <- 1 seul objet : le Bootstrap. Tout le reste est généré par code.
+  Scenes/Main.unity   <- 1 seul objet : le Bootstrap. Tout le reste est généré par code,
+                         et reconstruit à chaque manche.
   Scripts/
-    Core/      GameBootstrap (construit le monde), GameConfig (réglages), Palette, Proto
-    Player/    déplacement, caméra orbitale, interactions, abstraction des entrées
-    World/     gisements et leur apparence
-    Inventory/ inventaire + poids, bourse
-    Economy/   marché à prix dynamiques (autorité serveur)
-    Building/  catalogue, emplacements, état du fief
-    UI/        HUD, panneaux marché / construction / coffre
-  Editor/      menu FIEF (outils éditeur, jamais dans le build)
+    Core/     GameBootstrap (construit la manche), GameConfig (réglages), Sfx, Proto
+    Match/    le match, les pouvoirs, les objets (C# pur : survit aux manches)
+    Season/   le joueur (Seeker), le chrono, les stats
+    Player/   déplacement, caméra, interactions, épée/poussée/objets, entrées
+    World/    forêt, château, Garde Pâle, Couronne, Monument, bots, bêtes
+    UI/       écran de jeu, menus, pictogrammes, style
+  Editor/     menu FIEF (outils éditeur, jamais dans le build)
 docs/
-  ARCHITECTURE.md          <- pourquoi c'est découpé comme ça, et ce que ça change en Phase 3
-  v2-ideas.md              <- LA règle anti-dérive : toute idée hors-phase va ici
-
-index.html, src/           <- ancien site web, sans rapport. Unity ne les lit pas.
+  LA-SAISON.md    <- LA référence : les règles du jeu
+  RESEAU.md       <- le jeu en ligne : ce qui est prêt, ce qui reste
+  ARCHITECTURE.md <- pourquoi c'est découpé comme ça
+  v2-ideas.md     <- la règle anti-dérive : toute idée hors-phase va ici
 ```
 
 ## 8. Ce qui n'est PAS dans cette phase (et c'est voulu)
 
-Combat, PNJ serviteurs, salaires et loyauté, **sabotage**, destruction à règles, cycle
-jour/nuit, multijoueur, timer de Saison, score de Prestige final.
-→ Phases 2, 3 et 4. Voir `docs/v2-ideas.md`.
-
+Le jeu en ligne (Phase 3 — l'architecture est prête : `docs/RESEAU.md`), l'arc,
+d'autres pièges et pouvoirs (Phase 2), l'équilibrage fin (Phase 4).
+→ Voir `docs/v2-ideas.md`.

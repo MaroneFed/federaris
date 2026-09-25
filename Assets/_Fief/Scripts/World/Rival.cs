@@ -82,6 +82,8 @@ namespace Fief
         float fallSpeed;
         Vector3 knock;
         float stuck;
+        float dashReadyAt;
+        bool airJumped;
         float detourTimer;
         float detourSign = 1f;
         Transform figure;
@@ -427,6 +429,23 @@ namespace Fief
                 Combat.Shove(seeker, prey.Body.position - transform.position);
             }
 
+            // LA RUEE, s'il a le pouvoir : sur le porteur, sur la Couronne qui roule, ou
+            // pour semer ceux qui le talonnent quand c'est lui qui la porte.
+            if (seeker.Has(Power.Ruee) && Time.time >= dashReadyAt && !arrived)
+            {
+                bool worth = goal == Goal.Hunt && distance > 3.5f && distance < 11f
+                             || goal == Goal.Grab && distance > 4f && distance < 12f
+                             || goal == Goal.Deliver && Guard.ChasersOf(seeker) > 0;
+                Vector3 toward = Flat(step - transform.position);
+                if (worth && toward.sqrMagnitude > 0.5f)
+                {
+                    dashReadyAt = Time.time + PlayerController.DashCooldown;
+                    Push(toward.normalized * 30f + Vector3.up * 1.5f);
+                    Burst(PowerInfo.Tint(Power.Ruee));
+                    if (PlayerWithin(30f)) Sfx.Whoosh();
+                }
+            }
+
             if (!arrived)
             {
                 work = 0f;
@@ -657,7 +676,15 @@ namespace Fief
             {
                 fallSpeed = body.isGrounded && fallSpeed <= 0f ? -1f : fallSpeed - 22f * dt;
                 // Bloque par un rebord : il saute (plus haut avec la plume).
-                if (stuck > 0.25f && body.isGrounded && speed > 0f) fallSpeed = 7f * (Time.time < seeker.FeatherUntil ? 1.8f : 1f);
+                float lift = Time.time < seeker.FeatherUntil ? 1.8f : 1f;
+                if (body.isGrounded) airJumped = false;
+                if (stuck > 0.25f && body.isGrounded && speed > 0f) fallSpeed = 7f * lift;
+                // Le Double saut : toujours bloque en l'air, il saute encore.
+                else if (stuck > 0.25f && !body.isGrounded && !airJumped && speed > 0f && seeker.Has(Power.DoubleSaut) && fallSpeed < 2f)
+                {
+                    airJumped = true;
+                    fallSpeed = 7.3f * lift;
+                }
                 Vector3 before = transform.position;
                 body.Move((dir * speed + knock + Vector3.up * fallSpeed) * dt);
                 float moved = Flat(transform.position - before).magnitude;

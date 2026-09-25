@@ -107,7 +107,7 @@ namespace Fief
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignorée : " + error.Message); }
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
-            Debug.Log("[FIEF] Manche " + Match.RoundNumber + " construite en " + chrono.ElapsedMilliseconds + " ms : "
+            Debug.Log("[FIEF] " + Game.Version + " -- manche " + Match.RoundNumber + " construite en " + chrono.ElapsedMilliseconds + " ms : "
                       + Forest.TreeCount + " arbres, " + Guard.All.Count + " gardes, " + Chest.All.Count + " coffres, "
                       + Game.Seekers.Count + " joueurs.");
         }

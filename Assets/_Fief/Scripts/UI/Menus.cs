@@ -46,6 +46,7 @@ namespace Fief
         System.Action afterCurtain;
         float stateTime;        // depuis quand on est dans cet ecran (temps reel)
         int roundWinner = -1;
+        float slowMotion;
         int bellWarnings;
         float botPickTimer;
 
@@ -84,6 +85,11 @@ namespace Fief
             float dt = Time.unscaledDeltaTime;
             appear = Mathf.Min(1f, appear + dt * 0.55f);
             stateTime += dt;
+            if (slowMotion > 0f)
+            {
+                slowMotion -= dt;
+                Time.timeScale = slowMotion > 0f ? Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(slowMotion / 0.8f)) : 1f;
+            }
 
             Season season = Game.Season;
             if (Current == State.Playing && season != null)
@@ -115,6 +121,14 @@ namespace Fief
                     cam.autoOrbitSpeed = 3.2f;
                     cam.SetCinematic(6.2f, 6f);
                 }
+                else if ((Current == State.RoundOver || Current == State.Draft || Current == State.Ended) && Monument.Instance != null)
+                {
+                    // La manche est finie : la camera quitte tes yeux et tourne lentement
+                    // autour du Monument -- on voit la Couronne posee sur l'autel.
+                    if (cam.target != Monument.Instance.transform) cam.target = Monument.Instance.transform;
+                    cam.autoOrbitSpeed = 9f;
+                    cam.SetCinematic(10f, 16f);
+                }
                 else cam.autoOrbitSpeed = 0f;
             }
 
@@ -144,6 +158,7 @@ namespace Fief
             if (Game.Hud != null && Game.Hud.interactor != null) Game.Hud.interactor.InputLocked = blocked;
 
             float wantVeil = Current == State.Paused || showControls || Current == State.Lobby || Current == State.Online ? 1f
+                           : Current == State.RoundOver && stateTime < 1.3f ? 0.15f     // on regarde d'abord le ralenti
                            : Current == State.RoundOver || Current == State.Draft || Current == State.Ended ? 0.88f : 0f;
             veil = Mathf.MoveTowards(veil, wantVeil, dt * 3f);
         }
@@ -196,7 +211,9 @@ namespace Fief
         {
             if (Current != State.Playing && Current != State.Paused) return;
             if (Game.Season != null) Game.Season.Stop();
-            Time.timeScale = 1f;
+            // LE RALENTI : une seconde et demie ou le monde retient son souffle.
+            Time.timeScale = winner >= 0 ? 0.25f : 1f;
+            slowMotion = winner >= 0 ? 1.6f : 0f;
             if (Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
             roundWinner = winner;
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
@@ -473,6 +490,10 @@ namespace Fief
             if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Commandes", false, late) && ready) showControls = true;
             y += UiStyle.S(40);
             if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Quitter", false, late) && ready) Quit();
+
+            // La version, en bas a droite : c'est elle qui dit quel code tourne.
+            UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(34), Screen.width - UiStyle.S(24), UiStyle.S(20)), Game.Version, RightTiny(),
+                           new Color(UiStyle.InkFaint.r, UiStyle.InkFaint.g, UiStyle.InkFaint.b, late));
         }
 
         // ------------------------------------------------------------------ le salon
@@ -735,7 +756,9 @@ namespace Fief
         /// </summary>
         void DrawRoundOver()
         {
-            float a = Mathf.Clamp01(stateTime / 0.6f);
+            // Le ralenti d'abord (le monde, la Couronne sur l'autel), puis le verdict.
+            float a = Mathf.Clamp01((stateTime - 1.2f) / 0.6f);
+            if (a <= 0f) return;
             DrawEmbers(0.4f * a);
             float y = Screen.height * 0.24f;
             PlayerSlot w = roundWinner >= 0 && roundWinner < Match.Slots.Count ? Match.Slots[roundWinner] : null;
@@ -754,7 +777,7 @@ namespace Fief
             float bw = UiStyle.S(300), bh = UiStyle.S(46);
             Rect next = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(120), bw, bh);
             string label = Match.Over ? "LE PODIUM" : "LA SUITE";
-            if ((GUI.Button(next, label, UiStyle.ButtonPrimary) || stateTime > 9f) && stateTime > 1.2f) AfterRound();
+            if ((GUI.Button(next, label, UiStyle.ButtonPrimary) || stateTime > 10f) && stateTime > 2.2f) AfterRound();
         }
 
         // ------------------------------------------------------------------ le choix des pouvoirs

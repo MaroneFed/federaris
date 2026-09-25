@@ -41,7 +41,9 @@ manches, chacun choisit un pouvoir — le vainqueur choisit en dernier.**
    pousser, s'il marche dans un piège ou si le Roi le frappe**. Tombée, elle attend
    **45 s** qu'on la ramasse (un compte à rebours sous l'icône), puis rentre sur son socle.
 5. **Le Monument.** Porter la Couronne jusqu'à lui et maintenir E deux secondes :
-   **manche gagnée**.
+   **manche gagnée**. Le monde passe au ralenti, la Couronne se pose sur l'autel, et la
+   caméra tourne autour du Monument. Tant que quelqu'un porte la Couronne, la colonne
+   bleue du Monument s'embrase : il l'appelle.
 6. **Le temps.** Si le chrono tombe à zéro, celui qui tient la Couronne gagne la
    manche ; si personne ne la tient, personne ne gagne.
 

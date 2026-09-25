@@ -12,6 +12,13 @@ namespace Fief
     /// </summary>
     public static class Game
     {
+        /// <summary>
+        /// LA VERSION, affichee en bas de l'ecran-titre et dans la Console. Si tu vois
+        /// autre chose que ce texte, Unity ne fait pas tourner le dernier code (voir
+        /// README.md, "Recuperer la derniere version").
+        /// </summary>
+        public const string Version = "La Couronne · v2 · 27/09";
+
         public static GameConfig Config;
         public static Season Season;
 
