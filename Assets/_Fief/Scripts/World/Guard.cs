@@ -370,7 +370,8 @@ namespace Fief
         {
             if (barkTimer > 0f || !NearPlayer(25f)) return;
             barkTimer = 5f;
-            FloatingTexts.Spawn(transform.position + Vector3.up * 2.5f, info.Name + " : " + line, new Color(1f, 0.7f, 0.55f));
+            // Une voix, pas un texte sur la tete (voir Sfx.Voice).
+            Sfx.Voice(transform.position, info.Name.Length + 1, line.EndsWith("!"));
         }
 
         static Vector3 Flat(Vector3 v)

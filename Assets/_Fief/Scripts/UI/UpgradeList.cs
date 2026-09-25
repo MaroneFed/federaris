@@ -14,7 +14,7 @@ namespace Fief
         public static void Draw(Seeker me)
         {
             Hoard h = me.Hoard;
-            GUILayout.Label("Paye avec ce qui dort dans ta réserve (et un peu d'or). Pas avec ton sac.", UiStyle.Small);
+            GUILayout.Label("Payé avec ta réserve, et un peu d'or.", UiStyle.Small);
             GUILayout.Space(UiStyle.S(6));
             scroll = GUILayout.BeginScrollView(scroll, GUILayout.Height(UiStyle.S(250)));
             for (int i = 0; i < UpgradeInfo.Count; i++)

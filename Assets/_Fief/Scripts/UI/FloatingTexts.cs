@@ -71,7 +71,9 @@ namespace Fief
                 // Monte et s'estompe.
                 Vector3 world = e.world + new Vector3(e.drift, 0.4f + t * 1.7f, 0f);
                 Vector3 screen = camera.WorldToScreenPoint(world);
-                if (screen.z <= 0f) continue;
+                // Au-dela de la brume, rien : un chiffre qui flotte au-dessus d'un
+                // combat qu'on ne voit pas trahit ce qu'on ne devrait pas savoir.
+                if (screen.z <= 0f || screen.z > 16f) continue;
 
                 float alpha = Mathf.Clamp01(e.life / 0.5f);
                 style.normal.textColor = new Color(0f, 0f, 0f, alpha * 0.6f);

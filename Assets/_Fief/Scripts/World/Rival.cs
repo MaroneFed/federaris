@@ -433,16 +433,10 @@ namespace Fief
                     if (Game.Mage != null && Game.Mage.Present)
                     {
                         Relic relic = h.EnsureRelic();
-                        int before = relic.Power;
                         if (relic.RequestForge(seeker.Bag) > 0)
                         {
                             seeker.SyncWeight();
-                            if (PlayerWithin(30f))
-                            {
-                                Game.Mage.PlayForge();
-                                FloatingTexts.Spawn(transform.position + Vector3.up * 2.4f,
-                                                    seeker.Name + " forge  +" + (relic.Power - before), seeker.Colour);
-                            }
+                            if (PlayerWithin(30f)) Game.Mage.PlayForge();
                         }
                     }
                     think = 0f;
@@ -838,7 +832,9 @@ namespace Fief
         {
             if (barkTimer > 0f || !PlayerWithin(22f)) return;
             barkTimer = 8f;
-            FloatingTexts.Spawn(transform.position + Vector3.up * 2.3f, seeker.Name + " : " + line, seeker.Colour);
+            // Plus de replique ecrite au-dessus de la tete : sa voix (la ligne dit
+            // l'intention, pour qui lit le code ; le joueur, lui, entend le ton).
+            Sfx.Voice(transform.position, seeker.Name.Length, line.EndsWith("!"));
         }
 
         static Vector3 Flat(Vector3 v)

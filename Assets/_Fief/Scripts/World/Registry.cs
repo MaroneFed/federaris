@@ -128,7 +128,7 @@ namespace Fief
                     string what;
                     if (!s.Hoard.StelePlanted) what = "n'a pas encore plante sa stèle";
                     else if (s.Score <= 0) what = "sa stèle est vide";
-                    else what = s.Score + "  --  " + Relic.TierName(Relic.Tier(s.Score));
+                    else what = s.Score + "   ·   " + Relic.TierName(Relic.Tier(s.Score));
                     string known = s.IsPlayer ? "" : (Game.Me != null && Game.Me.Knows(s) ? "   (tu sais où est sa stèle)" : "");
                     text += "\n" + (i + 1) + ".  " + s.Name + " : " + what + known;
                 }

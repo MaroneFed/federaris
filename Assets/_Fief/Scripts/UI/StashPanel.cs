@@ -54,8 +54,8 @@ namespace Fief
 
             GUILayout.Label(title, UiStyle.Title);
             GUILayout.Label(cache.Number == 0
-                                ? "Ta tente se voit de loin. Ce qui dort ici ne pèse plus sur ton dos."
-                                : "Personne ne sait qu'elle est là. Ce qui dort ici ne pèse plus sur ton dos.",
+                                ? "Ta tente se voit de loin."
+                                : "Toi seul sais qu'elle est là.",
                             UiStyle.Small);
             GUILayout.Space(UiStyle.S(10));
 

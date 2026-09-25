@@ -270,7 +270,7 @@ namespace Fief
             {
                 Talisman t = TalismanInfo.All[i];
                 if (h.Has(t)) continue;
-                text += "\n  " + TalismanInfo.Name(t) + " -- " + TalismanInfo.Where(t) + ".";
+                text += "\n  " + TalismanInfo.Name(t) + " : " + TalismanInfo.Where(t) + ".";
                 told++;
             }
             return text;

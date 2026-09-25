@@ -150,6 +150,13 @@ namespace Fief
                 if (rv != null && rv.seeker.Hoard.Trophy != null && rv.seeker.Hoard.TrophyFrom == me && Mathf.Sin(Time.unscaledTime * 8f) > -0.3f)
                     Mark(r, rv.transform.position, UiStyle.Shape.Diamond, new Color(0.9f, 0.2f, 0.15f), 14f);
             }
+            // Ta depouille.
+            for (int i = 0; i < Remains.All.Count; i++)
+                if (Remains.All[i] != null && Remains.All[i].IsMine)
+                {
+                    Mark(r, Remains.All[i].transform.position, UiStyle.Shape.Dot, new Color(0.8f, 0.2f, 0.15f), 11f);
+                    Label(r, Remains.All[i].transform.position, "ta dépouille", new Color(0.55f, 0.12f, 0.08f), 13f);
+                }
             // Ce que le mage t'a murmure.
             for (int i = 0; i < Secrets.All.Count; i++)
                 if (!Secrets.All[i].Resolved) Mark(r, Secrets.All[i].at, UiStyle.Shape.Diamond, new Color(0.55f, 0.35f, 0.8f), 11f);

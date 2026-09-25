@@ -168,10 +168,9 @@ namespace Fief
             ToolKind[] kinds = { ToolKind.Hache, ToolKind.Epee, ToolKind.Piege };
             string[] uses =
             {
-                "Abat les arbres (clic, face à un tronc) : 14 bois mort d'un coup. Se brise après 12 coups.",
-                "Pour se battre : quatre coups tuent. Qui porte une relique ne peut pas frapper. Se brise après 25 coups.",
-                "Clic : le poser devant toi. Qui marche dessus meurt et lâche tout. Toi, tu ne crains rien. "
-                + Trap.MaxFor(me) + " posés au plus."
+                "Abat un arbre : 14 bois mort.  12 coups.",
+                "Quatre coups tuent.  25 coups.",
+                "Qui marche dessus tombe.  " + Trap.MaxFor(me) + " au plus."
             };
             for (int k = 0; k < kinds.Length; k++)
             {
@@ -214,7 +213,7 @@ namespace Fief
                 y += UiStyle.S(112);
             }
             UiStyle.Tinted(new Rect(x, y + UiStyle.S(4), width, UiStyle.S(20)),
-                           "Touches 1 et 2 : prendre en main ou ranger.   Clic gauche : frapper.   F : grimper dans un arbre.",
+                           "1 / 2 ou molette : l'outil   ·   clic : frapper   ·   F : grimper",
                            UiStyle.Tiny, UiStyle.InkDim);
         }
 

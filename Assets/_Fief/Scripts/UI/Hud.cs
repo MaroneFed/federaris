@@ -70,6 +70,9 @@ namespace Fief
         public void Hurt()
         {
             hurtFlash = 1f;
+            // Un panneau ouvert fige le joueur : mordu devant sa stele ou sur la carte,
+            // il ne pouvait ni fuir ni frapper. Un coup referme tout.
+            if (panel != null) ClosePanel();
         }
 
         /// <summary>"how" : comment on est tombe ("sous les coups de Mahaut", "dans un piege").</summary>
@@ -315,13 +318,13 @@ namespace Fief
             else if (season.NextMageIn >= 0f)
                 Pill(magePill, UiStyle.Shape.Dot, new Color(blue.r, blue.g, blue.b, 0.45f), Clock(season.NextMageIn), UiStyle.InkDim, -1f);
             else
-                Pill(magePill, UiStyle.Shape.Dot, new Color(0.4f, 0.4f, 0.45f, 0.4f), "--", UiStyle.InkFaint, -1f);
+                Pill(magePill, UiStyle.Shape.Dot, new Color(0.4f, 0.4f, 0.45f, 0.4f), "—", UiStyle.InkFaint, -1f);
 
             // --- la Malediction, a droite
             Rect cursePill = new Rect(plate.xMax + gap, top + (ch - ph) * 0.5f, pw, ph);
             Color violet = Curse.Violet;
             if (curse < 0f)
-                Pill(cursePill, UiStyle.Shape.Triangle, new Color(0.4f, 0.4f, 0.45f, 0.4f), "--", UiStyle.InkFaint, -1f);
+                Pill(cursePill, UiStyle.Shape.Triangle, new Color(0.4f, 0.4f, 0.45f, 0.4f), "—", UiStyle.InkFaint, -1f);
             else
             {
                 bool urgent = curse < 20f;
@@ -991,7 +994,6 @@ namespace Fief
                 { "F", "grimper dans un arbre" },
                 { "H", "écouter ta stèle" },
                 { "M", "la carte" },
-                { "F3", "diagnostic" },
                 { "Échap", "pause" }
             };
 

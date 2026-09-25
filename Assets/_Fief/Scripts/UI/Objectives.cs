@@ -26,7 +26,7 @@ namespace Fief
         static readonly Step[] Steps =
         {
             new Step { text = "Ramasse du bois mort",         hint = "Arbres gris  ·  maintiens E" },
-            new Step { text = "Dépose-le à ta stèle",         hint = "Losange bleu  ·  M : la carte" },
+            new Step { text = "Dépose-le à ta stèle",         hint = "Le fil d'or  ·  M : la carte" },
             new Step { text = "Trouve de la pierre-lune",     hint = "Dans les creux qui luisent" },
             new Step { text = "Porte ton sac au mage",        hint = "Sous la colonne bleue" },
             new Step { text = "Pose ta relique sur ta stèle", hint = "Seule elle compte à la cloche" },

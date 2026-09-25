@@ -626,7 +626,7 @@ namespace Fief
                            won ? Palette.Gold : new Color(0.9f, 0.5f, 0.4f));
             y += UiStyle.S(28);
             string verdict;
-            if (Victories.Winner == null) verdict = "Aucune relique posée, aucun serment, aucune couronne.";
+            if (Victories.Winner == null) verdict = "Personne ne l'emporte.";
             else if (won) verdict = "C'est toi. " + Victories.How(Victories.Kind);
             else verdict = Victories.Winner.Name + " l'emporte. " + (hoard.RelicOnStele ? "Ta relique : " + Rank(hoard.FinalScore) + "." : "");
             GUIStyle wrappedVerdict = UiStyle.Small;
@@ -656,22 +656,30 @@ namespace Fief
                 y += rowH;
             }
             y += UiStyle.S(6);
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(20)),
-                      "Talismans trouvés : " + hoard.TalismanCount + " / " + TalismanInfo.Count
-                      + "      Ta réserve : " + Stele.StoreSummary(hoard), UiStyle.Small);
-            y += UiStyle.S(20);
-            // Le journal : pourquoi ca s'est passe comme ca.
-            string journal = (Stats.Deaths == 0 ? "Jamais tombé" : "Tombé " + Stats.Deaths + " fois (la dernière " + Stats.LastDeath + ")")
-                           + "   --   Malédiction : -" + Stats.CurseLost
-                           + "   --   Pillé : -" + Stats.Robbed + " / +" + Stats.Looted
-                           + "   --   Abattus : " + Stats.RivalsDowned + " rivaux, " + Stats.BeastsDowned + " bêtes, " + Stats.TrapKills + " au piège";
-            GUIStyle small = UiStyle.Tiny;
-            bool wrapJ = small.wordWrap;
-            small.wordWrap = true;
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(34)), journal, small);
-            small.wordWrap = wrapJ;
-            y += UiStyle.S(14);
-            y += UiStyle.S(22);
+            // Le bilan en six cases : un chiffre, un mot (plus de phrase-journal).
+            string[] numbers =
+            {
+                hoard.TalismanCount + "/" + TalismanInfo.Count,
+                hoard.Store != null ? hoard.Store.Contents.TotalUnits.ToString() : "0",
+                Stats.Deaths.ToString(),
+                "-" + Stats.CurseLost,
+                "-" + Stats.Robbed + " / +" + Stats.Looted,
+                (Stats.RivalsDowned + Stats.BeastsDowned + Stats.TrapKills).ToString()
+            };
+            string[] words = { "talismans", "en réserve", "chutes", "Malédiction", "pillé / pris", "abattus" };
+            float cellW = bw / 3f, cellH = UiStyle.S(44);
+            for (int i = 0; i < numbers.Length; i++)
+            {
+                Rect cell = new Rect(x + cellW * (i % 3), y + cellH * (i / 3), cellW - UiStyle.S(6), cellH - UiStyle.S(6));
+                UiStyle.Fill(cell, new Color(1f, 1f, 1f, 0.03f));
+                GUIStyle big = UiStyle.Value;
+                TextAnchor wasA = big.alignment;
+                big.alignment = TextAnchor.MiddleCenter;
+                UiStyle.Tinted(new Rect(cell.x, cell.y, cell.width, cell.height * 0.62f), numbers[i], big, UiStyle.Ink);
+                big.alignment = wasA;
+                UiStyle.Tinted(new Rect(cell.x, cell.y + cell.height * 0.58f, cell.width, cell.height * 0.4f), words[i], UiStyle.CenteredSmall, UiStyle.InkFaint);
+            }
+            y += cellH * 2f;
 
             float bh = UiStyle.S(42);
             float by = box.yMax - bh - UiStyle.S(26);
@@ -700,8 +708,7 @@ namespace Fief
             { "H", "Écouter ta stèle" },
             { "M", "La carte" },
             { "Échap", "Pause" },
-            { "F1", "Aide" },
-            { "F3", "Diagnostic" }
+            { "F1", "Aide" }
         };
 
         void DrawControls()

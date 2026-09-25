@@ -184,6 +184,11 @@ namespace Fief
             if (mage != null && (mage.Beaconing || h != null && h.Has(Talisman.Corne) && mage.Present))
                 Add(mage.Destination, UiStyle.Shape.Dot, new Color(0.62f, 0.8f, 1f), 16f, mage.Present ? "Le mage" : "Le mage descend", true);
 
+            // Ta depouille : tout ce que tu portais t'y attend.
+            for (int i = 0; i < Remains.All.Count; i++)
+                if (Remains.All[i] != null && Remains.All[i].IsMine)
+                    Add(Remains.All[i].transform.position, UiStyle.Shape.Dot, new Color(0.95f, 0.4f, 0.3f), 12f, "Ta dépouille", false);
+
             // Ce que le mage t'a murmure apres une forge.
             for (int i = 0; i < Secrets.All.Count; i++)
             {

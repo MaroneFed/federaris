@@ -178,6 +178,15 @@ namespace Fief
     /// </summary>
     public class Remains : MonoBehaviour, IInteractable
     {
+        /// <summary>Toutes les depouilles au sol (la tienne va sur la boussole et la carte).</summary>
+        public static readonly System.Collections.Generic.List<Remains> All = new System.Collections.Generic.List<Remains>();
+
+        void OnEnable() { All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+
+        /// <summary>Vrai si c'est ta depouille, et qu'il y reste quelque chose.</summary>
+        public bool IsMine { get { return owner != null && owner == Game.Me && !Empty; } }
+
         readonly Inventory contents = new Inventory();
         Relic relic;
         Seeker owner;

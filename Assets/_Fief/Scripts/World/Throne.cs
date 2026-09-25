@@ -48,8 +48,7 @@ namespace Fief
             if (h.TalismanCount < TalismanInfo.Count)
             {
                 Sfx.Deny();
-                Toasts.Show("La pierre reste froide. Il lui faut les six talismans -- il t'en manque "
-                            + (TalismanInfo.Count - h.TalismanCount) + ".", new Color(0.95f, 0.78f, 0.35f));
+                Toasts.Show("Il manque " + (TalismanInfo.Count - h.TalismanCount) + " talismans.", new Color(0.95f, 0.78f, 0.35f));
                 return;
             }
             Victories.Declare(Game.Me, VictoryKind.Couronne);

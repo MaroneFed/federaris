@@ -581,6 +581,72 @@ namespace Fief
 
         // ------------------------------------------------------------- synthese
 
+        // ------------------------------------------------------------- les voix
+
+        static AudioClip[] voices;
+
+        /// <summary>
+        /// UNE VOIX, sans mots : un rival ou un garde qui parle (Martin, 26/09 : "le
+        /// texte au-dessus, j'aime pas"). Plus de replique ecrite sur leur tete : un
+        /// grognement, une exclamation, un murmure, spatialise la ou ils sont. Le ton
+        /// suffit a dire "halte !" ou "c'est a moi".
+        ///
+        /// Fabrication : une fondamentale qui glisse (80-170 Hz) et ses harmoniques,
+        /// ponderees par deux formants de voyelle (le "a", le "o", le "e") -- c'est ce
+        /// que fait une gorge. Deux syllabes, une enveloppe douce.
+        /// </summary>
+        public static void Voice(Vector3 at, int who, bool shout)
+        {
+            if (Muted) return;
+            if (voices == null)
+            {
+                voices = new AudioClip[8];
+                float[] pitches = { 98f, 118f, 138f, 160f };
+                for (int i = 0; i < 8; i++) voices[i] = BuildVoice("voix" + i, pitches[i % 4], i >= 4);
+            }
+            int k = (Mathf.Abs(who) % 4) + (shout ? 4 : 0);
+            AudioSource.PlayClipAtPoint(voices[k], at + Vector3.up * 1.6f, shout ? 1f : 0.75f);
+        }
+
+        static AudioClip BuildVoice(string name, float f0, bool shout)
+        {
+            float length = shout ? 0.5f : 0.42f;
+            int count = Mathf.RoundToInt(Rate * length);
+            float[] data = new float[count];
+            // Deux syllabes : chacune sa voyelle (F1, F2).
+            float[,] vowels = { { 730f, 1090f }, { 450f, 800f }, { 400f, 1900f } };
+            int v0 = rng.Next(3), v1 = rng.Next(3);
+            double phase = 0.0;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float u = t / length;
+                bool second = u > 0.48f;
+                float su = second ? (u - 0.48f) / 0.52f : u / 0.48f;
+                float env = Mathf.Sin(Mathf.PI * Mathf.Clamp01(su)) * (second ? 0.85f : 1f);
+                env = Mathf.Pow(Mathf.Max(0f, env), 0.7f);
+                // Le ton monte pour un cri, descend pour un murmure.
+                float glide = shout ? 1f + 0.25f * Mathf.Sin(Mathf.PI * u) : 1.08f - 0.16f * u;
+                float f = f0 * glide * (shout ? 1.35f : 1f);
+                phase += 2.0 * Mathf.PI * f / Rate;
+                int v = second ? v1 : v0;
+                float f1 = vowels[v, 0], f2 = vowels[v, 1];
+                float sample = 0f;
+                for (int h = 1; h <= 24; h++)
+                {
+                    float fh = f * h;
+                    if (fh > 4000f) break;
+                    float w1 = Mathf.Exp(-Mathf.Pow((fh - f1) / 130f, 2f));
+                    float w2 = 0.6f * Mathf.Exp(-Mathf.Pow((fh - f2) / 180f, 2f));
+                    float amp = (0.25f / h) + w1 + w2;
+                    sample += amp * (float)System.Math.Sin(phase * h);
+                }
+                float breath = (float)(rng.NextDouble() * 2.0 - 1.0) * 0.08f;
+                data[i] = (sample * 0.18f + breath) * env;
+            }
+            return FromSamples(name, data);
+        }
+
         /// <summary>
         /// Des branches seches qu'on rassemble : cinq ou six petits coups de bois
         /// creux, a des hauteurs differentes, qui se chevauchent sur un tiers de seconde.

@@ -77,8 +77,7 @@ namespace Fief
             s.talisman = best.talisman;
             s.isTalisman = true;
             All.Add(s);
-            return "\"Un talisman -- " + TalismanInfo.Name(best.talisman) + " -- dort " + Hud.Direction(me.Body.position, s.at)
-                   + ". Je l'ai mis sur ta boussole.\"";
+            return "\"" + TalismanInfo.Name(best.talisman) + " dort " + Hud.Direction(me.Body.position, s.at) + ".\"";
         }
 
         static bool Known(Talisman t)
