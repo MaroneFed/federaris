@@ -142,3 +142,5 @@ DirectorUpdateMode
 Vector2Int
 Event
 JsonUtility
+LineRenderer
+TrailRenderer

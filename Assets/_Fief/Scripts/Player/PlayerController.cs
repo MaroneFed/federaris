@@ -3,13 +3,19 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// Deplacement 3e personne, relatif a la camera, sur un CharacterController.
+    /// Deplacement en premiere personne, relatif au regard, sur un CharacterController.
     ///
     /// Concept Unity : le CharacterController est un composant de collision "capsule"
     /// fait pour les personnages. On ne lui applique pas de forces physiques : on lui
     /// dit ou aller avec Move(), il gere les murs et les pentes.
     ///
-    /// Mecanique centrale du brief : la vitesse depend de la charge portee.
+    /// Ce qui change la facon de bouger (La Couronne, 26/09) :
+    ///   - les POUVOIRS : Double saut (un second saut en l'air), Ruee (R, un bond de
+    ///     8 m), Coureur (+15 %), Porteur (la Couronne ne ralentit plus) ;
+    ///   - la COURONNE, qui ralentit (18 %) ; la fiole de lenteur (50 %) ; le piege
+    ///     (cloue sur place) -- tout ca est dans Seeker.SpeedFactor ;
+    ///   - la PLUME : des sauts presque deux fois plus hauts ;
+    ///   - la POUSSEE : Push() projette le joueur (un autre joueur, le Roi Creux).
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -58,15 +64,44 @@ namespace Fief
 
         float strideAccumulator;
 
+        // --- ce qui pousse le joueur de l'exterieur (une poussee, un coup du Roi)
+        Vector3 knock;
+        // --- le second saut, deja pris depuis qu'on a quitte le sol
+        bool airJumpUsed;
+        // --- la Ruee
+        float dashTime;
+        Vector3 dashDir;
+        float dashReadyAt;
+
+        public const float DashCooldown = 6f;
+        const float DashDuration = 0.28f;
+        const float DashSpeed = 28f;
+
+        /// <summary>0 : la Ruee vient de servir ; 1 : elle est prete.</summary>
+        public float DashReady01 { get { return Mathf.Clamp01(1f - (dashReadyAt - Time.time) / DashCooldown); } }
+
         void Awake()
         {
             controller = GetComponent<CharacterController>();
+        }
+
+        /// <summary>
+        /// Projeter le joueur (on le pousse, le Roi le balaie). La partie horizontale
+        /// s'amortit en une demi-seconde ; la verticale le soulege du sol.
+        /// </summary>
+        public void Push(Vector3 velocity)
+        {
+            knock += new Vector3(velocity.x, 0f, velocity.z);
+            if (velocity.y > 0f) verticalVelocity = Mathf.Max(verticalVelocity, velocity.y);
+            dashTime = 0f;
         }
 
         void Update()
         {
             GameConfig cfg = Game.Config;
             if (cfg == null || Scripted) return;
+            Seeker me = Game.Me;
+            float dt = Time.deltaTime;
 
             Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
 
@@ -86,24 +121,16 @@ namespace Fief
             Vector3 wish = forward * input.y + right * input.x;
             if (wish.sqrMagnitude > 1f) wish.Normalize();
 
-            // --- LE POIDS ---
-            // 0 = sac vide -> vitesse max ; 1 = sac plein -> vitesse minimale.
-            float load = Game.Inventory != null ? Game.Inventory.Load01 : 0f;
-            float t = Mathf.Pow(Mathf.Clamp01(load), Mathf.Max(0.1f, cfg.loadCurve));
-            float speed = Mathf.Lerp(cfg.moveSpeedEmpty, cfg.moveSpeedFull, t);
-
-            // La course (Maj) n'est possible que le sac leger. Aller vite a vide,
-            // rentrer lentement charge : c'est la mecanique de poids, en plus lisible.
-            IsSprinting = !InputLocked
-                       && FiefInput.SprintHeld
-                       && load <= cfg.sprintMaxLoad
-                       && wish.sqrMagnitude > 0.01f;
+            // --- LA VITESSE : pouvoirs, couronne, lenteur, piege (voir Seeker.SpeedFactor).
+            float factor = me != null ? me.SpeedFactor : 1f;
+            if (me != null && !me.Alive) factor = 0f;
+            float speed = cfg.moveSpeed * factor;
+            IsSprinting = !InputLocked && FiefInput.SprintHeld && wish.sqrMagnitude > 0.01f && factor > 0f;
             if (IsSprinting) speed *= cfg.sprintMultiplier;
 
             TargetSpeed = speed;
             CurrentSpeed = wish.magnitude * speed;
 
-            // Orientation du personnage.
             // En premiere personne, le corps DOIT suivre le regard : sinon on
             // avancerait de cote pendant que la camera regarde ailleurs.
             if (orbitCamera != null && orbitCamera.ThroughEyes)
@@ -113,8 +140,7 @@ namespace Fief
             else if (wish.sqrMagnitude > 0.0001f)
             {
                 Quaternion target = Quaternion.LookRotation(wish, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(
-                    transform.rotation, target, cfg.turnSpeed * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, cfg.turnSpeed * dt);
             }
 
             // Atterrissage : une petite secousse de camera. C'est du "juice" :
@@ -125,16 +151,47 @@ namespace Fief
             }
             wasGrounded = controller.isGrounded;
 
-            // Gravite + saut.
+            // --- LE SAUT (et le second, en l'air, avec le pouvoir)
+            bool canAct = !InputLocked && factor > 0f;
+            float lift = me != null && Time.time < me.FeatherUntil ? 1.8f : 1f;
             if (controller.isGrounded)
             {
+                airJumpUsed = false;
                 if (verticalVelocity < 0f) verticalVelocity = -2f;
-                if (!InputLocked && FiefInput.JumpPressed) verticalVelocity = cfg.jumpSpeed;
+                if (canAct && FiefInput.JumpPressed) verticalVelocity = cfg.jumpSpeed * lift;
             }
-            verticalVelocity += cfg.gravity * Time.deltaTime;
+            else if (canAct && FiefInput.JumpPressed && !airJumpUsed && me != null && me.Has(Power.DoubleSaut))
+            {
+                airJumpUsed = true;
+                verticalVelocity = cfg.jumpSpeed * 1.05f * lift;
+                Sfx.Whoosh();
+                Ambiance.Burst(null, transform.position + Vector3.up * 0.2f, PowerInfo.Tint(Power.DoubleSaut));
+            }
+            verticalVelocity += cfg.gravity * dt;
 
-            Vector3 motion = wish * speed + Vector3.up * verticalVelocity;
-            controller.Move(motion * Time.deltaTime);
+            // --- LA RUEE (R) : un bond droit devant, toutes les 6 s.
+            if (canAct && FiefInput.DashPressed && me != null && me.Has(Power.Ruee) && Time.time >= dashReadyAt)
+            {
+                dashReadyAt = Time.time + DashCooldown;
+                dashTime = DashDuration;
+                dashDir = wish.sqrMagnitude > 0.01f ? wish.normalized : forward;
+                if (verticalVelocity < 1f) verticalVelocity = 1f;
+                Sfx.Whoosh();
+                if (orbitCamera != null) orbitCamera.Shake(0.12f);
+                Ambiance.Burst(null, transform.position + Vector3.up, PowerInfo.Tint(Power.Ruee));
+            }
+            Vector3 dash = Vector3.zero;
+            if (dashTime > 0f)
+            {
+                dashTime -= dt;
+                dash = dashDir * DashSpeed;
+            }
+
+            // La poussee s'amortit.
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-5f * dt));
+
+            Vector3 motion = wish * speed + dash + knock + Vector3.up * verticalVelocity;
+            controller.Move(motion * dt);
 
             Footsteps();
             DriveRig(cfg);
@@ -149,7 +206,7 @@ namespace Fief
             flat.y = 0f;
             rig.Speed = flat.magnitude;
             rig.Grounded = controller.isGrounded;
-            rig.RunSpeed = cfg.moveSpeedEmpty * cfg.sprintMultiplier;
+            rig.RunSpeed = cfg.moveSpeed * cfg.sprintMultiplier;
         }
 
         /// <summary>Un bruit de pas tous les 2,3 m parcourus au sol.</summary>
@@ -194,6 +251,8 @@ namespace Fief
         public void Teleport(Vector3 position, float yaw)
         {
             Scripted = false;                   // un teleport interrompt une escalade
+            knock = Vector3.zero;
+            dashTime = 0f;
             controller.enabled = false;
             transform.position = position;
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);

@@ -3,25 +3,21 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// Point d'acces unique aux systemes de la partie en cours.
+    /// Point d'acces unique aux systemes de la manche en cours.
     ///
     /// ATTENTION / PHASE 3 : ces champs statiques marchent tant qu'il n'y a qu'un
-    /// seul joueur dans le processus. En multijoueur, Inventory et Hoard
-    /// deviendront des composants PAR JOUEUR, et Season restera cote hote. C'est
-    /// pour ca que toute la regle du jeu vit dans des classes C# pures (Season,
-    /// Hoard, Cache, Inventory) et que tout changement passe par une methode
-    /// Request* ou Try* : le jour du reseau, ce sont elles qu'on protege.
+    /// seul joueur local par machine -- c'est justement le cas en ligne. Ce qui
+    /// traverse les manches vit dans Match ; ce qui vit une manche vit ici, et
+    /// disparait au rechargement de la scene.
     /// </summary>
     public static class Game
     {
         public static GameConfig Config;
-        public static Inventory Inventory;
         public static Season Season;
-        public static Hoard Hoard;
 
-        /// <summary>Toi, en tant que chercheur (ton sac, ton Hoard).</summary>
+        /// <summary>Toi.</summary>
         public static Seeker Me;
-        /// <summary>Tous les chercheurs de la Saison : toi d'abord, puis les rivaux.</summary>
+        /// <summary>Tous les joueurs de la manche, dans l'ordre des places du match.</summary>
         public static readonly System.Collections.Generic.List<Seeker> Seekers =
             new System.Collections.Generic.List<Seeker>();
         public static Hud Hud;
@@ -30,24 +26,25 @@ namespace Fief
         public static CharacterRig Rig;
         public static Transform PlayerTransform;
 
-        /// <summary>Le centre du chateau, et donc de la stele.</summary>
+        /// <summary>Le centre du chateau.</summary>
         public static Vector3 CastleCentre;
 
         /// <summary>Renseigne si la construction du monde a echoue : affiche en rouge a l'ecran.</summary>
         public static string BuildError;
         public static long BuildMilliseconds;
 
-        public static bool Ready
+        public static bool Ready { get { return Config != null && Season != null; } }
+
+        public static Seeker SeekerOf(int slot)
         {
-            get { return Config != null && Inventory != null && Season != null && Hoard != null; }
+            for (int i = 0; i < Seekers.Count; i++) if (Seekers[i].Index == slot) return Seekers[i];
+            return null;
         }
 
         public static void Reset()
         {
             Config = null;
-            Inventory = null;
             Season = null;
-            Hoard = null;
             Hud = null;
             Menus = null;
             Player = null;

@@ -78,19 +78,14 @@ namespace Fief
         public float undergrowthDensity = 0.55f;
 
         [Header("Déplacement")]
-        public float moveSpeedEmpty = 7.6f;
-        [Tooltip("Vitesse à 100% de charge. Volontairement PROCHE de la vitesse à vide : "
-               + "être charge doit coûter, pas enliser. Le vrai coût est sur les gestes (voir plus bas).")]
-        public float moveSpeedFull = 5.6f;
-        [Tooltip("Courbure du ralentissement : 1 = linéaire, >1 = on ne sent la charge que tard.")]
-        public float loadCurve = 1.15f;
-        [Tooltip("Vitesse x N en courant.")]
-        public float sprintMultiplier = 1.55f;
-        [Tooltip("Charge (0-1) au-delà de laquelle on ne peut plus courir. Un joueur très charge "
-               + "reste donc rattrapable : c'est ce qui le rend vulnérable en Phase 2.")]
-        public float sprintMaxLoad = 1.01f;     // on court toujours (26/09 : plus d'action)
+        [Tooltip("Vitesse de marche, en m/s (le pouvoir Coureur ajoute 15 %).")]
+        public float moveSpeed = 7.2f;
+        [Tooltip("Vitesse x N en courant (Maj).")]
+        public float sprintMultiplier = 1.5f;
         public float turnSpeed = 720f;
-        public float jumpSpeed = 5.0f;
+        [Tooltip("Vitesse du saut. 7 m/s avec une gravité de 22 : un saut d'1,1 m -- " +
+                 "assez pour une caisse, pas pour un mur. Le Double saut double la mise.")]
+        public float jumpSpeed = 7.0f;
         public float gravity = -22f;
 
         [Header("Caméra")]
@@ -106,34 +101,12 @@ namespace Fief
         public float cameraMaxDistance = 32f;
         public float mouseSensitivity = 0.13f;
 
-        [Header("Inventaire")]
-        [Tooltip("Charge maximale en kg. Bois mort = 1 kg, Fer ancien = 2, Pierre-lune = 3, le butin = 0,35 kg l'étoile.")]
-        public float maxWeight = 60f;
-
-        [Header("Récolte")]
+        [Header("Interaction")]
+        [Tooltip("Portée de la touche E (coffres, Couronne, Monument), en mètres.")]
         public float interactRadius = 3.6f;
-        [Tooltip("Durée d'un coup, sac VIDE.")]
-        public float harvestDuration = 1.15f;
-        [Tooltip("Multiplicateur de durée quand le sac est PLEIN. C'est la nouvelle mécanique de "
-               + "poids : plus tu es charge, plus tes gestes sont lourds et lents. "
-               + "Tu restes mobile, mais tu deviens lent à l'ouvrage.")]
-        public float actionPenaltyFull = 2.4f;
-        public int harvestYield = 2;
-        public int nodeCapacity = 30;
-        public float nodeRespawnDelay = 55f;
 
-        [Header("La Saison (voir docs/LA-SAISON.md)")]
-        [Tooltip("Durée d'une Saison, en minutes. À la cloche, le plus gros butin (★) sur sa stèle gagne.")]
-        public float seasonMinutes = 30f;
-        [Tooltip("Ce que la tente du camp peut contenir, en kg. Plus qu'une cache, mais une " +
-                 "tente se voit.")]
-        public float campCapacity = 60f;
-        [Tooltip("Nombre de caches qu'on peut creuser dans une Saison.")]
-        public int maxCaches = 3;
-        [Tooltip("Ce qu'une cache peut contenir, en kg.")]
-        public float cacheCapacity = 40f;
-        [Tooltip("Temps pour creuser une cache, en secondes (touche maintenue).")]
-        public float digDuration = 3.5f;
-
+        [Header("Le match (voir docs/LA-SAISON.md)")]
+        [Tooltip("Durée d'une manche quand on lance la scène sans passer par le salon, en minutes.")]
+        public float seasonMinutes = 6f;
     }
 }

@@ -160,6 +160,15 @@ namespace Fief
         }
 
         /// <summary>
+        /// Une gelule (cylindre aux bouts arrondis). A l'echelle 1 : 1 m de large, 2 m de
+        /// haut. C'est la forme des membres de la Garde Pale -- lisse, sans arete.
+        /// </summary>
+        public static GameObject Capsule(Transform parent, Vector3 pos, Vector3 scale, Color color, string name = "Capsule")
+        {
+            return Make(PrimitiveType.Capsule, parent, pos, scale, color, name);
+        }
+
+        /// <summary>
         /// Un disque plat pose au sol, purement visuel (sans collider).
         /// yOffset sert a empiler les dalles sans qu'elles "clignotent" :
         /// deux surfaces exactement a la meme hauteur produisent du z-fighting.

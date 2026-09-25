@@ -7,10 +7,13 @@ namespace Fief
     /// L'INTERIEUR DU DONJON (26/09 -- Martin : "le chateau, faut vraiment
     /// l'ameliorer. Faut mettre des etages, faut qu'il y ait plein de gardes").
     ///
-    ///   TERRASSE  19,8 m   a ciel ouvert. LA COURONNE (★40), et un garde.
-    ///   ETAGE 2   13,5 m   la salle des coffres : un coffret, un calice.
-    ///   ETAGE 1    7,2 m   l'armurerie : deux coffrets.
-    ///   REZ        0,9 m   la grande salle : deux calices, les tables du banquet.
+    ///   TERRASSE  19,8 m   a ciel ouvert. LA COURONNE, le Roi Creux, deux gardes royaux.
+    ///   ETAGE 2   13,5 m   la salle des coffres : deux coffres (objets rares).
+    ///   ETAGE 1    7,2 m   l'armurerie : deux coffres, un arbaletrier sur le palier.
+    ///   REZ        0,9 m   la grande salle : deux coffres, les tables du banquet.
+    ///
+    /// Et la PORTE DEROBEE, au pied du mur nord, dehors : avec la cle, un escalier
+    /// dans le mur monte droit a la terrasse (voir SecretDoor).
     ///
     /// Les etages sont relies par des ESCALIERS droits, alternes : le long du mur
     /// nord, puis du mur sud, puis du nord. Pour monter a la couronne, il faut
@@ -44,6 +47,17 @@ namespace Fief
 
         /// <summary>Les rondes des gardes du donjon, une par niveau (remplies par Build).</summary>
         public static readonly List<Vector3[]> GuardRoutes = new List<Vector3[]>();
+
+        /// <summary>Le socle de la Couronne, sur la terrasse.</summary>
+        public static Vector3 CrownSpot { get { return At(1.5f, Roof, Castle.KeepCentre.z); } }
+        /// <summary>Le trone du Roi Creux, face a la Couronne.</summary>
+        public static Vector3 ThroneSpot { get { return At(-4.2f, Roof, Castle.KeepCentre.z + 2f); } }
+        /// <summary>Ou se tient le Roi Creux : debout devant son trone.</summary>
+        public static Vector3 KingHome { get { return ThroneSpot + new Vector3(0f, 0.05f, -2.2f); } }
+        /// <summary>Le palier de la terrasse ou debouche l'escalier derobe.</summary>
+        public static Vector3 SecretLanding { get { return At(7.3f, Roof + 0.1f, Z1 - 0.9f); } }
+        /// <summary>Le poste de l'arbaletrier du premier etage (le palier est).</summary>
+        public static Vector3 ArcherPost { get { return At(X1 - 1f, L1 + 0.05f, (NorthEdge + Z1) * 0.5f); } }
 
         static readonly Color Paving = new Color(0.20f, 0.20f, 0.19f);
         static readonly Color Planks = new Color(0.27f, 0.2f, 0.14f);
@@ -86,6 +100,24 @@ namespace Fief
             Armoury(t);
             Vault(t);
             Terrace(t);
+        }
+
+        /// <summary>Le trone du Roi : un siege de pierre noire, haut dossier, deux bras.</summary>
+        static void Throne(Transform t, Vector3 at)
+        {
+            Color stone = new Color(0.12f, 0.12f, 0.13f);
+            Proto.Cube(t, at + new Vector3(0f, 0.5f, 0.6f), new Vector3(2.6f, 1f, 1.8f), stone, "Trône");
+            Proto.BeginVisualOnly();
+            Proto.Cube(t, at + new Vector3(0f, 2.4f, 1.35f), new Vector3(2.6f, 3.8f, 0.4f), stone, "Dossier");
+            Proto.Cube(t, at + new Vector3(-1.2f, 1.4f, 0.6f), new Vector3(0.3f, 0.8f, 1.8f), stone, "Accoudoir");
+            Proto.Cube(t, at + new Vector3(1.2f, 1.4f, 0.6f), new Vector3(0.3f, 0.8f, 1.8f), stone, "Accoudoir");
+            Proto.Cube(t, at + new Vector3(0f, 1.02f, 0.5f), new Vector3(2f, 0.06f, 1.4f), new Color(0.35f, 0.06f, 0.1f), "Coussin");
+            for (int i = -1; i <= 1; i++)
+            {
+                GameObject spike = Proto.Cone(t, at + new Vector3(i * 0.9f, 4.3f, 1.35f), 0.2f, 0.9f - Mathf.Abs(i) * 0.3f, stone, "Pointe", 4);
+                spike.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
+            }
+            Proto.EndVisualOnly();
         }
 
         // ================================================================== le chemin
@@ -165,7 +197,7 @@ namespace Fief
         /// collider, qu'un CharacterController monte sans broncher) et des marches
         /// dessinees dessus.
         /// </summary>
-        static void Stair(Transform t, Vector3 from, Vector3 to)
+        public static void Stair(Transform t, Vector3 from, Vector3 to)
         {
             Vector3 run = to - from;
             float length = run.magnitude + 0.4f;
@@ -188,7 +220,7 @@ namespace Fief
         }
 
         /// <summary>Un garde-corps de bois (colliders), d'un metre, avec ses poteaux.</summary>
-        static void Rail(Transform t, Vector3 a, Vector3 b)
+        public static void Rail(Transform t, Vector3 a, Vector3 b)
         {
             Vector3 mid = (a + b) * 0.5f;
             Vector3 d = b - a;
@@ -274,8 +306,8 @@ namespace Fief
             Proto.EndVisualOnly();
             Lamps(t, L0);
 
-            Treasure.Build(t, At(-7.3f, L0, Z0 + 1.2f), Treasure.Kind.Calice, true);
-            Treasure.Build(t, At(7.3f, L0, Z0 + 1.2f), Treasure.Kind.Calice, true);
+            Chest(t, At(-7.3f, L0, Z0 + 1.2f), false, 90f);
+            Chest(t, At(7.3f, L0, Z0 + 1.2f), false, -90f);
 
             // Une ronde en U, le long des murs : elle ne traverse pas les tables du banquet.
             float y0 = L0 + 0.05f;
@@ -300,8 +332,8 @@ namespace Fief
             Lamps(t, L1);
 
             // (Le couloir le long du mur est reste libre : c'est le chemin de l'escalier suivant.)
-            Treasure.Build(t, At(-7.3f, L1, c + 1.5f), Treasure.Kind.Coffret, true);
-            Treasure.Build(t, At(3f, L1, c), Treasure.Kind.Coffret, true);
+            Chest(t, At(-7.3f, L1, c + 1.5f), false, 90f);
+            Chest(t, At(3f, L1, c), true, 180f);
 
             GuardRoutes.Add(new[] { At(-5.8f, L1 + 0.05f, SouthEdge + 1.6f), At(5.8f, L1 + 0.05f, SouthEdge + 1.6f), At(5.8f, L1 + 0.05f, NorthEdge - 1.4f), At(-5.8f, L1 + 0.05f, NorthEdge - 1.4f) });
         }
@@ -320,23 +352,34 @@ namespace Fief
             Lamps(t, L2);
 
             // (Le couloir le long du mur ouest reste libre : c'est le chemin de la terrasse.)
-            Treasure.Build(t, At(-3f, L2, c + 0.5f), Treasure.Kind.Coffret, true);
-            Treasure.Build(t, At(4.5f, L2, c + 0.5f), Treasure.Kind.Calice, true);
+            Chest(t, At(-3f, L2, c + 0.5f), true, 180f);
+            Chest(t, At(4.5f, L2, c + 0.5f), true, 180f);
 
             GuardRoutes.Add(new[] { At(-5.5f, L2 + 0.05f, SouthEdge + 1.4f), At(5.5f, L2 + 0.05f, SouthEdge + 1.4f), At(5.5f, L2 + 0.05f, c + 3.4f), At(-5.5f, L2 + 0.05f, c + 3.4f) });
         }
 
-        /// <summary>La terrasse, a ciel ouvert : la couronne sur son socle, deux braseros, un garde.</summary>
+        /// <summary>Un coffre du donjon : un objet ordinaire, ou rare (plus haut on monte).</summary>
+        static void Chest(Transform t, Vector3 at, bool rare, float yaw)
+        {
+            System.Random rng = new System.Random(Match.RoundSeed ^ Mathf.RoundToInt(at.x * 31f + at.y * 17f + at.z * 7f));
+            Item[] pool = rare ? ItemInfo.Rare : ItemInfo.Common;
+            Fief.Chest.Build(t, at, pool[rng.Next(pool.Length)], false, yaw);
+        }
+
+        /// <summary>
+        /// La terrasse, a ciel ouvert : le socle de la Couronne (pose par Crown.Build),
+        /// le trone du Roi Creux, deux braseros, deux gardes royaux.
+        /// </summary>
         static void Terrace(Transform t)
         {
             float c = Castle.KeepCentre.z;
-            Treasure.Build(t, At(1.5f, Roof, c), Treasure.Kind.Couronne, true);
+            Throne(t, ThroneSpot);
             // Deux braseros : la couronne se voit briller d'en bas, par-dessus les creneaux.
             Castle.Torch(t, At(-1.5f, Roof, c - 3.5f), 1.4f);
             Castle.Torch(t, At(4.5f, Roof, c - 3.5f), 1.4f);
 
             float yr = Roof + 0.05f;
-            GuardRoutes.Add(new[] { At(-3.2f, yr, c - 4.5f), At(6.5f, yr, c - 4.5f), At(6.5f, yr, NorthEdge - 1.2f), At(-3.2f, yr, NorthEdge - 1.2f) });
+            GuardRoutes.Add(new[] { At(-1.8f, yr, c - 4.5f), At(6.5f, yr, c - 4.5f), At(6.5f, yr, NorthEdge - 1.2f), At(-1.8f, yr, NorthEdge - 1.2f) });
         }
     }
 }

@@ -551,7 +551,6 @@ namespace Fief
             GameObject log = Spawn(parent, model, new Vector3(x, y, z),
                                    Quaternion.Euler(0f, yaw, pitch) * Quaternion.Euler(roll, 0f, 0f),
                                    scale, "Souche");
-            Gathering.MakeLogHarvestable(log, cfg);
             LogCount++;
         }
 

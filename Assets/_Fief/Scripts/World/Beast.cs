@@ -338,7 +338,7 @@ namespace Fief
                 Defend(prey);
                 // A bout de forces, un rival s'enfuit.
                 Rival r = Rival.Of(prey);
-                if (r != null && prey.Alive && (prey.Health < 40f || !prey.Kit.Holding(ToolKind.Epee))) r.FleeFrom(transform.position);
+                if (r != null && prey.Alive && (prey.Health < 40f || !prey.CanStrike)) r.FleeFrom(transform.position);
             }
             if (!prey.Alive) { prey = null; state = State.Return; }
         }
@@ -346,8 +346,7 @@ namespace Fief
         /// <summary>Un rival arme rend les coups (pas de combat simule plus fin : il frappe quand on le mord).</summary>
         void Defend(Seeker rival)
         {
-            if (!rival.CanStrike || !rival.Kit.Holding(ToolKind.Epee)) return;
-            rival.Kit.Wear(1);
+            if (!rival.CanStrike) return;
             Hurt(28f, rival);
         }
 
@@ -439,11 +438,15 @@ namespace Fief
             deadTimer = respawn;
             prey = null;
             Ambiance.Burst(null, transform.position + Vector3.up * 0.8f, kind == Kind.Loup ? new Color(0.5f, 0.12f, 0.1f) : GhostEyes);
+            // Un revenant garde un objet : il passe a qui l'abat (s'il a une main libre).
             if (killer != null && goldCarried > 0)
             {
-                killer.Hoard.TryPickLoot(goldCarried);
-                killer.SyncWeight();
-                if (killer.IsPlayer) { Sfx.Coin(); FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f, "★" + goldCarried, Palette.Gold); }
+                Item loot = ItemInfo.Common[Random.Range(0, ItemInfo.Common.Length)];
+                if (killer.Items.TryAdd(loot) && killer.IsPlayer)
+                {
+                    Sfx.Discovery();
+                    FloatingTexts.Spawn(transform.position + Vector3.up * 1.6f, ItemInfo.Name(loot), ItemInfo.Tint(loot));
+                }
             }
             body.enabled = false;
             dying = 0f;
@@ -498,7 +501,7 @@ namespace Fief
 
         /// <summary>
         /// Trois meutes de trois loups, chacune avec son repaire, tirees au hasard a
-        /// chaque partie : loin du chateau, et a bonne distance des steles (on ne nait
+        /// chaque partie : loin du chateau, et a bonne distance des points de depart (on ne nait
         /// pas au milieu des loups).
         /// </summary>
         public static void SpawnPacks(Transform parent, int packs)
@@ -514,8 +517,8 @@ namespace Fief
                 float z = ((float)rng.NextDouble() * 2f - 1f) * half;
                 if (Castle.Covers(x, z, 50f) || Landmarks.Near(x, z, 20f)) continue;
                 bool clear = true;
-                for (int i = 0; i < Stele.All.Count && clear; i++)
-                    if (Stele.All[i] != null && Flat(Stele.All[i].transform.position - new Vector3(x, 0f, z)).magnitude < 60f) clear = false;
+                for (int i = 0; i < 4 && clear; i++)
+                    if (Flat(Spawns.Of(i, Vector3.one * 9999f) - new Vector3(x, 0f, z)).magnitude < 60f) clear = false;
                 for (int i = 0; i < All.Count && clear; i++)
                     if (All[i].kind == Kind.Loup && Flat(All[i].home - new Vector3(x, 0f, z)).magnitude < 85f) clear = false;
                 if (!clear) continue;

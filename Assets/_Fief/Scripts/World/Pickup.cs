@@ -3,10 +3,9 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// CE QU'ON RAMASSE VOLE JUSQU'A SOI. Quand on prend du bois, de la pierre-lune
-    /// ou du fer, quelques morceaux quittent le tas, font un petit arc et filent
-    /// vers le sac (sous la camera). Ca dure une demi-seconde, et ca dit, sans un
-    /// mot, "c'est a toi maintenant".
+    /// CE QU'ON RAMASSE VOLE JUSQU'A SOI. Quand on ouvre un coffre, l'objet en sort,
+    /// fait un petit arc et file vers soi (sous la camera), avec quelques eclats a sa
+    /// couleur. Ca dure une demi-seconde, et ca dit, sans un mot, "c'est a toi".
     ///
     /// Chaque morceau est un petit GameObject sans collider qui se detruit en
     /// arrivant : rien ne reste dans la scene.
@@ -18,55 +17,24 @@ namespace Fief
         Vector3 size;
         const float Duration = 0.42f;
 
-        public static void Fly(Vector3 origin, ResourceType type, int count)
+        /// <summary>Un objet (et trois eclats a sa couleur) qui vole jusqu'a soi.</summary>
+        public static void Fly(Vector3 origin, Item item)
         {
-            int pieces = Mathf.Clamp(count, 1, 6);
+            Color tint = ItemInfo.Tint(item);
+            Material glow = MaterialFactory.GetGlow(tint, 1.8f);
             Proto.BeginVisualOnly();
-            for (int i = 0; i < pieces; i++)
+            for (int i = 0; i < 4; i++)
             {
-                Vector3 jitter = new Vector3(Random.Range(-0.35f, 0.35f), Random.Range(0f, 0.2f), Random.Range(-0.35f, 0.35f));
-                GameObject go;
-                if (type == ResourceType.Deadwood)
-                {
-                    go = Proto.Cylinder(null, origin + jitter, new Vector3(0.05f, 0.22f, 0.05f), Gathering.Bleached, "Brindille");
-                }
-                else if (type == ResourceType.Moonstone)
-                {
-                    go = Proto.Cube(null, origin + jitter, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Éclat");
-                    go.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.62f, 0.8f, 1f), 2.2f);
-                }
-                else
-                {
-                    go = Proto.Cube(null, origin + jitter, new Vector3(0.16f, 0.07f, 0.08f), new Color(0.3f, 0.29f, 0.28f), "Lingot");
-                }
+                Vector3 jitter = new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(0f, 0.2f), Random.Range(-0.3f, 0.3f));
+                float d = i == 0 ? 0.22f : 0.07f;
+                GameObject go = Proto.Cube(null, origin + jitter, new Vector3(d, d, d), tint, i == 0 ? "Objet" : "Éclat");
+                go.GetComponent<Renderer>().sharedMaterial = glow;
                 go.transform.rotation = Random.rotation;
                 Pickup p = go.AddComponent<Pickup>();
                 p.from = go.transform.position;
                 p.lift = new Vector3(Random.Range(-0.4f, 0.4f), 1.1f + Random.Range(0f, 0.4f), Random.Range(-0.4f, 0.4f));
                 p.delay = i * 0.05f;
                 p.spin = Random.Range(360f, 720f) * (Random.value < 0.5f ? -1f : 1f);
-                p.size = go.transform.localScale;
-            }
-            Proto.EndVisualOnly();
-        }
-
-        /// <summary>Du butin : des pieces d'or qui volent jusqu'au sac (une par tranche de 5 etoiles).</summary>
-        public static void FlyLoot(Vector3 origin, int stars)
-        {
-            int pieces = Mathf.Clamp(stars / 5 + 2, 2, 8);
-            Proto.BeginVisualOnly();
-            Material gold = MaterialFactory.GetGlow(new Color(0.95f, 0.76f, 0.3f), 1.6f);
-            for (int i = 0; i < pieces; i++)
-            {
-                Vector3 jitter = new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(0f, 0.2f), Random.Range(-0.3f, 0.3f));
-                GameObject go = Proto.Cylinder(null, origin + jitter, new Vector3(0.12f, 0.012f, 0.12f), Color.white, "Pièce");
-                go.GetComponent<Renderer>().sharedMaterial = gold;
-                go.transform.rotation = Random.rotation;
-                Pickup p = go.AddComponent<Pickup>();
-                p.from = go.transform.position;
-                p.lift = new Vector3(Random.Range(-0.4f, 0.4f), 1.1f + Random.Range(0f, 0.4f), Random.Range(-0.4f, 0.4f));
-                p.delay = i * 0.04f;
-                p.spin = Random.Range(360f, 720f);
                 p.size = go.transform.localScale;
             }
             Proto.EndVisualOnly();

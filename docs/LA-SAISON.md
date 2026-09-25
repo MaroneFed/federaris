@@ -1,189 +1,179 @@
-# LA SAISON — la bible du jeu
+# LA COURONNE — la bible du jeu
 
-> Réécrite le 26/09/2026, après la refonte demandée par Martin ce jour-là : « je
-> m'ennuie, y a pas assez d'action », « tu récoltes du bois, tu sais même pas pourquoi »,
-> « les bots sont censés être des vrais joueurs, t'es pas censé leur parler, les gardes
-> t'es pas censé les acheter non plus ». C'est **la référence** : quand le code et ce
+> Réécrite le 26/09/2026 au soir, sur la demande de Martin : « on oublie tout ce qui
+> est stèle, récolter pour gagner de la gloire. Ce qui compte, c'est d'avoir la
+> couronne et la ramener au monument. » C'est **la référence** : quand le code et ce
 > document ne disent pas la même chose, c'est un des deux qu'il faut corriger.
->
-> Les versions précédentes (le mage, la relique, les talismans, les quatre victoires,
-> la Malédiction, le soudoiement) sont dans l'historique Git.
+> Les versions précédentes (stèles, butin, mage, reliques…) sont dans l'historique Git.
 
 ---
 
-## L'idée en une phrase
+## En une phrase
 
-**Quatre chercheurs dans une forêt noire, autour d'un château gardé. Le plus d'or
-(★) sur sa stèle quand la cloche sonne, au bout de trente minutes, gagne.**
-
-On l'obtient de trois façons, de la plus sûre à la plus risquée :
-
-1. **La forêt** — la pierre-lune dans les creux, les coffres enfouis aux lieux-dits.
-2. **Le château** — ses trésors, étage par étage, jusqu'à la Couronne tout en haut.
-3. **Les autres** — piller leur stèle quand ils n'y sont pas, les détrousser en
-   chemin.
-
-Et on le protège : pièges, barricades, alarmes autour de sa stèle, épée à la main.
+**Quatre joueurs, chacun pour soi. Une Couronne au sommet d'un château gardé. La
+première personne qui la porte jusqu'au Monument gagne la manche. Entre deux
+manches, chacun choisit un pouvoir — le vainqueur choisit en dernier.**
 
 ---
 
-## Le butin (★)
+## Le match
 
-Tout ce qui compte se compte en étoiles. **On ne marque que ce qu'on a DÉPOSÉ à sa
-stèle** : le butin porté pèse, et on le lâche si on tombe.
-
-| D'où | Combien | Où |
-|---|---|---|
-| Pierre-lune | ★2 chacune | les creux de la forêt, qui luisent (24 creux) |
-| Coffre enfoui | ★8 | un par lieu-dit (le Grand Chêne, le Cercle, la Cabane, le Tertre, la Tour) |
-| Calice | ★5 | la cour du château, le rez-de-chaussée et le 2e étage du donjon |
-| Coffret | ★12 | les étages du donjon |
-| **La Couronne** | **★40** | **la terrasse du donjon — une seule** |
-| Autel de l'Or / de la Lune | ★3 / ★2 toutes les 40 s | directement dans la stèle de qui les tient |
-| Garde abattu | ★3 | sa bourse |
-| Revenant abattu | ★6 | ses haillons |
-| Stèle pillée | **la moitié de son or** | E maintenu 3 s, quand son maître est à plus de 9 m |
-
-Les trésors reviennent : un calice deux minutes après avoir été pris, un coffret trois,
-la Couronne cinq, un coffre de lieu-dit quatre. Le butin pèse 350 g l'étoile : la
-Couronne, 14 kg.
-
----
-
-## À quoi sert ce qu'on ramasse
-
-C'était la plainte : on ramassait sans savoir pourquoi. Maintenant, une ressource,
-un usage :
-
-| | **Bois mort** | **Pierre-lune** | **Fer ancien** |
-|---|---|---|---|
-| Où | faisceaux au pied des arbres morts, troncs couchés, arbres abattus | les creux | les réserves du château (sous le nez des gardes) |
-| Pour quoi | **construire** (touche T) | **l'or** : ★2 déposée | **les armes** et les pièges de fer |
-| Poids | 1 kg | 3 kg | 2 kg |
-
----
-
-## Le château (refait le 26/09 : « faut mettre des étages, plein de gardes »)
-
-- **La cour** : un calice sur son socle au centre, trois réserves de fer le long des
-  murs, la grande porte au sud, **la poterne ouverte au nord** (l'entrée des discrets).
-- **Le donjon**, trois niveaux et une terrasse, reliés par des escaliers droits qui
-  alternent (mur nord, mur sud, mur nord) : pour monter, il faut traverser chaque salle.
-  - rez-de-chaussée (0,9 m) : la grande salle, le banquet, deux calices ;
-  - 1er étage (7,2 m) : l'armurerie, deux coffrets ;
-  - 2e étage (13,5 m) : la salle des coffres, un coffret, un calice ;
-  - terrasse (19,8 m), à ciel ouvert : **la Couronne**.
-- Une tour de guet de 42 m au coin de la terrasse : la silhouette qu'on devine de loin.
-
-### Les gardes (quinze)
-
-On ne leur parle pas, on ne les achète pas. **Ils gardent.**
-
-- Huit dans la cour (porte, réserves, rondes, poterne), un par niveau du donjon, et
-  **trois rôdeurs** qui tournent dans la forêt autour du château.
-- Leur lanterne est un cône : ce qu'elle éclaire, c'est ce qu'ils voient.
-- Ils s'intéressent à qui est **dans le donjon ou une réserve**, et à qui **porte du
-  butin** dans l'enceinte (les rôdeurs : partout autour). « ? » au-dessus de la tête,
-  puis « ! » : il court.
-- **Prendre un trésor fait du bruit** : les gardes du même étage accourent.
-- S'il te rattrape, il frappe (quatre coups te couchent). On peut le semer (brume,
-  murs, étages), ou **le tuer** : quatre coups d'épée. Il revient 90 s plus tard.
-
----
-
-## Construire (touche T) — « un menu facile, un truc sympa »
-
-Une barre de cinq cases ; 1 à 5 pour choisir, un fantôme vert/rouge devant soi, la
-molette pour tourner, clic pour poser, clic droit pour fermer.
-
-| | Coût | Effet |
-|---|---|---|
-| **Piège** | 3 bois, 1 fer | qui marche dessus tombe et lâche tout ; invisible à plus de 3,5 m (4 au plus) |
-| **Barricade** | 5 bois | un mur de pieux de 3 m ; il faut le casser (3 coups) pour passer (6 au plus) |
-| **Alarme** | 2 bois | un fil à clochettes : il sonne, la boussole montre où (4 au plus) |
-| **Épée** | 2 bois, 3 fer | dans la main |
-| **Hache** | 3 bois, 1 fer | dans la main |
-
-On part avec une épée (1) et une hache (2). Elles s'usent.
-
----
-
-## Les arbres géants (« des arbres plus hauts pour voir au loin »)
-
-Douze sapins immenses, avec des échelons. F au pied : on grimpe jusqu'à la plate-forme,
-à 15-30 m. **En hauteur, la brume s'ouvre** (au-dessus de 8 m, elle s'éclaircit
-jusqu'à un cinquième de son épaisseur) et la carte se dessine sur un large rayon. La
-terrasse du donjon fait le même effet. Les géants sont toujours sur la carte (M).
-
----
-
-## Les rivaux : de futurs joueurs
-
-Trois PNJ, **avec exactement les mêmes règles que toi** (classe `Seeker`) : en
-Phase 3, de vrais joueurs prendront leur place. On ne leur parle donc pas. Ils
-ramassent la pierre-lune, **montent au donjon par les escaliers** (les plus hardis
-jusqu'à la Couronne), rapportent, pillent les stèles qu'ils connaissent, posent des
-pièges, cassent les barricades qui les gênent, se battent, fouillent les dépouilles.
-Ils ont une voix (un cri, un murmure), pas de bulles de texte.
-
-- **Mahaut la Rousse** : pilleuse, agressive.
-- **Oswin le Borgne** : monte au donjon, vise la Couronne.
-- **Guerin des Marais** : reste dans la forêt.
-
----
-
-## Ce qui fait monter la tension (26/09, « défonce tout »)
-
-- **Qui porte la Couronne est vu de tous** (boussole, carte) et les rivaux armés à moins
-  de 90 m lui tombent dessus, jusqu'à ce qu'il la dépose.
-- **À 3:00 de la fin, tous les coffres se remplissent** d'un coup : le sprint final se
-  joue au château.
-- Porter beaucoup d'or se sent de loin : les rivaux armés viennent chercher qui porte
-  ★15 ou plus à 35 m.
-- **Deux éclats de pierre-lune près de chaque stèle** : la première minute a déjà
-  quelque chose à faire.
-- Déposer se **sent** (gerbe d'or, secousse, ta pastille du classement qui s'allume) ;
-  chaque coup d'épée qui touche fige le temps un vingtième de seconde.
-- Quand on te court après, les bords de l'écran battent en rouge.
-- **Confort** : champ de vision 78° (au lieu de 62°), balancement de tête divisé par
-  deux — c'était la cause probable du mal de tête. On peut toujours courir.
-- **Presque plus de texte** : les touches sont dessinées sous le réticule (F ↑), les
-  messages se limitent à l'essentiel, l'objectif tient en trois mots.
-
-## Le reste
-
-- **Chacun sa stèle**, fixe, tirée au hasard ; on naît à côté. Un **fil d'or**, que toi
-  seul vois, monte au-dessus d'elle. Près d'elle, la vie remonte vite.
-- **Tomber** : tout ce qu'on porte (sac, butin, outils) reste dans une dépouille ; on se
-  relève à sa stèle 5 s plus tard. La dépouille est sur la boussole et la carte.
-- **Loups** (deux meutes) et **revenants** (autour des trois Autels) attaquent tout le
-  monde. **Les Autels** paient qui les tient.
-- **Camp et caches** : C plante le camp (une fois), G creuse une cache (trois).
-- **Boussole et carte (M)** : château, ta stèle, ton camp, tes caches, ta dépouille,
-  les stèles rivales connues, le voleur de ton or, tes alarmes quand elles sonnent.
-- **L'écran** : la boussole, l'horloge, le classement des quatre (★ sur chaque stèle),
-  l'inventaire en cases, une seule ligne d'objectif, des messages courts à gauche.
-- **Le récit d'ouverture** : cinq phrases qui passent seules.
-
----
-
-## Ce qui a été retiré le 26/09/2026, et pourquoi
-
-| Retiré | Pourquoi |
+| | |
 |---|---|
-| Le mage, la forge, la relique | trop d'étapes entre « je ramasse » et « je marque » |
-| Les talismans, la couronne devant le château, le trône, les quatre victoires | « même moi je sais pas pourquoi il y a une couronne » |
-| La Malédiction | un chronomètre qui punit sans action |
-| Les améliorations, la besace (Tab) | « ça donne mal au ventre à lire » |
-| L'Ermite, le Veilleur, le Registre, parler aux rivaux | « t'es pas censé leur parler » |
-| L'or pour soudoyer, la poterne achetée, le serment | « les gardes, t'es pas censé les acheter » |
+| Joueurs | 2 à **4** (toi + des bots en Phase 1 ; des joueurs en ligne en Phase 3) |
+| Manches | **3, 5, 7 ou 10** (choisi au salon ; 5 par défaut) |
+| Durée max d'une manche | **4, 6, 8 ou 10 min** (6 par défaut) → un match de 5 manches ≈ 30 min |
+| Vainqueur du match | le plus de manches gagnées ; à égalité, une **manche de départage** entre ex æquo |
+
+### Une manche
+
+1. **Le départ.** Les quatre joueurs apparaissent à la lisière, aux quatre coins de la
+   forêt. Le **Monument** change de place à chaque manche : on voit sa colonne de
+   lumière bleue au-dessus des arbres. Le **château** est au centre ; sa tour de guet
+   dépasse de la brume.
+2. **La forêt.** On peut y foncer droit au château, ou fouiller : coffres, objets
+   enterrés (pelle + détecteur), objets magiques.
+3. **Le château.** La Couronne est sur la terrasse du donjon, gardée par **le Roi
+   Creux** (le boss) et toute la **Garde Pâle**.
+4. **La Couronne.** Qui la prend **brille** : une colonne dorée monte au-dessus de lui,
+   tout le monde sait où il est. Il marche plus lentement (−18 %), **ne peut ni frapper
+   ni pousser** (il la tient à deux mains) et **la lâche s'il tombe, s'il se fait
+   pousser, s'il marche dans un piège ou si le Roi le frappe**. Tombée, elle attend
+   **45 s** qu'on la ramasse (un compte à rebours sous l'icône), puis rentre sur son socle.
+5. **Le Monument.** Porter la Couronne jusqu'à lui et maintenir E deux secondes :
+   **manche gagnée**.
+6. **Le temps.** Si le chrono tombe à zéro, celui qui tient la Couronne gagne la
+   manche ; si personne ne la tient, personne ne gagne.
+
+### Le choix des pouvoirs (entre deux manches)
+
+On étale **(nombre de joueurs + 1) cartes** tirées au hasard. Chacun en prend une, dans
+l'ordre : **le moins de manches gagnées choisit en premier, le vainqueur de la manche
+choisit en dernier.** Un pouvoir se garde jusqu'à la fin du match.
+
+| Pouvoir | Effet |
+|---|---|
+| **Double saut** | un second saut en l'air |
+| **Ruée** | R : un bond de 8 m vers l'avant (toutes les 6 s) |
+| **Coureur** | +15 % de vitesse |
+| **Poigne** | ta poussée envoie deux fois plus loin, et revient plus vite |
+| **Colosse** | +50 % de vie |
+| **Ombre** | les gardes te voient deux fois moins vite |
+| **Flair** | la Couronne et ses porteurs brillent pour toi à travers les murs |
+| **Porteur** | avec la Couronne, tu cours à pleine vitesse |
+| **Sang vif** | la vie remonte trois fois plus vite |
+| **Seconde chance** | la première fois que tu tombes dans une manche, tu te relèves sur place |
 
 ---
 
-## Ce qui est dans la Phase 1 (solo) — et ce qui n'y est pas
+## Ce qu'on fait avec ses mains
 
-**Porte 1** : une Saison solo de 30 minutes est-elle haletante du début à la fin ?
+- **Clic gauche : l'épée.** Quatre coups tuent un joueur. On la garde toujours.
+- **Clic droit : pousser.** Tout le monde peut pousser : l'autre part en arrière — et
+  **s'il porte la Couronne, il la lâche**. Toutes les 3 s.
+- **1, 2, 3 : les objets trouvés** (trois emplacements). On les prend en main, clic
+  gauche pour s'en servir.
+- **E : prendre** (Couronne, objets, coffres), **déposer** au Monument, tirer le levier.
+- **F : grimper** aux arbres (géants compris : là-haut, la brume s'ouvre).
+- **R : la Ruée** (si on a le pouvoir). **Tab** : le score du match.
+- La vie remonte seule après 6 s sans coup. Tomber, c'est lâcher ses objets dans une
+  **dépouille** (qu'on peut fouiller) et se relever 5 s plus tard à son point de départ.
 
-Dedans : tout ce qui est décrit ci-dessus.
+### Les objets de la forêt
 
-Pas dedans : l'arc, les autres pièges (fosse), les vrais joueurs (Phase 3).
+| Objet | Où | Effet |
+|---|---|---|
+| **Détecteur** | coffres | en main, il bipe de plus en plus vite près d'un **trésor enterré** |
+| **Pelle** | coffres | en main, clic : creuse ; sur un trésor enterré, sort un objet rare |
+| **Fumigène** | coffres | lancé : un nuage où les gardes ne voient plus rien |
+| **Fiole de lenteur** | coffres | lancée : ralentit les joueurs touchés 5 s |
+| **Piège à mâchoires** | coffres | posé : immobilise 3 s qui marche dessus — **et lui fait lâcher la Couronne** |
+| **Élixir** | coffres | rend toute la vie |
+| **Plume** | enterré | 30 s de sauts très hauts |
+| **Cape d'ombre** | enterré | 10 s invisible pour les gardes |
+| **Clé du donjon** | enterré | ouvre la porte dérobée de la cave du donjon |
+
+Les **coffres** (une quinzaine) s'ouvrent d'un E. Les **trésors enterrés** (une dizaine)
+ne se voient pas : il faut le détecteur pour les trouver et la pelle pour les sortir.
+
+---
+
+## Le château (« digne d'Elden Ring en contenu »)
+
+- **Trois entrées** : la **grande porte** (herse baissée — un levier, dans la cour au
+  pied du châtelet, la lève pour 45 s), la **poterne** au nord (étroite, gardée), la
+  **brèche** à l'est (un talus d'éboulis monte jusqu'au mur effondré, un autre redescend
+  dans la cour).
+- **Les remparts** : deux escaliers de pierre y montent depuis la cour (nord et sud).
+  Les arbalétriers y sont postés.
+- **Les réserves** : trois bâtiments le long des murs, chacun avec un coffre (un objet
+  rare), sous l'œil des sentinelles.
+- **La porte dérobée** : au pied du mur nord du donjon, fermée à clé. Avec la **Clé du
+  donjon**, on l'ouvre — un escalier dans le mur monte **droit à la terrasse**. Ouverte,
+  elle le reste pour tout le monde.
+- **Le donjon** : trois niveaux et une terrasse, reliés par des escaliers ; chaque
+  salle a ses gardes.
+- **La terrasse** : la Couronne sur son socle, et **le Roi Creux**.
+
+### La Garde Pâle
+
+Des chevaliers **lisses et sans visage** — armures d'ivoire usé, grandes capes
+sombres, une fente de visière qui luit comme une braise. Un seul style, cohérent, pas
+de cubes : des formes rondes et polies. Quand ils te voient, la fente passe au rouge.
+
+| | Nombre | Comportement |
+|---|---|---|
+| **Sentinelle** | 16 | ronde, cône de vision (la lanterne), crie et rameute ceux qui l'entendent, poursuit, frappe au glaive (coup annoncé : la fente devient blanche) |
+| **Arbalétrier** | 7 | sur les remparts (porte, châtelet, nord, ouest, est) et au 1er étage ; il **vise** une seconde (un trait rouge le relie à toi), puis tire un carreau qu'on voit partir — on l'esquive en bougeant |
+| **Molosse** | 3 | chien de garde dans la cour : rapide, fragile, sent à 8 m tout autour, mord |
+| **Le Roi Creux** | 1 | le boss de la terrasse : trois mètres, dort devant son trône jusqu'à ce qu'on approche la Couronne (9 m) ou qu'on la prenne ; **balayage** devant lui (35), **frappe au sol** toutes les 6 s (un cercle rouge grandit sous lui pendant 1 s : 45 et projeté au loin) ; 800 PV ; ne quitte pas la terrasse ; revient 4 min après sa chute |
+
+Les gardes s'intéressent à **quiconque entre dans l'enceinte**, et courent après **le
+porteur de la Couronne** même hors les murs (jusqu'à 60 m). On les sème (brume, murs,
+fumigène, Cape d'ombre) ou on les tue ; ils reviennent 90 s plus tard.
+
+**Vingt-sept en tout** (la liste exacte : `World/Garrison.cs`) : huit sentinelles et
+trois molosses dans la cour, six arbalétriers sur les remparts, une sentinelle par
+salle du donjon et un arbalétrier au 1er étage, deux gardes royaux et le Roi sur la
+terrasse, trois rôdeurs dans la forêt.
+
+**Leur visage dit tout.** La fente du heaume : *braise* (ronde), *orange* (il t'a vu),
+*rouge* (il court), *blanc* (il frappe — écarte-toi).
+
+---
+
+## Ce qu'on voit (pas de boussole, pas de carte)
+
+- Pas de boussole, pas de carte, pas de marqueurs : on se repère **aux lumières** —
+  la tour de guet du château, la colonne bleue du Monument, la colonne dorée de la
+  Couronne — et aux arbres géants (en haut, la brume s'ouvre).
+- **Les joueurs se voient** : chacun porte une lanterne à sa couleur et un halo au-dessus
+  de la tête, visibles de loin dans la brume.
+- L'écran : une belle **barre de vie**, les pouvoirs choisis, les trois objets, le chrono
+  de la manche et le score des quatre joueurs. Presque pas de texte.
+
+## Ce qui reste de la forêt
+
+Loups (deux meutes), revenants près des lieux-dits (**abattu, un revenant lâche un
+objet**), feux-follets, cerf blanc, les creux à pierre-lune (décor, repères lumineux),
+les cinq lieux-dits (chacun avec un coffre), les arbres géants.
+
+## Les autres joueurs (des bots, en attendant le jeu en ligne)
+
+Ils jouent **avec tes règles, par les mêmes portes** (`World/Rival.cs`) : ils fouillent
+la forêt au début (plus ou moins longtemps selon leur caractère), montent à la Couronne
+(par la herse si elle est levée, sinon la poterne ou la brèche ; par l'escalier dérobé
+s'ils ont la clé), la portent au Monument, **chassent et poussent** celui qui la tient,
+se jettent sur elle quand elle roule, rendent les coups, et se servent de leurs objets
+(élixir, fumigène, fiole sur le porteur, piège sur la route du Monument).
+
+## Retiré le 26/09 au soir
+
+Les stèles, le butin (★), les ressources (bois, pierre-lune, fer), le camp et les
+caches, la construction (T), les Autels, la boussole et la carte.
+
+## Phases
+
+- **Phase 1 (ici)** : le match complet contre des bots, avec le menu du salon.
+- **Phase 3** : le jeu en ligne (voir `docs/RESEAU.md` : l'architecture est déjà
+  préparée pour que les bots cèdent leur place à des joueurs).

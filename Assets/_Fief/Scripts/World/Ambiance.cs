@@ -346,6 +346,39 @@ namespace Fief
 
         static uint burstCount;
 
+        /// <summary>
+        /// UN NUAGE DE FUMEE (le fumigene) : de grosses boules grises, melees, qui
+        /// montent a peine et tiennent "seconds" secondes. Les gardes n'y voient rien
+        /// (voir Smoke.Blocks) -- et toi non plus.
+        /// </summary>
+        public static void SmokeCloud(Vector3 at, float radius, float seconds)
+        {
+            if (!EnsureMaterials()) return;
+            ParticleSystem ps = NewSystem("Fumée", null, at, blended);
+
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = Mathf.Max(1f, seconds - 3f);
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.5f, 3.5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.9f);
+            main.startSize = new ParticleSystem.MinMaxCurve(radius * 0.8f, radius * 1.3f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.5f, 0.52f, 0.55f, 0.9f), new Color(0.36f, 0.37f, 0.4f, 0.9f));
+            main.gravityModifier = -0.02f;
+            main.maxParticles = 160;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 24f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)40) });
+
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = radius * 0.6f;
+
+            FadeInOut(ps, 0.9f);
+            ps.Play();
+        }
+
         // ================================================================== outils
 
         /// <summary>

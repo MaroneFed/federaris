@@ -1,17 +1,19 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
 {
     /// <summary>
-    /// LE COMBAT : simple et lisible (decision verrouillee), mais il compte.
+    /// LE COMBAT : simple et lisible, mais il compte.
     ///
-    ///   - On ne frappe qu'avec une EPEE (T, construire : 2 bois, 3 fer).
-    ///     Quatre coups tuent. Un coup, c'est un arc devant soi, a 2,4 m. On frappe
-    ///     les rivaux, les betes, et les gardes du chateau.
-    ///   - Tomber, c'est tout lacher : le sac, les outils, le butin porte. Il reste une
-    ///     DEPOUILLE que n'importe qui peut fouiller. On se releve a sa stele (ou a
-    ///     son camp) quelques secondes plus tard, les mains vides.
-    ///   - La vie remonte doucement apres huit secondes sans coup.
+    ///   - L'EPEE (clic gauche, quand on ne tient pas d'objet) : un arc devant soi, a
+    ///     2,4 m. Quatre coups tuent un joueur. On frappe les joueurs, les betes, les
+    ///     gardes, le Roi Creux. Le porteur de la Couronne ne frappe pas.
+    ///   - LA POUSSEE (clic droit) : l'autre part en arriere -- et s'il porte la
+    ///     Couronne, IL LA LACHE. Toutes les 3 s (1,5 s avec la Poigne).
+    ///   - Tomber, c'est tout lacher : les objets restent dans une DEPOUILLE, la
+    ///     Couronne roule par terre. On se releve a son point de depart 5 s plus tard.
+    ///     (La Seconde chance, une fois par manche : on se releve sur place.)
     /// </summary>
     public static class Combat
     {
@@ -23,96 +25,119 @@ namespace Fief
         public static void PlayerStrike(Transform eye)
         {
             Seeker me = Game.Me;
-            if (me == null) return;
-            if (!me.CanStrike) return;
+            if (me == null || !me.CanStrike) return;
             Sfx.Whoosh();
+            Vector3 f = Flat(eye.forward).normalized;
+            Vector3 from = me.Body.position;
 
-            Vector3 flatForward = eye.forward;
-            flatForward.y = 0f;
-            flatForward.Normalize();
-            float damage = SwordDamage;
-            for (int i = 0; i < Rival.All.Count; i++)
+            // Les autres joueurs.
+            for (int i = 0; i < Game.Seekers.Count; i++)
             {
-                Rival r = Rival.All[i];
-                if (r == null || !r.seeker.Alive) continue;
-                Vector3 to = r.transform.position - me.Body.position;
-                to.y = 0f;
-                if (to.magnitude > Reach || Vector3.Angle(flatForward, to) > 55f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Épée brisée", new Color(0.8f, 0.6f, 0.4f));
-                Hit(r.seeker, me, damage);
-                Punch.Apply(r.Figure, me.Body.position);
+                Seeker s = Game.Seekers[i];
+                if (s == me || !s.Alive || s.Body == null || !InArc(from, f, s.Body.position, Reach, 55f)) continue;
+                Hit(s, me, SwordDamage);
+                Rival r = Rival.Of(s);
+                if (r != null) Punch.Apply(r.Figure, from);
                 Hud.HitStop(0.06f);
                 return;                             // un coup, une cible
             }
-            // Les betes : loups, revenants.
             for (int i = 0; i < Beast.All.Count; i++)
             {
                 Beast b = Beast.All[i];
-                if (b == null || !b.Alive) continue;
-                Vector3 to = b.transform.position - me.Body.position;
-                to.y = 0f;
-                if (to.magnitude > Reach + 0.4f || Vector3.Angle(flatForward, to) > 60f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Épée brisée", new Color(0.8f, 0.6f, 0.4f));
-                b.Hurt(damage, me);
+                if (b == null || !b.Alive || !InArc(from, f, b.transform.position, Reach + 0.4f, 60f)) continue;
+                b.Hurt(SwordDamage, me);
                 Hud.HitStop(0.05f);
                 return;
             }
-            // Les gardes du chateau.
             for (int i = 0; i < Guard.All.Count; i++)
             {
                 Guard g = Guard.All[i];
-                if (g == null || !g.Alive) continue;
-                Vector3 to = g.transform.position - me.Body.position;
-                if (Mathf.Abs(to.y) > 2f) continue;
-                to.y = 0f;
-                if (to.magnitude > Reach + 0.2f || Vector3.Angle(flatForward, to) > 55f) continue;
-                if (me.Kit.Wear(1)) Toasts.Show("Épée brisée", new Color(0.8f, 0.6f, 0.4f));
-                g.Hurt(damage, me);
+                if (g == null || !g.Alive || !InArc(from, f, g.transform.position, Reach + g.Girth, 55f)) continue;
+                g.Hurt(SwordDamage, me);
                 Hud.HitStop(0.06f);
                 return;
             }
         }
 
-        /// <summary>Y a-t-il un ennemi (rival, bete) a portee d'epee, devant soi ?</summary>
+        /// <summary>Y a-t-il quelqu'un a portee d'epee, devant soi ?</summary>
         public static bool FoeAhead(Transform eye)
         {
             Seeker me = Game.Me;
             if (me == null || me.Body == null) return false;
-            Vector3 f = eye.forward;
-            f.y = 0f;
-            f.Normalize();
-            for (int i = 0; i < Rival.All.Count; i++)
+            Vector3 f = Flat(eye.forward).normalized;
+            Vector3 from = me.Body.position;
+            for (int i = 0; i < Game.Seekers.Count; i++)
             {
-                Rival r = Rival.All[i];
-                if (r == null || !r.seeker.Alive) continue;
-                Vector3 to = r.transform.position - me.Body.position;
-                to.y = 0f;
-                if (to.magnitude <= Reach && Vector3.Angle(f, to) <= 55f) return true;
+                Seeker s = Game.Seekers[i];
+                if (s != me && s.Alive && s.Body != null && InArc(from, f, s.Body.position, Reach, 55f)) return true;
             }
             for (int i = 0; i < Beast.All.Count; i++)
-            {
-                Beast b = Beast.All[i];
-                if (b == null || !b.Alive) continue;
-                Vector3 to = b.transform.position - me.Body.position;
-                to.y = 0f;
-                if (to.magnitude <= Reach + 0.4f && Vector3.Angle(f, to) <= 60f) return true;
-            }
+                if (Beast.All[i] != null && Beast.All[i].Alive && InArc(from, f, Beast.All[i].transform.position, Reach + 0.4f, 60f)) return true;
             for (int i = 0; i < Guard.All.Count; i++)
+                if (Guard.All[i] != null && Guard.All[i].Alive && InArc(from, f, Guard.All[i].transform.position, Reach + Guard.All[i].Girth, 55f)) return true;
+            return false;
+        }
+
+        static bool InArc(Vector3 from, Vector3 forward, Vector3 target, float reach, float angle)
+        {
+            Vector3 to = target - from;
+            if (Mathf.Abs(to.y) > 2.2f) return false;
+            to.y = 0f;
+            return to.magnitude <= reach && Vector3.Angle(forward, to) <= angle;
+        }
+
+        static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v;
+        }
+
+        // ================================================================== la poussee
+
+        /// <summary>
+        /// POUSSER : le premier joueur (ou bete) devant soi, a 2,6 m, part en arriere.
+        /// Le porteur de la Couronne la lache. Renvoie vrai si on a touche quelqu'un.
+        /// </summary>
+        public static bool Shove(Seeker by, Vector3 forward)
+        {
+            if (by == null || by.Body == null || !by.Alive) return false;
+            Vector3 f = Flat(forward).normalized;
+            float force = by.Has(Power.Poigne) ? 16f : 9f;
+            for (int i = 0; i < Game.Seekers.Count; i++)
             {
-                Guard g = Guard.All[i];
-                if (g == null || !g.Alive) continue;
-                Vector3 to = g.transform.position - me.Body.position;
-                if (Mathf.Abs(to.y) > 2f) continue;
-                to.y = 0f;
-                if (to.magnitude <= Reach + 0.2f && Vector3.Angle(f, to) <= 55f) return true;
+                Seeker s = Game.Seekers[i];
+                if (s == by || !s.Alive || s.Body == null || !InArc(by.Body.position, f, s.Body.position, 2.6f, 60f)) continue;
+                Vector3 push = Flat(s.Body.position - by.Body.position).normalized;
+                if (push.sqrMagnitude < 0.01f) push = f;
+                Knockback(s, push * force + Vector3.up * 3.5f);
+                if (s.CarriesCrown) Crown.KnockOff(s, push);
+                Sfx.Thud();
+                if (s.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.3f);
+                Rival r = Rival.Of(s);
+                if (r != null) r.OnShoved(by);
+                return true;
             }
             return false;
         }
 
+        /// <summary>Projeter un joueur (poussee, coup du Roi).</summary>
+        public static void Knockback(Seeker s, Vector3 velocity)
+        {
+            if (s == null || s.Body == null) return;
+            if (s.IsPlayer && Game.Player != null) Game.Player.Push(velocity);
+            else
+            {
+                Rival r = Rival.Of(s);
+                if (r != null) r.Push(velocity);
+            }
+        }
+
+        // ================================================================== les coups
+
         /// <summary>Un coup porte. Tout passe par ici : degats, cris, mort.</summary>
         public static void Hit(Seeker victim, Seeker attacker, float damage)
         {
-            Hit(victim, attacker, damage, "sous les coups de " + (attacker != null ? attacker.Name : "la forêt"));
+            Hit(victim, attacker, damage, attacker != null ? attacker.Name : "la forêt");
         }
 
         /// <summary>Un coup porte, en disant de quoi on meurt s'il est mortel.</summary>
@@ -122,10 +147,10 @@ namespace Fief
             bool dead = victim.TakeDamage(damage, Time.time);
             Sfx.Thud();
             if (victim.Body != null && !victim.IsPlayer)
+            {
                 Ambiance.Burst(null, victim.Body.position + Vector3.up * 1.2f, new Color(0.55f, 0.1f, 0.08f));
-            if (victim.Body != null)
                 FloatingTexts.Spawn(victim.Body.position + Vector3.up * 2.1f, "-" + Mathf.RoundToInt(damage), new Color(1f, 0.35f, 0.3f));
-
+            }
             if (victim.IsPlayer)
             {
                 if (Game.Hud != null) Game.Hud.Hurt();
@@ -136,14 +161,10 @@ namespace Fief
                 Rival r = Rival.Of(victim);
                 if (r != null) r.OnHit(attacker);
             }
-
             if (dead) Fall(victim, attacker, how);
         }
 
-        /// <summary>
-        /// Une mort d'un coup : un piege, une bete, la chute. "how" dit comment, pour
-        /// l'ecran de chute ("dans un piege de Mahaut").
-        /// </summary>
+        /// <summary>Une mort d'un coup (un piege, la chute).</summary>
         public static void Kill(Seeker victim, Seeker killer, string how)
         {
             if (victim == null || !victim.Alive) return;
@@ -152,12 +173,29 @@ namespace Fief
             Fall(victim, killer, how);
         }
 
-        /// <summary>Tomber : tout ce qu'on porte reste sur place, dans une depouille.</summary>
+        /// <summary>Tomber : la Couronne roule, les objets restent dans une depouille.</summary>
         static void Fall(Seeker victim, Seeker killer, string how)
         {
             Vector3 at = victim.Body != null ? victim.Body.position : Vector3.zero;
-            Remains.Drop(victim, at);
+            if (victim.CarriesCrown && Crown.Instance != null) Crown.Instance.Drop(at);
 
+            // La Seconde chance : on se releve sur place, une fois par manche.
+            if (victim.Has(Power.SecondeChance) && !victim.SecondChanceUsed)
+            {
+                victim.SecondChanceUsed = true;
+                victim.Health = victim.MaxHealth * 0.5f;
+                Ambiance.Burst(null, at + Vector3.up, PowerInfo.Tint(Power.SecondeChance));
+                Sfx.Discovery();
+                return;
+            }
+
+            Remains.Drop(victim, at);
+            if (killer != null && killer.IsPlayer && killer != victim)
+            {
+                Stats.PlayersDowned++;
+                Sfx.Coin();
+                if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.25f);
+            }
             if (victim.IsPlayer)
             {
                 Stats.Deaths++;
@@ -168,46 +206,49 @@ namespace Fief
             {
                 Rival r = Rival.Of(victim);
                 if (r != null) r.Die();
-                if (killer != null && killer.IsPlayer) Stats.RivalsDowned++;
-                if (killer != null && killer.IsPlayer)
-                {
-                    Sfx.Coin();
-                    if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.25f);
-                }
             }
         }
 
-        /// <summary>Se relever : a sa stele, sinon a son camp, sinon là où l'on est tombe.</summary>
+        /// <summary>Se relever : a son point de depart de la manche.</summary>
         public static Vector3 RespawnPoint(Seeker s, Vector3 fallback)
         {
-            Hoard h = s.Hoard;
-            Vector3 p = h.StelePlanted ? h.StelePosition : h.CampPlanted ? h.CampPosition : fallback;
-            return Ground.Place(p.x + 1.5f, p.z + 1.5f, 0.2f);
+            Vector3 p = Spawns.Of(s.Index, fallback);
+            float a = Random.value * Mathf.PI * 2f;
+            return Ground.Place(p.x + Mathf.Cos(a) * 2f, p.z + Mathf.Sin(a) * 2f, 0.2f);
         }
     }
 
     /// <summary>
-    /// UNE DEPOUILLE : ce qu'un chercheur portait quand il est tombe. Un sac eventre,
-    /// une lanterne renversee. On la fouille (E maintenu) : on prend ce qui rentre
-    /// dans son sac, tout son butin (★), et les outils s'il reste une place.
+    /// UNE DEPOUILLE : ce qu'un joueur portait quand il est tombe -- ses objets. On la
+    /// fouille (E maintenu) : on prend ce qui rentre dans ses mains.
     /// </summary>
     public class Remains : MonoBehaviour, IInteractable
     {
-        /// <summary>Toutes les depouilles au sol (la tienne va sur la boussole et la carte).</summary>
-        public static readonly System.Collections.Generic.List<Remains> All = new System.Collections.Generic.List<Remains>();
+        public static readonly List<Remains> All = new List<Remains>();
 
         void OnEnable() { All.Add(this); }
         void OnDisable() { All.Remove(this); }
 
-        /// <summary>Vrai si c'est ta depouille, et qu'il y reste quelque chose.</summary>
-        public bool IsMine { get { return owner != null && owner == Game.Me && !Empty; } }
-
-        readonly Inventory contents = new Inventory();
-        int loot;
+        readonly List<Item> items = new List<Item>();
         Seeker owner;
-        Tool[] tools = new Tool[2];
+
+        public bool HasLoot { get { return items.Count > 0; } }
+        public bool IsMine { get { return owner != null && owner == Game.Me && HasLoot; } }
 
         public static void Drop(Seeker victim, Vector3 at)
+        {
+            Remains r = null;
+            for (int k = 0; k < Loadout.Size; k++)
+            {
+                Item it = victim.Items.Slots[k];
+                if (it == Item.None) continue;
+                if (r == null) r = Create(victim, at);
+                r.items.Add(it);
+            }
+            victim.Items.Clear();
+        }
+
+        static Remains Create(Seeker victim, Vector3 at)
         {
             GameObject go = new GameObject("DÉPOUILLE de " + victim.Name);
             go.transform.position = Ground.Place(at.x, at.z, 0f);
@@ -217,128 +258,83 @@ namespace Fief
             trigger.size = new Vector3(1.4f, 0.8f, 1.4f);
             Remains r = go.AddComponent<Remains>();
             r.owner = victim;
-            r.contents.MaxWeight = 999f;
 
-            // Tout ce qu'il portait change de main -- par TryRemove / TryAdd, comme toujours.
-            for (int i = 0; i < ResourceInfo.Count; i++)
-            {
-                ResourceType t = (ResourceType)i;
-                int n = victim.Bag.TryRemove(t, victim.Bag.Get(t));
-                r.contents.TryAdd(t, n);
-            }
-            r.loot = victim.Hoard.DropCarried();
-            for (int i = 0; i < victim.Kit.Slots.Length; i++) r.tools[i] = victim.Kit.Slots[i];
-            victim.Kit.Clear();
-            victim.SyncWeight();
-
-            // LA DEPOUILLE : une cape etalee a sa couleur, le sac eventre, la lanterne
-            // renversee qui brule encore un peu (c'est ce qu'on voit de loin), et ce
-            // qu'il portait, repandu : des buches, des eclats bleus, des lingots.
-            Color cloth = Palette.Shade(victim.Colour, 0.5f);
+            // Une cape etalee a sa couleur, un sac eventre, une lanterne renversee.
             Transform body = go.transform;
             Proto.BeginVisualOnly();
-            GameObject cape = Proto.Cube(body, new Vector3(0.2f, 0.02f, 0.1f), new Vector3(1.3f, 0.03f, 0.9f), cloth, "Cape");
+            GameObject cape = Proto.Cube(body, new Vector3(0.2f, 0.02f, 0.1f), new Vector3(1.3f, 0.03f, 0.9f), Palette.Shade(victim.Colour, 0.5f), "Cape");
             cape.transform.localRotation = Quaternion.Euler(0f, 23f, 2f);
-            Proto.Cube(body, new Vector3(0.75f, 0.03f, 0.4f), new Vector3(0.3f, 0.03f, 0.2f), Palette.Shade(victim.Colour, 0.85f), "Bord");
-            GameObject sack = Proto.Sphere(body, new Vector3(-0.1f, 0.16f, -0.05f), new Vector3(0.55f, 0.32f, 0.42f), new Color(0.36f, 0.3f, 0.22f), "Sac éventré");
+            GameObject sack = Proto.Sphere(body, new Vector3(-0.1f, 0.16f, -0.05f), new Vector3(0.55f, 0.32f, 0.42f), new Color(0.36f, 0.3f, 0.22f), "Sac");
             sack.transform.localRotation = Quaternion.Euler(0f, 30f, 20f);
-            Proto.Cube(body, new Vector3(0.12f, 0.1f, -0.1f), new Vector3(0.22f, 0.04f, 0.3f), new Color(0.26f, 0.21f, 0.15f), "Rabat");
-            GameObject lamp = Proto.Cube(body, new Vector3(-0.55f, 0.1f, -0.25f), new Vector3(0.16f, 0.2f, 0.16f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-            lamp.transform.localRotation = Quaternion.Euler(0f, 0f, 80f);
             GameObject ember = Proto.Cube(body, new Vector3(-0.5f, 0.1f, -0.25f), new Vector3(0.06f, 0.06f, 0.06f), Color.white, "Braise");
             ember.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.55f, 0.2f), 2.2f);
-            System.Random rng = new System.Random(victim.Name.Length * 31 + Mathf.RoundToInt(at.x));
-            int wood = Mathf.Min(6, r.contents.Get(ResourceType.Deadwood) / 2);
-            for (int i = 0; i < wood; i++)
-            {
-                GameObject stick = Proto.Cylinder(body, new Vector3(0.4f + (float)rng.NextDouble() * 0.5f, 0.04f, -0.5f + (float)rng.NextDouble() * 0.6f),
-                                                  new Vector3(0.07f, 0.22f, 0.07f), new Color(0.42f, 0.34f, 0.24f), "Bûche");
-                stick.transform.localRotation = Quaternion.Euler(90f, (float)rng.NextDouble() * 180f, 0f);
-            }
-            int moon = Mathf.Min(5, r.contents.Get(ResourceType.Moonstone));
-            Material shine = MaterialFactory.GetGlow(new Color(0.62f, 0.8f, 1f), 1.4f);
-            for (int i = 0; i < moon; i++)
-            {
-                GameObject chip = Proto.Cone(body, new Vector3(-0.3f + (float)rng.NextDouble() * 0.5f, 0.02f, 0.35f + (float)rng.NextDouble() * 0.3f),
-                                             0.05f, 0.14f, new Color(0.62f, 0.8f, 1f), "Éclat", 6);
-                chip.transform.localRotation = Quaternion.Euler(70f, (float)rng.NextDouble() * 360f, 0f);
-                chip.GetComponent<Renderer>().sharedMaterial = shine;
-            }
-            int iron = Mathf.Min(4, r.contents.Get(ResourceType.Iron));
-            for (int i = 0; i < iron; i++)
-            {
-                GameObject bar = Proto.Cube(body, new Vector3(-0.6f + i * 0.14f, 0.03f, 0.3f), new Vector3(0.1f, 0.05f, 0.26f),
-                                            ResourceInfo.Tint(ResourceType.Iron), "Lingot");
-                bar.transform.localRotation = Quaternion.Euler(0f, i * 25f, 0f);
-            }
             Proto.EndVisualOnly();
-            GameObject lightGo = new GameObject("Braise");
-            lightGo.transform.SetParent(body, false);
-            lightGo.transform.localPosition = new Vector3(-0.45f, 0.3f, -0.25f);
-            Light glow = lightGo.AddComponent<Light>();
-            glow.type = LightType.Point;
-            glow.color = new Color(1f, 0.55f, 0.25f);
-            glow.range = 3.5f;
-            glow.intensity = 0.7f;
-            glow.shadows = LightShadows.None;
-            lightGo.AddComponent<LampFlicker>();
-            if (r.loot > 0)
-                Ambiance.Sparkles(go.transform, new Vector3(0f, 0.4f, 0f), Palette.Gold);
-        }
-
-        /// <summary>Il y reste quelque chose a prendre.</summary>
-        public bool HasLoot { get { return !Empty; } }
-
-        bool Empty
-        {
-            get { return contents.IsEmpty && loot <= 0 && tools[0] == null && tools[1] == null; }
+            Ambiance.Sparkles(go.transform, new Vector3(0f, 0.4f, 0f), Palette.Gold);
+            Destroy(go, 120f);
+            return r;
         }
 
         public Transform Anchor { get { return transform; } }
-        public bool CanInteract { get { return !Empty; } }
-        public string Prompt
-        {
-            get
-            {
-                string who = owner == Game.Me ? "ta dépouille" : "la dépouille de " + owner.Name;
-                return "Fouiller " + who + (loot > 0 ? "  ★" + loot : "");
-            }
-        }
-        public float HoldDuration { get { return 1.5f; } }
+        public bool CanInteract { get { return HasLoot; } }
+        public string Prompt { get { return owner == Game.Me ? "Tes objets" : "Fouiller"; } }
+        public float HoldDuration { get { return 1f; } }
 
         public void Interact()
         {
-            Seeker me = Game.Me;
-            if (me == null) return;
-            if (loot > 0) Pickup.FlyLoot(transform.position + Vector3.up * 0.5f, loot);
-            TakeFor(me);
-            Sfx.HarvestTap(ResourceType.Deadwood);
+            if (TakeFor(Game.Me) > 0) Sfx.Discovery();
+            else Sfx.Deny();
         }
 
-        /// <summary>Fouiller : toi ou un rival. Renvoie les etoiles emportees.</summary>
-        public int TakeFor(Seeker me)
+        /// <summary>Fouiller : toi ou un bot. Renvoie le nombre d'objets pris.</summary>
+        public int TakeFor(Seeker s)
         {
             int taken = 0;
-            for (int i = 0; i < ResourceInfo.Count; i++)
+            for (int i = items.Count - 1; i >= 0; i--)
             {
-                ResourceType t = (ResourceType)i;
-                int n = contents.TryRemove(t, Mathf.Min(contents.Get(t), me.Bag.SpaceFor(t)));
-                me.Bag.TryAdd(t, n);
-                taken += n;
+                if (!s.Items.TryAdd(items[i])) continue;
+                items.RemoveAt(i);
+                taken++;
             }
-            int stars = loot;
-            me.Hoard.TryPickLoot(loot);
-            loot = 0;
-            for (int i = 0; i < tools.Length; i++)
+            if (!HasLoot) Destroy(gameObject, 0.1f);
+            return taken;
+        }
+    }
+
+    /// <summary>
+    /// LES POINTS DE DEPART : un par place, a la lisiere, a egale distance du chateau,
+    /// tournes d'un angle au hasard a chaque manche. On s'y releve quand on tombe.
+    /// </summary>
+    public static class Spawns
+    {
+        static readonly Dictionary<int, Vector3> Points = new Dictionary<int, Vector3>();
+
+        public static void Place(int players, int seed)
+        {
+            Points.Clear();
+            System.Random rng = new System.Random(seed ^ 0x51a);
+            float turn = (float)rng.NextDouble() * 360f;
+            for (int i = 0; i < players; i++)
             {
-                int slot = me.Kit.FreeSlot;
-                if (tools[i] == null || slot < 0) continue;
-                me.Kit.Slots[slot] = tools[i];
-                tools[i] = null;
+                float a = (turn + i * 360f / Mathf.Max(1, players)) * Mathf.Deg2Rad;
+                Vector3 best = Vector3.zero;
+                float bestScore = float.MaxValue;
+                for (int k = 0; k < 24; k++)
+                {
+                    float aa = a + (k - 12) * 0.02f;
+                    float r = 150f + (k % 4) * 6f;
+                    float x = Mathf.Cos(aa) * r, z = Mathf.Sin(aa) * r;
+                    if (Landmarks.Near(x, z, 10f)) continue;
+                    float score = Forest.Canopy(x, z) + Ground.Slope(x, z);
+                    if (score < bestScore) { bestScore = score; best = new Vector3(x, 0f, z); }
+                }
+                Points[i] = Ground.Place(best.x, best.z, 1f);
             }
-            me.SyncWeight();
-            if (Empty) Destroy(gameObject, 0.1f);
-            return stars;
+        }
+
+        public static Vector3 Of(int slot, Vector3 fallback)
+        {
+            Vector3 p;
+            return Points.TryGetValue(slot, out p) ? p : fallback;
         }
     }
 }

@@ -1,34 +1,27 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Fief
 {
     /// <summary>
-    /// L'ecran-titre, le menu pause et la liste des commandes.
+    /// TOUS LES ECRANS HORS DU JEU (La Couronne, 26/09) : le titre, le SALON (combien
+    /// de joueurs, combien de manches, quelle duree), l'ecran EN LIGNE (prepare pour
+    /// la Phase 3), l'intro de chaque manche, la pause, la fin de manche, le CHOIX DES
+    /// POUVOIRS, et le podium de fin de match.
     ///
-    /// L'ECRAN-TITRE, C'EST LE PERSONNAGE. Le mendiant se tient seul dans la brume,
-    /// sa lanterne allumee, et la camera tourne lentement autour de lui a six
-    /// metres. C'est le seul moment du jeu ou on le voit de dehors : on le montre.
+    ///   Titre -> Salon -> [rechargement] -> Manche -> Fin de manche -> Choix
+    ///                                          ^                          |
+    ///                                          +---- [rechargement] ------+
+    ///                                                      ... -> Podium
     ///
-    /// Deux choses corrigees par rapport a la version precedente :
+    /// CHAQUE MANCHE RECHARGE LA SCENE : le monde est rebati a neuf (le Monument a
+    /// change de place, les coffres aussi, les gardes sont a leur poste). Ce qui
+    /// traverse les manches -- les victoires, les pouvoirs -- vit dans Match, une
+    /// classe statique que le rechargement ne touche pas.
     ///
-    ///   - la camera tournait a 26 metres. Avec une brume qui efface tout a 26
-    ///     metres, le personnage aurait ete invisible sur son propre ecran-titre ;
-    ///   - un voile noir a 85 % recouvrait tout l'ecran. Il cachait justement ce
-    ///     qu'on a de plus beau. Il est remplace par un degrade sous le texte, a
-    ///     gauche, et un vignettage : on lit le texte, on voit la foret.
-    ///
-    /// LE MONDE VIT DERRIERE LE TITRE. Le temps n'est plus gele : la lanterne
-    /// vacille, le poncho bouge, le mendiant respire. Seul le joueur est bloque.
-    /// Le menu pause, lui, gele le temps -- c'est ce qu'on attend d'une pause.
-    ///
-    /// ENTRER DANS LE JEU est un fondu au noir : la camera quitte l'orbite et se
-    /// place dans les yeux pendant que l'ecran est noir, puis l'image revient. Sans
-    /// ca, le saut de la vue de dehors a la vue de dedans est un a-coup brutal.
-    ///
-    /// LA CLOCHE. Quand la Saison s'acheve, le jeu se fige (le joueur, pas le monde :
-    /// la lanterne vacille toujours) et l'ecran de fin dit ce que vaut la relique
-    /// posee sur la stele. Seule une relique POSEE compte.
+    /// L'ECRAN-TITRE, C'EST LE PERSONNAGE : la camera tourne lentement autour de lui
+    /// dans la brume. Le monde vit derriere le menu ; la pause, elle, gele le temps.
     ///
     /// Concept Unity : Time.timeScale = 0 met le temps du jeu en pause ; les Update
     /// tournent toujours mais Time.deltaTime vaut 0. Un menu doit donc s'animer
@@ -36,29 +29,42 @@ namespace Fief
     /// </summary>
     public class Menus : MonoBehaviour
     {
-        public enum State { Title, Briefing, Playing, Paused, Ended }
+        public enum State { Title, Lobby, Online, Briefing, Playing, Paused, RoundOver, Draft, Ended }
 
         public State Current { get; private set; }
 
         public bool Blocking { get { return Current != State.Playing; } }
 
+        /// <summary>Apres "Nouveau match" : on rouvre directement le salon au rechargement.</summary>
+        static bool openLobby;
+
         bool showControls;
         float appear;           // 0 -> 1 : apparition du titre
-        float veil;             // 0 -> 1 : voile de la pause
-        float curtain;          // 0 -> 1 : noir complet, pendant l'entree en jeu
-        bool entering;          // le rideau descend ; on bascule quand il est noir
-        float ended;            // 0 -> 1 : apparition de l'ecran de fin
-        int bellWarnings;       // rappels "la cloche approche" deja donnes
+        float veil;             // 0 -> 1 : voile
+        float curtain;          // 0 -> 1 : noir complet
+        bool leaving;           // le rideau descend ; on recharge (ou on entre) quand il est noir
+        System.Action afterCurtain;
+        float stateTime;        // depuis quand on est dans cet ecran (temps reel)
+        int roundWinner = -1;
+        int bellWarnings;
+        float botPickTimer;
+
+        // --- le salon
+        int lobbyBots = 3;
+        int lobbyRounds = 5;
+        int lobbyMinutes = 6;
 
         static Texture2D sideShade;
         static Texture2D vignette;
 
         void Start()
         {
-            Current = State.Title;
             Time.timeScale = 1f;
             appear = 0f;
             curtain = 1f;       // on ouvre sur du noir, la foret apparait en fondu
+            if (Match.Launched) Go(State.Briefing);
+            else Go(openLobby ? State.Lobby : State.Title);
+            openLobby = false;
         }
 
         void OnDestroy()
@@ -66,291 +72,187 @@ namespace Fief
             Time.timeScale = 1f;
         }
 
+        void Go(State s)
+        {
+            Current = s;
+            stateTime = 0f;
+            showControls = false;
+        }
+
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
             appear = Mathf.Min(1f, appear + dt * 0.55f);
-
-            bool panelOpen = Game.Hud != null && Game.Hud.PanelOpen;
+            stateTime += dt;
 
             Season season = Game.Season;
             if (Current == State.Playing && season != null)
             {
-                WarnOfBell(season);
-                // Une victoire immediate (Trahison, Couronne, Offrande) arrete tout.
-                if (season.Over || Victories.Decided) EndSeason();
+                WarnOfTime(season);
+                // Le temps est ecoule : celui qui tient la Couronne gagne ; sinon personne.
+                if (season.Over) EndRound(Crown.Holder != null ? Crown.Holder.Index : -1);
             }
-            if (Current == State.Ended) ended = Mathf.Min(1f, ended + dt * 0.4f);
+            if (Current == State.Briefing && stateTime > BriefingLength && !leaving) Enter();
+            if (Current == State.Draft) TickDraft(dt);
 
-            if (FiefInput.CancelPressed && !entering)
+            if (FiefInput.CancelPressed && !leaving)
             {
                 if (showControls) showControls = false;
-                else if (Current == State.Briefing) { entering = true; Current = State.Title; }
-                else if (Current == State.Playing)
-                {
-                    if (panelOpen) Game.Hud.ClosePanel();
-                    else if (Builder.IsOpen) Builder.Close();
-                    else Pause();
-                }
+                else if (Current == State.Lobby || Current == State.Online) Go(State.Title);
+                else if (Current == State.Briefing) Enter();
+                else if (Current == State.Playing) Pause();
                 else if (Current == State.Paused) Resume();
             }
 
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (cam != null)
             {
-                if (Current == State.Title || Current == State.Briefing)
+                bool outside = Current == State.Title || Current == State.Lobby || Current == State.Online;
+                if (outside)
                 {
                     // Six metres, a peine au-dessus de la tete : assez pres pour que
                     // la brume ne l'efface pas, assez loin pour voir la silhouette.
                     cam.autoOrbitSpeed = 3.2f;
                     cam.SetCinematic(6.2f, 6f);
                 }
-                else
-                {
-                    cam.autoOrbitSpeed = 0f;
-                }
+                else cam.autoOrbitSpeed = 0f;
             }
 
-            // --- le rideau : il descend, on bascule dans le noir, il remonte
-            if (entering)
+            // --- le rideau
+            if (leaving)
             {
                 curtain = Mathf.MoveTowards(curtain, 1f, dt * 2.6f);
                 if (curtain >= 1f)
                 {
-                    entering = false;
-                    BeginPlaying();
+                    leaving = false;
+                    System.Action next = afterCurtain;
+                    afterCurtain = null;
+                    if (next != null) next.Invoke();
                 }
             }
-            else
-            {
-                curtain = Mathf.MoveTowards(curtain, 0f, dt * (Current == State.Title ? 0.7f : 0.9f));
-            }
+            else curtain = Mathf.MoveTowards(curtain, 0f, dt * (Current == State.Title ? 0.7f : 1.1f));
 
-            // Un seul endroit decide qui a la main : souris libre et joueur fige
-            // des qu'un menu OU un panneau est ouvert.
+            // Un seul endroit decide qui a la main : souris libre et joueur fige des
+            // qu'un menu est ouvert (ou qu'on est tombe).
             bool dead = Game.Hud != null && Game.Hud.Dead;
-            bool blocked = Blocking || panelOpen || entering || dead;
+            bool blocked = Blocking || leaving || dead;
             Cursor.lockState = blocked ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = blocked && !entering && !dead;
+            Cursor.visible = blocked && !leaving && !dead && Current != State.Briefing;
 
             if (Game.Player != null) Game.Player.InputLocked = blocked;
             if (cam != null) cam.InputLocked = blocked;
             if (Game.Hud != null && Game.Hud.interactor != null) Game.Hud.interactor.InputLocked = blocked;
-            // Le HUD se cache tout seul tant que le menu bloque (Hud.Hidden lit Blocking).
 
-            float wantVeil = Current == State.Paused || showControls ? 1f : Current == State.Ended ? 0.85f : 0f;
-            veil = Mathf.MoveTowards(veil, wantVeil, dt * (Current == State.Ended ? 0.5f : 5f));
+            float wantVeil = Current == State.Paused || showControls || Current == State.Lobby || Current == State.Online ? 1f
+                           : Current == State.RoundOver || Current == State.Draft || Current == State.Ended ? 0.88f : 0f;
+            veil = Mathf.MoveTowards(veil, wantVeil, dt * 3f);
         }
 
-        // ------------------------------------------------------------------ transitions
-
-        /// <summary>
-        /// "Entrer dans la sylve" : d'abord LE RECIT (Martin, 25/09 : "presente l'intro
-        /// en version histoire plutot qu'en trois slides longues"), puis le fondu au
-        /// noir et la partie.
-        /// </summary>
-        public void StartSeason()
+        /// <summary>Faire tomber le rideau, puis faire "then" dans le noir.</summary>
+        void Curtain(System.Action then)
         {
-            if (entering || Current != State.Title) return;
-            Current = State.Briefing;
-            beat = 0;
-            beatTime = 0f;
-            showControls = false;
+            if (leaving) return;
+            leaving = true;
+            afterCurtain = then;
         }
 
-        // ------------------------------------------------------------------ le recit
-
-        /// <summary>
-        /// L'histoire, en cinq phrases courtes qui apparaissent et s'effacent toutes
-        /// seules, chacune le temps de se lire (Martin, 26/09 : "que ce ne soit pas
-        /// toi qui gères, que ce soit fait automatiquement, avec un temps", et "il y
-        /// a trop de texte"). Plus de lettre à lettre ni de clic : on regarde. Échap
-        /// saute tout.
-        /// </summary>
-        static readonly string[] Story =
+        static void Reload()
         {
-            "La Sylve. Une forêt noire,\nautour d'un château.",
-            "Dans le château dort un trésor.\nLa couronne est tout en haut.",
-            "Ses gardes veillent.\nIls frappent fort.",
-            "Trois autres le veulent.\nIls pilleront ta stèle.",
-            "Trente minutes.\nLe plus d'or sur ta stèle gagne."
-        };
-
-        const float BeatFade = 0.7f;        // fondu d'entrée et de sortie
-        int beat;
-        float beatTime;
-
-        /// <summary>Le temps de lire : une seconde et demie, plus un peu par lettre.</summary>
-        static float BeatLength(int b)
-        {
-            return b < Story.Length ? 1.6f + Story[b].Length / 20f : 2.6f;
+            Time.timeScale = 1f;
+            Scene scene = SceneManager.GetActiveScene();
+            SceneManager.LoadScene(scene.buildIndex >= 0 ? scene.buildIndex : 0);
         }
 
-        static float StoryLength()
+        // ================================================================== les manches
+
+        void Enter()
         {
-            float t = 0f;
-            for (int i = 0; i <= Story.Length; i++) t += BeatLength(i);
-            return t;
-        }
-
-        void NextBeat()
-        {
-            beat++;
-            beatTime = 0f;
-            if (beat > Story.Length) { entering = true; Current = State.Title; }
-        }
-
-        void DrawBriefing()
-        {
-            if (Event.current.type == EventType.Repaint) beatTime += Time.unscaledDeltaTime;
-            if (beatTime > BeatLength(beat)) NextBeat();
-            if (Current != State.Briefing) return;
-
-            // La nuit tombe sur l'ecran-titre : on ne voit plus que la foret qui tourne.
-            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.78f));
-            DrawEmbers(0.35f);
-
-            float w = Mathf.Min(UiStyle.S(900), Screen.width - UiStyle.S(80));
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height * 0.5f - UiStyle.S(60);
-
-            float fadeIn = Mathf.Clamp01(beatTime / BeatFade);
-            float fadeOut = Mathf.Clamp01((BeatLength(beat) - beatTime) / BeatFade);
-            float a = Mathf.SmoothStep(0f, 1f, Mathf.Min(fadeIn, fadeOut));
-            // La phrase monte doucement pendant qu'elle est lue.
-            float drift = (1f - fadeIn) * UiStyle.S(14);
-
-            if (beat < Story.Length)
-            {
-                GUIStyle body = UiStyle.Big;
-                TextAnchor previous = body.alignment;
-                bool wrap = body.wordWrap;
-                int size = body.fontSize;
-                body.alignment = TextAnchor.MiddleCenter;
-                body.wordWrap = true;
-                body.fontSize = UiStyle.S(40);
-                Rect line = new Rect(x, y + drift, w, UiStyle.S(120));
-                // L'ombre d'abord, puis le texte : lisible sur n'importe quel fond.
-                UiStyle.Tinted(new Rect(line.x + 3f, line.y + 3f, line.width, line.height), Story[beat], body, new Color(0f, 0f, 0f, a * 0.85f));
-                UiStyle.Tinted(line, Story[beat], body, new Color(0.95f, 0.89f, 0.76f, a));
-                body.alignment = previous;
-                body.wordWrap = wrap;
-                body.fontSize = size;
-            }
-            else
-            {
-                // La derniere image : le titre de la partie.
-                GUIStyle big = UiStyle.Big;
-                TextAnchor previous = big.alignment;
-                big.alignment = TextAnchor.MiddleCenter;
-                UiStyle.Tinted(new Rect(0f, y + drift, Screen.width, UiStyle.S(120)), UiStyle.Spaced("LA SAISON COMMENCE"), big,
-                               new Color(0.93f, 0.78f, 0.45f, a));
-                big.alignment = previous;
-            }
-
-            // Un fil d'or qui se remplit : on sait combien de temps il reste.
-            float done = 0f;
-            for (int i = 0; i < beat; i++) done += BeatLength(i);
-            done = Mathf.Clamp01((done + beatTime) / StoryLength());
-            float bw = UiStyle.S(260);
-            Rect bar = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(64), bw, UiStyle.S(2));
-            UiStyle.Fill(bar, new Color(1f, 1f, 1f, 0.12f));
-            UiStyle.Fill(new Rect(bar.x, bar.y, bar.width * done, bar.height), new Color(0.93f, 0.75f, 0.4f, 0.8f));
-            UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(48), Screen.width - UiStyle.S(30), UiStyle.S(20)),
-                           "Échap : passer", RightTiny(), UiStyle.InkFaint);
-        }
-
-        static GUIStyle rightTiny;
-        static GUIStyle RightTiny()
-        {
-            if (rightTiny == null || rightTiny.fontSize != UiStyle.Tiny.fontSize)
-            {
-                rightTiny = new GUIStyle(UiStyle.Tiny);
-                rightTiny.alignment = TextAnchor.MiddleRight;
-            }
-            return rightTiny;
+            Curtain(BeginPlaying);
         }
 
         void BeginPlaying()
         {
-            Current = State.Playing;
+            Go(State.Playing);
             Time.timeScale = 1f;
-
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (cam != null)
             {
                 cam.ReleaseCinematic();
-                // On rouvre les yeux dans la direction ou regarde le personnage.
                 if (cam.target != null) cam.yaw = cam.target.eulerAngles.y;
                 cam.pitch = 3f;
             }
-
-            // L'horloge ne part qu'ici, pas au chargement : l'ecran-titre ne mange
-            // pas les trente minutes de la Saison.
+            // L'horloge ne part qu'ici : l'intro ne mange pas le temps de la manche.
             if (Game.Season != null) Game.Season.Begin();
-
             Toasts.Clear();
+            Sfx.Bell();
         }
 
-        /// <summary>Deux rappels : a cinq minutes, puis a une minute de la cloche.</summary>
-        void WarnOfBell(Season season)
+        /// <summary>
+        /// FIN DE MANCHE : "winner" a pose la Couronne au Monument (ou tenait la
+        /// Couronne quand le temps s'est ecoule ; -1 : personne). C'est ici, et nulle
+        /// part ailleurs, qu'une manche se termine -- en Phase 3, sur l'hote seulement.
+        /// </summary>
+        public void EndRound(int winner)
+        {
+            if (Current != State.Playing && Current != State.Paused) return;
+            if (Game.Season != null) Game.Season.Stop();
+            Time.timeScale = 1f;
+            if (Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
+            roundWinner = winner;
+            if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
+            Match.EndRound(winner);
+            Go(State.RoundOver);
+            Sfx.Bell();
+            if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.4f);
+        }
+
+        /// <summary>Apres la fin de manche : le podium, ou le choix des pouvoirs, ou la manche suivante.</summary>
+        void AfterRound()
+        {
+            if (Match.Over) { Go(State.Ended); return; }
+            Match.Draft.Prepare();
+            if (Match.Draft.Done) { NextRound(); return; }
+            botPickTimer = 1.2f;
+            Go(State.Draft);
+        }
+
+        void NextRound()
+        {
+            Curtain(Reload);
+        }
+
+        void TickDraft(float dt)
+        {
+            if (Match.Draft.Done) return;
+            int slot = Match.Draft.Current;
+            if (slot < 0 || slot >= Match.Slots.Count || !Match.Slots[slot].IsBot) return;
+            botPickTimer -= dt;
+            if (botPickTimer > 0f) return;
+            botPickTimer = 1.1f;
+            int card = Match.Draft.BotChoice(slot);
+            if (card < 0) card = 0;
+            if (Match.Draft.TryPick(slot, card)) Sfx.Pop();
+        }
+
+        /// <summary>Trois rappels : a une minute, trente secondes, dix secondes.</summary>
+        void WarnOfTime(Season season)
         {
             float left = season.Remaining;
-            if (bellWarnings == 0 && left <= 300f)
-            {
-                bellWarnings = 1;
-                Sfx.Bell();
-            }
-            else if (bellWarnings == 1 && left <= 180f)
-            {
-                bellWarnings = 2;
-                // LE SPRINT FINAL : tous les coffres du chateau se remplissent.
-                Treasure.RefillAll();
-                Sfx.Bell();
-                if (Game.Hud != null) Game.Hud.ShowDiscovery("", "LES COFFRES SE REMPLISSENT", "3:00", "", Palette.Gold);
-            }
-            else if (bellWarnings == 2 && left <= 60f)
-            {
-                bellWarnings = 3;
-                Sfx.Bell();
-            }
-        }
-
-        void EndSeason()
-        {
-            Victories.Decide();
-            Current = State.Ended;
-            ended = 0f;
-            if (Game.Hud != null) Game.Hud.ClosePanel();
-            Sfx.Bell();
+            if (bellWarnings == 0 && left <= 60f) { bellWarnings = 1; Sfx.Bell(); }
+            else if (bellWarnings == 1 && left <= 30f) { bellWarnings = 2; Sfx.Bell(); }
+            else if (bellWarnings == 2 && left <= 10f) { bellWarnings = 3; Sfx.Bell(); }
         }
 
         public void Pause()
         {
-            Current = State.Paused;
+            Go(State.Paused);
             Time.timeScale = 0f;
         }
 
         public void Resume()
         {
-            Current = State.Playing;
+            Go(State.Playing);
             Time.timeScale = 1f;
-            showControls = false;
-        }
-
-        void Restart()
-        {
-            Time.timeScale = 1f;
-            Scene scene = SceneManager.GetActiveScene();
-            if (scene.buildIndex >= 0)
-            {
-                SceneManager.LoadScene(scene.buildIndex);
-            }
-            else
-            {
-                Toasts.Show("Ajoute la scène au Build Settings pour relancer.", Palette.Iron);
-                if (Current == State.Paused) Resume();
-            }
         }
 
         void Quit()
@@ -362,12 +264,8 @@ namespace Fief
 #endif
         }
 
-        // ------------------------------------------------------------------ textures
+        // ================================================================== textures
 
-        /// <summary>
-        /// Deux degrades fabriques une fois : un voile qui assombrit la gauche de
-        /// l'ecran (sous le texte) et un vignettage. Tout se lit, rien n'est cache.
-        /// </summary>
         static void EnsureTextures()
         {
             if (sideShade == null)
@@ -382,7 +280,6 @@ namespace Fief
                 }
                 sideShade.Apply();
             }
-
             if (vignette == null)
             {
                 const int Size = 64;
@@ -403,7 +300,7 @@ namespace Fief
             }
         }
 
-        // ------------------------------------------------------------------ dessin
+        // ================================================================== dessin
 
         void OnGUI()
         {
@@ -411,38 +308,40 @@ namespace Fief
             EnsureTextures();
             Rect screen = new Rect(0f, 0f, Screen.width, Screen.height);
 
-            if (Current == State.Title || entering)
+            if (Current == State.Title)
             {
-                GUI.color = new Color(1f, 1f, 1f, 1f - curtain * (entering ? 0f : 1f));
                 GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
-                GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), sideShade, ScaleMode.StretchToFill);
-                GUI.color = Color.white;
+                GUI.DrawTexture(screen, sideShade, ScaleMode.StretchToFill);
             }
-
-            if (veil > 0.001f)
-            {
-                UiStyle.Fill(screen, new Color(UiStyle.Scrim.r, UiStyle.Scrim.g, UiStyle.Scrim.b,
-                                               UiStyle.Scrim.a * veil));
-            }
+            if (veil > 0.001f) UiStyle.Fill(screen, new Color(UiStyle.Scrim.r, UiStyle.Scrim.g, UiStyle.Scrim.b, UiStyle.Scrim.a * veil));
 
             if (showControls) DrawControls();
-            else if (Current == State.Title && !entering) DrawTitle();
-            else if (Current == State.Briefing) DrawBriefing();
-            else if (Current == State.Paused) DrawPause();
-            else if (Current == State.Ended) DrawEnd();
+            else
+            {
+                switch (Current)
+                {
+                    case State.Title: DrawTitle(); break;
+                    case State.Lobby: DrawLobby(); break;
+                    case State.Online: DrawOnline(); break;
+                    case State.Briefing: DrawBriefing(); break;
+                    case State.Paused: DrawPause(); break;
+                    case State.RoundOver: DrawRoundOver(); break;
+                    case State.Draft: DrawDraft(); break;
+                    case State.Ended: DrawEnd(); break;
+                }
+            }
 
             // Le rideau passe par-dessus tout, y compris le texte.
             if (curtain > 0.001f) UiStyle.Fill(screen, new Color(0f, 0f, 0f, curtain));
         }
 
-        // ------------------------------------------------------------------ les braises
+        // ------------------------------------------------------------------ outils de dessin
 
         /// <summary>
-        /// Des braises qui montent lentement devant l'ecran-titre et la pause, comme
-        /// d'un feu hors champ. Dessinees a la main par l'interface : ce ne sont pas
-        /// des particules du monde, elles vivent meme quand le temps est fige.
+        /// Des braises qui montent lentement devant les menus, comme d'un feu hors
+        /// champ. Dessinees par l'interface : elles vivent meme quand le temps est fige.
         /// </summary>
-        static readonly Vector3[] Embers = new Vector3[70];     // x, y (0-1), graine
+        static readonly Vector3[] Embers = new Vector3[70];
         static bool embersReady;
 
         static void DrawEmbers(float strength)
@@ -462,7 +361,7 @@ namespace Fief
                 float speed = 0.018f + (e.z % 7f) * 0.004f;
                 float y = Mathf.Repeat(e.y - t * speed, 1f);
                 float x = e.x + Mathf.Sin(t * 0.6f + e.z) * 0.012f;
-                float life = Mathf.Sin(y * Mathf.PI);                   // naissent en bas, meurent en haut
+                float life = Mathf.Sin(y * Mathf.PI);
                 float flicker = 0.6f + 0.4f * Mathf.Sin(t * (3f + e.z % 5f) + e.z);
                 float size = UiStyle.S(2f + (e.z % 3f));
                 Color c = Color.Lerp(new Color(1f, 0.45f, 0.15f), new Color(1f, 0.8f, 0.45f), (e.z % 10f) / 10f);
@@ -471,12 +370,9 @@ namespace Fief
             }
         }
 
-        // ------------------------------------------------------------------ les entrees
-
         /// <summary>
         /// Une entree de menu : du texte, pas une boite. Au survol, elle s'eclaire en
-        /// or, un losange apparait a gauche et un filet se dessine dessous. Renvoie
-        /// vrai quand on clique.
+        /// or, un losange apparait a gauche et un filet se dessine dessous.
         /// </summary>
         static bool Entry(Rect r, string text, bool primary, float alpha)
         {
@@ -497,18 +393,58 @@ namespace Fief
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
         }
 
+        /// <summary>Une pastille a choisir (3, 5, 7, 10...). Doree si choisie.</summary>
+        static bool Chip(Rect r, string text, bool on)
+        {
+            bool hover = r.Contains(Event.current.mousePosition);
+            UiStyle.Fill(r, on ? new Color(0.86f, 0.7f, 0.36f, 0.22f) : new Color(1f, 1f, 1f, hover ? 0.08f : 0.035f));
+            Color edge = on ? Palette.Gold : new Color(0.55f, 0.44f, 0.26f, hover ? 0.8f : 0.4f);
+            Border(r, edge);
+            UiStyle.Tinted(r, text, UiStyle.Centered, on ? Palette.Gold : hover ? UiStyle.Ink : UiStyle.InkDim);
+            return GUI.Button(r, GUIContent.none, GUIStyle.none);
+        }
+
+        static void Border(Rect r, Color c)
+        {
+            UiStyle.Fill(new Rect(r.x, r.y, r.width, 1f), c);
+            UiStyle.Fill(new Rect(r.x, r.yMax - 1f, r.width, 1f), c);
+            UiStyle.Fill(new Rect(r.x, r.y, 1f, r.height), c);
+            UiStyle.Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), c);
+        }
+
+        static void Centered(float y, float h, string text, GUIStyle style, Color c)
+        {
+            TextAnchor previous = style.alignment;
+            style.alignment = TextAnchor.MiddleCenter;
+            UiStyle.Tinted(new Rect(2f, y + 2f, Screen.width, h), text, style, new Color(0f, 0f, 0f, c.a * 0.8f));
+            UiStyle.Tinted(new Rect(0f, y, Screen.width, h), text, style, c);
+            style.alignment = previous;
+        }
+
+        static GUIStyle bigCentre;
+        /// <summary>Un grand titre, centre, de la taille voulue.</summary>
+        static void Headline(float y, float size, string text, Color c)
+        {
+            if (bigCentre == null || bigCentre.font != UiStyle.Big.font) bigCentre = new GUIStyle(UiStyle.Big);
+            bigCentre.fontSize = UiStyle.S(size);
+            bigCentre.alignment = TextAnchor.MiddleCenter;
+            bigCentre.wordWrap = false;
+            UiStyle.Tinted(new Rect(3f, y + 4f, Screen.width, UiStyle.S(size * 1.3f)), text, bigCentre, new Color(0f, 0f, 0f, c.a * 0.8f));
+            UiStyle.Tinted(new Rect(0f, y, Screen.width, UiStyle.S(size * 1.3f)), text, bigCentre, c);
+        }
+
+        // ------------------------------------------------------------------ le titre
+
         void DrawTitle()
         {
-            // Le texte monte doucement pendant que la foret sort du noir.
             float ease = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((appear - 0.15f) / 0.85f));
             float late = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((appear - 0.45f) / 0.55f));
             DrawEmbers(ease);
 
             float x = UiStyle.S(110);
             float w = Mathf.Min(UiStyle.S(640), Screen.width - x * 2f);
-            float y = Screen.height - UiStyle.S(500) + (1f - ease) * UiStyle.S(18);
+            float y = Screen.height - UiStyle.S(540) + (1f - ease) * UiStyle.S(18);
 
-            // Le titre : grave, espace, avec un halo sombre derriere.
             GUIStyle big = UiStyle.Big;
             int previous = big.fontSize;
             big.fontSize = UiStyle.S(112);
@@ -516,37 +452,245 @@ namespace Fief
             GUI.color = new Color(1f, 1f, 1f, ease);
             UiStyle.Tinted(new Rect(x + 4f, y + 5f, w, UiStyle.S(130)), UiStyle.Spaced("FIEF"), big, new Color(0f, 0f, 0f, 0.8f));
             UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(130)), UiStyle.Spaced("FIEF"), big, new Color(0.93f, 0.78f, 0.45f));
-            GUI.color = was;
             big.fontSize = previous;
-            y += UiStyle.S(132);
-
+            y += UiStyle.S(128);
+            // La Couronne, sous le titre.
+            Pictos.Crown(new Rect(x + UiStyle.S(6), y, UiStyle.S(42), UiStyle.S(34)), 1f);
+            UiStyle.Tinted(new Rect(x + UiStyle.S(60), y, w, UiStyle.S(34)), UiStyle.Spaced("LA COURONNE"), UiStyle.Head, new Color(0.95f, 0.85f, 0.6f));
+            GUI.color = was;
+            y += UiStyle.S(50);
             GUI.color = new Color(1f, 1f, 1f, ease);
             UiStyle.Rule(new Rect(x, y, UiStyle.S(420) * ease, UiStyle.S(8)));
             GUI.color = was;
-            y += UiStyle.S(22);
-
-            UiStyle.Tinted(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)),
-                           "Ce que tu caches, un autre le cherche.", UiStyle.Head,
-                           new Color(UiStyle.InkDim.r, UiStyle.InkDim.g, UiStyle.InkDim.b, ease));
-            y += UiStyle.S(64);
+            y += UiStyle.S(40);
 
             float bw = UiStyle.S(420);
-            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(48)), "Entrer dans la sylve", true, late) && late > 0.9f)
-                StartSeason();
+            bool ready = late > 0.9f && !leaving;
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(48)), "Jouer", true, late) && ready) Go(State.Lobby);
             y += UiStyle.S(54);
-            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Commandes", false, late) && late > 0.9f)
-                showControls = true;
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "En ligne", false, late) && ready) Go(State.Online);
             y += UiStyle.S(40);
-            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Quitter", false, late) && late > 0.9f)
-                Quit();
-
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Commandes", false, late) && ready) showControls = true;
+            y += UiStyle.S(40);
+            if (Entry(new Rect(x - UiStyle.S(18), y, bw, UiStyle.S(36)), "Quitter", false, late) && ready) Quit();
         }
+
+        // ------------------------------------------------------------------ le salon
+
+        /// <summary>
+        /// LE SALON : quatre places (toi, et jusqu'a trois autres -- des bots en
+        /// Phase 1, des joueurs en ligne en Phase 3), le nombre de manches, la duree
+        /// maximale d'une manche. Clic sur une place vide : un bot s'y assoit ; clic
+        /// sur un bot : il s'en va.
+        /// </summary>
+        void DrawLobby()
+        {
+            DrawEmbers(0.5f);
+            float w = Mathf.Min(UiStyle.S(820), Screen.width - UiStyle.S(40));
+            float h = UiStyle.S(560);
+            Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+            UiStyle.Frame(box);
+            float x = box.x + UiStyle.S(36), inner = w - UiStyle.S(72);
+            float y = box.y + UiStyle.S(26);
+
+            GUIStyle title = UiStyle.Title;
+            TextAnchor previous = title.alignment;
+            title.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(box.x, y, w, UiStyle.S(40)), UiStyle.Spaced("LE SALON"), title);
+            title.alignment = previous;
+            y += UiStyle.S(50);
+            UiStyle.Rule(new Rect(x, y, inner, UiStyle.S(8)));
+            y += UiStyle.S(24);
+
+            // --- les quatre places
+            float gap = UiStyle.S(14);
+            float cw = (inner - gap * 3f) / 4f, chh = UiStyle.S(170);
+            string[] names = { "Toi", "Mahaut", "Oswin", "Guerin" };
+            for (int i = 0; i < 4; i++)
+            {
+                Rect card = new Rect(x + i * (cw + gap), y, cw, chh);
+                bool taken = i <= lobbyBots;
+                bool hover = card.Contains(Event.current.mousePosition);
+                Color colour = Match.ColourOf(i);
+                UiStyle.Fill(card, taken ? new Color(0.08f, 0.07f, 0.06f, 0.95f) : new Color(1f, 1f, 1f, hover ? 0.05f : 0.02f));
+                Border(card, taken ? new Color(colour.r, colour.g, colour.b, 0.8f) : new Color(0.55f, 0.44f, 0.26f, 0.35f));
+                if (taken)
+                {
+                    // Une banniere a sa couleur, un halo, le nom.
+                    Rect banner = new Rect(card.center.x - UiStyle.S(22), card.y, UiStyle.S(44), UiStyle.S(78));
+                    UiStyle.Fill(banner, colour);
+                    UiStyle.Icon(new Rect(banner.x, banner.yMax - UiStyle.S(14), banner.width, UiStyle.S(28)), UiStyle.Shape.Triangle, colour);
+                    UiStyle.Icon(new Rect(banner.center.x - UiStyle.S(9), banner.y + UiStyle.S(26), UiStyle.S(18), UiStyle.S(18)), UiStyle.Shape.Dot, new Color(1f, 1f, 1f, 0.8f));
+                    UiStyle.Tinted(new Rect(card.x, card.y + UiStyle.S(104), card.width, UiStyle.S(28)), names[i], UiStyle.Centered, i == 0 ? Palette.Gold : UiStyle.Ink);
+                    UiStyle.Tinted(new Rect(card.x, card.y + UiStyle.S(132), card.width, UiStyle.S(20)), i == 0 ? "toi" : "bot", UiStyle.CenteredSmall, UiStyle.InkFaint);
+                }
+                else
+                {
+                    UiStyle.Tinted(new Rect(card.x, card.y, card.width, card.height), "+", UiStyle.Title, hover ? Palette.Gold : UiStyle.InkFaint);
+                }
+                if (i > 0 && GUI.Button(card, GUIContent.none, GUIStyle.none))
+                {
+                    // Une place vide : on remplit jusqu'a elle. Un bot : il s'en va (au moins un adversaire).
+                    lobbyBots = taken ? Mathf.Max(1, i - 1) : i;
+                    Sfx.Pop();
+                }
+            }
+            y += chh + UiStyle.S(30);
+
+            // --- les manches, la duree
+            float labelW = UiStyle.S(200);
+            float chipW = UiStyle.S(78), chipH = UiStyle.S(40);
+            UiStyle.Tinted(new Rect(x, y, labelW, chipH), "Manches", UiStyle.Head, UiStyle.Ink);
+            for (int i = 0; i < Match.RoundChoices.Length; i++)
+            {
+                int v = Match.RoundChoices[i];
+                if (Chip(new Rect(x + labelW + i * (chipW + UiStyle.S(10)), y, chipW, chipH), v.ToString(), lobbyRounds == v)) { lobbyRounds = v; Sfx.Pop(); }
+            }
+            y += chipH + UiStyle.S(14);
+            UiStyle.Tinted(new Rect(x, y, labelW, chipH), "Durée max", UiStyle.Head, UiStyle.Ink);
+            for (int i = 0; i < Match.MinuteChoices.Length; i++)
+            {
+                int v = Match.MinuteChoices[i];
+                if (Chip(new Rect(x + labelW + i * (chipW + UiStyle.S(10)), y, chipW, chipH), v + " min", lobbyMinutes == v)) { lobbyMinutes = v; Sfx.Pop(); }
+            }
+            y += chipH + UiStyle.S(10);
+            // Une estimation, en un mot : une manche dure rarement tout son temps.
+            int estimate = Mathf.RoundToInt(lobbyRounds * lobbyMinutes * 0.85f);
+            UiStyle.Tinted(new Rect(x + labelW, y, inner - labelW, UiStyle.S(20)), "≈ " + estimate + " min", UiStyle.Small, UiStyle.InkFaint);
+
+            // --- les boutons
+            float bh = UiStyle.S(46);
+            float by = box.yMax - bh - UiStyle.S(24);
+            if (GUI.Button(new Rect(x, by, inner * 0.62f, bh), "COMMENCER", UiStyle.ButtonPrimary) && !leaving)
+            {
+                Match.Begin(lobbyBots, lobbyRounds, lobbyMinutes);
+                Match.Launch();
+                Stats.Reset();
+                Curtain(Reload);
+            }
+            if (GUI.Button(new Rect(x + inner * 0.66f, by, inner * 0.34f, bh), "Retour", UiStyle.Button) && !leaving) Go(State.Title);
+        }
+
+        // ------------------------------------------------------------------ en ligne
+
+        /// <summary>
+        /// EN LIGNE : prepare, pas encore branche. Le jeu est deja coupe en places
+        /// (Match.Slots) et tout passe par des methodes que l'hote appellera -- mais
+        /// le transport (Steam, Netcode) vient en Phase 3. On le dit franchement.
+        /// </summary>
+        void DrawOnline()
+        {
+            DrawEmbers(0.5f);
+            float w = Mathf.Min(UiStyle.S(620), Screen.width - UiStyle.S(40));
+            float h = UiStyle.S(400);
+            Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+            UiStyle.Frame(box);
+            float x = box.x + UiStyle.S(40), inner = w - UiStyle.S(80);
+            float y = box.y + UiStyle.S(26);
+            GUIStyle title = UiStyle.Title;
+            TextAnchor previous = title.alignment;
+            title.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(box.x, y, w, UiStyle.S(40)), UiStyle.Spaced("EN LIGNE"), title);
+            title.alignment = previous;
+            y += UiStyle.S(50);
+            UiStyle.Rule(new Rect(x, y, inner, UiStyle.S(8)));
+            y += UiStyle.S(30);
+
+            // Deux entrees grisees : on voit ce qui vient, on ne peut pas encore cliquer.
+            for (int i = 0; i < 2; i++)
+            {
+                Rect r = new Rect(x, y, inner, UiStyle.S(56));
+                UiStyle.Fill(r, new Color(1f, 1f, 1f, 0.03f));
+                Border(r, new Color(0.55f, 0.44f, 0.26f, 0.3f));
+                UiStyle.Tinted(new Rect(r.x + UiStyle.S(20), r.y, r.width, r.height), i == 0 ? "Héberger une partie" : "Rejoindre un ami", UiStyle.Head, UiStyle.InkFaint);
+                UiStyle.Tinted(new Rect(r.x, r.y, r.width - UiStyle.S(20), r.height), "bientôt", RightTiny(), new Color(0.86f, 0.7f, 0.36f, 0.7f));
+                y += UiStyle.S(66);
+            }
+            y += UiStyle.S(6);
+            UiStyle.Tinted(new Rect(x, y, inner, UiStyle.S(22)), "Quatre joueurs, par Steam.", UiStyle.Centered, UiStyle.InkDim);
+
+            float bh = UiStyle.S(44);
+            if (GUI.Button(new Rect(x, box.yMax - bh - UiStyle.S(24), inner, bh), "Retour", UiStyle.Button)) Go(State.Title);
+        }
+
+        static GUIStyle rightTiny;
+        static GUIStyle RightTiny()
+        {
+            if (rightTiny == null || rightTiny.fontSize != UiStyle.Tiny.fontSize)
+            {
+                rightTiny = new GUIStyle(UiStyle.Tiny);
+                rightTiny.alignment = TextAnchor.MiddleRight;
+            }
+            return rightTiny;
+        }
+
+        // ------------------------------------------------------------------ l'intro de manche
+
+        float BriefingLength { get { return Match.Played == 0 && !Match.IsTieBreak ? 6.5f : 3.2f; } }
+
+        /// <summary>
+        /// L'INTRO DE MANCHE, toute seule, quelques secondes : "MANCHE 2", et la
+        /// premiere fois, la regle en deux lignes. Echap passe.
+        /// </summary>
+        void DrawBriefing()
+        {
+            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.7f));
+            DrawEmbers(0.35f);
+            float t = stateTime;
+            float a = Mathf.Clamp01(t / 0.6f) * Mathf.Clamp01((BriefingLength - t) / 0.6f);
+            float y = Screen.height * 0.36f;
+
+            string head = Match.IsTieBreak ? UiStyle.Spaced("DÉPARTAGE") : UiStyle.Spaced("MANCHE " + Match.RoundNumber);
+            Headline(y, 64, head, new Color(0.93f, 0.78f, 0.45f, a));
+            y += UiStyle.S(96);
+
+            if (Match.IsTieBreak)
+            {
+                string who = "";
+                for (int i = 0; i < Match.TieBreakers.Count; i++) who += (i > 0 ? "  ·  " : "") + Match.Slots[Match.TieBreakers[i]].Name;
+                Centered(y, UiStyle.S(30), who, UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, a));
+            }
+            else if (Match.Played == 0)
+            {
+                float b = Mathf.Clamp01((t - 1.2f) / 0.6f) * a;
+                Centered(y, UiStyle.S(30), "La Couronne dort en haut du château.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
+                float c = Mathf.Clamp01((t - 2.6f) / 0.6f) * a;
+                Centered(y + UiStyle.S(40), UiStyle.S(30), "Porte-la au Monument : la colonne bleue.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
+            }
+            else ScoreRow(y, a);
+
+            UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(48), Screen.width - UiStyle.S(30), UiStyle.S(20)), "Échap", RightTiny(), UiStyle.InkFaint);
+        }
+
+        /// <summary>Une rangee : chaque joueur, sa couleur, ses manches gagnees (des couronnes).</summary>
+        static void ScoreRow(float y, float a)
+        {
+            float cell = UiStyle.S(170);
+            float total = cell * Match.Slots.Count;
+            float x = (Screen.width - total) * 0.5f;
+            Color was = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, a);
+            for (int i = 0; i < Match.Slots.Count; i++)
+            {
+                PlayerSlot s = Match.Slots[i];
+                Rect r = new Rect(x + i * cell, y, cell - UiStyle.S(10), UiStyle.S(70));
+                UiStyle.Fill(new Rect(r.x, r.y, r.width, UiStyle.S(3)), s.Colour);
+                UiStyle.Tinted(new Rect(r.x, r.y + UiStyle.S(6), r.width, UiStyle.S(26)), s.Name, UiStyle.Centered, s.IsLocal ? Palette.Gold : UiStyle.Ink);
+                float cw = UiStyle.S(24);
+                float cx = r.center.x - Mathf.Max(1, s.Wins) * cw * 0.5f;
+                if (s.Wins == 0) UiStyle.Tinted(new Rect(r.x, r.y + UiStyle.S(36), r.width, UiStyle.S(24)), "–", UiStyle.Centered, UiStyle.InkFaint);
+                for (int k = 0; k < s.Wins; k++) Pictos.Crown(new Rect(cx + k * cw, r.y + UiStyle.S(38), cw - UiStyle.S(2), UiStyle.S(19)), 1f);
+            }
+            GUI.color = was;
+        }
+
+        // ------------------------------------------------------------------ la pause
 
         void DrawPause()
         {
             DrawEmbers(0.6f);
             float w = UiStyle.S(620);
-            float h = UiStyle.S(380);
+            float h = UiStyle.S(400);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             UiStyle.Frame(box);
 
@@ -561,103 +705,186 @@ namespace Fief
             title.alignment = previous;
             y += UiStyle.S(48);
             UiStyle.Rule(new Rect(x, y, bw, UiStyle.S(8)));
-            y += UiStyle.S(30);
-
-            // Ou en est la Saison : on met en pause pour souffler, pas pour oublier.
+            y += UiStyle.S(18);
             Season s = Game.Season;
             if (s != null)
             {
-                int mine = Game.Me != null ? Game.Me.Score : 0;
-                UiStyle.Tinted(new Rect(box.x, y - UiStyle.S(14), w, UiStyle.S(20)),
-                               "Cloche " + Hud.Clock(s.Remaining) + "   ·   ta stèle ★" + mine, UiStyle.CenteredSmall, UiStyle.InkDim);
-                y += UiStyle.S(16);
+                string round = Match.IsTieBreak ? "Départage" : "Manche " + Match.RoundNumber + " / " + Match.Rounds;
+                UiStyle.Tinted(new Rect(box.x, y, w, UiStyle.S(20)), round + "   ·   " + Hud.Clock(s.Remaining), UiStyle.CenteredSmall, UiStyle.InkDim);
             }
+            y += UiStyle.S(30);
 
             if (Entry(new Rect(x, y, bw, UiStyle.S(44)), "Reprendre", true, 1f)) Resume();
             y += UiStyle.S(52);
             if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Commandes", false, 1f)) showControls = true;
             y += UiStyle.S(40);
-            if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Recommencer la Saison", false, 1f)) Restart();
+            if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Abandonner le match", false, 1f) && !leaving)
+            {
+                Match.Abandon();
+                Curtain(Reload);
+            }
             y += UiStyle.S(40);
             if (Entry(new Rect(x, y, bw, UiStyle.S(36)), "Quitter le jeu", false, 1f)) Quit();
         }
 
-        void DrawEnd()
+        // ------------------------------------------------------------------ fin de manche
+
+        /// <summary>
+        /// FIN DE MANCHE : qui l'a gagnee (sa couleur, en grand), et le score. Puis on
+        /// passe au choix des pouvoirs -- tout seul, ou d'un clic.
+        /// </summary>
+        void DrawRoundOver()
         {
-            Hoard hoard = Game.Hoard;
-            if (hoard == null) return;
+            float a = Mathf.Clamp01(stateTime / 0.6f);
+            DrawEmbers(0.4f * a);
+            float y = Screen.height * 0.24f;
+            PlayerSlot w = roundWinner >= 0 && roundWinner < Match.Slots.Count ? Match.Slots[roundWinner] : null;
+            float cs = UiStyle.S(90);
+            Pictos.Crown(new Rect((Screen.width - cs) * 0.5f, y, cs, cs * 0.8f), w != null ? a : 0.35f * a);
+            y += cs;
+            if (w == null) Headline(y, 54, UiStyle.Spaced("PERSONNE"), new Color(0.8f, 0.75f, 0.7f, a));
+            else if (w.IsLocal) Headline(y, 58, UiStyle.Spaced("MANCHE GAGNÉE"), new Color(0.95f, 0.8f, 0.4f, a));
+            else Headline(y, 58, UiStyle.Spaced(w.Name.ToUpperInvariant()), new Color(w.Colour.r, w.Colour.g, w.Colour.b, a));
+            y += UiStyle.S(86);
+            Centered(y, UiStyle.S(26), w == null ? "Le temps s'est écoulé." : w.IsLocal ? "Tu as posé la Couronne." : "a posé la Couronne.", UiStyle.Head,
+                     new Color(0.9f, 0.85f, 0.75f, a * 0.8f));
+            y += UiStyle.S(60);
+            ScoreRow(y, a);
 
-            float ease = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((ended - 0.2f) / 0.8f));
-            if (ease <= 0f) return;
-            Color was = GUI.color;
-            GUI.color = new Color(1f, 1f, 1f, ease);
+            float bw = UiStyle.S(300), bh = UiStyle.S(46);
+            Rect next = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(120), bw, bh);
+            string label = Match.Over ? "LE PODIUM" : "LA SUITE";
+            if ((GUI.Button(next, label, UiStyle.ButtonPrimary) || stateTime > 9f) && stateTime > 1.2f) AfterRound();
+        }
 
-            float w = UiStyle.S(560);
-            float h = UiStyle.S(580);
-            Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f + (1f - ease) * UiStyle.S(20), w, h);
-            UiStyle.Frame(box);
+        // ------------------------------------------------------------------ le choix des pouvoirs
 
-            float x = box.x + UiStyle.S(32);
-            float y = box.y + UiStyle.S(26);
-            float bw = w - UiStyle.S(64);
+        /// <summary>
+        /// LE CHOIX DES POUVOIRS : les cartes etalees au milieu, l'ordre en haut (le
+        /// moins de manches d'abord, le vainqueur en dernier). Les bots choisissent
+        /// tout seuls ; a ton tour, clique une carte.
+        /// </summary>
+        void DrawDraft()
+        {
+            DrawEmbers(0.4f);
+            float y = UiStyle.S(60);
+            Headline(y, 44, UiStyle.Spaced("LES POUVOIRS"), new Color(0.93f, 0.78f, 0.45f, 1f));
+            y += UiStyle.S(70);
 
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(38)), UiStyle.Spaced("LA CLOCHE"), UiStyle.Title);
-            y += UiStyle.S(42);
-            UiStyle.Rule(new Rect(x, y, bw, 1f));
-            y += UiStyle.S(20);
-
-            // --- le classement : toi et les rivaux, du plus puissant au plus faible.
-            System.Collections.Generic.List<Seeker> order = new System.Collections.Generic.List<Seeker>(Game.Seekers);
-            order.Sort((a, b) => b.Score.CompareTo(a.Score));
-            bool won = Victories.Winner != null && Victories.Winner.IsPlayer;
-
-            // Le titre de la victoire, puis qui, puis comment.
-            UiStyle.Tinted(new Rect(x, y, bw, UiStyle.S(30)), won ? "Victoire !" : Victories.Winner != null ? "Défaite" : "Personne", UiStyle.Head,
-                           won ? Palette.Gold : new Color(0.9f, 0.5f, 0.4f));
-            y += UiStyle.S(28);
-            string verdict;
-            if (Victories.Winner == null) verdict = "Aucune stèle n'a d'or.";
-            else if (won) verdict = "Le plus gros butin : ★" + Victories.Winner.Score + ".";
-            else verdict = Victories.Winner.Name + " l'emporte avec ★" + Victories.Winner.Score + ".";
-            GUIStyle wrappedVerdict = UiStyle.Small;
-            bool wrapV = wrappedVerdict.wordWrap;
-            wrappedVerdict.wordWrap = true;
-            GUI.Label(new Rect(x, y, bw, UiStyle.S(36)), verdict, wrappedVerdict);
-            wrappedVerdict.wordWrap = wrapV;
-            y += UiStyle.S(42);
-
+            // --- l'ordre
+            List<int> order = Match.Draft.Order;
+            float chip = UiStyle.S(150);
+            float ox = (Screen.width - chip * order.Count) * 0.5f;
             for (int i = 0; i < order.Count; i++)
             {
-                Seeker sk = order[i];
-                float rowH = UiStyle.S(i == 0 ? 50 : 38);
-                Rect row = new Rect(x, y, bw, rowH - UiStyle.S(6));
+                PlayerSlot s = Match.Slots[order[i]];
+                Rect r = new Rect(ox + i * chip, y, chip - UiStyle.S(10), UiStyle.S(34));
+                bool now = !Match.Draft.Done && Match.Draft.Current == order[i];
+                bool done = i < Match.Draft.Turn;
+                UiStyle.Fill(r, now ? new Color(s.Colour.r, s.Colour.g, s.Colour.b, 0.25f) : new Color(0f, 0f, 0f, 0.4f));
+                UiStyle.Fill(new Rect(r.x, r.yMax - UiStyle.S(3), r.width, UiStyle.S(3)), new Color(s.Colour.r, s.Colour.g, s.Colour.b, done ? 0.4f : 1f));
+                UiStyle.Tinted(r, (i + 1) + ".  " + s.Name, UiStyle.Centered, now ? Palette.Gold : done ? UiStyle.InkFaint : UiStyle.Ink);
+            }
+            y += UiStyle.S(62);
+
+            // --- les cartes
+            List<Power> offer = Match.Draft.Offer;
+            int me = Match.Local != null ? Match.Local.Index : 0;
+            bool myTurn = !Match.Draft.Done && Match.Draft.Current == me;
+            float cw = UiStyle.S(190), chh = UiStyle.S(250), gap = UiStyle.S(18);
+            float total = offer.Count * cw + Mathf.Max(0, offer.Count - 1) * gap;
+            float cx = (Screen.width - total) * 0.5f;
+            for (int i = 0; i < offer.Count; i++)
+            {
+                Power p = offer[i];
+                Rect card = new Rect(cx + i * (cw + gap), y, cw, chh);
+                bool owned = Match.Local != null && Match.Local.Has(p);
+                bool hover = myTurn && !owned && card.Contains(Event.current.mousePosition);
+                if (hover) card.y -= UiStyle.S(8);
+                Color tint = PowerInfo.Tint(p);
+                UiStyle.DropShadow(card, UiStyle.S(14));
+                UiStyle.Fill(card, new Color(0.07f, 0.06f, 0.05f, 0.97f));
+                Border(card, hover ? Palette.Gold : new Color(tint.r, tint.g, tint.b, 0.7f));
+                UiStyle.Fill(new Rect(card.x, card.y, card.width, UiStyle.S(4)), tint);
+                float md = UiStyle.S(96);
+                Rect medal = new Rect(card.center.x - md * 0.5f, card.y + UiStyle.S(26), md, md);
+                UiStyle.Icon(new Rect(medal.x - 3f, medal.y - 3f, medal.width + 6f, medal.height + 6f), UiStyle.Shape.Dot, new Color(tint.r, tint.g, tint.b, 0.6f));
+                UiStyle.Icon(medal, UiStyle.Shape.Dot, new Color(0.04f, 0.035f, 0.03f, 1f));
+                Pictos.Draw(new Rect(medal.x + md * 0.18f, medal.y + md * 0.18f, md * 0.64f, md * 0.64f), p, owned);
+                UiStyle.Tinted(new Rect(card.x, card.y + UiStyle.S(140), card.width, UiStyle.S(30)), PowerInfo.Name(p), UiStyle.Centered, owned ? UiStyle.InkFaint : UiStyle.Ink);
+                UiStyle.Tinted(new Rect(card.x, card.y + UiStyle.S(172), card.width, UiStyle.S(24)), PowerInfo.Effect(p), UiStyle.CenteredSmall, new Color(tint.r, tint.g, tint.b, owned ? 0.4f : 0.95f));
+                if (owned) UiStyle.Tinted(new Rect(card.x, card.y + UiStyle.S(206), card.width, UiStyle.S(20)), "déjà à toi", UiStyle.CenteredSmall, UiStyle.InkFaint);
+                if (myTurn && !owned && GUI.Button(card, GUIContent.none, GUIStyle.none))
+                {
+                    if (Match.Draft.TryPick(me, i)) { Sfx.Discovery(); botPickTimer = 1f; }
+                }
+            }
+            y += chh + UiStyle.S(30);
+
+            // --- ce que chacun a deja
+            if (myTurn) Centered(y, UiStyle.S(26), "À toi de choisir.", UiStyle.Head, Palette.Gold);
+            else if (!Match.Draft.Done)
+            {
+                PlayerSlot who = Match.Slots[Match.Draft.Current];
+                Centered(y, UiStyle.S(26), who.Name + "…", UiStyle.Head, who.Colour);
+            }
+
+            if (Match.Draft.Done)
+            {
+                float bw = UiStyle.S(320), bh = UiStyle.S(46);
+                Rect next = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(110), bw, bh);
+                string label = Match.IsTieBreak ? "LE DÉPARTAGE" : "MANCHE " + Match.RoundNumber;
+                if (GUI.Button(next, label, UiStyle.ButtonPrimary) && !leaving) NextRound();
+            }
+        }
+
+        // ------------------------------------------------------------------ le podium
+
+        void DrawEnd()
+        {
+            float a = Mathf.Clamp01(stateTime / 0.8f);
+            DrawEmbers(0.6f * a);
+            PlayerSlot champion = Match.Champion;
+            float y = Screen.height * 0.12f;
+            float cs = UiStyle.S(110);
+            Pictos.Crown(new Rect((Screen.width - cs) * 0.5f, y, cs, cs * 0.8f), a);
+            y += cs;
+            if (champion == null) Headline(y, 56, UiStyle.Spaced("MATCH NUL"), new Color(0.85f, 0.8f, 0.72f, a));
+            else if (champion.IsLocal) Headline(y, 64, UiStyle.Spaced("VICTOIRE"), new Color(0.95f, 0.8f, 0.4f, a));
+            else Headline(y, 60, UiStyle.Spaced(champion.Name.ToUpperInvariant()), new Color(champion.Colour.r, champion.Colour.g, champion.Colour.b, a));
+            y += UiStyle.S(92);
+
+            // Le podium : du plus de manches au moins.
+            List<PlayerSlot> order = new List<PlayerSlot>(Match.Slots);
+            order.Sort((first, second) => second.Wins.CompareTo(first.Wins));
+            float w = Mathf.Min(UiStyle.S(560), Screen.width - UiStyle.S(40));
+            float x = (Screen.width - w) * 0.5f;
+            Color was = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, a);
+            for (int i = 0; i < order.Count; i++)
+            {
+                PlayerSlot s = order[i];
+                float rh = UiStyle.S(i == 0 ? 52 : 42);
+                Rect row = new Rect(x, y, w, rh - UiStyle.S(6));
                 UiStyle.CardFrame(row);
-                UiStyle.Fill(new Rect(row.x, row.y + UiStyle.S(6), UiStyle.S(4), row.height - UiStyle.S(12)), sk.Colour);
+                UiStyle.Fill(new Rect(row.x, row.y + UiStyle.S(6), UiStyle.S(4), row.height - UiStyle.S(12)), s.Colour);
                 GUIStyle nameStyle = i == 0 ? UiStyle.Head : UiStyle.Label;
                 UiStyle.Tinted(new Rect(row.x + UiStyle.S(16), row.y, UiStyle.S(40), row.height), (i + 1) + ".", nameStyle, UiStyle.InkDim);
-                UiStyle.Tinted(new Rect(row.x + UiStyle.S(48), row.y, bw * 0.5f, row.height), sk.Name, nameStyle,
-                               sk.IsPlayer ? Palette.Gold : UiStyle.Ink);
-                GUIStyle right = UiStyle.Label;
-                TextAnchor previous = right.alignment;
-                right.alignment = TextAnchor.MiddleRight;
-                string what = "★" + sk.Score;
-                GUI.Label(new Rect(row.x, row.y, row.width - UiStyle.S(16), row.height), what, right);
-                right.alignment = previous;
-                y += rowH;
+                UiStyle.Tinted(new Rect(row.x + UiStyle.S(48), row.y, w * 0.4f, row.height), s.Name, nameStyle, s.IsLocal ? Palette.Gold : UiStyle.Ink);
+                for (int k = 0; k < s.Wins; k++)
+                    Pictos.Crown(new Rect(row.xMax - UiStyle.S(30) - k * UiStyle.S(26), row.center.y - UiStyle.S(9), UiStyle.S(24), UiStyle.S(19)), 1f);
+                y += rh;
             }
-            y += UiStyle.S(6);
-            // Le bilan en six cases : un chiffre, un mot (plus de phrase-journal).
+            y += UiStyle.S(10);
+
+            // Ton match en six cases : un chiffre, un mot.
             string[] numbers =
             {
-                Stats.Treasures.ToString(),
-                Stats.Built.ToString(),
-                Stats.Deaths.ToString(),
-                "-" + Stats.Robbed + " / +" + Stats.Looted,
-                Stats.GuardsDowned.ToString(),
-                (Stats.RivalsDowned + Stats.BeastsDowned + Stats.TrapKills).ToString()
+                Stats.Delivered.ToString(), Stats.CrownsTaken.ToString(), Stats.PlayersDowned.ToString(),
+                Stats.GuardsDowned.ToString(), Stats.Chests.ToString(), Stats.Deaths.ToString()
             };
-            string[] words = { "trésors", "constructions", "chutes", "pillé / pris", "gardes abattus", "autres abattus" };
-            float cellW = bw / 3f, cellH = UiStyle.S(44);
+            string[] words = { "couronnes posées", "couronnes prises", "joueurs abattus", "gardes abattus", "coffres", "chutes" };
+            float cellW = w / 3f, cellH = UiStyle.S(50);
             for (int i = 0; i < numbers.Length; i++)
             {
                 Rect cell = new Rect(x + cellW * (i % 3), y + cellH * (i / 3), cellW - UiStyle.S(6), cellH - UiStyle.S(6));
@@ -669,17 +896,22 @@ namespace Fief
                 big.alignment = wasA;
                 UiStyle.Tinted(new Rect(cell.x, cell.y + cell.height * 0.58f, cell.width, cell.height * 0.4f), words[i], UiStyle.CenteredSmall, UiStyle.InkFaint);
             }
-            y += cellH * 2f;
-
-            float bh = UiStyle.S(42);
-            float by = box.yMax - bh - UiStyle.S(26);
-            if (GUI.Button(new Rect(x, by, bw * 0.55f, bh), "UNE AUTRE SAISON", UiStyle.ButtonPrimary) && ease > 0.9f)
-                Restart();
-            if (GUI.Button(new Rect(x + bw * 0.6f, by, bw * 0.4f, bh), "Quitter", UiStyle.Button) && ease > 0.9f)
-                Quit();
-
+            if (Stats.KingDowned > 0)
+                UiStyle.Tinted(new Rect(x, y + cellH * 2f + UiStyle.S(4), w, UiStyle.S(22)), "Tu as abattu le Roi Creux.", UiStyle.Centered, new Color(0.7f, 0.82f, 1f));
             GUI.color = was;
+
+            float bh = UiStyle.S(46);
+            float by = Screen.height - UiStyle.S(100);
+            if (GUI.Button(new Rect(x, by, w * 0.55f, bh), "NOUVEAU MATCH", UiStyle.ButtonPrimary) && stateTime > 1.5f && !leaving)
+            {
+                Match.Abandon();
+                openLobby = true;
+                Curtain(Reload);
+            }
+            if (GUI.Button(new Rect(x + w * 0.6f, by, w * 0.4f, bh), "Quitter", UiStyle.Button) && stateTime > 1.5f) Quit();
         }
+
+        // ------------------------------------------------------------------ les commandes
 
         /// <summary>La liste des commandes. A tenir a jour a chaque nouvelle action.</summary>
         public static readonly string[,] Controls =
@@ -687,24 +919,21 @@ namespace Fief
             { "ZQSD / WASD", "Se déplacer" },
             { "Souris", "Regarder" },
             { "Maj", "Courir" },
-            { "Espace", "Sauter" },
-            { "E", "Prendre, déposer, piller" },
-            { "C", "Planter le camp" },
-            { "G (maintenir)", "Creuser une cache" },
-            { "T", "Construire : pièges, barricades, alarmes" },
-            { "1 / 2 ou molette", "Épée, hache" },
-            { "Clic gauche", "Frapper, abattre" },
+            { "Espace", "Sauter (deux fois : Double saut)" },
+            { "Clic gauche", "Épée, ou l'objet en main" },
+            { "Clic droit", "Pousser" },
+            { "1 / 2 / 3, molette", "Les objets" },
+            { "E", "Prendre, ouvrir, poser la Couronne" },
             { "F", "Grimper" },
-            { "H", "Écouter ta stèle" },
-            { "M", "La carte" },
-            { "Échap", "Pause" },
-            { "F1", "Aide" }
+            { "R", "Ruée (le pouvoir)" },
+            { "Tab", "Le score du match" },
+            { "Échap", "Pause" }
         };
 
         void DrawControls()
         {
             int count = Controls.GetLength(0);
-            float w = UiStyle.S(520);
+            float w = UiStyle.S(560);
             float h = UiStyle.S(170) + count * UiStyle.S(26);
             Rect box = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             UiStyle.Frame(box);
@@ -720,13 +949,11 @@ namespace Fief
 
             for (int i = 0; i < count; i++)
             {
-                if (i % 2 == 0) UiStyle.Fill(new Rect(x - UiStyle.S(8), y - UiStyle.S(2), bw + UiStyle.S(16), UiStyle.S(26)),
-                                             new Color(1f, 1f, 1f, 0.03f));
-                Rect key = new Rect(x, y + UiStyle.S(1), UiStyle.S(150), UiStyle.S(22));
+                if (i % 2 == 0) UiStyle.Fill(new Rect(x - UiStyle.S(8), y - UiStyle.S(2), bw + UiStyle.S(16), UiStyle.S(26)), new Color(1f, 1f, 1f, 0.03f));
+                Rect key = new Rect(x, y + UiStyle.S(1), UiStyle.S(170), UiStyle.S(22));
                 UiStyle.Pill(key);
-                GUIStyle keyStyle = UiStyle.CenteredSmall;
-                UiStyle.Tinted(key, Controls[i, 0], keyStyle, Palette.Gold);
-                GUI.Label(new Rect(x + UiStyle.S(170), y, bw - UiStyle.S(170), UiStyle.S(24)), Controls[i, 1], UiStyle.Small);
+                UiStyle.Tinted(key, Controls[i, 0], UiStyle.CenteredSmall, Palette.Gold);
+                GUI.Label(new Rect(x + UiStyle.S(190), y, bw - UiStyle.S(190), UiStyle.S(24)), Controls[i, 1], UiStyle.Small);
                 y += UiStyle.S(26);
             }
 

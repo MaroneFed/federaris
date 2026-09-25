@@ -89,24 +89,17 @@ namespace Fief
         public static bool DiagnosticPressed { get { return KeyPressed(KeyCode.F3); } }
         public static bool SprintHeld { get { return KeyHeld(KeyCode.LeftShift); } }
 
-        /// <summary>C : planter le camp. Une seule fois par Saison.</summary>
-        public static bool CampPressed { get { return KeyPressed(KeyCode.C); } }
-        /// <summary>G maintenu : creuser une cache là où l'on se tient.</summary>
-        public static bool DigHeld { get { return KeyHeld(KeyCode.G); } }
-        public static bool DigPressed { get { return KeyPressed(KeyCode.G); } }
-
         public static bool Slot1Pressed { get { return KeyPressed(KeyCode.Alpha1); } }
         public static bool Slot2Pressed { get { return KeyPressed(KeyCode.Alpha2); } }
+        public static bool Slot3Pressed { get { return KeyPressed(KeyCode.Alpha3); } }
         /// <summary>F : grimper dans un arbre, ou en redescendre.</summary>
         public static bool ClimbPressed { get { return KeyPressed(KeyCode.F); } }
+        /// <summary>R : la Ruee (le pouvoir).</summary>
+        public static bool DashPressed { get { return KeyPressed(KeyCode.R); } }
+        /// <summary>Tab maintenu : le tableau des scores (manches gagnees, pouvoirs).</summary>
+        public static bool ScoresHeld { get { return KeyHeld(KeyCode.Tab); } }
 
-        /// <summary>H : tendre l'oreille -- ta stele chante fort quelques secondes.</summary>
-        public static bool ListenPressed { get { return KeyPressed(KeyCode.H); } }
-
-        /// <summary>M : la carte.</summary>
-        public static bool MapPressed { get { return KeyPressed(KeyCode.M); } }
-
-        /// <summary>Clic gauche maintenu : frapper avec l'outil en main.</summary>
+        /// <summary>Clic gauche maintenu : frapper avec l'epee.</summary>
         public static bool UseHeld
         {
             get
@@ -120,7 +113,7 @@ namespace Fief
             }
         }
 
-        /// <summary>Clic gauche, a l'instant : poser, fabriquer.</summary>
+        /// <summary>Clic gauche, a l'instant : se servir de l'objet en main.</summary>
         public static bool UsePressed
         {
             get
@@ -134,8 +127,8 @@ namespace Fief
             }
         }
 
-        /// <summary>Clic droit, a l'instant : annuler (le menu de construction).</summary>
-        public static bool AltPressed
+        /// <summary>Clic droit, a l'instant : POUSSER.</summary>
+        public static bool ShovePressed
         {
             get
             {
@@ -147,13 +140,6 @@ namespace Fief
 #endif
             }
         }
-
-        /// <summary>T : construire (pieges, barricades, alarmes, outils).</summary>
-        public static bool BuildPressed { get { return KeyPressed(KeyCode.T); } }
-        public static bool Slot3Pressed { get { return KeyPressed(KeyCode.Alpha3); } }
-        public static bool Slot4Pressed { get { return KeyPressed(KeyCode.Alpha4); } }
-        public static bool Slot5Pressed { get { return KeyPressed(KeyCode.Alpha5); } }
-
 
         static bool KeyHeld(KeyCode code)
         {
@@ -188,18 +174,12 @@ namespace Fief
                 case KeyCode.F1: return k.f1Key;
                 case KeyCode.F3: return k.f3Key;
                 case KeyCode.LeftShift: return k.leftShiftKey;
-                case KeyCode.C: return k.cKey;
-                case KeyCode.G: return k.gKey;
-                case KeyCode.P: return k.pKey;
                 case KeyCode.Alpha1: return k.digit1Key;
                 case KeyCode.Alpha2: return k.digit2Key;
                 case KeyCode.Alpha3: return k.digit3Key;
-                case KeyCode.Alpha4: return k.digit4Key;
-                case KeyCode.Alpha5: return k.digit5Key;
-                case KeyCode.T: return k.tKey;
                 case KeyCode.F: return k.fKey;
-                case KeyCode.H: return k.hKey;
-                case KeyCode.M: return k.mKey;
+                case KeyCode.R: return k.rKey;
+                case KeyCode.Tab: return k.tabKey;
             }
             return null;
         }

@@ -4,8 +4,13 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// CE QUE LA SYLVE DONNE : le bois mort et la pierre-lune.
-    /// (Le fer ancien, lui, est au chateau : voir Castle.IronCrate.)
+    /// LE DECOR DE LA SYLVE : les faisceaux de bois mort et les creux a pierre-lune.
+    ///
+    /// Depuis le 26/09 au soir (La Couronne), on ne les RECOLTE plus : Martin, "c'est
+    /// bizarre de recolter pour gagner de la gloire". Ils restent parce qu'ils font
+    /// la foret : les faisceaux pales qu'on voit dans la penombre, et surtout les
+    /// CREUX BLEUS, des reperes lumineux dont on se souvient -- il n'y a plus de
+    /// boussole, on se repere a ca.
     ///
     /// LE BOIS MORT n'a pas d'emplacements inventes. Il vient de ce que la foret a
     /// deja : chaque tronc couche est un gisement, et un fagot attend au pied d'un
@@ -45,20 +50,6 @@ namespace Fief
 
         // ------------------------------------------------------------------ bois mort
 
-        /// <summary>Un tronc couche devient un gisement de bois mort. Son collider sert deja.</summary>
-        public static void MakeLogHarvestable(GameObject log, GameConfig cfg)
-        {
-            ResourceNode node = log.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 4;
-            // Aussi vif que le faisceau : casser des branches d'un tronc couche.
-            node.harvestDuration = 0.5f;
-            node.respawnDelay = 150f;
-            // Pas de visuel a faire fondre : un tronc ne retrecit pas quand on en casse
-            // des branches. Le nombre restant s'affiche dans l'invite.
-            node.Initialise(ResourceType.Deadwood, 8, null);
-            LogSourceCount++;
-        }
-
         /// <summary>
         /// Un FAISCEAU de bois mort (refait le 26/09 -- Martin : "le bois, j'aimerais
         /// bien qu'il change"). Plus un fagot couche qu'on confondait avec les
@@ -76,11 +67,6 @@ namespace Fief
             go.transform.SetParent(parent, false);
             go.transform.position = at;
             go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
-
-            BoxCollider trigger = go.AddComponent<BoxCollider>();
-            trigger.isTrigger = true;
-            trigger.center = new Vector3(0f, 0.6f, 0f);
-            trigger.size = new Vector3(1.3f, 1.2f, 1.3f);
 
             Proto.BeginVisualOnly();
             GameObject visual = new GameObject("Visuel");
@@ -141,12 +127,6 @@ namespace Fief
             }
             Proto.EndVisualOnly();
 
-            // UN SEUL APPUI pour tout le faisceau : on repart avec les six branches.
-            ResourceNode node = go.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 6;
-            node.harvestDuration = 0.35f;
-            node.respawnDelay = 150f;
-            node.Initialise(ResourceType.Deadwood, 6, visual.transform);
             FagotCount++;
         }
 
@@ -248,7 +228,6 @@ namespace Fief
             hollow.transform.SetParent(parent, false);
             hollow.transform.position = Ground.Place(centre.x, centre.y, 0f);
 
-            List<ResourceNode> nodes = new List<ResourceNode>();
             int stones = 1 + rng.Next(3);
             for (int i = 0; i < stones; i++)
             {
@@ -256,7 +235,7 @@ namespace Fief
                 float d = i == 0 ? 0f : 2.5f + (float)rng.NextDouble() * 4.5f;
                 float x = centre.x + Mathf.Cos(a) * d;
                 float z = centre.y + Mathf.Sin(a) * d;
-                nodes.Add(Moonstone(hollow.transform, Ground.Place(x, z, 0f), rng, cfg));
+                Moonstone(hollow.transform, Ground.Place(x, z, 0f), rng, cfg);
             }
 
             // Une seule lumiere par creux, pas par pierre : quarante lumieres, pas cent.
@@ -270,33 +249,10 @@ namespace Fief
             light.intensity = 1.1f;
             light.shadows = LightShadows.None;
 
-            HollowGlow glow = hollow.AddComponent<HollowGlow>();
-            glow.glowLight = light;
-            glow.nodes = nodes.ToArray();
-            glow.full = light.intensity;
             HollowCount++;
         }
 
-        /// <summary>
-        /// Deux eclats de pierre-lune a quelques pas de chaque stele (26/09 : que la
-        /// premiere minute ait deja quelque chose a faire). Petits : ce n'est qu'une
-        /// mise en route, le vrai gisement est dans les creux.
-        /// </summary>
-        public static void SeedNear(Transform parent, Vector3 stele, GameConfig cfg, System.Random rng)
-        {
-            int placed = 0;
-            for (int tries = 0; tries < 40 && placed < 2; tries++)
-            {
-                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float d = 10f + (float)rng.NextDouble() * 10f;
-                float x = stele.x + Mathf.Cos(a) * d, z = stele.z + Mathf.Sin(a) * d;
-                if (Physics.CheckSphere(Ground.Place(x, z, 0.8f), 0.7f, ~0, QueryTriggerInteraction.Ignore)) continue;
-                Moonstone(parent, Ground.Place(x, z, 0f), rng, cfg);
-                placed++;
-            }
-        }
-
-        static ResourceNode Moonstone(Transform parent, Vector3 at, System.Random rng, GameConfig cfg)
+        static void Moonstone(Transform parent, Vector3 at, System.Random rng, GameConfig cfg)
         {
             GameObject go = new GameObject("Pierre-lune");
             go.transform.SetParent(parent, false);
@@ -349,36 +305,7 @@ namespace Fief
                 chip.GetComponent<Renderer>().sharedMaterial = shine;
             }
             Proto.EndVisualOnly();
-
-            ResourceNode node = go.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 2;         // une grappe se prend en deux gestes, pas quatre
-            node.harvestDuration = 0.9f;
-            node.respawnDelay = 180f;
-            node.Initialise(ResourceType.Moonstone, 4, visual.transform);
             MoonstoneCount++;
-            return node;
-        }
-    }
-
-    /// <summary>
-    /// La lueur d'un creux s'eteint quand toutes ses pierres ont ete prises, et se
-    /// rallume quand elles repoussent. Sinon on marcherait vers une lumiere vide.
-    /// </summary>
-    public class HollowGlow : MonoBehaviour
-    {
-        public Light glowLight;
-        public ResourceNode[] nodes;
-        public float full = 1f;
-
-        void Update()
-        {
-            if (glowLight == null || nodes == null) return;
-            bool any = false;
-            for (int i = 0; i < nodes.Length; i++)
-            {
-                if (nodes[i] != null && !nodes[i].IsDepleted) { any = true; break; }
-            }
-            glowLight.intensity = Mathf.MoveTowards(glowLight.intensity, any ? full : 0f, Time.deltaTime * 0.8f);
         }
     }
 }

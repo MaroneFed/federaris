@@ -8,12 +8,13 @@ pouvoir greffer le combat, l'IA, la diplomatie et surtout le **multijoueur** san
 ## 1. La scène ne contient qu'un objet
 
 `Main.unity` = un GameObject `FIEF (Bootstrap)` portant `GameConfig` + `GameBootstrap`.
-Tout le monde (sol, marché, fiefs, gisements, joueur, caméra, HUD) est construit par code.
+Tout le monde (relief, forêt, château, gardes, joueurs, caméra, HUD) est construit par code,
+et **reconstruit à chaque manche** (la scène est rechargée).
 
 **Pourquoi :** une scène Unity est un fichier YAML de plusieurs milliers de lignes.
 À deux sur le même projet, deux modifications de scène = un conflit Git impossible à
-résoudre à la main. Ici, la map est du **code** : `GameConfig.DefaultZones()` se lit,
-se relit et se merge normalement.
+résoudre à la main. Ici, la map est du **code** : elle se lit, se relit et se merge
+normalement.
 
 **Contrepartie :** on ne peut pas placer un arbre à la souris. C'est le bon compromis
 tant que la map est faite de zones et d'emplacements, ce qui est la décision verrouillée
@@ -24,38 +25,32 @@ un script éditeur qui *écrit* dans `GameConfig` ce qu'il a posé dans la scèn
 
 | Classe C# pure (testable, sérialisable, réplicable) | MonoBehaviour (a besoin d'Unity) |
 |---|---|
-| `Inventory`, `Wallet`, `Market`, `FiefState`, `BuildingCatalog` | `PlayerController`, `OrbitCamera`, `ResourceNode`, `BuildPlot`, `Hud` |
+| `Match` (places, manches, départage), `Match.Draft` (le choix des pouvoirs), `PlayerSlot`, `Loadout` (les trois objets), `Seeker` (la vie, les états), `Season` (le chrono), `Stats` | `PlayerController`, `ToolUser`, `Rival` (les bots), `Guard`, `Crown`, `Monument`, `Chest`, `Hud`, `Menus` |
 
-Toute la **règle du jeu** est dans la colonne de gauche. Elle ne connaît ni Unity,
-ni le réseau, ni l'affichage. C'est elle qui partira côté hôte en Phase 3.
+Toute la **règle du jeu** est dans la colonne de gauche. Elle ne connaît ni le réseau,
+ni l'affichage. C'est elle qui partira côté hôte en Phase 3. La preuve qu'elle est pure :
+`Match` et `Loadout` se testent dans un petit programme .NET, sans Unity (c'est ce que
+Claude a fait le 26/09 : manches, départage, choix des pouvoirs, objets en main).
 
-## 3. Autorité serveur : déjà en place, sans réseau
+## 3. Autorité de l'hôte : déjà en place, sans réseau
 
-Décision verrouillée du brief : *« Autorité serveur absolue sur l'économie. Les clients
-envoient des demandes, le serveur valide et réplique. Aucun client ne modifie son état
-directement. »*
+Décision verrouillée : *l'hôte décide de tout ce qui compte* (Couronne, coups, fin de
+manche). C'est déjà respecté, même en solo : chaque geste passe par **une méthode qui
+prend le joueur qui agit** — `Crown.TryTakeFor(s)`, `Monument.TryDeliver(s)`,
+`Chest.TryOpenFor(s)`, `Combat.Shove(s, …)`, `Combat.Hit(…, s, …)`, `Lever.PullFor(s)`,
+`SecretDoor.UseFor(s)`, `Match.Draft.TryPick(place, carte)`. Toi et les bots passez par
+les mêmes. La manche ne se termine **qu'à un endroit** : `Menus.EndRound(place)`.
 
-C'est déjà respecté, même en solo :
-
-- `Wallet.Gold` est en **lecture seule**. On ne peut le changer que par `Add` / `TrySpend`.
-- Toute transaction passe par `Market.RequestSell` / `Market.RequestBuy`.
-  Ces méthodes **valident** (assez d'or ? assez de place ? assez de stock ?) puis appliquent.
-- Toute construction passe par `BuildPlot.TryBuild`, qui débite puis pose.
-- Le HUD ne calcule **rien**. Il lit, il affiche, il envoie des demandes.
-
-**En Phase 3 :** ces trois méthodes deviennent des `ServerRpc`, elles ne s'exécutent que
-chez l'hôte, et le résultat est répliqué. Le reste du code ne change pas.
+**En Phase 3 :** ces méthodes ne s'exécutent que chez l'hôte ; un invité envoie son
+intention, l'hôte appelle la méthode et réplique le résultat. Le détail :
+`docs/RESEAU.md`.
 
 ## 4. Le point faible connu : `Game.cs`
 
-`Game` est un porteur de références **statique** (`Game.Inventory`, `Game.Wallet`…).
-C'est pratique en solo et **ça tombe à 2 joueurs** : il n'y a qu'un seul `Game.Inventory`
-dans le processus, alors qu'il en faudra un par joueur.
-
-**Le plan :** `Inventory`, `Wallet` et `FiefState` deviennent des composants portés par
-l'objet joueur (`PlayerState`), et `Game.Market` reste unique mais **côté hôte uniquement**.
-C'est une refonte d'une demi-journée, pas d'une semaine, parce que ces trois classes ne
-dépendent de rien. C'est un choix assumé, pas un oubli.
+`Game` est un porteur de références **statique** (`Game.Me`, `Game.Player`, `Game.Hud`…).
+Ça tient **en ligne** parce qu'il n'y a qu'un joueur local par machine ; les autres
+sont dans `Game.Seekers`. Ce qui traverse les manches est dans `Match` (statique aussi,
+et c'est voulu : chaque manche recharge la scène).
 
 ## 5. Les entrées
 
@@ -72,6 +67,7 @@ une opération sans risque, et aucun asset ne sera à re-lier.
 ## 7. Ce qu'il ne faut pas faire
 
 - **Ne mets pas de logique de jeu dans un `OnGUI`.** L'UI lit et demande, point.
-- **Ne modifie pas l'or ou l'inventaire depuis l'extérieur** d'un `Request*` / `Try*`.
-  Le jour où le réseau arrive, chaque entorse devient une triche exploitable.
+- **Ne change pas la Couronne, les objets ou les victoires** en dehors des méthodes
+  `Try…` / `…For(seeker)`. Le jour où le réseau arrive, chaque entorse devient une
+  triche exploitable.
 - **N'ajoute pas de feature hors-phase.** Elle va dans `v2-ideas.md`.

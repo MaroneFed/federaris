@@ -1,36 +1,48 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
 {
     /// <summary>
-    /// CE QU'ON FAIT AVEC CE QU'ON TIENT.
+    /// CE QU'ON FAIT AVEC SES MAINS (La Couronne, 26/09).
     ///
-    ///   1 / 2     prendre en main l'outil de l'emplacement (ou le ranger) ;
-    ///   clic      avec la HACHE, face a un arbre : l'abattre, coup apres coup ;
-    ///             avec l'EPEE : frapper (voir Combat) ;
-    ///   F         face a un arbre : GRIMPER s'installer sur une branche, a quatre
-    ///             metres ; F encore pour redescendre. Personne ne regarde en l'air.
+    ///   clic gauche   avec l'EPEE (rien d'autre en main) : frapper (voir Combat) ;
+    ///                 avec un OBJET : s'en servir (lancer, poser, boire, creuser) ;
+    ///   clic droit    POUSSER : l'autre part en arriere, et lache la Couronne ;
+    ///   1 / 2 / 3     prendre en main l'objet de l'emplacement (ou revenir a l'epee) ;
+    ///   molette       passer de l'epee aux objets ;
+    ///   F             face a un arbre : GRIMPER (F encore pour redescendre).
     ///
-    /// L'outil tenu se voit en bas a droite de l'ecran -- l'outil seulement, pas
-    /// de mains (la regle du corps invisible tient). Il bouge quand on frappe.
+    /// Qui porte la Couronne la tient a deux mains : ni epee, ni poussee, ni objet.
+    ///
+    /// Ce qu'on tient se voit en bas a droite de l'ecran -- l'objet seulement, pas de
+    /// mains (la regle du corps invisible tient). Il bouge quand on s'en sert.
     /// </summary>
     public class ToolUser : MonoBehaviour
     {
-        /// <summary>Ce que le HUD affiche pres du centre de l'ecran ("Clic : abattre").</summary>
+        /// <summary>Ce que le HUD affiche pres du centre de l'ecran ("F|↑").</summary>
         public static string Hint;
         public static bool Aiming;
-        /// <summary>Un ennemi (rival, bete) a portee d'epee, dans l'axe : le reticule rougit.</summary>
+        /// <summary>Un ennemi a portee d'epee, dans l'axe : le reticule rougit.</summary>
         public static bool FoeInReach;
-
-        static readonly Dictionary<Collider, int> Chops = new Dictionary<Collider, int>();
+        /// <summary>0 : on vient de pousser ; 1 : la poussee est prete.</summary>
+        public static float ShoveReady01 = 1f;
+        /// <summary>Le detecteur vient de biper (pour faire clignoter son voyant a l'ecran).</summary>
+        public static float LastBeep = -9f;
+        /// <summary>Distance du tresor enterre le plus proche, quand on tient le detecteur (-1 sinon).</summary>
+        public static float DetectorDistance = -1f;
 
         PlayerController player;
         Transform viewModel;
-        ToolKind shownKind = ToolKind.None;
+        int shownKind = -99;          // ce que montre la vue : -2 la Couronne, sinon l'objet (0 : l'epee)
+        Renderer detectorLamp;
         float swingTimer;
-        float swing;                 // 0 -> 1 : l'animation du coup en cours
+        float swing;                 // 0 -> 1 : l'animation du geste en cours
+        float shoveReadyAt;
+        float beepTimer;
         Transform perch;             // la plate-forme dans l'arbre, si l'on y est
+
+        public const float DetectorRange = 45f;
+        const float DigReach = 2.6f;
 
         void Awake()
         {
@@ -42,20 +54,22 @@ namespace Fief
             Hint = null;
             Aiming = false;
             FoeInReach = false;
+            DetectorDistance = -1f;
             Seeker me = Game.Me;
             if (me == null || player == null) return;
-            Kit kit = me.Kit;
+            Loadout kit = me.Items;
+            float shoveCooldown = me.Has(Power.Poigne) ? 1.5f : 3f;
+            ShoveReady01 = Mathf.Clamp01(1f - (shoveReadyAt - Time.time) / shoveCooldown);
 
-            UpdateViewModel(kit.Held != null ? kit.Held.Kind : ToolKind.None);
-            if (player.InputLocked) return;
-
-            // Le menu de construction (T) garde pour lui les chiffres, la molette et le clic.
-            if (Builder.IsOpen) { AnimateViewModel(); return; }
+            UpdateViewModel(me.CarriesCrown, kit.Held);
+            swing = Mathf.Max(0f, swing - Time.deltaTime * 3.2f);
+            swingTimer -= Time.deltaTime;
+            if (player.InputLocked || !me.Alive) { AnimateViewModel(); return; }
 
             int was = kit.Active;
             if (FiefInput.Slot1Pressed) kit.Select(0);
             if (FiefInput.Slot2Pressed) kit.Select(1);
-            // La molette change d'outil, comme partout ailleurs.
+            if (FiefInput.Slot3Pressed) kit.Select(2);
             float wheel = FiefInput.ZoomNotches;
             if (Mathf.Abs(wheel) > 0.01f) kit.Cycle(wheel > 0f ? -1 : 1);
             if (kit.Active != was) Sfx.Pop();
@@ -63,124 +77,160 @@ namespace Fief
             Transform eye = player.cameraTransform;
             if (eye == null) return;
 
-            // Une escalade interrompue (tombe, jete dehors, releve a sa stele) : on
-            // oublie le perchoir.
+            // Une escalade interrompue (tombe, pousse, releve) : on oublie le perchoir.
             if (climbing && !player.Scripted) climbing = false;
             if (!climbing && perch != null && (transform.position - perch.position).magnitude > 3f)
             {
                 Destroy(perch.gameObject);
                 perch = null;
             }
-
-            // --- on grimpe (ou on descend) : rien d'autre pendant ce temps
-            if (climbing)
-            {
-                Hint = null;
-                Climb();
-                return;
-            }
-
-            // --- descendre de l'arbre
+            if (climbing) { Climb(); return; }
             if (perch != null)
             {
                 Hint = "F|↓";
                 if (FiefInput.ClimbPressed) ClimbDown();
-                return;
-            }
-
-            // --- ce qu'on vise, a portee de bras
-            RaycastHit hit;
-            bool tree = Physics.Raycast(eye.position, eye.forward, out hit, 3.2f, ~0, QueryTriggerInteraction.Ignore)
-                        && Forest.IsTree(hit.collider);
-            Aiming = kit.Held != null;
-            if (kit.Holding(ToolKind.Epee)) FoeInReach = Combat.FoeAhead(eye);
-
-            if (tree)
-            {
-                if (FiefInput.ClimbPressed) { ClimbUp(hit.collider); return; }
-                if (kit.Holding(ToolKind.Hache))
-                {
-                    int done;
-                    Chops.TryGetValue(hit.collider, out done);
-                    Hint = "clic|" + done + "/" + ChopsNeeded(hit.collider) + ";F|↑";
-                }
-                else Hint = Forest.IsGiant(hit.collider) ? "F|↑↑" : "F|↑";
-            }
-
-            // --- poser un piege
-            swingTimer -= Time.deltaTime;
-            if (kit.Holding(ToolKind.Piege))
-            {
-                Hint = "Clic : poser le piège devant toi   (" + Trap.CountOf(me) + " / " + Trap.MaxFor(me) + " posés)";
-                if (FiefInput.UseHeld && swingTimer <= 0f)
-                {
-                    swingTimer = 0.8f;
-                    swing = 1f;
-                    PlaceTrap(me, kit);
-                }
-                swing = Mathf.Max(0f, swing - Time.deltaTime * 3.2f);
                 AnimateViewModel();
                 return;
             }
 
-            // --- frapper
-            if (FiefInput.UseHeld && kit.Held != null && swingTimer <= 0f)
+            // --- grimper
+            RaycastHit hit;
+            bool tree = Physics.Raycast(eye.position, eye.forward, out hit, 3.2f, ~0, QueryTriggerInteraction.Ignore)
+                        && Forest.IsTree(hit.collider);
+            if (tree)
             {
-                float penalty = Mathf.Lerp(1f, 1.8f, me.Bag.Load01);
-                swingTimer = (kit.Holding(ToolKind.Epee) ? 0.55f : 0.7f) * penalty;
-                swing = 1f;
-                Barricade wall = null;
-                RaycastHit near;
-                if (Physics.Raycast(eye.position, eye.forward, out near, 2.8f, ~0, QueryTriggerInteraction.Ignore))
-                    wall = near.collider.GetComponentInParent<Barricade>();
-                if (wall != null) { wall.Hit(); if (me.Kit.Wear(1)) Toasts.Show("Outil brisé", new Color(0.8f, 0.6f, 0.4f)); }
-                else if (kit.Holding(ToolKind.Hache) && tree) Chop(hit, kit);
-                else if (kit.Holding(ToolKind.Epee)) Combat.PlayerStrike(eye);
-                else Sfx.Whoosh();
+                if (FiefInput.ClimbPressed && !me.CarriesCrown) { ClimbUp(hit.collider); return; }
+                Hint = me.CarriesCrown ? null : Forest.IsGiant(hit.collider) ? "F|↑↑" : "F|↑";
             }
-            swing = Mathf.Max(0f, swing - Time.deltaTime * 3.2f);
+
+            // --- la poussee (clic droit) : tout le monde, sauf le porteur
+            if (FiefInput.ShovePressed && !me.CarriesCrown && !me.Rooted)
+            {
+                if (Time.time >= shoveReadyAt)
+                {
+                    shoveReadyAt = Time.time + shoveCooldown;
+                    swing = 1f;
+                    if (!Combat.Shove(me, eye.forward)) Sfx.Whoosh();
+                }
+                else Sfx.Deny();
+            }
+
+            // --- le detecteur bipe tout seul, tant qu'on le tient
+            if (kit.Held == Item.Detecteur && !me.CarriesCrown) Detect(me);
+
+            if (me.CarriesCrown) { AnimateViewModel(); return; }
+
+            // --- l'epee
+            if (kit.HoldingSword)
+            {
+                FoeInReach = Combat.FoeAhead(eye);
+                Aiming = true;
+                if (FiefInput.UseHeld && swingTimer <= 0f && me.CanStrike)
+                {
+                    swingTimer = 0.5f;
+                    swing = 1f;
+                    Combat.PlayerStrike(eye);
+                }
+            }
+            // --- un objet
+            else if (FiefInput.UsePressed && swingTimer <= 0f)
+            {
+                Use(me, kit, eye);
+            }
             AnimateViewModel();
         }
 
-        // ================================================================== abattre
+        // ================================================================== les objets
 
-        static int ChopsNeeded(Collider c)
+        /// <summary>Se servir de l'objet en main.</summary>
+        void Use(Seeker me, Loadout kit, Transform eye)
         {
-            CapsuleCollider cap = c as CapsuleCollider;
-            float r = cap != null ? cap.radius * c.transform.lossyScale.x : 0.3f;
-            return Mathf.Clamp(Mathf.RoundToInt(3f + r * 6f), 3, 7);
-        }
-
-        void Chop(RaycastHit hit, Kit kit)
-        {
-            Collider c = hit.collider;
-            int done;
-            Chops.TryGetValue(c, out done);
-            done++;
-            Chops[c] = done;
-
-            Sfx.Harvest(ResourceType.Iron);
-            Sfx.HarvestTap(ResourceType.Moonstone);
-            Ambiance.Burst(null, hit.point + hit.normal * 0.1f, new Color(0.62f, 0.48f, 0.3f));
-            if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.06f);
-
-            if (kit.Wear(1))
+            Item held = kit.Held;
+            swingTimer = 0.6f;
+            swing = 1f;
+            switch (held)
             {
-                Sfx.Deny();
-                Toasts.Show("Hache brisée", new Color(0.8f, 0.6f, 0.4f));
+                case Item.Pelle:
+                    Dig(me, eye);
+                    break;
+                case Item.Detecteur:
+                    beepTimer = 0f;                 // un bip tout de suite
+                    break;
+                case Item.Fumigene:
+                case Item.Lenteur:
+                    Thrown.Launch(me, held, eye.position + eye.forward * 0.6f, Thrown.Lob(eye.forward, 14f));
+                    kit.ConsumeHeld();
+                    break;
+                case Item.Piege:
+                    PlaceTrap(me, kit);
+                    break;
+                case Item.Elixir:
+                    me.Heal(me.MaxHealth);
+                    Sfx.Discovery();
+                    if (Game.Hud != null) Game.Hud.Flash(ItemInfo.Tint(Item.Elixir));
+                    kit.ConsumeHeld();
+                    break;
+                case Item.Plume:
+                    me.FeatherUntil = Time.time + 30f;
+                    Sfx.Whoosh();
+                    if (Game.Hud != null) Game.Hud.Flash(ItemInfo.Tint(Item.Plume));
+                    kit.ConsumeHeld();
+                    break;
+                case Item.CapeOmbre:
+                    me.HiddenUntil = Time.time + 10f;
+                    Sfx.Whoosh();
+                    if (Game.Hud != null) Game.Hud.Flash(ItemInfo.Tint(Item.CapeOmbre));
+                    kit.ConsumeHeld();
+                    break;
+                default:
+                    // La cle ne sert qu'a la porte derobee du donjon (E devant elle).
+                    Sfx.Deny();
+                    break;
             }
-
-            if (done < ChopsNeeded(c)) return;
-
-            Chops.Remove(c);
-            Vector3 away = c.transform.position - transform.position;
-            away.y = 0f;
-            TreeFall.Fell(c.gameObject, away.sqrMagnitude > 0.01f ? away.normalized : transform.forward);
         }
 
-        // ================================================================== pieger
+        /// <summary>
+        /// LE DETECTEUR : il bipe de plus en plus vite (et de plus en plus aigu) a
+        /// l'approche d'un tresor enterre. Au-dela de 45 m, il se tait.
+        /// </summary>
+        void Detect(Seeker me)
+        {
+            float d;
+            Chest near = Chest.NearestBuried(transform.position, out d);
+            if (near == null || d > DetectorRange) return;
+            DetectorDistance = d;
+            float k = Mathf.Clamp01(d / DetectorRange);
+            beepTimer -= Time.deltaTime;
+            if (beepTimer > 0f) return;
+            beepTimer = Mathf.Lerp(0.08f, 1.2f, k * k);
+            LastBeep = Time.time;
+            Sfx.Beep(Mathf.Lerp(2f, 1f, k));
+            if (detectorLamp != null) detectorLamp.sharedMaterial = MaterialFactory.GetGlow(new Color(0.5f, 1f, 0.55f), 3f);
+            if (d < DigReach) Hint = "clic|⛏";
+        }
 
-        void PlaceTrap(Seeker me, Kit kit)
+        /// <summary>LA PELLE : on creuse devant soi. Sur un tresor enterre, il sort de terre.</summary>
+        void Dig(Seeker me, Transform eye)
+        {
+            Vector3 f = new Vector3(eye.forward.x, 0f, eye.forward.z).normalized;
+            Vector3 spot = transform.position + f * 1.2f;
+            OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
+            Sfx.Dig();
+            Ambiance.Burst(null, Ground.Place(spot.x, spot.z, 0.1f), new Color(0.36f, 0.26f, 0.16f));
+            if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.08f);
+            for (int i = 0; i < Chest.All.Count; i++)
+            {
+                Chest c = Chest.All[i];
+                if (c == null || !c.Hidden) continue;
+                Vector3 d = c.transform.position - spot;
+                d.y = 0f;
+                if (d.magnitude > DigReach) continue;
+                c.Unearth();
+                return;
+            }
+        }
+
+        void PlaceTrap(Seeker me, Loadout kit)
         {
             Vector3 forward = transform.forward;
             forward.y = 0f;
@@ -194,10 +244,9 @@ namespace Fief
                 return;
             }
             Trap.Place(me, at, Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg);
-            kit.Wear(1);                 // le piege quitte la main : l'emplacement se libere
+            kit.ConsumeHeld();
             Sfx.Build();
             OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
-            Toasts.Show("Piège posé.", new Color(0.95f, 0.62f, 0.35f));
         }
 
         // ================================================================== grimper
@@ -296,7 +345,7 @@ namespace Fief
             climbEnd = end;
             pullsDone = 0;
             player.BeginScripted();
-            Sfx.HarvestTap(ResourceType.Deadwood);
+            Sfx.Rustle();
         }
 
         /// <summary>Un pas de l'animation. Trois temps : s'approcher, grimper, se poser.</summary>
@@ -324,7 +373,7 @@ namespace Fief
                 if (pull > pullsDone && pull <= Pulls)
                 {
                     pullsDone = pull;
-                    Sfx.HarvestTap(ResourceType.Deadwood);
+                    Sfx.Rustle();
                     if (pull == 2) Sfx.Creak3D(p + Vector3.up);
                     if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.04f);
                 }
@@ -350,77 +399,125 @@ namespace Fief
             }
         }
 
-        // ================================================================== l'outil en main
+        // ================================================================== ce qu'on tient
 
-        void UpdateViewModel(ToolKind kind)
+        void UpdateViewModel(bool crown, Item item)
         {
+            int kind = crown ? -2 : (int)item;
             if (kind == shownKind) return;
             shownKind = kind;
             if (viewModel != null) Destroy(viewModel.gameObject);
             viewModel = null;
-            if (kind == ToolKind.None || player.cameraTransform == null) return;
+            detectorLamp = null;
+            if (player.cameraTransform == null) return;
 
-            GameObject go = new GameObject("Outil en main");
+            GameObject go = new GameObject(crown ? "En main : la Couronne" : "En main : " + (item == Item.None ? "l'épée" : ItemInfo.Name(item)));
             go.transform.SetParent(player.cameraTransform, false);
             viewModel = go.transform;
+            Transform t = go.transform;
             Proto.BeginVisualOnly();
             Color wood = new Color(0.36f, 0.26f, 0.16f);
             Color steel = new Color(0.62f, 0.64f, 0.68f);
-            if (kind == ToolKind.Piege)
+            Color iron = new Color(0.3f, 0.31f, 0.33f);
+            if (crown)
             {
-                // Le piege ferme, tenu par sa chaine : un anneau de fer herisse.
-                for (int i = 0; i < 8; i++)
-                {
-                    float a = i / 8f * Mathf.PI * 2f;
-                    GameObject seg = Proto.Cube(go.transform, new Vector3(Mathf.Cos(a) * 0.09f, Mathf.Sin(a) * 0.09f, 0f),
-                                                new Vector3(0.05f, 0.02f, 0.02f), Trap.Iron, "Mâchoire");
-                    seg.transform.localRotation = Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg + 90f);
-                }
-                Proto.Cube(go.transform, new Vector3(0f, -0.14f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Trap.Iron, "Chaîne");
+                // Tenue a deux mains, devant soi, un peu bas : on la voit briller.
+                GameObject hold = new GameObject("Couronne");
+                hold.transform.SetParent(t, false);
+                hold.transform.localPosition = new Vector3(-0.3f, 0.02f, 0.1f);
+                hold.transform.localRotation = Quaternion.Euler(-15f, 0f, 0f);
+                Crown.Model(hold.transform, 0.7f);
             }
-            else if (kind == ToolKind.Hache)
+            else switch (item)
             {
-                // LA HACHE : un manche de frene legerement courbe, enroule de cuir a
-                // la prise, une tete forgee (douille, joue, tranchant courbe et clair).
-                Transform t = go.transform;
-                GameObject shaft = Proto.Cylinder(t, new Vector3(0f, 0.02f, 0f), new Vector3(0.036f, 0.28f, 0.036f), wood, "Manche");
-                shaft.transform.localRotation = Quaternion.Euler(0f, 0f, -3f);
-                for (int i = 0; i < 4; i++)
-                    Proto.Cylinder(t, new Vector3(0f, -0.2f + i * 0.035f, 0f), new Vector3(0.042f, 0.012f, 0.042f),
-                                   i % 2 == 0 ? new Color(0.24f, 0.16f, 0.1f) : new Color(0.3f, 0.2f, 0.12f), "Cuir");
-                Proto.Cylinder(t, new Vector3(0f, -0.27f, 0f), new Vector3(0.046f, 0.012f, 0.046f), new Color(0.2f, 0.14f, 0.09f), "Talon");
-                Color iron = new Color(0.34f, 0.35f, 0.37f);
-                Proto.Cube(t, new Vector3(0f, 0.26f, 0f), new Vector3(0.05f, 0.08f, 0.05f), iron, "Douille");
-                Proto.Cube(t, new Vector3(0.055f, 0.26f, 0f), new Vector3(0.07f, 0.07f, 0.022f), iron, "Joue");
-                GameObject edge = Proto.Cylinder(t, new Vector3(0.1f, 0.26f, 0f), new Vector3(0.13f, 0.011f, 0.13f), iron, "Tranchant");
-                edge.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                GameObject bright = Proto.Cylinder(t, new Vector3(0.115f, 0.26f, 0f), new Vector3(0.115f, 0.012f, 0.115f), new Color(0.72f, 0.74f, 0.78f), "Fil");
-                bright.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                Proto.Cube(t, new Vector3(-0.035f, 0.26f, 0f), new Vector3(0.03f, 0.05f, 0.04f), iron, "Marteau");
-            }
-            else
-            {
-                // L'EPEE : pommeau rond, poignee filetee, garde aux quillons evases,
-                // lame a gouttiere sombre qui s'effile en pointe.
-                Transform t = go.transform;
-                Color bronze = new Color(0.55f, 0.44f, 0.22f);
-                Proto.Sphere(t, new Vector3(0f, -0.2f, 0f), new Vector3(0.05f, 0.05f, 0.05f), bronze, "Pommeau");
-                for (int i = 0; i < 5; i++)
-                    Proto.Cylinder(t, new Vector3(0f, -0.16f + i * 0.022f, 0f), new Vector3(0.034f, 0.012f, 0.034f),
-                                   i % 2 == 0 ? new Color(0.22f, 0.15f, 0.1f) : new Color(0.4f, 0.32f, 0.2f), "Fil");
-                Proto.Cube(t, new Vector3(0f, -0.045f, 0f), new Vector3(0.15f, 0.022f, 0.032f), bronze, "Garde");
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    GameObject q = Proto.Cube(t, new Vector3(side * 0.085f, -0.035f, 0f), new Vector3(0.03f, 0.03f, 0.03f), bronze, "Quillon");
-                    q.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-                }
-                Proto.Cube(t, new Vector3(0f, 0.22f, 0f), new Vector3(0.046f, 0.5f, 0.01f), steel, "Lame");
-                Proto.Cube(t, new Vector3(0f, 0.2f, 0f), new Vector3(0.012f, 0.42f, 0.012f), new Color(0.36f, 0.37f, 0.4f), "Gouttière");
-                GameObject tip = Proto.Cone(t, new Vector3(0f, 0.47f, 0f), 0.033f, 0.1f, steel, "Pointe", 4);
-                tip.transform.localScale = new Vector3(0.033f, 0.1f, 0.008f);
+                case Item.Detecteur:
+                    // La canne, le disque de recherche en bas, le boitier et son voyant.
+                    Proto.Cylinder(t, new Vector3(0f, -0.02f, 0f), new Vector3(0.025f, 0.3f, 0.025f), steel, "Canne");
+                    GameObject coil = Proto.Cylinder(t, new Vector3(0f, -0.32f, 0.04f), new Vector3(0.22f, 0.012f, 0.22f), iron, "Disque");
+                    coil.transform.localRotation = Quaternion.Euler(25f, 0f, 0f);
+                    Proto.Cube(t, new Vector3(0f, 0.12f, -0.04f), new Vector3(0.08f, 0.1f, 0.06f), new Color(0.2f, 0.2f, 0.22f), "Boîtier");
+                    GameObject lamp = Proto.Sphere(t, new Vector3(0f, 0.15f, -0.075f), Vector3.one * 0.035f, Color.white, "Voyant");
+                    detectorLamp = lamp.GetComponent<Renderer>();
+                    detectorLamp.sharedMaterial = MaterialFactory.GetGlow(new Color(0.2f, 0.4f, 0.22f), 0.6f);
+                    Proto.Cylinder(t, new Vector3(0f, 0.3f, 0f), new Vector3(0.035f, 0.06f, 0.035f), new Color(0.15f, 0.12f, 0.1f), "Poignée");
+                    break;
+                case Item.Pelle:
+                    Proto.Cylinder(t, new Vector3(0f, 0.05f, 0f), new Vector3(0.032f, 0.32f, 0.032f), wood, "Manche");
+                    Proto.Cube(t, new Vector3(0f, 0.38f, 0f), new Vector3(0.14f, 0.03f, 0.03f), wood, "Poignée");
+                    GameObject blade = Proto.Cube(t, new Vector3(0f, -0.34f, 0.01f), new Vector3(0.17f, 0.2f, 0.02f), steel, "Lame");
+                    blade.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
+                    GameObject point = Proto.Cube(t, new Vector3(0f, -0.44f, 0.03f), new Vector3(0.09f, 0.09f, 0.018f), steel, "Pointe");
+                    point.transform.localRotation = Quaternion.Euler(12f, 0f, 45f);
+                    break;
+                case Item.Fumigene:
+                    Proto.Sphere(t, Vector3.zero, Vector3.one * 0.13f, new Color(0.2f, 0.2f, 0.22f), "Boule");
+                    Proto.Cylinder(t, new Vector3(0f, 0.08f, 0f), new Vector3(0.03f, 0.02f, 0.03f), iron, "Bouchon");
+                    GameObject fuse = Proto.Cube(t, new Vector3(0.01f, 0.12f, 0f), new Vector3(0.008f, 0.05f, 0.008f), Color.white, "Mèche");
+                    fuse.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.55f, 0.2f), 2.5f);
+                    break;
+                case Item.Lenteur:
+                case Item.Elixir:
+                    Color tint = ItemInfo.Tint(item);
+                    GameObject belly = Proto.Sphere(t, Vector3.zero, Vector3.one * 0.12f, tint, "Panse");
+                    belly.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 1.6f);
+                    Proto.Cylinder(t, new Vector3(0f, 0.08f, 0f), new Vector3(0.04f, 0.04f, 0.04f), new Color(0.75f, 0.8f, 0.85f), "Col");
+                    Proto.Cylinder(t, new Vector3(0f, 0.13f, 0f), new Vector3(0.045f, 0.015f, 0.045f), wood, "Bouchon");
+                    break;
+                case Item.Piege:
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float a = i / 8f * Mathf.PI * 2f;
+                        GameObject seg = Proto.Cube(t, new Vector3(Mathf.Cos(a) * 0.09f, Mathf.Sin(a) * 0.09f, 0f),
+                                                    new Vector3(0.05f, 0.02f, 0.02f), Trap.Iron, "Mâchoire");
+                        seg.transform.localRotation = Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg + 90f);
+                    }
+                    Proto.Cube(t, new Vector3(0f, -0.14f, 0f), new Vector3(0.015f, 0.12f, 0.015f), Trap.Iron, "Chaîne");
+                    break;
+                case Item.Plume:
+                    GameObject rachis = Proto.Cube(t, new Vector3(0f, 0.05f, 0f), new Vector3(0.008f, 0.36f, 0.008f), Color.white, "Rachis");
+                    rachis.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(ItemInfo.Tint(Item.Plume), 1.2f);
+                    for (int i = 0; i < 7; i++)
+                    {
+                        float y = -0.06f + i * 0.035f;
+                        float w = 0.05f + Mathf.Sin(i / 6f * Mathf.PI) * 0.03f;
+                        GameObject vane = Proto.Cube(t, new Vector3(0f, y, 0f), new Vector3(w * 2f, 0.03f, 0.004f), ItemInfo.Tint(Item.Plume), "Barbe");
+                        vane.transform.localRotation = Quaternion.Euler(0f, 0f, 12f);
+                    }
+                    break;
+                case Item.CapeOmbre:
+                    GameObject cloth = Proto.Cube(t, Vector3.zero, new Vector3(0.2f, 0.1f, 0.16f), ItemInfo.Tint(Item.CapeOmbre), "Cape pliée");
+                    cloth.transform.localRotation = Quaternion.Euler(0f, 20f, 8f);
+                    Proto.Cube(t, new Vector3(0f, 0.055f, 0f), new Vector3(0.18f, 0.01f, 0.14f), Palette.Shade(ItemInfo.Tint(Item.CapeOmbre), 1.4f), "Pli");
+                    break;
+                case Item.Cle:
+                    Color gold = ItemInfo.Tint(Item.Cle);
+                    Proto.Cylinder(t, new Vector3(0f, 0.1f, 0f), new Vector3(0.09f, 0.01f, 0.09f), gold, "Anneau").transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    Proto.Cube(t, new Vector3(0f, -0.04f, 0f), new Vector3(0.018f, 0.2f, 0.018f), gold, "Tige");
+                    Proto.Cube(t, new Vector3(0.025f, -0.12f, 0f), new Vector3(0.04f, 0.018f, 0.012f), gold, "Dent");
+                    Proto.Cube(t, new Vector3(0.025f, -0.09f, 0f), new Vector3(0.03f, 0.018f, 0.012f), gold, "Dent");
+                    break;
+                default:
+                    // L'EPEE : pommeau rond, poignee filetee, garde aux quillons evases,
+                    // lame a gouttiere sombre qui s'effile en pointe.
+                    Color bronze = new Color(0.55f, 0.44f, 0.22f);
+                    Proto.Sphere(t, new Vector3(0f, -0.2f, 0f), new Vector3(0.05f, 0.05f, 0.05f), bronze, "Pommeau");
+                    for (int i = 0; i < 5; i++)
+                        Proto.Cylinder(t, new Vector3(0f, -0.16f + i * 0.022f, 0f), new Vector3(0.034f, 0.012f, 0.034f),
+                                       i % 2 == 0 ? new Color(0.22f, 0.15f, 0.1f) : new Color(0.4f, 0.32f, 0.2f), "Fil");
+                    Proto.Cube(t, new Vector3(0f, -0.045f, 0f), new Vector3(0.15f, 0.022f, 0.032f), bronze, "Garde");
+                    for (int side = -1; side <= 1; side += 2)
+                    {
+                        GameObject q = Proto.Cube(t, new Vector3(side * 0.085f, -0.035f, 0f), new Vector3(0.03f, 0.03f, 0.03f), bronze, "Quillon");
+                        q.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                    }
+                    Proto.Cube(t, new Vector3(0f, 0.22f, 0f), new Vector3(0.046f, 0.5f, 0.01f), steel, "Lame");
+                    Proto.Cube(t, new Vector3(0f, 0.2f, 0f), new Vector3(0.012f, 0.42f, 0.012f), new Color(0.36f, 0.37f, 0.4f), "Gouttière");
+                    GameObject tip = Proto.Cone(t, new Vector3(0f, 0.47f, 0f), 0.033f, 0.1f, steel, "Pointe", 4);
+                    tip.transform.localScale = new Vector3(0.033f, 0.1f, 0.008f);
+                    break;
             }
             Proto.EndVisualOnly();
-            // L'outil en main ne projette pas d'ombre : collee a la camera, elle
+            // Ce qu'on tient ne projette pas d'ombre : collee a la camera, elle
             // tomberait en grand sur le sol devant soi.
             Renderer[] parts = go.GetComponentsInChildren<Renderer>();
             for (int i = 0; i < parts.Length; i++) parts[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -435,6 +532,9 @@ namespace Fief
         void AnimateViewModel()
         {
             if (viewModel == null) return;
+            // Le voyant du detecteur s'eteint entre deux bips.
+            if (detectorLamp != null && Time.time - LastBeep > 0.09f)
+                detectorLamp.sharedMaterial = MaterialFactory.GetGlow(new Color(0.2f, 0.4f, 0.22f), 0.6f);
             float dt = Time.deltaTime;
 
             // Le pas : un balancement en huit, plus ample a la course.
@@ -460,92 +560,6 @@ namespace Fief
                                                   -0.3f - s * 0.05f + bobY + breathe + windup * 0.04f + lag.y * 0.003f,
                                                   0.55f + s * 0.1f);
             viewModel.localRotation = Quaternion.Euler(-20f + s * 75f - windup * 25f + lag.y, -15f + lag.x, 20f - s * 30f + bobX * 200f);
-        }
-    }
-
-    /// <summary>
-    /// Un arbre qui tombe : il bascule autour de son pied, de plus en plus vite,
-    /// puis s'ecrase avec un bruit sourd. Couche, il devient un gisement de bois
-    /// mort (beaucoup : 14 unites) qu'on ramasse comme un fagot.
-    /// </summary>
-    public class TreeFall : MonoBehaviour
-    {
-        Vector3 pivot;
-        Vector3 axis;
-        float angle;
-        float speed;
-        bool landed;
-
-        public static void Fell(GameObject tree, Vector3 away)
-        {
-            Collider c = tree.GetComponent<Collider>();
-            Vector3 foot = c != null ? new Vector3(c.bounds.center.x, tree.transform.position.y, c.bounds.center.z) : tree.transform.position;
-            float radius = c != null ? Mathf.Min(c.bounds.extents.x, c.bounds.extents.z) : 0.3f;
-            if (c != null) Destroy(c);
-            Stump(foot, Mathf.Clamp(radius, 0.18f, 0.6f));
-            TreeFall f = tree.AddComponent<TreeFall>();
-            f.pivot = foot;
-            f.axis = Vector3.Cross(Vector3.up, away).normalized;
-            Sfx.Creak3D(foot + Vector3.up * 2f);
-        }
-
-        /// <summary>
-        /// La souche : ce qui reste debout quand l'arbre est tombe. Ecorce autour,
-        /// bois clair a cru sur le dessus, cernes, et elle garde un collider -- on ne
-        /// traverse pas une souche.
-        /// </summary>
-        static void Stump(Vector3 foot, float radius)
-        {
-            GameObject go = new GameObject("Souche");
-            go.transform.position = foot;
-            CapsuleCollider col = go.AddComponent<CapsuleCollider>();
-            col.radius = radius;
-            col.height = 1f;
-            col.center = new Vector3(0f, 0.3f, 0f);
-            Proto.BeginVisualOnly();
-            GameObject trunk = Proto.Cylinder(go.transform, new Vector3(0f, 0.2f, 0f), new Vector3(radius * 2.1f, 0.35f, radius * 2.1f), Palette.DarkBarks[0], "Écorce");
-            trunk.GetComponent<Renderer>().sharedMaterial = Surfaces.Bark(Palette.DarkBarks[0]);
-            GameObject top = Proto.Cylinder(go.transform, new Vector3(0f, 0.55f, 0f), new Vector3(radius * 1.9f, 0.012f, radius * 1.9f), new Color(0.62f, 0.5f, 0.34f), "Bois à cru");
-            top.transform.localRotation = Quaternion.Euler(4f, 0f, 3f);
-            Proto.Cylinder(go.transform, new Vector3(0f, 0.565f, 0f), new Vector3(radius * 1.2f, 0.01f, radius * 1.2f), new Color(0.52f, 0.4f, 0.26f), "Cerne");
-            Proto.Cylinder(go.transform, new Vector3(0f, 0.572f, 0f), new Vector3(radius * 0.5f, 0.01f, radius * 0.5f), new Color(0.44f, 0.32f, 0.2f), "Coeur");
-            // Des echardes dressees, là où le tronc a cede.
-            for (int i = 0; i < 4; i++)
-            {
-                float a = i * 1.7f;
-                GameObject splinter = Proto.Cube(go.transform, new Vector3(Mathf.Cos(a) * radius * 0.6f, 0.68f, Mathf.Sin(a) * radius * 0.6f),
-                                                 new Vector3(0.05f, 0.26f, 0.03f), new Color(0.58f, 0.46f, 0.3f), "Écharde");
-                splinter.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * 15f, a * 57f, Mathf.Cos(a) * 15f);
-            }
-            Proto.EndVisualOnly();
-        }
-
-        void Update()
-        {
-            if (landed) return;
-            speed += Time.deltaTime * 55f;
-            float step = Mathf.Min(speed * Time.deltaTime, 86f - angle);
-            transform.RotateAround(pivot, axis, step);
-            angle += step;
-            if (angle < 86f) return;
-
-            landed = true;
-            Sfx.Harvest(ResourceType.Moonstone);
-            if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.25f);
-
-            // Couche, il devient un gisement : un declencheur le long du tronc.
-            Vector3 along = Vector3.Cross(axis, Vector3.up).normalized;
-            GameObject heap = new GameObject("Arbre abattu");
-            heap.transform.position = pivot + along * 2.5f + Vector3.up * 0.6f;
-            heap.transform.rotation = Quaternion.LookRotation(along, Vector3.up);
-            BoxCollider trigger = heap.AddComponent<BoxCollider>();
-            trigger.isTrigger = true;
-            trigger.size = new Vector3(1.6f, 1.4f, 5f);
-            ResourceNode node = heap.AddComponent<ResourceNode>();
-            node.yieldPerHarvest = 4;
-            node.harvestDuration = 0.5f;
-            node.respawnDelay = 0f;
-            node.Initialise(ResourceType.Deadwood, 14, null);
         }
     }
 }

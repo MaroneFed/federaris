@@ -35,7 +35,7 @@ namespace Fief
                 holdTimer = 0f;
             }
 
-            if (current == null || InputLocked)
+            if (current == null || InputLocked || Game.Me != null && !Game.Me.Alive)
             {
                 holdTimer = 0f;
                 HoldDuration = 0f;
@@ -52,14 +52,11 @@ namespace Fief
 
             if (FiefInput.InteractHeld)
             {
-                // Ce qui est par terre (bois mort, pierre-lune), on se baisse pour le
-                // prendre. Une caisse de fer, on la fouille debout, a peine penche.
-                ResourceNode ground = current as ResourceNode;
-                if (ground != null) OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, ground.type == ResourceType.Iron ? 0.3f : 1f);
+                // Un coffre, une depouille, la Couronne tombee : on se baisse pour les prendre.
+                if (current is Chest || current is Remains) OrbitCamera.Crouch = Mathf.Max(OrbitCamera.Crouch, 1f);
 
-                // Pendant le maintien, le personnage frappe vraiment : un coup toutes les
-                // 0,55 s, bras anime et son a chaque impact. Sans ca, maintenir E est une
-                // barre de chargement ; avec ca, c'est un geste.
+                // Pendant le maintien, le personnage s'active vraiment : un geste toutes
+                // les 0,55 s. Sans ca, maintenir E est une barre de chargement.
                 if (holdTimer <= 0f) Swing();
                 holdTimer += Time.deltaTime;
                 swingTimer -= Time.deltaTime;
@@ -82,9 +79,7 @@ namespace Fief
         {
             swingTimer = 0.55f;
             if (Game.Rig != null) Game.Rig.PlaySwing();
-
-            ResourceNode node = current as ResourceNode;
-            if (node != null) Sfx.HarvestTap(node.type);
+            Sfx.Rustle();
         }
 
         /// <summary>

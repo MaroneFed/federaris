@@ -40,6 +40,13 @@ namespace Fief
             public float bulk;
             /// <summary>Hauteur totale en metres (1,8 par defaut).</summary>
             public float height;
+            /// <summary>
+            /// ARMURE LISSE (la Garde Pale) : des gelules et des spheres polies au lieu
+            /// de blocs, un heaume sans visage perce d'une fente qui luit, une cape.
+            /// shirt = l'ivoire de l'armure, legs = son ombre, boots = le metal sombre,
+            /// robeColor = la cape.
+            /// </summary>
+            public bool smooth;
         }
 
         // Les os, pour y accrocher casque, tabard, hallebarde...
@@ -106,6 +113,7 @@ namespace Fief
 
         void Assemble(Look l)
         {
+            if (l.smooth) { AssembleSmooth(l); return; }
             float b = l.bulk;
             Color shirtDark = Palette.Shade(l.shirt, 0.82f);
 
@@ -146,6 +154,86 @@ namespace Fief
             ElbowR = Arm(ArmR, l, b, out HandR);
 
             if (l.robe) Robe(l);
+        }
+
+        /// <summary>
+        /// LA GARDE PALE. Martin (26/09) : "les PNJ, soit tu fais un truc hyper bien
+        /// detaille dans un bon theme, soit un truc lisse". C'est le lisse : pas un
+        /// bloc, pas une arete. Une armure d'ivoire use, faite de gelules et de
+        /// spheres, un heaume en oeuf SANS VISAGE -- juste une fente qui luit comme une
+        /// braise -- et une longue cape sombre. Un seul style, qui se lit de loin.
+        /// </summary>
+        void AssembleSmooth(Look l)
+        {
+            float b = l.bulk;
+            Color ivory = l.shirt;
+            Color shade = l.legs;
+            Color metal = l.boots;
+            Color cape = l.robeColor;
+
+            Hips = Node(transform, new Vector3(0f, 0.98f, 0f), "Bassin");
+            baseHipsY = Hips.localPosition.y;
+            Proto.Sphere(Hips, new Vector3(0f, -0.06f, 0f), new Vector3(0.44f * b, 0.34f, 0.34f * b), shade, "Tassettes");
+            Proto.Cylinder(Hips, new Vector3(0f, 0.1f, 0f), new Vector3(0.4f * b, 0.035f, 0.31f * b), metal, "Ceinturon");
+
+            LegL = Node(Hips, new Vector3(-0.12f * b, -0.05f, 0f), "JambeG");
+            LegR = Node(Hips, new Vector3(0.12f * b, -0.05f, 0f), "JambeD");
+            KneeL = SmoothLeg(LegL, ivory, shade, metal, b);
+            KneeR = SmoothLeg(LegR, ivory, shade, metal, b);
+
+            Torso = Node(Hips, new Vector3(0f, 0.12f, 0f), "Torse");
+            Proto.Capsule(Torso, new Vector3(0f, 0.12f, 0f), new Vector3(0.34f * b, 0.14f, 0.26f * b), shade, "Taille");
+            Proto.Sphere(Torso, new Vector3(0f, 0.36f, 0.01f), new Vector3(0.52f * b, 0.56f, 0.36f * b), ivory, "Cuirasse");
+            Proto.Sphere(Torso, new Vector3(0f, 0.42f, 0.1f * b), new Vector3(0.3f * b, 0.3f, 0.2f), Palette.Shade(ivory, 1.08f), "Arête");
+            Proto.Cylinder(Torso, new Vector3(0f, 0.58f, 0f), new Vector3(0.27f, 0.06f, 0.25f), shade, "Gorgerin");
+
+            // La cape : un col arrondi sur les epaules, puis cinq pans qui tombent
+            // jusqu'aux mollets, en eventail dans le dos.
+            Proto.Sphere(Torso, new Vector3(0f, 0.54f, -0.08f), new Vector3(0.56f * b, 0.16f, 0.36f * b), cape, "Col de cape");
+            for (int i = 0; i < 5; i++)
+            {
+                float a = (i - 2) * 22f;
+                Transform pan = Node(Torso, new Vector3(Mathf.Sin(a * Mathf.Deg2Rad) * 0.2f * b, 0.52f, -0.12f - Mathf.Cos(a * Mathf.Deg2Rad) * 0.06f), "Pan de cape");
+                pan.localRotation = Quaternion.Euler(-7f - Mathf.Abs(i - 2) * 3f, a, 0f);
+                Proto.Cube(pan, new Vector3(0f, -0.66f, -0.02f), new Vector3(0.16f * b, 1.32f, 0.025f), i % 2 == 0 ? cape : Palette.Shade(cape, 0.8f), "Tissu");
+            }
+
+            Neck = Node(Torso, new Vector3(0f, 0.6f, 0f), "Cou");
+            Head = Node(Neck, new Vector3(0f, 0.06f, 0f), "Tête");
+            // Le heaume : un oeuf lisse, une arete sur le dessus, la fente.
+            Proto.Sphere(Head, new Vector3(0f, 0.15f, 0f), new Vector3(0.3f, 0.38f, 0.33f), ivory, "Heaume");
+            Proto.Sphere(Head, new Vector3(0f, 0.28f, -0.01f), new Vector3(0.05f, 0.2f, 0.32f), shade, "Crête");
+            Proto.Sphere(Head, new Vector3(0f, 0.04f, 0.02f), new Vector3(0.28f, 0.12f, 0.3f), shade, "Mentonnière");
+            GameObject slit = Proto.Cube(Head, new Vector3(0f, 0.16f, 0.155f), new Vector3(0.19f, 0.03f, 0.04f), Color.white, "Fente");
+            Visor = slit.GetComponent<Renderer>();
+            Visor.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.55f, 0.22f), 2.6f);
+
+            ArmL = Node(Torso, new Vector3(-0.3f * b, 0.5f, 0f), "BrasG");
+            ArmR = Node(Torso, new Vector3(0.3f * b, 0.5f, 0f), "BrasD");
+            ElbowL = SmoothArm(ArmL, ivory, shade, metal, b, out HandL);
+            ElbowR = SmoothArm(ArmR, ivory, shade, metal, b, out HandR);
+        }
+
+        Transform SmoothLeg(Transform pivot, Color ivory, Color shade, Color metal, float b)
+        {
+            Proto.Capsule(pivot, new Vector3(0f, -0.22f, 0f), new Vector3(0.18f * b, 0.24f, 0.19f * b), shade, "Cuissard");
+            Transform knee = Node(pivot, new Vector3(0f, -0.46f, 0f), "Genou");
+            Proto.Sphere(knee, Vector3.zero, new Vector3(0.16f * b, 0.15f, 0.17f * b), ivory, "Genouillère");
+            Proto.Capsule(knee, new Vector3(0f, -0.2f, 0f), new Vector3(0.15f * b, 0.2f, 0.16f * b), ivory, "Grève");
+            Proto.Sphere(knee, new Vector3(0f, -0.43f, 0.05f), new Vector3(0.17f * b, 0.1f, 0.29f), metal, "Soleret");
+            return knee;
+        }
+
+        Transform SmoothArm(Transform pivot, Color ivory, Color shade, Color metal, float b, out Transform hand)
+        {
+            Proto.Sphere(pivot, new Vector3(0f, 0.02f, 0f), new Vector3(0.27f * b, 0.21f, 0.27f * b), ivory, "Spalière");
+            Proto.Capsule(pivot, new Vector3(0f, -0.17f, 0f), new Vector3(0.13f * b, 0.16f, 0.14f * b), shade, "Brassard");
+            Transform elbow = Node(pivot, new Vector3(0f, -0.33f, 0f), "Coude");
+            Proto.Sphere(elbow, Vector3.zero, new Vector3(0.13f * b, 0.13f, 0.13f * b), ivory, "Cubitière");
+            Proto.Capsule(elbow, new Vector3(0f, -0.15f, 0f), new Vector3(0.12f * b, 0.14f, 0.13f * b), ivory, "Canon");
+            hand = Node(elbow, new Vector3(0f, -0.34f, 0.01f), "Main");
+            Proto.Sphere(hand, Vector3.zero, new Vector3(0.13f, 0.14f, 0.14f), metal, "Gantelet");
+            return elbow;
         }
 
         Transform Leg(Transform pivot, Look l, float b)
@@ -225,6 +313,9 @@ namespace Fief
 
         /// <summary>Le vrai modele qui l'habille, s'il y en a un (voir ModelSkin).</summary>
         public ModelSkin Skin;
+
+        /// <summary>La fente du heaume (armure lisse) : c'est elle qui passe de la braise au rouge.</summary>
+        public Renderer Visor;
 
         // ================================================================== animation
 

@@ -4,108 +4,102 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UN RIVAL : un autre chercheur, qui joue avec TES regles -- et qui, en Phase 3,
-    /// sera un vrai joueur (Martin, 26/09 : "c'est cense etre des vrais joueurs,
-    /// t'es pas cense leur parler"). On ne lui parle donc pas. On le croise, on le
-    /// suit, on le pille, on se bat.
+    /// UN BOT : un autre joueur, qui joue avec TES regles -- et qui, en Phase 3, cedera
+    /// sa place a un vrai joueur en ligne (voir docs/RESEAU.md). On ne lui parle pas.
     ///
     /// Ce qu'il fait, comme toi :
-    ///   - il ramasse la pierre-lune (★2) et le bois ;
-    ///   - il MONTE AU DONJON prendre les tresors, par les escaliers, sous le nez
-    ///     des gardes -- les plus hardis jusqu'a la couronne ;
-    ///   - il rapporte son butin a sa stele des qu'il en porte assez ;
-    ///   - il pille les steles qu'il connait (la tienne comprise) quand leur
-    ///     maitre est loin ;
-    ///   - il pose des pieges autour de la sienne ;
-    ///   - il se bat s'il est arme, fuit sinon ; il fouille les depouilles.
+    ///   - au debut, il FOUILLE un peu la foret (les coffres proches ; avec detecteur
+    ///     et pelle, un tresor enterre) -- plus ou moins longtemps selon son caractere ;
+    ///   - puis il MONTE A LA COURONNE : il entre par la herse si elle est levee
+    ///     (sinon par la poterne ou la breche -- et il tire le levier en passant), il
+    ///     traverse le donjon par les escaliers, ou prend l'escalier derobe s'il a la cle ;
+    ///   - s'il la tient, il file au MONUMENT et la pose ;
+    ///   - si un autre la tient, il le CHASSE : il le pousse (clic droit), il frappe ;
+    ///   - si elle roule par terre, il se jette dessus ;
+    ///   - il se sert de ses objets : elixir quand il saigne, fumigene quand les gardes
+    ///     le talonnent, fiole de lenteur sur le porteur, piege sur la route du Monument.
     ///
-    /// COMMENT IL PENSE. Toutes les 0,7 s il choisit un BUT, du plus urgent au moins
+    /// COMMENT IL PENSE. Toutes les 0,5 s il choisit un BUT, du plus urgent au moins
     /// urgent. Puis, chaque image, il marche vers la cible de ce but -- en suivant,
-    /// s'il le faut, un CHEMIN de points (la grande porte, les escaliers du donjon).
+    /// s'il le faut, un CHEMIN de points (une entree du chateau, les escaliers).
     ///
     /// COMMENT IL MARCHE. Pres de toi (moins de 70 m) il a un vrai corps
     /// (CharacterController) : il bute sur les troncs et les contourne. Loin de toi,
     /// personne ne le voit : il glisse en ligne droite, pour presque rien.
+    ///
+    /// Tout ce qu'il fait passe par les memes portes que toi (Crown.TryTakeFor,
+    /// Monument.TryDeliver, Combat.Shove, Chest.TryOpenFor) : c'est ce qui permettra
+    /// a un joueur en ligne de prendre sa place sans rien changer au reste.
     /// </summary>
     public class Rival : MonoBehaviour
     {
         public static readonly List<Rival> All = new List<Rival>();
 
-        /// <summary>Le dernier a avoir pille TA stele, et jusqu'a quand on le voit sur la boussole.</summary>
-        public static Rival ThiefOfMe;
-
-        /// <summary>Vrai si un rival, au moins, te court apres l'epee a la main.</summary>
+        /// <summary>Vrai si un bot, au moins, te court apres.</summary>
         public static bool HuntingPlayer
         {
             get
             {
                 for (int i = 0; i < All.Count; i++)
-                    if (All[i] != null && All[i].aggro != null && All[i].aggro.IsPlayer && All[i].aggroTimer > 0f && All[i].seeker.Alive) return true;
+                    if (All[i] != null && (All[i].goal == Goal.Hunt || All[i].goal == Goal.Fight) && All[i].prey != null
+                        && All[i].prey.IsPlayer && All[i].seeker.Alive) return true;
                 return false;
             }
         }
-        public static float ThiefUntil;
-        public bool IsHuntedThief { get { return ThiefOfMe == this && Time.time < ThiefUntil && seeker.Hoard.Carried > 0 && seeker.Alive; } }
 
-        enum Goal { Gather, Raid, Bank, Pillage, Scavenge, Fight, Flee }
+        enum Goal { Scout, Chest, Dig, Raid, Grab, Deliver, Hunt, Fight, Flee, Lever }
 
         [System.NonSerialized] public Seeker seeker;
 
         // --- caractere
-        float aggression;       // envie de piller et de se battre (0-1)
-        float daring;           // envie de monter au donjon (0-1)
+        float boldness;         // envie d'aller vite au chateau (0-1)
+        float temper;           // envie de se battre (0-1)
+        float scoutUntil;       // jusqu'ou (temps de manche) il fouille la foret
 
         // --- etat
-        Goal goal = Goal.Gather;
+        Goal goal = Goal.Scout;
         Vector3 target;
         float think;
         float work;
-        ResourceNode node;
-        Treasure prize;
-        Stele victim;
+        Chest chest;
+        Chest buried;
         Remains carcass;
-        float raidCooldown = 40f;
-        float pillageCooldown = 120f;
-        float barkTimer;
-        System.Random rng;
-        readonly List<Vector3> path = new List<Vector3>();
-
-        // --- le combat
-        Seeker aggro;
-        float aggroTimer;
+        Seeker prey;
+        float preyTimer;
         float strikeTimer;
+        float shoveReadyAt;
         float fleeTimer;
         Vector3 fleeFrom;
         float deadTimer;
-        float rearmTimer;
-        Vector3 dangerAt;
-        float dangerTimer;
+        float itemTimer;
+        float barkTimer;
+        System.Random rng;
+        readonly List<Vector3> path = new List<Vector3>();
+        Vector3 wander;
 
         // --- corps
         CharacterController body;
         float fallSpeed;
+        Vector3 knock;
         float stuck;
         float detourTimer;
         float detourSign = 1f;
-        float wallTimer;
         Transform figure;
         CharacterRig rig;
         Vector3 lastPosition;
+        Light lantern;
 
-        const float WalkSpeed = 4.4f;
-        const float RunSpeed = 6.6f;
+        const float WalkSpeed = 5.2f;
+        const float RunSpeed = 7.4f;
 
         // ================================================================== construction
 
-        public static Rival Build(Transform parent, string name, Color colour, Vector3 spawn, float aggression, float daring, int seed)
+        public static Rival Build(Transform parent, PlayerSlot slot, Vector3 spawn, int seed)
         {
-            Inventory bag = new Inventory();
-            bag.MaxWeight = 60f;
-            Hoard hoard = new Hoard();
-            Seeker seeker = new Seeker(name, colour, false, bag, hoard);
+            Seeker seeker = new Seeker(slot);
             Game.Seekers.Add(seeker);
 
-            GameObject root = new GameObject("RIVAL " + name);
+            GameObject root = new GameObject("JOUEUR " + slot.Name);
             root.transform.SetParent(parent, false);
             root.transform.position = spawn;
             seeker.Body = root.transform;
@@ -120,51 +114,20 @@ namespace Fief
             Rival r = root.AddComponent<Rival>();
             r.seeker = seeker;
             r.body = cc;
-            r.aggression = aggression;
-            r.daring = daring;
             r.rng = new System.Random(seed);
+            r.boldness = 0.3f + (float)r.rng.NextDouble() * 0.7f;
+            r.temper = 0.3f + (float)r.rng.NextDouble() * 0.7f;
+            r.scoutUntil = Mathf.Lerp(100f, 25f, r.boldness);
             r.lastPosition = spawn;
-            r.raidCooldown = 30f + (float)r.rng.NextDouble() * 60f;
+            r.wander = spawn;
 
-            // LE CORPS : exactement celui du joueur. Sa couleur passe par la bande du
-            // poncho, une echarpe et un ruban au baton.
+            // LE CORPS : exactement celui du joueur, a sa couleur.
+            Color colour = slot.Colour;
             CharacterRig rig = CharacterRig.Build(root.transform, colour, Palette.Shade(colour, 0.62f));
             rig.RunSpeed = RunSpeed;
             r.rig = rig;
             r.figure = rig.transform;
-
-            Proto.BeginVisualOnly();
-            Transform neck = rig.HeadBone;
-            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Écharpe");
-            GameObject tail = Proto.Cube(neck, new Vector3(0.08f, -0.24f, -0.17f), new Vector3(0.1f, 0.34f, 0.03f), Palette.Shade(colour, 0.85f), "Pan");
-            tail.transform.localRotation = Quaternion.Euler(-12f, 0f, 8f);
-
-            // La lanterne pend au bout du baton : de loin, on voit une lueur qui se
-            // balance a hauteur de tete. C'est comme ca qu'on repere un rival.
-            Transform staff = rig.StaffBone;
-            Vector3 lantern = new Vector3(0.16f, 1.08f, 0.04f);
-            if (staff != null)
-            {
-                Proto.Cube(staff, new Vector3(0.08f, 1.24f, 0.03f), new Vector3(0.18f, 0.03f, 0.03f), new Color(0.3f, 0.23f, 0.16f), "Potence");
-                Proto.Cube(staff, new Vector3(0.02f, 0.72f, 0f), new Vector3(0.08f, 0.14f, 0.08f), colour, "Ruban");
-                Proto.Cube(staff, lantern + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-                Proto.Cube(staff, lantern - new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-                GameObject flame = Proto.Cube(staff, lantern, new Vector3(0.09f, 0.13f, 0.09f), Color.white, "Flamme");
-                flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.38f), 2.6f);
-                flame.AddComponent<Flame>();
-            }
-            Proto.EndVisualOnly();
-
-            GameObject lightGo = new GameObject("Lanterne de " + name);
-            lightGo.transform.SetParent(staff != null ? staff : rig.transform, false);
-            lightGo.transform.localPosition = lantern;
-            Light light = lightGo.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = new Color(1f, 0.76f, 0.48f);
-            light.intensity = 1.2f;
-            light.range = 9f;
-            light.shadows = LightShadows.None;
-            lightGo.AddComponent<LampFlicker>();
+            r.lantern = PlayerLook.Dress(rig, root.transform, colour);
 
             All.Add(r);
             return r;
@@ -175,35 +138,33 @@ namespace Fief
             All.Remove(this);
         }
 
-        /// <summary>Deplace d'un coup.</summary>
-        public void Teleport(Vector3 position)
-        {
-            body.enabled = false;
-            transform.position = position;
-            lastPosition = position;
-            path.Clear();
-            node = null;
-            think = 0f;
-        }
-
-        /// <summary>Le rival de ce chercheur, ou null.</summary>
+        /// <summary>Le bot de ce joueur, ou null (toi, ou un joueur en ligne).</summary>
         public static Rival Of(Seeker s)
         {
             for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].seeker == s) return All[i];
             return null;
         }
 
-        /// <summary>Quelqu'un vient de piller la stele de "victim" : s'il est arme, il le chasse.</summary>
-        public static void NotifyTheft(Seeker victim, Seeker thief)
+        /// <summary>La silhouette (ce qu'on voit), pour le recul d'un coup.</summary>
+        public Transform Figure { get { return figure; } }
+
+        /// <summary>Deplace d'un coup (l'escalier derobe, la releve).</summary>
+        public void Teleport(Vector3 position)
         {
-            Rival r = Of(victim);
-            if (r == null || thief == null) return;
-            if (r.armed && r.seeker.Alive)
-            {
-                r.aggro = thief;
-                r.aggroTimer = 60f;
-                r.think = 0f;
-            }
+            bool was = body.enabled;
+            body.enabled = false;
+            transform.position = position;
+            lastPosition = position;
+            body.enabled = was;
+            path.Clear();
+            think = 0f;
+        }
+
+        /// <summary>On le projette (une poussee, un coup du Roi).</summary>
+        public void Push(Vector3 velocity)
+        {
+            knock += new Vector3(velocity.x, 0f, velocity.z);
+            if (velocity.y > 0f) fallSpeed = Mathf.Max(fallSpeed, velocity.y);
         }
 
         // ================================================================== boucle
@@ -220,118 +181,131 @@ namespace Fief
                 if (deadTimer <= 0f) Revive();
                 return;
             }
-            if (aggroTimer > 0f) aggroTimer -= dt;
+            if (preyTimer > 0f) preyTimer -= dt;
             if (fleeTimer > 0f) fleeTimer -= dt;
             if (strikeTimer > 0f) strikeTimer -= dt;
-            if (raidCooldown > 0f) raidCooldown -= dt;
-            if (pillageCooldown > 0f) pillageCooldown -= dt;
-            if (dangerTimer > 0f) dangerTimer -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
-            if (seeker.Alive && Stele.NearOwn(seeker, 8f) && Time.time - seeker.LastHurt > 2f) seeker.Heal(18f * dt);
-            else if (seeker.Alive && Time.time - seeker.LastHurt > 8f) seeker.Heal(3f * dt);
-            if (rearmTimer > 0f)
-            {
-                rearmTimer -= dt;
-                // Il s'est refait une epee (du bois et du fer, quelque part).
-                if (rearmTimer <= 0f && armed && seeker.Kit.FreeSlot >= 0 && !seeker.Kit.Holding(ToolKind.Epee))
-                {
-                    seeker.Kit.Slots[seeker.Kit.FreeSlot] = new Tool(ToolKind.Epee);
-                    seeker.Kit.Select(0);
-                }
-            }
+            if (itemTimer > 0f) itemTimer -= dt;
+            // La vie remonte apres un moment de calme (trois fois plus vite avec Sang vif).
+            if (seeker.Alive && Time.time - seeker.LastHurt > 6f) seeker.Heal((seeker.Has(Power.SangVif) ? 9f : 3f) * dt);
 
             think -= dt;
-            if (think <= 0f) { think = 0.7f; Think(season); }
+            if (think <= 0f) { think = 0.5f; Think(season); }
 
+            UseItems();
             Act(dt);
-            Notice();
             Animate(dt);
         }
 
         /// <summary>Choisir un but, du plus urgent au moins urgent.</summary>
         void Think(Season season)
         {
-            Hoard h = seeker.Hoard;
             Goal was = goal;
+            Vector3 me = transform.position;
 
-            // Il fuit : on l'a frappe alors qu'il ne peut pas se battre.
+            // 1. Il porte la Couronne : au Monument, et vite.
+            if (seeker.CarriesCrown && Monument.Instance != null)
+            {
+                SetGoal(Goal.Deliver, Monument.Instance.transform.position, was);
+                return;
+            }
+
+            // 2. Il fuit : a bout de forces sous les coups.
             if (fleeTimer > 0f)
             {
-                Vector3 away = transform.position - fleeFrom;
+                Vector3 away = me - fleeFrom;
                 away.y = 0f;
                 goal = Goal.Flee;
-                target = transform.position + (away.sqrMagnitude > 0.01f ? away.normalized : transform.forward) * 20f;
+                target = me + (away.sqrMagnitude > 0.01f ? away.normalized : transform.forward) * 20f;
                 path.Clear();
                 return;
             }
 
-            // Il se bat : on l'a frappe, on l'a pille, ou un porteur de butin passe a portee.
-            if (aggro == null) LookForPrey();
-            if (aggro != null && aggroTimer > 0f && aggro.Alive && aggro.Body != null && seeker.Kit.Holding(ToolKind.Epee))
+            // 3. La Couronne roule par terre : il se jette dessus.
+            if (Crown.Where == Crown.State.Dropped && Flat(Crown.Position - me).magnitude < 150f)
             {
-                goal = Goal.Fight;
-                target = aggro.Body.position;
+                SetGoal(Goal.Grab, Crown.Position, was);
+                return;
+            }
+
+            // 4. Un autre la porte : il le chasse.
+            Seeker holder = Crown.Holder;
+            if (holder != null && holder != seeker && holder.Body != null)
+            {
+                // Par les portes et les escaliers s'il le faut (le chemin est refait a
+                // chaque pensee : le porteur bouge).
+                prey = holder;
+                preyTimer = 5f;
+                SetGoal(Goal.Hunt, holder.Body.position, was);
+                return;
+            }
+
+            // 5. On l'a frappe : il rend les coups (un moment).
+            if (prey != null && preyTimer > 0f && prey.Alive && prey.Body != null && seeker.CanStrike)
+            {
+                SetGoal(Goal.Fight, prey.Body.position, was);
+                return;
+            }
+            prey = null;
+
+            // 6. La herse est baissee, il est dans la cour, pres du levier : il le tire
+            //    (c'est son chemin de retour, avec la Couronne).
+            if (Lever.Instance != null && !Portcullis.IsOpen && Castle.Inside(me) && me.y < 3f
+                && Flat(Lever.Instance.transform.position - me).magnitude < 16f && Lever.Instance.CanInteract)
+            {
+                SetGoal(Goal.Lever, Lever.Instance.transform.position, was);
+                return;
+            }
+
+            // 7. Le debut de la manche : il fouille la foret.
+            bool early = season.Elapsed < scoutUntil && Crown.Where == Crown.State.OnPedestal;
+            if (early)
+            {
+                // Un tresor enterre : detecteur et pelle en main.
+                if (seeker.Items.Has(Item.Detecteur) && seeker.Items.Has(Item.Pelle))
+                {
+                    float d;
+                    Chest b = Chest.NearestBuried(me, out d);
+                    if (b != null && d < 60f) { buried = b; SetGoal(Goal.Dig, b.transform.position, was); return; }
+                }
+                // Un coffre, pas trop loin.
+                if (!seeker.Items.Full)
+                {
+                    if (goal == Goal.Chest && chest != null && !chest.Opened) { SetGoal(Goal.Chest, chest.transform.position, was); return; }
+                    chest = NearestChest(90f);
+                    if (chest != null) { SetGoal(Goal.Chest, chest.transform.position, was); return; }
+                    carcass = NearestCarcass();
+                    if (carcass != null) { SetGoal(Goal.Chest, carcass.transform.position, was); return; }
+                }
+                // Rien a portee : il avance au hasard, vers le chateau en gros.
+                if (Flat(wander - me).magnitude < 4f || was != Goal.Scout)
+                {
+                    Vector3 towards = -Flat(me).normalized;
+                    float a = ((float)rng.NextDouble() - 0.5f) * 140f;
+                    wander = me + Quaternion.Euler(0f, a, 0f) * towards * (25f + (float)rng.NextDouble() * 25f);
+                }
+                goal = Goal.Scout;
+                target = wander;
                 path.Clear();
                 return;
             }
-            aggro = null;
 
-            if (!h.StelePlanted) { goal = Goal.Gather; target = transform.position; return; }
-
-            // Du butin sur lui : il rentre le deposer (vite, s'il en a beaucoup ou si la cloche approche).
-            bool heavy = h.Carried >= 10 || seeker.Bag.Load01 > 0.8f || h.Carried > 0 && season.Remaining < 100f
-                         || seeker.Bag.Get(ResourceType.Moonstone) >= 8;
-            if (heavy || goal == Goal.Bank && (h.Carried > 0 || seeker.Bag.Get(ResourceType.Moonstone) > 0))
+            // 8. A la Couronne.
+            if (Crown.Where == Crown.State.OnPedestal)
             {
-                SetGoal(Goal.Bank, h.StelePosition, was);
+                SetGoal(Goal.Raid, Keep.CrownSpot, was);
                 return;
             }
 
-            // Une depouille avec du butin, pas loin : il la fouille.
-            if (goal == Goal.Scavenge && carcass != null && carcass.HasLoot) { SetGoal(Goal.Scavenge, carcass.transform.position, was); return; }
-            carcass = NearestCarcass();
-            if (carcass != null) { SetGoal(Goal.Scavenge, carcass.transform.position, was); return; }
-
-            // Il continue le raid en cours tant que le tresor est la.
-            if (goal == Goal.Raid && prize != null && prize.Available) { SetGoal(Goal.Raid, prize.transform.position, was); return; }
-            if (goal == Goal.Pillage && victim != null && victim.owner.Hoard.Banked > 0 && !victim.Guarded) { SetGoal(Goal.Pillage, victim.transform.position, was); return; }
-
-            // Piller une stele connue, pleine, dont le maitre est loin.
-            if (pillageCooldown <= 0f)
-            {
-                pillageCooldown = 25f;
-                Stele best = PillageTarget();
-                if (best != null && rng.NextDouble() < 0.35 + aggression * 0.5)
-                {
-                    victim = best;
-                    SetGoal(Goal.Pillage, best.transform.position, Goal.Gather);
-                    return;
-                }
-            }
-
-            // Monter au chateau prendre un tresor.
-            if (raidCooldown <= 0f && h.Carried < 6)
-            {
-                raidCooldown = 20f;
-                Treasure t = ChooseTreasure();
-                if (t != null && rng.NextDouble() < 0.3 + daring * 0.6)
-                {
-                    prize = t;
-                    SetGoal(Goal.Raid, t.transform.position, Goal.Gather);
-                    return;
-                }
-            }
-
-            goal = Goal.Gather;
-            if (was != Goal.Gather) path.Clear();
-            if (node == null || node.IsDepleted || seeker.Bag.SpaceFor(node.type) <= 0) node = ChooseNode();
-            target = node != null ? node.transform.position : h.StelePosition;
+            // Rien d'autre : il rode pres du Monument (la Couronne finira par y venir).
+            Vector3 camp = Monument.Instance != null ? Monument.Instance.transform.position : Vector3.zero;
+            float t = Time.time * 0.1f + seeker.Index;
+            SetGoal(Goal.Scout, camp + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 12f, was);
         }
 
-        /// <summary>Changer de but : on recalcule le chemin (portes, escaliers) quand la cible change.</summary>
         void SetGoal(Goal g, Vector3 at, Goal was)
         {
-            bool fresh = g != was || (at - target).sqrMagnitude > 4f;
+            bool fresh = g != was || (at - target).sqrMagnitude > 9f;
             goal = g;
             target = at;
             if (fresh) PlanPath(at);
@@ -340,9 +314,9 @@ namespace Fief
         // ================================================================== les chemins
 
         /// <summary>
-        /// Le chemin vers "to" : sortir du donjon s'il y est (par les escaliers, a
-        /// l'envers), sortir de l'enceinte par la porte la plus proche s'il faut, y
-        /// entrer de meme, puis monter au bon etage.
+        /// Le chemin vers "to" : descendre du donjon s'il y est (par les escaliers, a
+        /// l'envers), sortir de l'enceinte par l'entree la plus proche s'il faut, y
+        /// entrer de meme, puis monter au bon etage -- ou prendre l'escalier derobe.
         /// </summary>
         void PlanPath(Vector3 to)
         {
@@ -350,36 +324,31 @@ namespace Fief
             Vector3 from = transform.position;
             bool fromKeep = Castle.InKeep(from);
             bool toKeep = Castle.InKeep(to);
-            bool fromCastle = Castle.Covers(from.x, from.z, -3f);
-            bool toCastle = Castle.Covers(to.x, to.z, -3f);
+            bool fromCastle = Castle.Inside(from);
+            bool toCastle = Castle.Inside(to);
+            int fromLevel = Keep.LevelOf(from.y), toLevel = Keep.LevelOf(to.y);
 
-            if (fromKeep && !(toKeep && Keep.LevelOf(to.y) == Keep.LevelOf(from.y)))
+            if (fromKeep && !(toKeep && toLevel == fromLevel))
             {
-                List<Vector3> down = Keep.PathTo(Keep.LevelOf(from.y));
+                List<Vector3> down = Keep.PathTo(fromLevel);
                 for (int i = down.Count - 1; i >= 0; i--) path.Add(down[i]);
             }
-            Vector3[] storeFrom = fromCastle ? Castle.StoreroomDoor(from) : null;
-            if (storeFrom != null && Castle.InStoreroom(from.x, from.z)) { path.Add(storeFrom[1]); path.Add(storeFrom[0]); }
-
             if (fromCastle && !toCastle)
             {
                 Vector3[] exit = Castle.EntryFrom(to);
-                path.Add(exit[1]);
-                path.Add(exit[0]);
+                for (int i = exit.Length - 1; i >= 0; i--) path.Add(exit[i]);
             }
             else if (!fromCastle && toCastle)
             {
-                Vector3[] entry = Castle.EntryFrom(from);
-                path.Add(entry[0]);
-                path.Add(entry[1]);
+                path.AddRange(Castle.EntryFrom(from));
             }
 
-            if (toKeep && !(fromKeep && Keep.LevelOf(to.y) == Keep.LevelOf(from.y)))
-                path.AddRange(Keep.PathTo(Keep.LevelOf(to.y)));
-            else if (toCastle && Castle.InStoreroom(to.x, to.z))
+            if (toKeep && !(fromKeep && toLevel == fromLevel))
             {
-                Vector3[] door = Castle.StoreroomDoor(to);
-                if (door != null) { path.Add(door[0]); path.Add(door[1]); }
+                SecretDoor door = SecretDoor.Instance;
+                bool secret = toLevel == 3 && door != null && (door.Open || seeker.Items.Has(Item.Cle));
+                if (secret) path.Add(door.transform.position + door.transform.forward * 0.8f);
+                else path.AddRange(Keep.PathTo(toLevel));
             }
         }
 
@@ -392,7 +361,14 @@ namespace Fief
                 Vector3 d = p - transform.position;
                 bool sameFloor = Mathf.Abs(d.y) < 1.6f || !Castle.InKeep(transform.position);
                 d.y = 0f;
-                if (d.magnitude < 1.1f && sameFloor) { path.RemoveAt(0); continue; }
+                if (d.magnitude < 1.2f && sameFloor)
+                {
+                    path.RemoveAt(0);
+                    // La porte derobee : il l'ouvre (ou la prend) et se retrouve la-haut.
+                    SecretDoor door = SecretDoor.Instance;
+                    if (door != null && Flat(p - door.transform.position).magnitude < 1.5f && door.UseFor(seeker)) { path.Clear(); return target; }
+                    continue;
+                }
                 return p;
             }
             return target;
@@ -400,41 +376,17 @@ namespace Fief
 
         // ================================================================== choisir
 
-        /// <summary>Un tresor disponible : le plus rentable, compte tenu de la distance et de son audace.</summary>
-        Treasure ChooseTreasure()
+        Chest NearestChest(float range)
         {
-            Treasure best = null;
-            float bestScore = 0f;
-            for (int i = 0; i < Treasure.All.Count; i++)
+            Chest best = null;
+            float bestD = range;
+            for (int i = 0; i < Chest.All.Count; i++)
             {
-                Treasure t = Treasure.All[i];
-                if (t == null || !t.Available) continue;
-                if (t.kind == Treasure.Kind.Couronne && daring < 0.6f) continue;
-                int level = Castle.InKeep(t.transform.position) ? Keep.LevelOf(t.transform.position.y) : 0;
-                if (level > 1 && daring < 0.45f) continue;
-                float d = Flat(t.transform.position - transform.position).magnitude + level * 25f;
-                if (dangerTimer > 0f && Flat(t.transform.position - dangerAt).magnitude < 25f) continue;
-                float score = t.Value / (30f + d);
-                if (score > bestScore) { bestScore = score; best = t; }
-            }
-            return best;
-        }
-
-        /// <summary>Une stele connue, a piller : de l'or dessus, et son maitre a plus de 40 m.</summary>
-        Stele PillageTarget()
-        {
-            Stele best = null;
-            int bestLoot = 14;
-            for (int i = 0; i < Stele.All.Count; i++)
-            {
-                Stele s = Stele.All[i];
-                if (s == null || s.owner == seeker || !seeker.Knows(s.owner)) continue;
-                int loot = s.owner.Hoard.Banked;
-                if (loot <= bestLoot) continue;
-                if (s.owner.Body != null && Flat(s.owner.Body.position - s.transform.position).magnitude < 40f) continue;
-                if (Flat(s.transform.position - transform.position).magnitude > 220f) continue;
-                bestLoot = loot;
-                best = s;
+                Chest c = Chest.All[i];
+                if (c == null || c.Opened || c.Hidden) continue;
+                if (Castle.Inside(c.transform.position)) continue;      // ceux du chateau, en passant seulement
+                float d = Flat(c.transform.position - transform.position).magnitude;
+                if (d < bestD) { bestD = d; best = c; }
             }
             return best;
         }
@@ -442,7 +394,7 @@ namespace Fief
         Remains NearestCarcass()
         {
             Remains best = null;
-            float bestD = 45f;
+            float bestD = 40f;
             for (int i = 0; i < Remains.All.Count; i++)
             {
                 Remains r = Remains.All[i];
@@ -453,52 +405,27 @@ namespace Fief
             return best;
         }
 
-        /// <summary>
-        /// Choisir un gisement : la pierre-lune d'abord (c'est du butin), le bois quand
-        /// il en manque pour ses pieges, le fer du chateau pour les plus hardis.
-        /// </summary>
-        ResourceNode ChooseNode()
-        {
-            ResourceType wanted = ResourceType.Moonstone;
-            if (seeker.Bag.Get(ResourceType.Deadwood) < 6 && rng.NextDouble() < 0.35) wanted = ResourceType.Deadwood;
-            else if (seeker.Bag.Get(ResourceType.Iron) < 2 && rng.NextDouble() < daring * 0.3) wanted = ResourceType.Iron;
-
-            ResourceNode best = null;
-            float bestD = float.MaxValue;
-            float limit = wanted == ResourceType.Iron ? 400f : wanted == ResourceType.Moonstone ? 200f : 80f;
-            for (int pass = 0; pass < 2 && best == null; pass++)
-            {
-                for (int i = 0; i < ResourceNode.All.Count; i++)
-                {
-                    ResourceNode n = ResourceNode.All[i];
-                    if (n == null || n.IsDepleted) continue;
-                    if (pass == 0 && n.type != wanted) continue;
-                    if (pass == 1 && n.type == ResourceType.Iron) continue;
-                    if (seeker.Bag.SpaceFor(n.type) <= 0) continue;
-                    if (dangerTimer > 0f && Flat(n.transform.position - dangerAt).magnitude < 30f) continue;
-                    float d = Flat(n.transform.position - transform.position).magnitude;
-                    if (pass == 0 && d > limit) continue;
-                    if (d < bestD) { bestD = d; best = n; }
-                }
-            }
-            if (best != null) PlanPath(best.transform.position);
-            return best;
-        }
-
         // ================================================================== agir
 
         void Act(float dt)
         {
-            Hoard h = seeker.Hoard;
-            float speed = Mathf.Lerp(WalkSpeed, WalkSpeed * 0.75f, seeker.Bag.Load01);
-            if (goal == Goal.Fight || goal == Goal.Flee || goal == Goal.Bank && h.Carried >= 20) speed = RunSpeed * (goal == Goal.Bank ? 0.85f : 1f);
+            float speed = (goal == Goal.Scout || goal == Goal.Chest ? WalkSpeed : RunSpeed) * seeker.SpeedFactor;
 
-            if (goal == Goal.Fight && aggro != null && aggro.Body != null) target = aggro.Body.position;
+            if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null) target = prey.Body.position;
+            if (goal == Goal.Grab) target = Crown.Position;
             Vector3 step = Waypoint();
             float distance = Flat(target - transform.position).magnitude;
             float dy = Mathf.Abs(target.y - transform.position.y);
-            float reach = goal == Goal.Gather ? 2.2f : goal == Goal.Fight ? 1.9f : goal == Goal.Raid ? 1.9f : 2.4f;
-            bool arrived = path.Count == 0 && distance <= reach && (dy < 2f || !Castle.InKeep(target));
+            float reach = goal == Goal.Hunt || goal == Goal.Fight ? 1.9f : goal == Goal.Deliver ? 3.2f : goal == Goal.Raid ? 2f : 1.8f;
+            bool arrived = path.Count == 0 && distance <= reach && (dy < 2.4f || !Castle.InKeep(target));
+
+            // Pendant la chasse, la poussee part des qu'il est a portee -- meme en courant.
+            if (goal == Goal.Hunt && prey != null && prey.Body != null && distance < 2.5f && Time.time >= shoveReadyAt && !seeker.CarriesCrown)
+            {
+                shoveReadyAt = Time.time + (seeker.Has(Power.Poigne) ? 1.5f : 3f);
+                if (rig != null) rig.PlaySwing();
+                Combat.Shove(seeker, prey.Body.position - transform.position);
+            }
 
             if (!arrived)
             {
@@ -506,166 +433,135 @@ namespace Fief
                 Walk(step, speed, dt);
                 return;
             }
+            Walk(transform.position, 0f, dt);
 
             switch (goal)
             {
-                case Goal.Gather:
-                    Harvest(dt);
+                case Goal.Deliver:
+                    work += dt;
+                    if (work < 2f) break;
+                    work = 0f;
+                    if (Monument.Instance != null && Monument.Instance.TryDeliver(seeker)) Bark("Victoire !");
+                    think = 0f;
                     break;
 
                 case Goal.Raid:
+                case Goal.Grab:
                     work += dt;
-                    if (prize == null || !prize.Available) { think = 0f; break; }
-                    if (work < 1.2f) break;
-                    if (prize.TryTakeFor(seeker)) Bark("Il est à moi !");
-                    prize = null;
-                    think = 0f;
-                    break;
-
-                case Goal.Bank:
-                    h.RequestBank(seeker.Bag);
-                    seeker.SyncWeight();
-                    SetTraps();
-                    think = 0f;
-                    break;
-
-                case Goal.Pillage:
-                    work += dt;
-                    if (victim == null || victim.Guarded) { think = 0f; break; }
-                    if (work < 3f) break;
+                    if (work < (Crown.Where == Crown.State.OnPedestal ? 1.2f : 0.5f)) break;
                     work = 0f;
-                    Pillage(victim);
-                    victim = null;
+                    if (Crown.Instance != null && Crown.Instance.TryTakeFor(seeker)) Bark("À moi !");
                     think = 0f;
                     break;
 
-                case Goal.Scavenge:
+                case Goal.Chest:
                     work += dt;
-                    if (work < 1.5f || carcass == null) break;
-                    carcass.TakeFor(seeker);
+                    if (work < 0.8f) break;
+                    work = 0f;
+                    if (chest != null && !chest.Opened) chest.TryOpenFor(seeker);
+                    else if (carcass != null) carcass.TakeFor(seeker);
+                    chest = null;
                     carcass = null;
                     think = 0f;
                     break;
 
-                case Goal.Fight:
-                    // A portee : un coup d'epee toutes les 1,1 s.
-                    if (strikeTimer <= 0f && aggro != null && seeker.CanStrike)
-                    {
-                        strikeTimer = 1.1f;
-                        if (rig != null) rig.PlaySwing();
-                        if (PlayerWithin(25f)) Sfx.HarvestTap(ResourceType.Iron);
-                        if (seeker.Kit.Wear(1)) rearmTimer = 60f;
-                        Combat.Hit(aggro, seeker, Combat.SwordDamage * 0.8f);
-                        if (!aggro.Alive) { aggro = null; Bark("Et voilà."); }
-                    }
-                    if (aggro != null && aggro.Body != null) Figures.Face(transform, aggro.Body.position, 360f);
+                case Goal.Dig:
+                    work += dt;
+                    if (work < 1.6f) break;
+                    work = 0f;
+                    if (buried != null && buried.Hidden) { buried.Unearth(); chest = buried; goal = Goal.Chest; }
+                    buried = null;
                     break;
 
-                case Goal.Flee:
+                case Goal.Lever:
+                    work += dt;
+                    if (work < 1f) break;
+                    work = 0f;
+                    if (Lever.Instance != null) Lever.Instance.PullFor(seeker);
+                    think = 0f;
+                    break;
+
+                case Goal.Hunt:
+                case Goal.Fight:
+                    if (prey != null && prey.Body != null) Figures.Face(transform, prey.Body.position, 360f);
+                    if (strikeTimer <= 0f && prey != null && seeker.CanStrike)
+                    {
+                        strikeTimer = 0.9f;
+                        if (rig != null) rig.PlaySwing();
+                        if (PlayerWithin(25f)) Sfx.Whoosh();
+                        Combat.Hit(prey, seeker, Combat.SwordDamage);
+                        if (prey != null && !prey.Alive) { prey = null; Bark("Et voilà."); think = 0f; }
+                    }
+                    break;
+
+                default:
                     think = 0f;
                     break;
             }
         }
 
-        void Harvest(float dt)
+        /// <summary>Ses objets, au bon moment -- comme un joueur qui sait ce qu'il fait.</summary>
+        void UseItems()
         {
-            if (node == null || node.IsDepleted) { think = 0f; return; }
-            float penalty = Mathf.Lerp(1f, 2.4f, seeker.Bag.Load01);
-            work += dt;
-            if (work < node.harvestDuration * penalty * 1.2f + 0.3f) return;
-            work = 0f;
-            node.TryTakeFor(seeker.Bag, node.yieldPerHarvest);
-            if (node.IsDepleted || seeker.Bag.SpaceFor(node.type) <= 0) think = 0f;
-        }
+            if (itemTimer > 0f || !seeker.Alive || seeker.Rooted) return;
+            Loadout kit = seeker.Items;
+            itemTimer = 0.6f;
+            Vector3 me = transform.position;
 
-        void Pillage(Stele s)
-        {
-            int taken = seeker.Hoard.RequestPillage(s.owner.Hoard);
-            seeker.SyncWeight();
-            if (taken <= 0) return;
-            Bark("Merci bien !");
-            if (s.owner == Game.Me)
+            if (kit.Has(Item.Elixir) && seeker.Health < seeker.MaxHealth * 0.4f)
             {
-                Stats.Robbed += taken;
-                ThiefOfMe = this;
-                ThiefUntil = Time.time + 90f;
-                Sfx.Alarm();
-                Me().Discover(seeker);
-                if (Game.Hud != null && Game.Me.Body != null)
-                    Game.Hud.ShowDiscovery("", "-★" + taken, seeker.Name, "", new Color(1f, 0.4f, 0.3f));
+                kit.TryRemove(Item.Elixir);
+                seeker.Heal(seeker.MaxHealth);
+                Burst(ItemInfo.Tint(Item.Elixir));
+                return;
             }
-            NotifyTheft(s.owner, seeker);
-        }
+            if (kit.Has(Item.Plume)) { kit.TryRemove(Item.Plume); seeker.FeatherUntil = Time.time + 30f; return; }
+            if (seeker.CarriesCrown) return;          // les deux mains prises
 
-        static Seeker Me() { return Game.Me; }
-
-        /// <summary>
-        /// Les rivaux posent des pieges autour de leur stele avec le bois et le fer de
-        /// leur sac (memes prix que toi) : piller Mahaut, c'est regarder ou l'on pose
-        /// les pieds.
-        /// </summary>
-        void SetTraps()
-        {
-            Hoard h = seeker.Hoard;
-            if (aggression < 0.3f) return;
-            int wanted = aggression >= 0.6f ? 3 : 2;
-            int[] cost = Builder.Cost(Builder.Kind.Machoires);
-            for (int n = Trap.CountOf(seeker); n < wanted; n++)
+            int chasers = Guard.ChasersOf(seeker);
+            if (kit.Has(Item.CapeOmbre) && (chasers > 0 || goal == Goal.Raid && Castle.Inside(me)))
             {
-                for (int i = 0; i < cost.Length; i++) if (seeker.Bag.Get((ResourceType)i) < cost[i]) return;
-                Vector3 at = Vector3.zero;
-                bool found = false;
-                for (int tries = 0; tries < 12 && !found; tries++)
+                kit.TryRemove(Item.CapeOmbre);
+                seeker.HiddenUntil = Time.time + 10f;
+                Burst(ItemInfo.Tint(Item.CapeOmbre));
+                return;
+            }
+            if (kit.Has(Item.Fumigene) && chasers >= 2)
+            {
+                kit.TryRemove(Item.Fumigene);
+                Thrown.Launch(seeker, Item.Fumigene, me + Vector3.up * 1.5f, Vector3.down * 2f + transform.forward);
+                return;
+            }
+            Seeker holder = Crown.Holder;
+            if (holder != null && holder != seeker && holder.Body != null)
+            {
+                Vector3 to = holder.Body.position - me;
+                float d = Flat(to).magnitude;
+                if (kit.Has(Item.Lenteur) && d > 4f && d < 15f)
                 {
-                    float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                    float r = 2.5f + (float)rng.NextDouble() * 3.5f;
-                    at = h.StelePosition + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
-                    found = Trap.WhyNot(seeker, at) == null;
+                    kit.TryRemove(Item.Lenteur);
+                    Thrown.Launch(seeker, Item.Lenteur, me + Vector3.up * 1.6f, Thrown.Lob(to.normalized, d));
+                    return;
                 }
-                if (!found) return;
-                for (int i = 0; i < cost.Length; i++) seeker.Bag.TryRemove((ResourceType)i, cost[i]);
-                Trap.Place(seeker, at, (float)rng.NextDouble() * 360f);
+                // Un piege sur la route du Monument, s'il y est avant le porteur.
+                if (kit.Has(Item.Piege) && Monument.Instance != null && Monument.Instance.Within(me, 25f))
+                {
+                    Vector3 at = me + Flat(to).normalized * 2f;
+                    if (Trap.WhyNot(seeker, at) == null)
+                    {
+                        kit.TryRemove(Item.Piege);
+                        Trap.Place(seeker, at, (float)rng.NextDouble() * 360f);
+                    }
+                }
             }
         }
 
-        /// <summary>Ce qu'il remarque en passant : les steles des autres.</summary>
-        void Notice()
+        void Burst(Color c)
         {
-            for (int i = 0; i < Stele.All.Count; i++)
-            {
-                Stele s = Stele.All[i];
-                if (s == null || s.owner == seeker || seeker.Knows(s.owner)) continue;
-                if (Flat(s.transform.position - transform.position).magnitude < 12f) seeker.Discover(s.owner);
-            }
+            if (PlayerWithin(40f)) Ambiance.Burst(null, transform.position + Vector3.up * 1.2f, c);
         }
 
-        // ================================================================== le combat
-
-        /// <summary>Il a une epee (les deux plus hardis partent armes).</summary>
-        public bool armed;
-
-        public void Arm()
-        {
-            armed = true;
-            seeker.Kit.Slots[0] = new Tool(ToolKind.Epee);
-            seeker.Kit.Select(0);
-        }
-
-        /// <summary>La silhouette (ce qu'on voit), pour le recul d'un coup.</summary>
-        public Transform Figure { get { return figure; } }
-
-        /// <summary>Une bete le mord et il est a bout : il fuit, et evite l'endroit.</summary>
-        public void FleeFrom(Vector3 from)
-        {
-            fleeTimer = 7f;
-            fleeFrom = from;
-            dangerAt = from;
-            dangerTimer = 60f;
-            node = null;
-            prize = null;
-            think = 0f;
-            Bark("Au diable cette bête !");
-        }
+        // ================================================================== les coups
 
         /// <summary>On vient de le frapper. S'il peut se battre, il se retourne ; sinon il fuit.</summary>
         public void OnHit(Seeker attacker)
@@ -673,83 +569,69 @@ namespace Fief
             if (!seeker.Alive) return;
             if (attacker == null)
             {
-                // Un garde : il lache son raid et rentre, butin sous le bras.
-                dangerAt = transform.position;
-                dangerTimer = 90f;
-                prize = null;
-                goal = seeker.Hoard.Carried > 0 ? Goal.Bank : Goal.Gather;
-                if (goal == Goal.Bank) PlanPath(seeker.Hoard.StelePosition);
-                think = 0.7f;
+                // Un garde, une bete : a bout de forces, il decroche.
+                if (seeker.Health < 30f && !seeker.CarriesCrown)
+                {
+                    fleeTimer = 6f;
+                    fleeFrom = transform.position + transform.forward;
+                    think = 0f;
+                }
                 Bark("Aïe !");
                 return;
             }
-            bool canFight = seeker.Kit.Holding(ToolKind.Epee) && seeker.Health > 35f;
-            if (canFight)
+            if (seeker.CanStrike && (seeker.Health > 30f || rng.NextDouble() < temper))
             {
-                aggro = attacker;
-                aggroTimer = 25f;
+                prey = attacker;
+                preyTimer = 8f + temper * 10f;
                 Bark("Tu vas le regretter !");
             }
-            else
+            else if (!seeker.CarriesCrown)
             {
-                fleeTimer = 6f;
+                fleeTimer = 5f;
                 fleeFrom = attacker.Body != null ? attacker.Body.position : transform.position;
                 Bark("Laisse-moi !");
             }
             think = 0f;
         }
 
-        /// <summary>
-        /// Quelqu'un porte du butin a moins de douze metres : les rivaux armes et
-        /// agressifs tentent leur chance -- toi comme les autres.
-        /// </summary>
-        void LookForPrey()
+        /// <summary>On vient de le pousser : il se retourne contre celui qui l'a fait.</summary>
+        public void OnShoved(Seeker by)
         {
-            if (!armed || !seeker.Kit.Holding(ToolKind.Epee) || seeker.Health < 50f) return;
-            // La Couronne se voit de partout : a moins de 90 m, il y va.
-            Seeker crown = Treasure.CrownHolder;
-            if (crown != null && crown != seeker && crown.Body != null && Flat(crown.Body.position - transform.position).magnitude < 90f)
-            {
-                aggro = crown;
-                aggroTimer = 30f;
-                Bark("La couronne !");
-                return;
-            }
-            for (int i = 0; i < Game.Seekers.Count; i++)
-            {
-                Seeker s = Game.Seekers[i];
-                if (s == seeker || !s.Alive || s.Body == null || s.Hoard.Carried < 8) continue;
-                // Plus il porte, plus on le sent de loin.
-                float range = s.Hoard.Carried >= 15 ? 35f : 14f;
-                if (Flat(s.Body.position - transform.position).magnitude > range) continue;
-                if (rng.NextDouble() > aggression * 0.2f) continue;
-                aggro = s;
-                aggroTimer = 20f;
-                Bark("Donne-moi ça !");
-                return;
-            }
+            if (!seeker.Alive || by == null || seeker.CarriesCrown) return;
+            if (rng.NextDouble() < 0.4 + temper * 0.5) { prey = by; preyTimer = 6f; think = 0f; }
+        }
+
+        /// <summary>Une bete le mord et il est a bout : il fuit.</summary>
+        public void FleeFrom(Vector3 from)
+        {
+            if (seeker.CarriesCrown) return;
+            fleeTimer = 6f;
+            fleeFrom = from;
+            think = 0f;
         }
 
         public void Die()
         {
-            deadTimer = 20f;
-            aggro = null;
-            prize = null;
+            deadTimer = Combat.RespawnSeconds;
+            prey = null;
             path.Clear();
+            knock = Vector3.zero;
             if (body != null) body.enabled = false;
             if (figure != null) figure.gameObject.SetActive(false);
+            if (lantern != null) lantern.enabled = false;
             transform.position += Vector3.down * 50f;          // hors de vue, le temps de se relever
         }
 
         void Revive()
         {
-            seeker.Health = Seeker.MaxHealth;
+            seeker.Health = seeker.MaxHealth;
             Vector3 at = Combat.RespawnPoint(seeker, transform.position + Vector3.up * 50f);
             transform.position = at;
             lastPosition = at;
             if (figure != null) figure.gameObject.SetActive(true);
-            if (armed) rearmTimer = 45f;
-            goal = Goal.Gather;
+            if (lantern != null) lantern.enabled = true;
+            goal = Goal.Scout;
+            wander = at;
             think = 0f;
         }
 
@@ -759,60 +641,56 @@ namespace Fief
         {
             Vector3 to = Flat(destination - transform.position);
             float d = to.magnitude;
-            if (d < 0.05f) return;
-            Vector3 dir = to / d;
+            Vector3 dir = d > 0.05f ? to / d : transform.forward;
+            if (d < 0.05f) speed = 0f;
             if (detourTimer > 0f)
             {
                 detourTimer -= dt;
                 dir = Quaternion.Euler(0f, 70f * detourSign, 0f) * dir;
             }
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-5f * dt));
 
-            bool seen = PlayerWithin(70f);
+            bool seen = PlayerWithin(70f) || knock.sqrMagnitude > 1f;
             if (body.enabled != seen) body.enabled = seen;
 
             if (seen)
             {
-                fallSpeed = body.isGrounded ? -1f : fallSpeed - 22f * dt;
+                fallSpeed = body.isGrounded && fallSpeed <= 0f ? -1f : fallSpeed - 22f * dt;
+                // Bloque par un rebord : il saute (plus haut avec la plume).
+                if (stuck > 0.25f && body.isGrounded && speed > 0f) fallSpeed = 7f * (Time.time < seeker.FeatherUntil ? 1.8f : 1f);
                 Vector3 before = transform.position;
-                body.Move((dir * speed + Vector3.up * fallSpeed) * dt);
+                body.Move((dir * speed + knock + Vector3.up * fallSpeed) * dt);
                 float moved = Flat(transform.position - before).magnitude;
-                if (moved < speed * dt * 0.3f)
+                if (speed > 0f && moved < speed * dt * 0.3f)
                 {
                     stuck += dt;
-                    // Une barricade qui n'est pas la sienne lui barre la route : il la casse.
-                    Barricade wall = stuck > 0.35f ? Barricade.Blocking(seeker, transform.position, 1.3f) : null;
-                    if (wall != null)
-                    {
-                        wallTimer -= dt;
-                        if (wallTimer <= 0f)
-                        {
-                            wallTimer = 1.1f;
-                            if (rig != null) rig.PlaySwing();
-                            wall.Hit();
-                        }
-                    }
-                    else if (stuck > 0.35f) { detourTimer = 1.1f; detourSign = -detourSign; stuck = 0f; }
+                    if (stuck > 0.6f) { detourTimer = 1.1f; detourSign = -detourSign; stuck = 0f; }
                 }
                 else stuck = 0f;
             }
-            else
+            else if (speed > 0f)
             {
-                // Loin de toi : il glisse. Dans le donjon, il suit la hauteur du chemin
-                // (escaliers) au lieu du sol.
+                // Loin de toi : il glisse. Dans le donjon (et sur la breche), il suit la
+                // hauteur du chemin au lieu du sol.
                 Vector3 p = transform.position + dir * speed * dt;
-                p.y = Castle.InKeep(p) ? Mathf.MoveTowards(transform.position.y, destination.y, speed * dt) : Ground.Sample(p.x, p.z);
+                float ground = Ground.Sample(p.x, p.z);
+                p.y = Castle.InKeep(p) || destination.y > ground + 1f ? Mathf.MoveTowards(transform.position.y, destination.y, speed * dt) : ground;
                 transform.position = p;
             }
 
-            Quaternion look = Quaternion.LookRotation(dir, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, 360f * dt);
+            if (speed > 0f)
+            {
+                Quaternion look = Quaternion.LookRotation(dir, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, look, 360f * dt);
+            }
         }
 
         void Animate(float dt)
         {
             if (figure == null) return;
-            // Loin de toi, le corps s'eteint : personne ne le voit.
-            bool near = PlayerWithin(45f);
+            // Loin de toi, le corps s'eteint : personne ne le voit. La lanterne et le
+            // halo, eux, restent : c'est comme ca qu'on repere un joueur dans la brume.
+            bool near = PlayerWithin(60f);
             if (figure.gameObject.activeSelf != near) figure.gameObject.SetActive(near);
             Vector3 moved = Flat(transform.position - lastPosition);
             lastPosition = transform.position;
@@ -840,6 +718,73 @@ namespace Fief
         {
             v.y = 0f;
             return v;
+        }
+    }
+
+    /// <summary>
+    /// CE QUI FAIT QU'ON SE RECONNAIT DE LOIN (Martin : "je veux que les gens puissent
+    /// se voir"). Chaque joueur porte :
+    ///   - une ECHARPE et un ruban a sa couleur ;
+    ///   - une LANTERNE a sa couleur au bout du baton, qui eclaire autour de lui ;
+    ///   - un HALO au-dessus de la tete, une petite flamme a sa couleur qui perce la
+    ///     brume : on voit ou sont les autres a cinquante metres.
+    /// </summary>
+    public static class PlayerLook
+    {
+        /// <summary>Habiller un corps a sa couleur. Renvoie la lumiere de sa lanterne.</summary>
+        public static Light Dress(CharacterRig rig, Transform root, Color colour)
+        {
+            Proto.BeginVisualOnly();
+            Transform neck = rig.HeadBone;
+            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Écharpe");
+            GameObject tail = Proto.Cube(neck, new Vector3(0.08f, -0.24f, -0.17f), new Vector3(0.1f, 0.34f, 0.03f), Palette.Shade(colour, 0.85f), "Pan");
+            tail.transform.localRotation = Quaternion.Euler(-12f, 0f, 8f);
+
+            Transform staff = rig.StaffBone;
+            Vector3 lamp = new Vector3(0.16f, 1.08f, 0.04f);
+            Color flameColour = Color.Lerp(colour, new Color(1f, 0.8f, 0.5f), 0.35f);
+            if (staff != null)
+            {
+                Proto.Cube(staff, new Vector3(0.08f, 1.24f, 0.03f), new Vector3(0.18f, 0.03f, 0.03f), new Color(0.3f, 0.23f, 0.16f), "Potence");
+                Proto.Cube(staff, new Vector3(0.02f, 0.72f, 0f), new Vector3(0.08f, 0.14f, 0.08f), colour, "Ruban");
+                Proto.Cube(staff, lamp + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
+                Proto.Cube(staff, lamp - new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
+                GameObject flame = Proto.Cube(staff, lamp, new Vector3(0.09f, 0.13f, 0.09f), Color.white, "Flamme");
+                flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(flameColour, 2.6f);
+                flame.AddComponent<Flame>();
+            }
+            Proto.EndVisualOnly();
+
+            GameObject lightGo = new GameObject("Lanterne");
+            lightGo.transform.SetParent(staff != null ? staff : rig.transform, false);
+            lightGo.transform.localPosition = lamp;
+            Light lantern = lightGo.AddComponent<Light>();
+            lantern.type = LightType.Point;
+            lantern.color = flameColour;
+            lantern.intensity = 1.3f;
+            lantern.range = 10f;
+            lantern.shadows = LightShadows.None;
+            lightGo.AddComponent<LampFlicker>();
+
+            Halo(root, colour);
+            return lantern;
+        }
+
+        /// <summary>
+        /// Une petite flamme a sa couleur, qui flotte a 2,4 m au-dessus de lui. Pas un
+        /// marqueur d'interface : une lueur dans le monde, que la brume avale au loin.
+        /// </summary>
+        public static void Halo(Transform root, Color colour)
+        {
+            Proto.BeginVisualOnly();
+            GameObject orb = Proto.Sphere(root, new Vector3(0f, 2.45f, 0f), Vector3.one * 0.16f, Color.white, "Halo");
+            Renderer r = orb.GetComponent<Renderer>();
+            r.sharedMaterial = MaterialFactory.GetGlow(colour, 4f);
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Bobber bob = orb.AddComponent<Bobber>();
+            bob.amplitude = 0.07f;
+            bob.spin = 90f;
+            Proto.EndVisualOnly();
         }
     }
 }

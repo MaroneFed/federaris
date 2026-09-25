@@ -116,16 +116,14 @@ namespace Fief
         {
             Menus menus = Game.Menus;
             if (menus != null && menus.Current == Menus.State.Ended) return Mood.End;
-            if (menus != null && (menus.Current == Menus.State.Title || menus.Current == Menus.State.Briefing)) return Mood.Title;
+            if (menus != null && menus.Current != Menus.State.Playing && menus.Current != Menus.State.Paused) return Mood.Title;
 
             bool tense = false;
             for (int i = 0; i < Guard.All.Count && !tense; i++) if (Guard.All[i] != null && Guard.All[i].Chasing) tense = true;
             Seeker me = Game.Me;
             if (me != null && Time.time - me.LastHurt < 6f) tense = true;
-            for (int i = 0; i < Rival.All.Count && !tense; i++)
-                if (Rival.All[i] != null && Rival.All[i].IsHuntedThief) tense = true;
-            // Porter beaucoup d'or, c'est etre une cible.
-            if (me != null && me.Hoard.Carried >= 20) tense = true;
+            // Quelqu'un porte la Couronne : tout le monde court.
+            if (Crown.Holder != null) tense = true;
             // Une bete te chasse.
             for (int i = 0; i < Beast.All.Count && !tense; i++) if (Beast.All[i] != null && Beast.All[i].Hunting(me)) tense = true;
             if (Game.Season != null && Game.Season.Running && Game.Season.Remaining < 120f) tense = true;

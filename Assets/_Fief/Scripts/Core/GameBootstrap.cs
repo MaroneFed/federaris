@@ -1,24 +1,23 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
 {
     /// <summary>
-    /// LE point d'entree du jeu.
+    /// LE point d'entree du jeu -- et de chaque MANCHE.
     ///
     /// La scene Main.unity ne contient qu'UN seul objet : celui qui porte ce script.
-    /// Tout le reste -- relief, foret, lumiere, joueur, camera -- est fabrique ici au
-    /// lancement. Une scene construite par code se relit dans Git ; une scene .unity
-    /// ne se relit pas, et c'est la source des conflits quand on est deux dessus.
+    /// Tout le reste -- relief, foret, chateau, gardes, joueurs, camera -- est
+    /// fabrique ici au lancement. Une scene construite par code se relit dans Git ;
+    /// une scene .unity ne se relit pas.
     ///
-    /// CE QUE CE MONDE EST DEVENU. On batissait ici un marche, six fiefs, un chateau,
-    /// des lacs, des routes, des PNJ et des coffres, sur 484 hectares degages. Martin
-    /// a tranche : il ne garde que le personnage et sa vue. Tout le reste est reparti
-    /// de zero autour d'une seule idee -- une sylve dense ou l'on ne voit pas a
-    /// quarante metres.
+    /// CHAQUE MANCHE RECHARGE LA SCENE (voir Menus) : ce script refait tout. Ce qui
+    /// ne change pas d'une manche a l'autre -- le relief, la foret, le chateau -- est
+    /// tire de la graine du MONDE (config.worldSeed) : on apprend la foret. Ce qui
+    /// change -- le Monument, les coffres, les points de depart -- est tire de la
+    /// graine de la MANCHE (Match.RoundSeed).
     ///
-    /// L'ordre compte : le relief doit exister avant qu'on plante quoi que ce soit
-    /// dessus, et la brume doit connaitre la camera pour caler sa portee.
+    /// L'ordre compte : le relief avant ce qui pousse dessus ; la place du Monument
+    /// avant la foret (elle lui laisse une clairiere) ; la brume apres la camera.
     /// </summary>
     [DisallowMultipleComponent]
     public class GameBootstrap : MonoBehaviour
@@ -35,31 +34,21 @@ namespace Fief
             if (config == null) config = gameObject.AddComponent<GameConfig>();
             else if (!config.keepInspectorValues) GameConfig.RestoreDefaults(config);
 
+            // A l'ecran-titre, pas de match : on en prepare un "d'apercu" (toi et trois
+            // bots) pour que la foret vive derriere le menu. Le salon le remplacera.
+            if (!Match.Active) Match.Begin(3, 5, Mathf.RoundToInt(config.seasonMinutes));
+            if (!Match.Launched) Stats.Reset();
+
             Game.Reset();
             Toasts.Clear();
-            Victories.Reset();
-            Objectives.Reset();
-            Stats.Reset();
-            Atlas.Reset(config.mapSize);
-
+            Smoke.Clear();
             Game.Config = config;
-            Game.Inventory = new Inventory();
-            Game.Inventory.MaxWeight = config.maxWeight;
             Game.Season = new Season(config);
-            Game.Hoard = new Hoard();
-            Game.Hoard.MaxCaches = Mathf.Max(0, config.maxCaches);
-            Game.Hoard.CacheCapacity = Mathf.Max(1f, config.cacheCapacity);
-            Game.Hoard.CampCapacity = Mathf.Max(1f, config.campCapacity);
-            Game.Me = new Seeker("Toi", new Color(0.92f, 0.78f, 0.42f), true, Game.Inventory, Game.Hoard);
-            Game.Seekers.Add(Game.Me);
-            // On part equipe : une epee (1) et une hache (2). Ca s'use ; T en refait.
-            Game.Me.Kit.Slots[0] = new Tool(ToolKind.Epee);
-            Game.Me.Kit.Slots[1] = new Tool(ToolKind.Hache);
 
             System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
-
             rng = new System.Random(config.worldSeed);
             worldRoot = new GameObject("=== SYLVE ===").transform;
+            int round = Match.RoundSeed;
 
             try
             {
@@ -67,38 +56,28 @@ namespace Fief
                 Ground.Build(worldRoot, config);
                 Castle.Build(worldRoot, config);
 
-                // Les creux d'abord (ils ne dependent que du relief), pour que la foret
-                // les laisse degages ; les pierres-lune y sont posees ensuite.
+                // Le Monument choisit sa place AVANT la foret, qui lui laisse une clairiere.
+                Monument.Choose(round);
                 Gathering.Reset();
                 Gathering.FindHollows(config);
-                // Les lieux-dits choisissent leur place avant la foret, qui leur
-                // laisse une clairiere ; ils se construisent apres elle.
                 Landmarks.Find(config);
                 Forest.Plant(worldRoot, config, rng);
                 Gathering.PlaceMoonstones(worldRoot, config, rng);
                 Landmarks.Build(worldRoot, config);
-                // Ruines, fleurs-lune, corbeaux : apres la foret et les lieux-dits,
-                // pour tomber dans les trous qu'ils laissent.
                 Nature.Build(worldRoot, config);
+                Monument.Build(worldRoot, round);
 
-                // Les trois Autels au pied du chateau, et leurs revenants. La foret
-                // leur a laisse la place (Monument.Near).
-                Monument.BuildAll(worldRoot);
+                // La Couronne, sur la terrasse du donjon.
+                Crown.Build(worldRoot, Keep.CrownSpot);
 
-                // Les autres habitants de la sylve.
+                // Les coffres et les tresors enterres de la manche.
+                Chest.Scatter(worldRoot, round);
+
+                // Les points de depart, un par joueur, a la lisiere.
+                Spawns.Place(Match.Slots.Count, round);
+
                 BuildInhabitants();
-
-                // Les steles, une par chercheur, tirees au hasard a chaque partie.
-                // Apres les rivaux (il faut leurs Seeker) et apres la foret (il faut
-                // ses troncs pour trouver une place libre).
-                SteleSites.PlaceAll(worldRoot, Game.Seekers);
-                // Deux eclats de pierre-lune pres de chaque stele : on commence en agissant.
-                for (int i = 0; i < Game.Seekers.Count; i++)
-                    if (Game.Seekers[i].Hoard.StelePlanted) Gathering.SeedNear(worldRoot, Game.Seekers[i].Hoard.StelePosition, config, rng);
-
-                // Ce qui veut ton mal : trois meutes de loups (apres les steles, pour
-                // ne pas naitre au milieu d'elles).
-                Beast.SpawnPacks(worldRoot, 2);   // deux meutes : la Sylve fait 420 m, plus 700
+                Beast.SpawnPacks(worldRoot, 2);
             }
             catch (System.Exception error)
             {
@@ -109,43 +88,33 @@ namespace Fief
             }
 
             PlayerController player = BuildPlayer();
+            BuildRivals();
 
             // La brume a besoin de la camera (pour caler le plan lointain) et du
             // joueur (pour lui accrocher la lanterne) : elle vient donc en dernier.
             Atmosphere.Apply(config, viewCamera, player != null ? player.transform : null);
-
-            // Le ciel qui tourne pendant la Saison (crepuscule, nuit) et l'orage.
-            // Il part des valeurs qu'Atmosphere vient de poser : il vient donc apres.
             Sky.Build(config, viewCamera, player != null ? player.transform : null);
 
-            // Ce qui flotte dans l'air : poussieres, brume rasante, lucioles des creux.
-            // Rate, il n'y a pas de particules -- jamais de monde a moitie construit.
             try { Ambiance.Build(worldRoot, player != null ? player.transform : null, config); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignorée : " + error.Message); }
 
-            // Le tapis de la foret : feuilles mortes, brindilles, champignons, autour de toi.
             try { if (player != null) GroundCover.Build(worldRoot, player.transform, config); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Tapis de forêt ignore : " + error.Message); }
 
             BuildHud(player);
 
-            // La musique : tes morceaux s'ils sont dans Resources/Music, sinon la sienne.
             try { MusicDirector.Build(); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Musique ignorée : " + error.Message); }
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
-            Debug.Log("[FIEF] Sylve construite en " + chrono.ElapsedMilliseconds + " ms : "
-                      + Forest.TreeCount + " arbres, " + Forest.PlantCount + " touffes et blocs, "
-                      + Gathering.FagotCount + " faisceaux, " + Gathering.LogSourceCount + " troncs à bois mort, "
-                      + Gathering.MoonstoneCount + " pierres-lune dans " + Gathering.HollowCount + " creux.");
-
-            // Les messages d'accueil sont affiches par Menus, a l'entree en jeu : ici
-            // ils s'eteignaient pendant l'ecran-titre sans que personne les voie.
+            Debug.Log("[FIEF] Manche " + Match.RoundNumber + " construite en " + chrono.ElapsedMilliseconds + " ms : "
+                      + Forest.TreeCount + " arbres, " + Guard.All.Count + " gardes, " + Chest.All.Count + " coffres, "
+                      + Game.Seekers.Count + " joueurs.");
         }
 
         void Update()
         {
-            // Time.deltaTime, pas le temps reel : la pause arrete l'horloge de la Saison.
+            // Time.deltaTime, pas le temps reel : la pause arrete l'horloge de la manche.
             if (Game.Season != null) Game.Season.Tick(Time.deltaTime);
         }
 
@@ -157,131 +126,55 @@ namespace Fief
         // ================================================================ habitants
 
         /// <summary>
-        /// LES GARDES (quinze : Martin, 26/09, "faut qu'il y ait plein de gardes"),
-        /// les feux-follets, le cerf blanc, et tes trois rivaux.
+        /// LA GARDE PALE (vingt-sept, voir Garrison), les feux-follets, le cerf blanc,
+        /// et ce qu'on entend.
         /// </summary>
         void BuildInhabitants()
         {
             GameObject folk = new GameObject("HABITANTS");
             folk.transform.SetParent(worldRoot, false);
-
-            // La cour : deux a la grande porte, un devant chaque reserve, deux qui
-            // font le tour de la cour, un derriere la poterne.
-            Vector3[][] yard =
-            {
-                new[] { new Vector3(-5f, 0f, -35f), new Vector3(-5f, 0f, -27f) },
-                new[] { new Vector3(5f, 0f, -35f), new Vector3(5f, 0f, -27f) },
-                new[] { new Vector3(-26f, 0f, -20f), new Vector3(-26f, 0f, -8f) },
-                new[] { new Vector3(26f, 0f, -20f), new Vector3(26f, 0f, -8f) },
-                new[] { new Vector3(-31f, 0f, 26f), new Vector3(-19f, 0f, 26f) },
-                new[] { new Vector3(-13f, 0f, -6f), new Vector3(-13f, 0f, 6f), new Vector3(9f, 0f, 6f), new Vector3(9f, 0f, -6f) },
-                new[] { new Vector3(16f, 0f, 8f), new Vector3(16f, 0f, 30f), new Vector3(30f, 0f, 30f), new Vector3(30f, 0f, 8f) },
-                new[] { new Vector3(-4f, 0f, 35.5f), new Vector3(4f, 0f, 35.5f) }
-            };
-            string[] names = { "Bertrand", "Aubin", "Lambert", "Jehan", "Thibaut", "Enguerrand", "Gaspard", "Hugues",
-                               "Renaud", "Gautier", "Arnaud", "Mathieu", "Grégoire", "Tristan", "Baudouin" };
-            int n = 0;
-            for (int i = 0; i < yard.Length; i++)
-            {
-                for (int k = 0; k < yard[i].Length; k++) yard[i][k] = Ground.Place(yard[i][k], 0.05f);
-                Guard.Build(folk.transform, names[n++ % names.Length], yard[i], false);
-            }
-            // Le donjon : un garde par niveau, terrasse comprise (voir Keep.cs).
-            for (int i = 0; i < Keep.GuardRoutes.Count; i++)
-                Guard.Build(folk.transform, names[n++ % names.Length], Keep.GuardRoutes[i], false);
-            // Les RODEURS : trois gardes qui tournent dans la foret autour du chateau,
-            // et courent apres quiconque porte du butin.
-            for (int r = 0; r < 3; r++)
-            {
-                Vector3[] ring = new Vector3[6];
-                for (int k = 0; k < ring.Length; k++)
-                {
-                    float a = (r * 120f + k * 60f + 20f) * Mathf.Deg2Rad;
-                    float radius = 72f + (k % 2) * 14f;
-                    ring[k] = Ground.Place(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius, 0.05f);
-                }
-                Guard.Build(folk.transform, names[n++ % names.Length], ring, true);
-            }
-
+            Garrison.Build(folk.transform);
             Wisp.SpawnAll(folk.transform, config, 6);
             WhiteStag.Build(folk.transform, config);
-
-            // Tes trois rivaux. Ce sont de futurs JOUEURS : on ne leur parle pas. Chacun
-            // son style : Mahaut pille, Oswin monte au donjon, Guerin reste dans la foret.
-            BuildRival(folk.transform, 0, "Mahaut la Rousse", new Color(0.86f, 0.36f, 0.26f), 0.7f, 0.45f);
-            BuildRival(folk.transform, 1, "Oswin le Borgne", new Color(0.36f, 0.58f, 0.88f), 0.4f, 0.8f);
-            BuildRival(folk.transform, 2, "Guerin des Marais", new Color(0.46f, 0.76f, 0.36f), 0.2f, 0.25f);
-
-            // Et ce qu'on entend : le vent, les betes, la cloche du chateau.
             Soundscape.Build(folk.transform);
         }
 
-        /// <summary>Un rival, qui part de la lisiere, a un tiers de tour des autres.</summary>
-        void BuildRival(Transform parent, int index, string name, Color colour, float aggression, float daring)
+        /// <summary>
+        /// Les autres joueurs : des bots en Phase 1. Chacun part de son point de
+        /// depart, a la lisiere, tourne vers le chateau.
+        /// </summary>
+        void BuildRivals()
         {
-            float a = (index * 120f + 60f) * Mathf.Deg2Rad;
-            Vector3 spawn = Ground.Place(Mathf.Cos(a) * 150f, Mathf.Sin(a) * 150f, 0.1f);
-            Rival rival = Rival.Build(parent, name, colour, spawn, aggression, daring, config.worldSeed * 41 + index);
-            // Les deux plus hardis partent avec une epee.
-            if (aggression >= 0.3f || daring >= 0.6f) rival.Arm();
+            GameObject root = new GameObject("JOUEURS");
+            root.transform.SetParent(worldRoot, false);
+            for (int i = 0; i < Match.Slots.Count; i++)
+            {
+                PlayerSlot slot = Match.Slots[i];
+                if (slot.IsLocal) continue;
+                Vector3 spawn = Spawns.Of(slot.Index, Ground.Place(0f, -150f, 0.1f)) + Vector3.up * 0.1f;
+                Rival r = Rival.Build(root.transform, slot, spawn, config.worldSeed * 41 + Match.RoundSeed + i);
+                Vector3 look = -new Vector3(spawn.x, 0f, spawn.z);
+                r.transform.rotation = Quaternion.LookRotation(look.sqrMagnitude > 0.01f ? look.normalized : Vector3.forward, Vector3.up);
+            }
+            // Game.Seekers dans l'ordre des places : toi d'abord (place 0), puis les autres.
+            Game.Seekers.Sort((a, b) => a.Index.CompareTo(b.Index));
         }
 
         // ================================================================ joueur
 
-        /// <summary>
-        /// Ou l'on apparait : A LA LISIERE, loin du chateau. On arrive de l'exterieur,
-        /// on ne sait pas encore ou il est ; le trouver est le premier voyage.
-        ///
-        /// On cherche sur un anneau entre 220 et 290 m du centre l'endroit le plus
-        /// degage et le plus plat -- une clairiere, pas un fourre : sinon la premiere
-        /// image du jeu est un tronc a cinquante centimetres du nez.
-        /// </summary>
-        Vector3 FindClearing()
-        {
-            float bestScore = 99f;
-            Vector2 best = new Vector2(0f, -250f);
-
-            for (int i = 0; i < 240; i++)
-            {
-                float a = i * 2.39996f;                 // angle d'or : repartition reguliere
-                float r = Mathf.Lerp(130f, 175f, (i % 12) / 11f);
-                float x = Mathf.Cos(a) * r;
-                float z = Mathf.Sin(a) * r;
-
-                // Jamais au milieu d'un lieu-dit : on n'apparait pas dans une pierre.
-                if (Landmarks.Near(x, z, 12f)) continue;
-
-                float score = Forest.Canopy(x, z) + Ground.Slope(x, z) * 0.6f;
-                if (score < bestScore)
-                {
-                    bestScore = score;
-                    best = new Vector2(x, z);
-                }
-            }
-            return Ground.Place(best.x, best.y, 1.2f);
-        }
-
         PlayerController BuildPlayer()
         {
-            // On apparait en bord de fief, tourne vers lui : la premiere image du jeu
-            // montre ta banniere et tes 6 emplacements de construction.
-            // On apparait dans une CLAIRIERE, pas au milieu d'un fourre : sinon la
-            // premiere image du jeu est un tronc a cinquante centimetres du nez.
-            //
-            // Depuis le 25/09 : on nait A COTE DE SA STELE, et on la regarde. C'est la
-            // premiere chose qu'on voit -- et la seule fois ou on la trouve sans la
-            // chercher. Rien ne l'indiquera plus ensuite.
-            Hoard mine = Game.Me != null ? Game.Me.Hoard : null;
-            bool atStele = mine != null && mine.StelePlanted;
-            Vector3 spawn = atStele
-                ? SteleSites.SpawnBeside(mine.StelePosition, (float)rng.NextDouble() * Mathf.PI * 2f)
-                : FindClearing();
+            PlayerSlot mine = Match.Local;
+            Seeker me = new Seeker(mine);
+            Game.Me = me;
+            Game.Seekers.Add(me);
 
+            // On apparait A LA LISIERE, a son point de depart, tourne vers le chateau :
+            // on le devine au loin, sa tour de guet au-dessus de la brume.
+            Vector3 spawn = Spawns.Of(mine.Index, Ground.Place(0f, -150f, 1.2f)) + Vector3.up * 1.2f;
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
-
-            Vector3 look = atStele ? mine.StelePosition - spawn : -new Vector3(spawn.x, 0f, spawn.z);
-            look.y = 0f;
+            Vector3 look = -new Vector3(spawn.x, 0f, spawn.z);
             float yaw = Mathf.Atan2(look.x, look.z) * Mathf.Rad2Deg;
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
@@ -294,35 +187,28 @@ namespace Fief
             controller.skinWidth = 0.03f;
 
             // Le personnage : squelette articule, anime par le code (voir CharacterRig.cs).
-            //
-            // Sa laine ne prend plus la couleur d'un blason : les six fiefs n'existent
-            // plus, et de toute facon on ne le voit qu'a l'ecran-titre et dans sa propre
-            // ombre. Une laine ecrue sale, qui est ce qu'elle aurait du etre des le debut.
-            Color wool = new Color(0.42f, 0.41f, 0.37f);
+            // En premiere personne on ne le voit pas -- seulement son ombre. Sa laine
+            // prend la couleur de sa place (l'or, pour toi).
+            Color wool = Color.Lerp(new Color(0.42f, 0.41f, 0.37f), mine.Colour, 0.25f);
             CharacterRig rig = CharacterRig.Build(go.transform, wool, Palette.Shade(wool, 0.62f));
             Game.Rig = rig;
-
 
             // La camera. AudioListener dessus : c'est l'oreille du jeu.
             GameObject camGo = new GameObject("CAMÉRA");
             Camera cam = camGo.AddComponent<Camera>();
-            cam.clearFlags = RenderSettings.skybox != null
-                ? CameraClearFlags.Skybox
-                : CameraClearFlags.SolidColor;
+            cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
             cam.backgroundColor = Palette.Sky;
-            // 78 degres (etait 62) : un champ trop etroit en premiere personne donne
-            // la nausee a beaucoup de joueurs (Martin, 26/09 : "ca donne mal a la tete").
+            // 78 degres : un champ trop etroit en premiere personne donne la nausee.
             cam.fieldOfView = 78f;
             cam.nearClipPlane = 0.10f;
             cam.farClipPlane = 3000f;
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
-
             viewCamera = cam;
 
             OrbitCamera orbit = camGo.AddComponent<OrbitCamera>();
             orbit.target = go.transform;
-            orbit.yaw = go.transform.eulerAngles.y;
+            orbit.yaw = yaw;
             orbit.view = cam;
             orbit.rig = rig;
             orbit.baseFieldOfView = cam.fieldOfView;
@@ -333,24 +219,18 @@ namespace Fief
             player.rig = rig;
             player.orbitCamera = orbit;
             go.AddComponent<PlayerInteractor>();
-            // C plante le camp, G creuse une cache. Apres PlayerController : son Awake
-            // va chercher ce composant pour savoir quand les entrees sont figees.
-            go.AddComponent<CampActions>();
-            // 1 / 2 : les outils ; clic : frapper ; F : grimper.
+            // L'epee, la poussee, les objets, grimper (voir ToolUser).
             go.AddComponent<ToolUser>();
-            // T : construire (pieges, barricades, alarmes, epee).
-            go.AddComponent<Builder>();
 
             Game.Player = player;
             Game.PlayerTransform = go.transform;
-            if (Game.Me != null) Game.Me.Body = go.transform;
+            me.Body = go.transform;
 
             // Les sons sont synthetises par le code et joues depuis le joueur.
             Sfx.Init(go);
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-
             return player;
         }
 
@@ -363,7 +243,7 @@ namespace Fief
             hud.viewCamera = viewCamera;
             Game.Hud = hud;
 
-            // L'ecran-titre, la pause, et l'ecran de fin de Saison.
+            // Le titre, le salon, l'intro, la pause, la fin de manche, le choix, le podium.
             Menus menus = go.AddComponent<Menus>();
             hud.menus = menus;
             Game.Menus = menus;

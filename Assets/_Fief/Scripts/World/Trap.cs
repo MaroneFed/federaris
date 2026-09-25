@@ -4,19 +4,16 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UN PIEGE A MACHOIRES (Martin, 25/09 : "quand un gars va dessus, il meurt et
-    /// perd tout son stuff").
+    /// UN PIEGE A MACHOIRES, trouve dans un coffre (voir Items.cs).
     ///
-    /// On le fabrique (Tab, Artisanat : 3 bois mort, 2 fer), on le tient en main,
-    /// clic : il est pose devant soi. Deux machoires de fer ouvertes a plat, a
-    /// moitie sous les feuilles. Qui marche dessus -- rival, joueur, bete -- meurt
-    /// sur le coup et lache tout dans sa depouille. Son proprietaire ne craint rien.
+    /// On le tient en main, clic : il est pose devant soi, a moitie sous les feuilles.
+    /// Qui marche dessus -- joueur ou bete -- est PRIS : trois secondes cloue sur
+    /// place, un coup de 20, et S'IL PORTE LA COURONNE, IL LA LACHE. Son proprietaire
+    /// ne craint rien. C'est l'arme des patients : on le pose sur le chemin du
+    /// Monument, et on attend le porteur.
     ///
     /// ON NE LE VOIT PAS DE LOIN : a plus de 3,5 m il disparait sous les feuilles.
-    /// Les tiens, tu les vois toujours (tu sais ou tu les as mis). C'est ce qui en
-    /// fait la defense naturelle d'une stele : autour, on avance a pas comptes.
-    ///
-    /// Un piege ne sert qu'une fois. Trois poses au plus (plus avec les Collets).
+    /// Les tiens, tu les vois toujours. Un piege ne sert qu'une fois.
     /// </summary>
     public class Trap : MonoBehaviour
     {
@@ -36,9 +33,12 @@ namespace Fief
 
         public static readonly Color Iron = new Color(0.2f, 0.19f, 0.18f);
 
+        public const float HoldSeconds = 3f;
+        public const float Bite = 20f;
+
         public static int MaxFor(Seeker s)
         {
-            return 4;
+            return 3;
         }
 
         public static int CountOf(Seeker s)
@@ -52,7 +52,6 @@ namespace Fief
         public static string WhyNot(Seeker owner, Vector3 at)
         {
             if (CountOf(owner) >= MaxFor(owner)) return MaxFor(owner) + " pièges déjà posés";
-            if (Castle.Covers(at.x, at.z, 2f)) return "Pas dans le château";
             if (Ground.Slope(at.x, at.z) > 0.5f) return "Trop en pente";
             for (int i = 0; i < All.Count; i++)
                 if (All[i] != null && Flat(All[i].transform.position - at).magnitude < 1.5f) return "Trop près d'un piège";
@@ -196,14 +195,13 @@ namespace Fief
         {
             sprung = true;
             Snap();
+            victim.RootedUntil = Time.time + HoldSeconds;
+            if (victim.CarriesCrown) Crown.KnockOff(victim, transform.forward);
             if (victim.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.6f);
             if (owner == Game.Me) Stats.TrapKills++;
-            Combat.Kill(victim, owner, "dans un piège de " + (owner != null ? owner.Name : "quelqu'un"));
-            if (owner == Game.Me && !victim.IsPlayer)
-            {
-                Toasts.Show("Piège ! " + victim.Name, new Color(0.95f, 0.55f, 0.3f));
-            }
-            Destroy(gameObject, 25f);
+            Combat.Hit(victim, owner, Bite, "dans un piège de " + (owner != null ? owner.Name : "quelqu'un"));
+            if (owner == Game.Me && !victim.IsPlayer) FloatingTexts.Spawn(transform.position + Vector3.up * 2f, "✦", new Color(0.95f, 0.55f, 0.3f));
+            Destroy(gameObject, 12f);
         }
 
         void Snap()

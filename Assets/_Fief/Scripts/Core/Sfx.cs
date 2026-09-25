@@ -74,25 +74,48 @@ namespace Fief
 
         // ------------------------------------------------------------- lecture
 
-        public static void Harvest(ResourceType type)
-        {
-            switch (type)
-            {
-                case ResourceType.Deadwood: Play(Pick(clatter), 0.9f); Play(Pick(rustle), 0.5f); break;
-                case ResourceType.Moonstone: Play(Pick(pick), 0.65f); break;
-                case ResourceType.Iron: Play(Pick(clang), 0.55f); break;
-            }
-        }
+        /// <summary>Des branches froissees : on grimpe, on se faufile.</summary>
+        public static void Rustle() { Play(Pick(rustle), 0.55f); }
+        /// <summary>Le fer contre le fer : une lame qui touche une armure.</summary>
+        public static void Clang() { Play(Pick(clang), 0.45f); }
+        /// <summary>Une pierre qu'on frappe.</summary>
+        public static void Chip() { Play(Pick(pick), 0.4f); }
+        /// <summary>La pelle dans la terre : un choc sourd et des mottes.</summary>
+        public static void Dig() { Play(Pick(chop), 0.7f); Play(Pick(clatter), 0.4f); }
+        /// <summary>Un tronc qui s'abat.</summary>
+        public static void Crash() { Play(Pick(clatter), 0.9f); Play(Pick(pick), 0.65f); }
 
-        /// <summary>Coup leger, joue en boucle pendant qu'on frappe l'arbre ou le rocher.</summary>
-        public static void HarvestTap(ResourceType type)
+        static AudioClip beep;
+        static AudioSource beeper;
+        /// <summary>
+        /// LE BIP DU DETECTEUR : une note claire et breve. Plus aigu quand on s'approche
+        /// ("pitch" de 1 a 2) -- c'est le rythme qui dit la distance, la hauteur la confirme.
+        /// </summary>
+        public static void Beep(float pitch)
         {
-            switch (type)
+            if (Muted || source == null) return;
+            if (beep == null)
             {
-                case ResourceType.Deadwood: Play(Pick(rustle), 0.55f); break;
-                case ResourceType.Moonstone: Play(Pick(pick), 0.32f); break;
-                case ResourceType.Iron: Play(Pick(clang), 0.26f); break;
+                int count = Mathf.RoundToInt(Rate * 0.07f);
+                float[] data = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    float t = (float)i / Rate;
+                    float env = Mathf.Min(1f, t * 400f) * Mathf.Exp(-40f * t);
+                    data[i] = env * (Mathf.Sin(2f * Mathf.PI * 1320f * t) + 0.3f * Mathf.Sin(2f * Mathf.PI * 2640f * t)) * 0.35f;
+                }
+                beep = FromSamples("bip", data);
             }
+            // Sa propre source : changer la hauteur de la source commune changerait
+            // aussi les sons en cours.
+            if (beeper == null)
+            {
+                beeper = source.gameObject.AddComponent<AudioSource>();
+                beeper.playOnAwake = false;
+                beeper.spatialBlend = 0f;
+            }
+            beeper.pitch = Mathf.Clamp(pitch, 0.5f, 2.5f);
+            beeper.PlayOneShot(beep, 0.5f);
         }
 
         public static void Coin() { Play(Pick(coin), 0.55f); }

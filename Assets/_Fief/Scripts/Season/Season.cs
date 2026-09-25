@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// L'HORLOGE DE LA SAISON : trente minutes, puis la cloche.
+    /// L'HORLOGE DE LA MANCHE : sa duree vient du match (4 a 10 min, choisie au salon).
     ///
     /// Classe C# pure : elle ne connait que le temps ecoule. En Phase 3, le serveur
     /// envoie l'heure, et chaque machine en tire exactement la meme chose.
@@ -22,8 +22,15 @@ namespace Fief
 
         public Season(GameConfig cfg)
         {
-            if (cfg == null) return;
-            Duration = Mathf.Max(60f, cfg.seasonMinutes * 60f);
+            if (Match.Active) Duration = Match.RoundSeconds;
+            else if (cfg != null) Duration = Mathf.Max(60f, cfg.seasonMinutes * 60f);
+        }
+
+        /// <summary>Arreter l'horloge tout de suite : la manche est gagnee.</summary>
+        public void Stop()
+        {
+            Running = false;
+            Over = true;
         }
 
         public void Begin()

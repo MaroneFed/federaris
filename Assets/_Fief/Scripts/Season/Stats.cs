@@ -1,38 +1,37 @@
 namespace Fief
 {
     /// <summary>
-    /// LE JOURNAL DE TA SAISON : ce qui s'est passe, pour l'ecran de la cloche.
-    /// Sans lui, la fin disait qui a gagne, jamais POURQUOI : combien de fois tu es
-    /// tombe, combien de tresors tu as pris, ce qu'on t'a pille, ce que tu as pille,
-    /// ce que tu as abattu.
-    ///
-    /// Classe C# pure, remise a zero a chaque Saison. On n'y ecrit qu'en ajoutant.
+    /// CE QUE TU AS FAIT PENDANT LE MATCH, pour l'ecran de fin. Classe C# pure,
+    /// remise a zero au debut du match (pas a chaque manche).
     /// </summary>
     public static class Stats
     {
         public static int Deaths;
-        public static string LastDeath = "";
-        public static int Treasures;
-        public static int Robbed;
-        public static int Looted;
-        public static int RivalsDowned;
-        public static int BeastsDowned;
+        public static int PlayersDowned;
         public static int GuardsDowned;
+        public static int BeastsDowned;
+        public static int CrownsTaken;
+        public static int Chests;
+        public static int KingDowned;
+        public static int Delivered;
+        public static string LastDeath = "";
+        // (anciens compteurs, gardes pour les pieges)
         public static int TrapKills;
-        public static int Built;
+        public static int RivalsDowned;
 
         public static void Reset()
         {
             Deaths = 0;
-            LastDeath = "";
-            Treasures = 0;
-            Robbed = 0;
-            Looted = 0;
-            RivalsDowned = 0;
-            BeastsDowned = 0;
+            PlayersDowned = 0;
             GuardsDowned = 0;
+            BeastsDowned = 0;
+            CrownsTaken = 0;
+            Chests = 0;
+            KingDowned = 0;
+            Delivered = 0;
+            LastDeath = "";
             TrapKills = 0;
-            Built = 0;
+            RivalsDowned = 0;
         }
     }
 }
