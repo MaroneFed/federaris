@@ -54,7 +54,8 @@ namespace Fief
                 Ground.Prepare(config);
                 Ground.Build(worldRoot, config);
                 // Les obstacles de la tour, tires au hasard a chaque manche.
-                Tower.Randomize(round);
+                // (Plus on avance dans les manches, plus il y en a.)
+                Tower.Randomize(round, Match.Played);
                 Castle.Build(worldRoot, config);
                 // Le parcours devant les portes (couloirs, chicanes, moulinets...).
                 Course.Build(worldRoot, round);

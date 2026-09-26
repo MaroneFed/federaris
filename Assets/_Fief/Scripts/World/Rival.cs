@@ -362,7 +362,7 @@ namespace Fief
                 return;
             }
 
-            Vector3 foot = Tower.Foot;
+            Vector3 foot = Tower.FootNear(me);
             float t = Time.time * 0.1f + seeker.Index;
             SetGoal(Goal.Roam, foot + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 12f, was);
         }
@@ -464,27 +464,7 @@ namespace Fief
         /// <summary>Un raccourci vers la rampe : un point du tour le plus haut qu'une arbaleste proche atteint.</summary>
         bool TryBallistaToRamp(Goal was)
         {
-            Ballista b = Ballista.NearestFree(transform.position, 45f);
-            if (b == null) return false;
-            // Les points de la rampe du cote de l'arbaleste, du plus haut au plus bas.
-            Vector3 s = b.Seat;
-            float side = Mathf.Repeat((Mathf.Atan2(s.z, s.x) + Mathf.PI * 0.5f) / (Mathf.PI * 2f), 1f);
-            for (int turn = 3; turn >= 1; turn--)
-            {
-                float u = (turn + side) / Tower.Turns;
-                Vector3 spot = Tower.RampPoint(u, 0.8f) + Vector3.up * 0.2f;
-                Vector3 v;
-                if (Ballista.Solve(s, spot + Vector3.up, true, out v) && b.Lands(v, spot, 3f))
-                {
-                    ballista = b;
-                    ballistaShot = v;
-                    ballistaChosen = Time.time;
-                    goal = Goal.Ballista;
-                    target = b.transform.position;
-                    if (was != Goal.Ballista || path.Count == 0) PlanPath(target);
-                    return true;
-                }
-            }
+            // (29/09 : le sceau de la citadelle arrete les tirs -- plus de raccourci par la rampe.)
             return false;
         }
 
@@ -589,14 +569,15 @@ namespace Fief
             bool fromTower = Tower.On(from), toTower = Tower.On(to);
             if (fromTower && toTower)
             {
-                path.AddRange(Climb(Tower.Progress(from), Tower.Progress(to)));
+                path.AddRange(Climb(Tower.RampOf(from), Tower.Progress(from), Tower.Progress(to)));
                 return;
             }
             if (fromTower)
             {
-                path.AddRange(Tower.Path(Tower.Progress(from), 0f));
-                path.Add(Tower.Foot);
-                from = Tower.Foot;
+                int down = Tower.RampOf(from);
+                path.AddRange(Tower.Path(down, Tower.Progress(from), 0f));
+                path.Add(Tower.FootOf(down));
+                from = Tower.FootOf(down);
             }
             bool fromIn = Castle.Inside(from), toIn = Castle.Inside(to);
             if (fromIn && !toIn)
@@ -614,8 +595,10 @@ namespace Fief
             }
             if (toTower)
             {
-                path.Add(Tower.Foot);
-                path.AddRange(Climb(0f, Tower.Progress(to)));
+                // La rampe qui fait face a sa porte (29/09 : quatre rampes, une par porte).
+                int up = Tower.RampFacing(path.Count > 0 ? path[path.Count - 1] : from);
+                path.Add(Tower.FootOf(up));
+                path.AddRange(Climb(up, 0f, Tower.Progress(to)));
             }
         }
 
@@ -660,26 +643,13 @@ namespace Fief
         }
 
         /// <summary>
-        /// Monter la rampe de "from" a "to" (0-1) -- en passant par les COURANTS quand
-        /// ils font gagner un tour (sauf les bots faciles, qui font tout a pied).
+        /// Monter (ou descendre) sa rampe de "from" a "to" (0-1), a pied.
         /// </summary>
-        List<Vector3> Climb(float from, float to)
+        List<Vector3> Climb(int ramp, float from, float to)
         {
+            // (29/09 : plus de courants -- on monte a pied, sa rampe.)
             List<Vector3> list = new List<Vector3>();
-            if (to <= from || Match.BotLevel == 0) { list.AddRange(Tower.Path(from, to)); return list; }
-            float cur = from;
-            for (int i = 0; i < Updraft.All.Count; i++)
-            {
-                Updraft u = Updraft.All[i];
-                if (u == null) continue;
-                float at = Tower.Progress(u.transform.position);
-                float landed = at + 1f / Tower.Turns;
-                if (at <= cur + 0.01f || landed > to + 0.02f) continue;
-                list.AddRange(Tower.Path(cur, at));
-                list.Add(u.transform.position);
-                cur = landed;
-            }
-            list.AddRange(Tower.Path(cur, to));
+            list.AddRange(Tower.Path(ramp, from, to));
             return list;
         }
 

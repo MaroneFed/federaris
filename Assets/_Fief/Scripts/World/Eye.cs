@@ -86,12 +86,14 @@ namespace Fief
             Vector3[] gates = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
             for (int k = 0; k < 4; k++)
                 Build(t, gates[k] * (h - 1f) + Vector3.up * (Castle.WallHeight + 1.2f), -gates[k], 4 + k, false);
-            for (int k = 0; k < Tower.Turns; k++)
-            {
-                Vector3 p = Tower.RampPoint((k + 0.62f) / Tower.Turns);
-                Vector3 outward = new Vector3(p.x, 0f, p.z).normalized;
-                Build(t, outward * (Tower.Radius + 1.1f) + Vector3.up * (p.y + 7f), outward, 8 + k, true);
-            }
+            // Deux par rampe, sur des consoles du fut, au-dessus du chemin (29/09 : quatre rampes).
+            for (int r = 0; r < Tower.Ramps; r++)
+                for (int k = 0; k < 2; k++)
+                {
+                    Vector3 p = Tower.RampPoint(r, 0.3f + k * 0.42f + r * 0.03f);
+                    Vector3 outward = new Vector3(p.x, 0f, p.z).normalized;
+                    Build(t, outward * (Tower.Radius + 1.1f) + Vector3.up * (p.y + 7f), outward, 8 + r * 2 + k, true);
+                }
         }
 
         /// <summary>Une gargouille accroupie a "at", tournee vers "facing". "corbel" : posee sur une console du fut.</summary>
