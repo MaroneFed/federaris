@@ -101,6 +101,9 @@ namespace Fief
         public static bool DownPressed { get { return KeyPressed(KeyCode.DownArrow) || KeyPressed(KeyCode.S); } }
         public static bool LeftPressed { get { return KeyPressed(KeyCode.LeftArrow) || KeyPressed(KeyCode.A); } }
         public static bool RightPressed { get { return KeyPressed(KeyCode.RightArrow) || KeyPressed(KeyCode.D); } }
+        /// <summary>Les fleches seules (pas ZQSD) : quand on tape son pseudo, les lettres ne bougent pas le menu.</summary>
+        public static bool ArrowUpPressed { get { return KeyPressed(KeyCode.UpArrow); } }
+        public static bool ArrowDownPressed { get { return KeyPressed(KeyCode.DownArrow); } }
         public static bool ConfirmPressed { get { return KeyPressed(KeyCode.Return) || KeyPressed(KeyCode.KeypadEnter); } }
 
         // ------------------------------------------------------------------ la souris

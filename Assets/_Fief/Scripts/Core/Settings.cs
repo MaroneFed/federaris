@@ -24,6 +24,23 @@ namespace Fief
         /// = capacite, clic droit = pousser.
         /// </summary>
         public static bool PushOnLeft;
+        /// <summary>TON PSEUDO (29/09 : "il faut mettre le pseudo, les persos c'est quasi tous les memes").</summary>
+        public static string Pseudo = "Joueur";
+        public const int PseudoLength = 16;
+
+        /// <summary>Changer de pseudo (nettoye : pas vide, pas trop long) et le garder.</summary>
+        public static void SetPseudo(string name)
+        {
+            Load();
+            name = name ?? "";
+            if (name.Length > PseudoLength) name = name.Substring(0, PseudoLength);
+            Pseudo = name;
+            Save();
+            if (Match.Local != null) Match.Local.Name = Shown;
+        }
+
+        /// <summary>Le pseudo tel qu'on l'affiche (jamais vide).</summary>
+        public static string Shown { get { string p = (Pseudo ?? "").Trim(); return p.Length > 0 ? p : "Joueur"; } }
 
         static bool loaded;
 
@@ -37,6 +54,7 @@ namespace Fief
             TextSize = PlayerPrefs.GetFloat("fief.texte", 1f);
             Fullscreen = PlayerPrefs.GetInt("fief.pleinecran", Screen.fullScreen ? 1 : 0) == 1;
             PushOnLeft = PlayerPrefs.GetInt("fief.pousserGauche", 0) == 1;
+            Pseudo = PlayerPrefs.GetString("fief.pseudo", "Joueur");
         }
 
         public static void Save()
@@ -47,6 +65,7 @@ namespace Fief
             PlayerPrefs.SetFloat("fief.texte", TextSize);
             PlayerPrefs.SetInt("fief.pleinecran", Fullscreen ? 1 : 0);
             PlayerPrefs.SetInt("fief.pousserGauche", PushOnLeft ? 1 : 0);
+            PlayerPrefs.SetString("fief.pseudo", Pseudo);
             PlayerPrefs.Save();
         }
 

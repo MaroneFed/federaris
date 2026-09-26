@@ -95,6 +95,7 @@ namespace Fief
             float dt = Time.unscaledDeltaTime;
             appear = Mathf.Min(1f, appear + dt * 0.55f);
             stateTime += dt;
+            PulseWinnerAura(dt);
             if (slowMotion > 0f)
             {
                 slowMotion -= dt;
@@ -160,6 +161,16 @@ namespace Fief
                 cam.autoOrbitSpeed = 3.2f;
                 cam.SetCinematic(6.2f, 6f);
             }
+            else if ((Current == State.RoundOver || Current == State.Draft || Current == State.Ended) && WinnerBody() != null)
+            {
+                // LA VICTOIRE (29/09 -- Martin : "quand tu gagnes le round, on te voit TOI,
+                // avec ton pseudo") : la camera quitte tes yeux et tourne autour du gagnant,
+                // en contre-plongee, pendant qu'il flambe d'aura.
+                Transform w = WinnerBody();
+                if (cam.target != w) cam.target = w;
+                cam.autoOrbitSpeed = 16f;
+                cam.SetCinematic(5.2f, 4f);
+            }
             else if ((Current == State.RoundOver || Current == State.Draft || Current == State.Ended) && Monument.Focus != null)
             {
                 // La manche est finie : la camera quitte tes yeux et tourne lentement
@@ -169,6 +180,31 @@ namespace Fief
                 cam.SetCinematic(10f, 16f);
             }
             else cam.autoOrbitSpeed = 0f;
+        }
+
+        /// <summary>Le corps du gagnant de la manche (null s'il n'y en a pas).</summary>
+        Transform WinnerBody()
+        {
+            if (roundWinner < 0) return null;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+                if (Game.Seekers[i].Index == roundWinner && Game.Seekers[i].Body != null) return Game.Seekers[i].Body;
+            return null;
+        }
+
+        float auraPulse;
+
+        /// <summary>Pendant la fin de manche, l'aura du gagnant pulse : anneaux d'or, gerbes, colonnes.</summary>
+        void PulseWinnerAura(float dt)
+        {
+            Transform w = WinnerBody();
+            if (w == null || Current != State.RoundOver) return;
+            auraPulse -= dt;
+            if (auraPulse > 0f) return;
+            auraPulse = 0.7f;
+            Color gold = new Color(1f, 0.8f, 0.35f);
+            Fx.Ring(w.position + Vector3.up * 0.2f, gold, 0.5f, 6f, 0.6f, 0.3f, Vector3.up);
+            Fx.Burst(w.position + Vector3.up * 1f, gold, 40, 6f, 0.2f, 1.2f, -0.3f, Vector3.up, 40f);
+            AuraFlames.Burn(w, gold, 2f);
         }
 
         /// <summary>
@@ -198,10 +234,13 @@ namespace Fief
             }
             if (showSettings)
             {
-                int rows = Settings.Labels.Length + 1;
-                if (FiefInput.UpPressed) { selected = (selected + rows - 1) % rows; Sfx.Pop(); }
-                if (FiefInput.DownPressed) { selected = (selected + 1) % rows; Sfx.Pop(); }
-                if (selected < Settings.Labels.Length)
+                // Les lignes : les reglages, puis le PSEUDO (on y tape au clavier), puis Retour.
+                int rows = Settings.Labels.Length + 2;
+                bool typing = selected == Settings.Labels.Length;
+                if (typing ? FiefInput.ArrowUpPressed : FiefInput.UpPressed) { selected = (selected + rows - 1) % rows; Sfx.Pop(); }
+                else if (typing ? FiefInput.ArrowDownPressed || FiefInput.ConfirmPressed : FiefInput.DownPressed) { selected = (selected + 1) % rows; Sfx.Pop(); }
+                else if (typing) { }
+                else if (selected < Settings.Labels.Length)
                 {
                     if (FiefInput.LeftPressed) { Settings.Step(selected, -1); Sfx.Pop(); }
                     if (FiefInput.RightPressed || FiefInput.ConfirmPressed) { Settings.Step(selected, 1); Sfx.Pop(); }
@@ -798,6 +837,33 @@ namespace Fief
             if (GUI.Button(plus, GUIContent.none, GUIStyle.none)) { selected = index; adjust.Invoke(1); }
         }
 
+        GUIStyle pseudoStyle;
+
+        /// <summary>La ligne du pseudo : un champ ou l'on tape (16 lettres au plus).</summary>
+        void PseudoRow(float x, float y, int index)
+        {
+            Rect row = new Rect(x, y, UiStyle.S(520), UiStyle.S(44));
+            Entry(row, "Pseudo", index, false, 1f);
+            bool on = selected == index;
+            if (pseudoStyle == null || pseudoStyle.fontSize != UiStyle.S(24))
+            {
+                pseudoStyle = new GUIStyle(UiStyle.Head);
+                pseudoStyle.fontSize = UiStyle.S(24);
+                pseudoStyle.alignment = TextAnchor.MiddleCenter;
+                pseudoStyle.normal.textColor = new Color(1f, 0.84f, 0.5f);
+                pseudoStyle.focused.textColor = new Color(1f, 0.9f, 0.6f);
+            }
+            Rect field = new Rect(x + UiStyle.S(270), y + UiStyle.S(4), UiStyle.S(210), row.height - UiStyle.S(8));
+            UiStyle.Fill(field, new Color(0f, 0f, 0f, on ? 0.55f : 0.3f));
+            UiStyle.Fill(new Rect(field.x, field.yMax - 2f, field.width, 2f), new Color(1f, 0.8f, 0.42f, on ? 1f : 0.4f));
+            GUI.SetNextControlName("pseudo");
+            string typed = GUI.TextField(field, Settings.Pseudo, Settings.PseudoLength, pseudoStyle);
+            if (typed != Settings.Pseudo) Settings.SetPseudo(typed);
+            if (on && GUI.GetNameOfFocusedControl() != "pseudo") GUI.FocusControl("pseudo");
+            else if (!on && GUI.GetNameOfFocusedControl() == "pseudo") GUI.FocusControl(null);
+            if (GUI.Button(new Rect(x, y, UiStyle.S(260), row.height), GUIContent.none, GUIStyle.none)) selected = index;
+        }
+
         // ------------------------------------------------------------------ les reglages
 
         /// <summary>LES REGLAGES : sensibilite, volume, champ de vision, plein ecran. Garde d'une partie a l'autre.</summary>
@@ -813,9 +879,12 @@ namespace Fief
                 ValueRow(x, y, Settings.Labels[i], Settings.Value(i), i, step => { Settings.Step(row, step); Sfx.Pop(); });
                 y += UiStyle.S(48);
             }
+            // LE PSEUDO : on le tape. Il s'affiche au-dessus de ta tete et quand tu gagnes.
+            PseudoRow(x, y, Settings.Labels.Length);
+            y += UiStyle.S(48);
             y += UiStyle.S(24);
-            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", Settings.Labels.Length, false, 1f)) { showSettings = false; selected = 0; }
-            Footer("↑ ↓  choisir     ← →  régler     Échap  retour");
+            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", Settings.Labels.Length + 1, false, 1f)) { showSettings = false; selected = 0; }
+            Footer(selected == Settings.Labels.Length ? "Tape ton pseudo     ↑ ↓  choisir     Entrée  valider" : "↑ ↓  choisir     ← →  régler     Échap  retour");
         }
 
         // ------------------------------------------------------------------ en ligne
@@ -957,8 +1026,15 @@ namespace Fief
             PlayerSlot w = roundWinner >= 0 && roundWinner < Match.Slots.Count ? Match.Slots[roundWinner] : null;
             if (w != null)
             {
-                Color c = w.IsLocal ? Palette.Gold : w.Colour;
-                Headline(y, 60, w.IsLocal ? "TU REMPORTES LA MANCHE" : w.Name.ToUpperInvariant() + " REMPORTE LA MANCHE", new Color(c.r, c.g, c.b, a));
+                // SON PSEUDO, EN GRAND, EN OR : des rayons derriere, il claque et se pose.
+                CardArt.Background(new Color(1f, 0.8f, 0.35f));
+                float punch = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01((stateTime - 1.2f) / 0.2f));
+                Color gold = new Color(1f, 0.82f, 0.38f, a);
+                Headline(y - UiStyle.S(70), 96 * punch, UiStyle.Spaced(w.Name.ToUpperInvariant()), gold);
+                Headline(y + UiStyle.S(40), 34, w.IsLocal ? "TU REMPORTES LA MANCHE" : "REMPORTE LA MANCHE", new Color(1f, 0.95f, 0.85f, a));
+                float aura = Mathf.Clamp01((stateTime - 1.6f) / 0.3f);
+                Centered(y + UiStyle.S(92), UiStyle.S(30), UiStyle.Spaced("+1000 AURA"), UiStyle.Head, new Color(1f, 0.75f, 0.3f, aura * a));
+                y += UiStyle.S(70);
             }
             else Headline(y, 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
             y += UiStyle.S(84);

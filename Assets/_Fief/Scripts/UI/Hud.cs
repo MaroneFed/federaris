@@ -185,7 +185,6 @@ namespace Fief
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : " + AbilityInfo.PushKey.ToLowerInvariant() + ".");
-            else if (Eye.ChargingAt(me)) Tip("oeil", "Une gargouille ouvre la gueule et une cible rouge se resserre sous tes pieds : fais un pas de côté au dernier moment.");
             else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (" + AbilityInfo.PushKey.ToLowerInvariant() + ") pour la lui VOLER.");
             else if (me.HasGift) Tip("don", "Le don du sanctuaire remplace ton clic gauche, pour cette manche.");
         }
@@ -326,7 +325,7 @@ namespace Fief
             {
                 PlayerSlot s = Match.Slots[i];
                 Color c = s.IsLocal ? Palette.Gold : s.Colour;
-                Text(new Rect(x, y, w - UiStyle.S(30), row), s.IsLocal ? "TOI" : s.Name, UiStyle.Small, c);
+                Text(new Rect(x, y, w - UiStyle.S(30), row), s.Name, UiStyle.Small, c);
                 Text(new Rect(x, y, w, row), s.Wins.ToString(), right, c);
                 y += row;
             }
@@ -532,25 +531,46 @@ namespace Fief
         // ================================================================== dans le monde
 
         /// <summary>Le nom des autres joueurs, a leur couleur, quand ils sont a moins de 22 m.</summary>
+        /// <summary>
+        /// LES PSEUDOS au-dessus des tetes (29/09 -- Martin : "qu'on voie au-dessus des
+        /// personnages leur pseudo, pas leurs conneries") : le nom, rien d'autre, a sa
+        /// couleur (en or pour qui porte la Couronne), plus gros de pres, lisible de loin.
+        /// </summary>
         void DrawNames()
         {
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
             if (cam == null || Game.PlayerTransform == null) return;
-            Vector3 me = Game.PlayerTransform.position;
+            Vector3 me = cam.transform.position;
+            if (nameStyle == null || nameBase != UiStyle.Label.fontSize)
+            {
+                nameBase = UiStyle.Label.fontSize;
+                nameStyle = new GUIStyle(UiStyle.Label);
+                nameStyle.alignment = TextAnchor.MiddleCenter;
+                nameStyle.fontStyle = FontStyle.Bold;
+                nameStyle.wordWrap = false;
+            }
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
                 if (s.IsPlayer || s.Body == null || s.Hidden) continue;
-                float d = (me - s.Body.position).magnitude;
-                if (d > 22f) continue;
-                Vector3 sp = cam.WorldToScreenPoint(s.Body.position + Vector3.up * 2.75f);
+                Vector3 head = s.Body.position + Vector3.up * 2.9f;
+                float d = (me - head).magnitude;
+                if (d > 170f) continue;
+                Vector3 sp = cam.WorldToScreenPoint(head);
                 if (sp.z <= 0f) continue;
-                float a = Mathf.Clamp01((22f - d) / 6f);
-                string name = s.CarriesCrown ? s.Name + "  ·  COURONNE" : s.Stunned ? s.Name + "  ·  étourdi" : s.Name;
-                Rect r = new Rect(sp.x - UiStyle.S(120), Screen.height - sp.y - UiStyle.S(10), UiStyle.S(240), UiStyle.S(20));
-                Text(r, name, UiStyle.CenteredSmall, new Color(s.Colour.r, s.Colour.g, s.Colour.b, a));
+                float a = Mathf.Clamp01((170f - d) / 40f);
+                nameStyle.fontSize = Mathf.RoundToInt(Mathf.Lerp(UiStyle.S(22), UiStyle.S(13), Mathf.Clamp01(d / 90f)));
+                Color c = s.CarriesCrown ? new Color(1f, 0.82f, 0.35f) : Color.Lerp(s.Colour, Color.white, 0.25f);
+                Rect r = new Rect(sp.x - UiStyle.S(150), Screen.height - sp.y - UiStyle.S(14), UiStyle.S(300), UiStyle.S(28));
+                GUI.color = new Color(0f, 0f, 0f, 0.75f * a);
+                GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), s.Name, nameStyle);
+                GUI.color = new Color(c.r, c.g, c.b, a);
+                GUI.Label(r, s.Name, nameStyle);
+                GUI.color = Color.white;
             }
         }
+        GUIStyle nameStyle;
+        int nameBase = -1;
 
         /// <summary>
         /// LE FLAIR (passif) : la Couronne est ecrite a sa place a l'ecran, avec sa
