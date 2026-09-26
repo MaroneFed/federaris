@@ -6,7 +6,7 @@ namespace Fief
     /// <summary>
     /// UN SANCTUAIRE dans la foret (27/09 -- ils remplacent les coffres et les objets) :
     /// un cercle de pierres levees, et au milieu un cristal qui flotte, a la couleur du
-    /// DON qu'il renferme. F maintenu une seconde : ce don devient ta capacite de la
+    /// DON qu'il renferme. E maintenu une seconde : ce don devient ta capacite de la
     /// manche, sur la touche V. Un seul don a la fois, un seul passage par sanctuaire.
     ///
     /// C'est la raison d'aller dans la foret plutot que de foncer a la tour : une

@@ -460,7 +460,7 @@ namespace Fief
         void FinishDraft()
         {
             if (leaving) return;
-            // Avant la manche 1 : apres la passive, le tour des actives.
+            // Apres la passive, le tour des actives (a chaque manche).
             if (Match.Draft.SecondStageNext)
             {
                 Match.Draft.PrepareSecondStage();
@@ -891,7 +891,7 @@ namespace Fief
                 float e = Mathf.Clamp01((t - (Match.Played == 0 ? 3.4f : 0.6f)) / 0.5f) * a;
                 for (int i = 0; i < actives.Count; i++)
                 {
-                    Centered(y, UiStyle.S(26), AbilityInfo.Keys[Mathf.Min(i, 2)].ToUpperInvariant() + "   " + AbilityInfo.Name(actives[i]) + " — " + AbilityInfo.Line(actives[i]),
+                    Centered(y, UiStyle.S(26), AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)].ToUpperInvariant() + "   " + AbilityInfo.Name(actives[i]) + " — " + AbilityInfo.Line(actives[i]),
                              UiStyle.Label, new Color(0.95f, 0.88f, 0.7f, e));
                     y += UiStyle.S(28);
                 }
@@ -995,14 +995,13 @@ namespace Fief
         {
             EnsureCardTextures();
             // Des rayons qui tournent lentement, des braises qui montent (voir CardArt).
-            CardArt.Background(Match.Played == 0 && Match.Draft.Stage == 0 ? new Color(0.55f, 0.75f, 1f) : Palette.Gold);
+            CardArt.Background(Match.Draft.Stage == 0 ? new Color(0.55f, 0.75f, 1f) : Palette.Gold);
 
             float y = Screen.height * 0.08f;
-            string title = Match.Played > 0 ? "UNE CAPACITÉ DE PLUS"
-                         : Match.Draft.Stage == 0 ? "CHOISIS TA PASSIVE" : "CHOISIS TON ATTAQUE";
+            string title = Match.Draft.Stage == 0 ? "CHOISIS TA PASSIVE" : "CHOISIS TON CLIC GAUCHE";
             Headline(y, 42, UiStyle.Spaced(title), Palette.Gold);
             y += UiStyle.S(64);
-            string sub = Match.Played == 0 && Match.Draft.Stage == 0 ? "Avant la manche 1 · une passive (toujours là), puis une active"
+            string sub = Match.Draft.Stage == 0 ? "Nouvelles capacités à chaque manche · une passive (toujours là), puis une active"
                        : Match.Played == 0 ? "Elle ira sur " + AbilityInfo.Keys[0].ToLowerInvariant() + " · chacun son tour"
                        : Match.LastWinner >= 0 ? Match.Slots[Match.LastWinner].Name + " a gagné la manche : il choisit en dernier"
                        : "Personne n'a gagné la manche · le moins de victoires choisit d'abord";
@@ -1065,7 +1064,7 @@ namespace Fief
             {
                 string mine = "";
                 List<Ability> actives = Match.Local.Actives;
-                for (int i = 0; i < actives.Count; i++) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Keys[Mathf.Min(i, 2)].ToUpperInvariant() + "  " + AbilityInfo.Name(actives[i]);
+                for (int i = 0; i < actives.Count; i++) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)].ToUpperInvariant() + "  " + AbilityInfo.Name(actives[i]);
                 for (int i = 0; i < Match.Local.Abilities.Count; i++)
                     if (!AbilityInfo.IsActive(Match.Local.Abilities[i])) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Name(Match.Local.Abilities[i]);
                 float bw = Mathf.Min(Screen.width - UiStyle.S(80), Style(UiStyle.Label, 0, TextAnchor.MiddleCenter).CalcSize(new GUIContent("TES CAPACITÉS   " + mine)).x + UiStyle.S(60));
@@ -1243,13 +1242,10 @@ namespace Fief
             { "Maj", "Courir" },
             { "Espace", "Sauter ; en l'air : replier ou rouvrir les ailes" },
             { "Voler", "Tombe dans le vide : tes ailes s'ouvrent seules. Souris en bas : piquer, en haut : remonter" },
-            { AbilityInfo.Keys[0], "Ta première capacité (maintiens pour viser, relâche pour lancer)" },
+            { AbilityInfo.Keys[0], "TA capacité (maintiens pour viser, relâche pour lancer) ; elle change à chaque manche" },
             { AbilityInfo.PushKey, "Pousser — pousser le porteur, c'est lui voler la Couronne ; en vol : le piqué" },
-            { "E", "Ta deuxième capacité" },
-            { "R", "Ta troisième capacité" },
-            { "V", "Le don d'un sanctuaire (pour la manche)" },
-            { "F", "Prendre la Couronne, un don ; monter sur une arbaleste" },
-            { "Sur l'arbaleste", "Souris : viser  ·  clic gauche maintenu : tendre, relâché : tirer  ·  F : descendre" },
+            { "E", "Prendre la Couronne, un don (il remplace ta capacité pour la manche) ; monter sur une arbaleste" },
+            { "Sur l'arbaleste", "Clic gauche : TIRÉ devant le château  ·  E : descendre" },
             { "F1 ou H", "Les touches, à tout moment" },
             { "Tab", "Le score et les capacités de chacun" },
             { "Échap", "Pause" }

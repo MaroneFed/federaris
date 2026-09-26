@@ -43,6 +43,13 @@ namespace Fief
         public Ability Gift;
         public bool HasGift;
 
+        /// <summary>
+        /// TA capacite du clic gauche : le don d'un sanctuaire s'il y en a un (pour la
+        /// manche), sinon ton active. (29/09 : une seule active.)
+        /// </summary>
+        public bool HasActive { get { return HasGift || Slot.Actives.Count > 0; } }
+        public Ability CurrentActive { get { return HasGift ? Gift : Slot.Actives.Count > 0 ? Slot.Actives[0] : Ability.Ruee; } }
+
         readonly Dictionary<Ability, float> readyAt = new Dictionary<Ability, float>();
 
         /// <summary>La capacite est-elle prete a l'instant "now" ?</summary>

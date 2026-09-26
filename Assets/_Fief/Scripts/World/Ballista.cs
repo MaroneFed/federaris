@@ -7,7 +7,7 @@ namespace Fief
     /// L'ARBALESTE GEANTE (27/09 -- Martin : "une enorme arbalete, tu te mets dessus et
     /// BAM tu tires a fond" ; refaite le 28/09 : "des meilleures arbaletes").
     ///
-    /// On monte dessus (F) : on s'assoit sur le CARREAU, un trait de cinq metres. On
+    /// On monte dessus (E) : on s'assoit sur le CARREAU, un trait de cinq metres. On
     /// VISE a la souris : la trajectoire se dessine en perles de lumiere et un anneau
     /// marque l'arrivee -- VERT sur la terre ferme, BLEU sur un Monument ; si la ligne
     /// file dans le vide, pas d'anneau : tu planeras.
@@ -324,7 +324,7 @@ namespace Fief
                 if (Game.Player == null) { rider = null; return false; }
                 Game.Player.BeginScripted();
                 PlayerOn = this;
-                if (Game.Hud != null) Game.Hud.Tip("arbaleste", "Vise à la souris. MAINTIENS le clic gauche pour tendre (la courbe s'allonge), RELÂCHE pour tirer (F : descendre). Anneau vert : terre ferme ; bleu : un Monument !");
+                if (Game.Hud != null) Game.Hud.Tip("arbaleste", "Vise à la souris. MAINTIENS le clic gauche pour tendre (la courbe s'allonge), RELÂCHE pour tirer (E : descendre). Anneau vert : terre ferme ; bleu : un Monument !");
             }
             else
             {

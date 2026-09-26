@@ -81,9 +81,9 @@ namespace Fief
             }
         }
 
-        /// <summary>F (28/09 : E sert maintenant a une capacite) : prendre la Couronne, un don, monter sur une arbaleste.</summary>
-        public static bool InteractHeld { get { return KeyHeld(KeyCode.F); } }
-        public static bool InteractPressed { get { return KeyPressed(KeyCode.F); } }
+        /// <summary>E (29/09 : "que E, ca soit la touche pour interagir") : prendre la Couronne, un don, monter sur une arbaleste.</summary>
+        public static bool InteractHeld { get { return KeyHeld(KeyCode.E); } }
+        public static bool InteractPressed { get { return KeyPressed(KeyCode.E); } }
         public static bool JumpPressed { get { return KeyPressed(KeyCode.Space); } }
         public static bool CancelPressed { get { return KeyPressed(KeyCode.Escape); } }
         public static bool HelpPressed { get { return KeyPressed(KeyCode.F1); } }
@@ -140,17 +140,15 @@ namespace Fief
         public static bool ShootHeld { get { return MouseHeld(0); } }
 
         /// <summary>
-        /// Les capacites actives : 0 = clic gauche (ou droit, selon le reglage), 1 = E,
-        /// 2 = R, 3 = V (le don d'un sanctuaire). Voir AbilityInfo.Keys.
+        /// TA capacite active (29/09 : une seule) : 0 = clic gauche (ou droit, selon le
+        /// reglage). Les autres numeros ne repondent plus.
         /// </summary>
         public static bool CastPressed(int slot)
         {
             switch (slot)
             {
                 case 0: return MouseDown(1 - PushButton);
-                case 1: return KeyPressed(KeyCode.E);
-                case 2: return KeyPressed(KeyCode.R);
-                default: return KeyPressed(KeyCode.V);
+                default: return false;
             }
         }
 
@@ -160,9 +158,7 @@ namespace Fief
             switch (slot)
             {
                 case 0: return MouseHeld(1 - PushButton);
-                case 1: return KeyHeld(KeyCode.E);
-                case 2: return KeyHeld(KeyCode.R);
-                default: return KeyHeld(KeyCode.V);
+                default: return false;
             }
         }
 

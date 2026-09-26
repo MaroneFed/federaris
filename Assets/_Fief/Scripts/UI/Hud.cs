@@ -122,8 +122,8 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null) return;
-            List<Ability> list = me.Slot.Actives;
-            if (me.HasGift) list.Add(me.Gift);
+            List<Ability> list = new List<Ability>();
+            if (me.HasActive) list.Add(me.CurrentActive);
             for (int i = 0; i < list.Count; i++)
             {
                 Ability a = list[i];
@@ -180,14 +180,14 @@ namespace Fief
             Vector3 p = me.Body.position;
             if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
             else if (AbilityUser.DiveAt != null) Tip("pique", "LE PIQUÉ D'AIGLE : en l'air, vise le porteur et appuie sur " + AbilityInfo.PushKey.ToLowerInvariant() + " — tu fonds sur lui et tu lui voles la Couronne.");
-            else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. F : monte sur TON arbaleste, maintiens le clic gauche, relâche — ou saute dans le vide et plane jusqu'à l'île. Puis entre dans la citadelle par une porte.");
-            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : F pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
+            else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. E : monte sur TON arbaleste, clic gauche : elle te pose devant le château. Puis passe la porte et monte la tour.");
+            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : " + AbilityInfo.PushKey.ToLowerInvariant() + ".");
             else if (Eye.ChargingAt(me)) Tip("oeil", "Une gargouille ouvre la gueule et une cible rouge se resserre sous tes pieds : fais un pas de côté au dernier moment.");
             else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (" + AbilityInfo.PushKey.ToLowerInvariant() + ") pour la lui VOLER.");
-            else if (me.HasGift) Tip("don", "Ton don est sur la touche V, pour cette manche.");
+            else if (me.HasGift) Tip("don", "Le don du sanctuaire remplace ton clic gauche, pour cette manche.");
         }
 
         bool Hidden { get { return menus != null && menus.Blocking; } }
@@ -258,7 +258,7 @@ namespace Fief
                              : "dans le vide : tu planeras";
                 mine = b.Charging
                     ? "TENSION " + Mathf.RoundToInt(b.Tension * 100f) + " %   ·   relâche pour tirer   ·   arrivée " + where
-                    : "Maintiens le clic gauche pour tendre   ·   F : descendre   ·   arrivée " + where;
+                    : "Maintiens le clic gauche pour tendre   ·   E : descendre   ·   arrivée " + where;
             }
             else if (me.CarriesCrown && Monument.All.Count > 0)
                 mine = Monument.All.Count + " Monuments : choisis le tien   ·   le plus proche à " + Mathf.RoundToInt(Monument.NearestDistance(me.Body.position)) + " m"
@@ -344,21 +344,14 @@ namespace Fief
         {
             Seeker me = Game.Me;
             if (me == null) return;
-            List<Ability> actives = me.Slot.Actives;
             float now = Time.time;
 
-            int count = actives.Count + (me.HasGift ? 1 : 0);
-            float w = UiStyle.S(158), h = UiStyle.S(70), gap = UiStyle.S(10);
-            float total = count * w + Mathf.Max(0, count - 1) * gap;
-            float x = (Screen.width - total) * 0.5f;
+            // Une seule carte (29/09) : ton clic gauche -- ou le don du sanctuaire, pour la manche.
+            int count = me.HasActive ? 1 : 0;
+            float w = UiStyle.S(190), h = UiStyle.S(74);
+            float x = (Screen.width - w) * 0.5f;
             float y = Screen.height - UiStyle.S(26) - h;
-
-            for (int i = 0; i < actives.Count; i++)
-            {
-                AbilityTile(new Rect(x, y, w, h), AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)], actives[i], me, now, false, AbilityUser.AimingSlot == i);
-                x += w + gap;
-            }
-            if (me.HasGift) AbilityTile(new Rect(x, y, w, h), AbilityInfo.GiftKey, me.Gift, me, now, true, AbilityUser.AimingSlot == 3);
+            if (me.HasActive) AbilityTile(new Rect(x, y, w, h), AbilityInfo.Keys[0], me.CurrentActive, me, now, me.HasGift, AbilityUser.AimingSlot == 0);
 
             float top = count > 0 ? y - UiStyle.S(24) : Screen.height - UiStyle.S(40);
             // Les passifs, en une ligne.
@@ -518,7 +511,7 @@ namespace Fief
             Text(new Rect(0f, y, Screen.width, UiStyle.S(22)), text, UiStyle.Centered, new Color(0.95f, 0.88f, 0.7f, 0.9f));
         }
 
-        /// <summary>"F  Prendre le don : Grappin", et le trait qui se remplit pendant le maintien.</summary>
+        /// <summary>"E  Prendre le don : Grappin", et le trait qui se remplit pendant le maintien.</summary>
         void DrawPrompt()
         {
             if (interactor == null) return;
@@ -669,20 +662,20 @@ namespace Fief
             GUIStyle head = KeyStyle(0);
             Text(new Rect(panel.x, panel.y + UiStyle.S(6), panel.width, UiStyle.S(30)), UiStyle.Spaced("LES TOUCHES") + (keysOpen ? "   ·   F1 ou H pour fermer" : "   ·   F1 ou H pour les revoir"), head, new Color(1f, 0.85f, 0.5f, a));
 
-            List<Ability> actives = me.Slot.Actives;
             string[] keys = AbilityInfo.Keys;
-            string a0 = actives.Count > 0 ? AbilityInfo.Name(actives[0]) : "ta 1re capacité";
-            string a1 = actives.Count > 1 ? AbilityInfo.Name(actives[1]) : "ta 2e capacité";
-            string a2 = actives.Count > 2 ? AbilityInfo.Name(actives[2]) : "ta 3e capacité";
+            string a0 = me.HasActive ? AbilityInfo.Name(me.CurrentActive) : "ta capacité";
+            string passive = "";
+            for (int k = 0; k < me.Slot.Abilities.Count; k++)
+                if (!AbilityInfo.IsActive(me.Slot.Abilities[k])) passive = AbilityInfo.Name(me.Slot.Abilities[k]);
             string[,] move =
             {
                 { "ZQSD", "marcher" }, { "Maj", "courir" }, { "Espace", "sauter" }, { "Souris", "regarder" },
-                { "F", "arbaleste, Couronne, don" }
+                { "E", "arbaleste, Couronne, sanctuaire" }
             };
             string[,] powers =
             {
-                { keys[0], a0 }, { "E", a1 }, { "R", a2 }, { "V", "le don d'un sanctuaire" },
-                { AbilityInfo.PushKey, "POUSSER (vole la Couronne)" }
+                { keys[0], a0 }, { AbilityInfo.PushKey, "POUSSER (vole la Couronne)" },
+                { "Passive", passive.Length > 0 ? passive : "(aucune)" }
             };
             string[,] fly =
             {

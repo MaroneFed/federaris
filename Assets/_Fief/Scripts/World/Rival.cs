@@ -750,8 +750,8 @@ namespace Fief
         void UseAbilities()
         {
             if (seeker.Stunned) return;
-            List<Ability> list = seeker.Slot.Actives;
-            if (seeker.HasGift) list.Add(seeker.Gift);
+            List<Ability> list = new List<Ability>();
+            if (seeker.HasActive) list.Add(seeker.CurrentActive);
             Vector3 me = transform.position;
             Vector3 eye = me + Vector3.up * 1.6f;
             Seeker holder = Crown.Holder;

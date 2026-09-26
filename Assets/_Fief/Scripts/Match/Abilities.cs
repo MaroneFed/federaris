@@ -29,13 +29,14 @@ namespace Fief
     public static class AbilityInfo
     {
         public const int Count = 26;
-        public const int MaxActives = 3;
+        /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
+        public const int MaxActives = 1;
 
         /// <summary>Les touches des capacites actives, dans l'ordre ou on les a prises. "V" : le don d'un sanctuaire.</summary>
-        public static string[] Keys { get { return new[] { Settings.PushOnLeft ? "Clic droit" : "Clic gauche", "E", "R" }; } }
+        public static string[] Keys { get { return new[] { Settings.PushOnLeft ? "Clic droit" : "Clic gauche" }; } }
         /// <summary>La touche pour pousser (clic droit par defaut ; voir Settings.PushOnLeft).</summary>
         public static string PushKey { get { return Settings.PushOnLeft ? "Clic gauche" : "Clic droit"; } }
-        public const string UseKey = "F";
+        public const string UseKey = "E";
         public const string GiftKey = "V";
 
         public static bool IsActive(Ability a) { return a < Ability.DoubleSaut; }

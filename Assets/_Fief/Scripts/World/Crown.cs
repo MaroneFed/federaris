@@ -5,7 +5,7 @@ namespace Fief
     /// <summary>
     /// LA COURONNE : l'enjeu de la manche. Il n'y en a qu'une.
     ///
-    /// Elle attend sur son socle, au sommet de la tour. Qui la prend (F maintenu une
+    /// Elle attend sur son socle, au sommet de la tour. Qui la prend (E maintenu une
     /// seconde) la porte au-dessus de sa tete : une COLONNE DOREE monte au-dessus de
     /// lui, tout le monde sait ou il est. Il va moins vite et ne pousse plus. Si on le
     /// POUSSE, elle roule par terre ; s'il SAUTE de haut, elle reste la ou il a quitte

@@ -82,30 +82,22 @@ namespace Fief
             }
 
             // --- les capacites
-            List<Ability> actives = me.Slot.Actives;
-            for (int i = 0; i < 4; i++)
+            // TA capacite (29/09 : une seule, au clic gauche ; le don d'un sanctuaire la remplace pour la manche).
+            if (FiefInput.CastPressed(0))
             {
-                if (!FiefInput.CastPressed(i)) continue;
-                Ability a;
-                if (i < 3)
-                {
-                    if (i >= actives.Count) { Refuse("Aucune capacité"); continue; }
-                    a = actives[i];
-                }
+                if (!me.HasActive) Refuse("Aucune capacité");
                 else
                 {
-                    if (!me.HasGift) { Refuse("Aucun don"); continue; }
-                    a = me.Gift;
+                    Ability a = me.CurrentActive;
+                    // Une capacite qui vise : on la tient, l'apercu s'affiche ; sinon elle part.
+                    if (AbilityCaster.NeedsAim(a))
+                    {
+                        string why = AbilityCaster.WhyNot(me, a);
+                        if (why != null) Refuse(why);
+                        else { AimingSlot = 0; aiming = a; }
+                    }
+                    else Cast(me, a, eye);
                 }
-                // Une capacite qui vise : on la tient, l'apercu s'affiche ; sinon elle part.
-                if (AbilityCaster.NeedsAim(a))
-                {
-                    string why = AbilityCaster.WhyNot(me, a);
-                    if (why != null) { Refuse(why); continue; }
-                    AimingSlot = i;
-                    aiming = a;
-                }
-                else Cast(me, a, eye);
             }
             if (AimingSlot >= 0)
             {

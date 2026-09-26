@@ -214,13 +214,14 @@ namespace Fief
             public static readonly List<Ability> Picked = new List<Ability>();
             public static int Turn { get; private set; }
             /// <summary>
-            /// Avant la manche 1, DEUX tours de table (28/09 -- Martin : "la premiere
-            /// carte, que ce soit une passive") : 0 = une PASSIVE chacun, 1 = une ACTIVE
-            /// chacun (elle ira sur le clic gauche). Ensuite, un seul tour, tout melange.
+            /// A CHAQUE MANCHE, DEUX tours de table (29/09 -- Martin : "qu'on n'ait qu'un
+            /// passif et un clic gauche", "que les competences changent a chaque manche") :
+            /// 0 = une PASSIVE chacun, 1 = une ACTIVE chacun (le clic gauche). Chaque carte
+            /// prise REMPLACE celle de la manche d'avant.
             /// </summary>
             public static int Stage { get; private set; }
-            /// <summary>Vrai s'il reste le second tour de table avant la manche 1.</summary>
-            public static bool SecondStageNext { get { return Played == 0 && Stage == 0; } }
+            /// <summary>Vrai s'il reste le tour des actives.</summary>
+            public static bool SecondStageNext { get { return Stage == 0; } }
 
             public static bool Done { get { return Turn >= Order.Count; } }
             public static int Current { get { return Done ? -1 : Order[Turn]; } }
@@ -253,16 +254,11 @@ namespace Fief
                 // Une capacite que TOUT LE MONDE a deja ne sert a rien sur la table.
                 pool.RemoveAll(p => { for (int k = 0; k < Slots.Count; k++) if (!Slots[k].Has(p)) return false; return true; });
                 int cards = Mathf.Min(pool.Count, Slots.Count + 1);
-                bool first = Played == 0;
                 for (int i = 0; i < cards; i++)
                 {
-                    // Avant la manche 1 : d'abord que des passives, puis que des actives.
-                    List<Ability> from = pool;
-                    if (first)
-                    {
-                        from = stage == 0 ? pool.FindAll(a => !AbilityInfo.IsActive(a)) : pool.FindAll(AbilityInfo.IsActive);
-                        if (from.Count == 0) from = pool;
-                    }
+                    // D'abord que des passives, puis que des actives.
+                    List<Ability> from = stage == 0 ? pool.FindAll(a => !AbilityInfo.IsActive(a)) : pool.FindAll(AbilityInfo.IsActive);
+                    if (from.Count == 0) from = pool;
                     Ability pick = from[rng.Next(from.Count)];
                     Offer.Add(pick);
                     pool.Remove(pick);
@@ -283,12 +279,14 @@ namespace Fief
                 while (!Done && !AnyNewFor(Current)) Turn++;
             }
 
-            /// <summary>Si "slot" prend cette carte, quelle active perd-il (sinon : -1) ?</summary>
+            /// <summary>Si "slot" prend cette carte, quelle capacite perd-il (sinon : -1) ? Une active remplace l'active, une passive la passive.</summary>
             public static int WouldReplace(int slot, Ability card)
             {
-                if (!AbilityInfo.IsActive(card)) return -1;
-                List<Ability> actives = Slots[slot].Actives;
-                return actives.Count >= AbilityInfo.MaxActives ? (int)actives[0] : -1;
+                bool active = AbilityInfo.IsActive(card);
+                List<Ability> mine = Slots[slot].Abilities;
+                for (int i = 0; i < mine.Count; i++)
+                    if (AbilityInfo.IsActive(mine[i]) == active && mine[i] != card) return (int)mine[i];
+                return -1;
             }
 
             /// <summary>La place "slot" prend la carte "card". Vrai si c'etait son tour et que la carte existe.</summary>
@@ -297,8 +295,9 @@ namespace Fief
                 if (Done || slot != Current || card < 0 || card >= Offer.Count) return false;
                 Ability p = Offer[card];
                 if (Slots[slot].Has(p)) return false;
-                int lost = WouldReplace(slot, p);
-                if (lost >= 0) Slots[slot].Abilities.Remove((Ability)lost);
+                // La nouvelle remplace TOUTES celles du meme genre (une passive, une active).
+                bool kind = AbilityInfo.IsActive(p);
+                Slots[slot].Abilities.RemoveAll(a => AbilityInfo.IsActive(a) == kind);
                 Slots[slot].Abilities.Add(p);
                 PickedBy.Add(slot);
                 Picked.Add(p);
