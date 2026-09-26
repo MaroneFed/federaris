@@ -596,6 +596,9 @@ namespace Fief
             return bank[rng.Next(bank.Length)];
         }
 
+        /// <summary>Jouer un son fabrique ailleurs (le phonk des cartes, par exemple).</summary>
+        public static void PlayClip(AudioClip clip, float volume) { Play(clip, volume); }
+
         static void Play(AudioClip clip, float volume)
         {
             if (Muted || source == null || clip == null) return;

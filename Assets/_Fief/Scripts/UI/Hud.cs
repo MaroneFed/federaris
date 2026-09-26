@@ -103,6 +103,7 @@ namespace Fief
             if (hitSideTimer > 0f) hitSideTimer -= Time.unscaledDeltaTime;
             if (tipTimer > 0f) tipTimer -= Time.unscaledDeltaTime;
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
+            if (FiefInput.KeysPressed && !Hidden) keysOpen = !keysOpen;
             if (Game.Season != null && Game.Season.Running && !Hidden)
             {
                 WatchReady();
@@ -207,6 +208,7 @@ namespace Fief
             DrawPrompt();
             DrawCard();
             DrawTip();
+            DrawKeys();
             Toasts.Draw();
             DrawBuildError();
             if (showDiagnostic) DrawDiagnostic();
@@ -636,6 +638,106 @@ namespace Fief
         {
             UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, e), c);
             UiStyle.FadeBand(new Rect(0f, Screen.height - e, Screen.width, e), c);
+        }
+
+        // ================================================================== les touches
+
+        bool keysOpen;
+
+        /// <summary>
+        /// LES TOUCHES (28/09 -- Martin : "on comprend pas comment voler, toutes les
+        /// touches"). Un panneau clair en trois colonnes : BOUGER, TES POUVOIRS, VOLER.
+        /// Il s'affiche tout seul au depart de la premiere manche (pendant le 3, 2, 1 et
+        /// quelques secondes apres), et a tout moment avec F1 ou H.
+        /// </summary>
+        void DrawKeys()
+        {
+            Season season = Game.Season;
+            Seeker me = Game.Me;
+            if (season == null || me == null) return;
+            bool counting = menus != null && menus.CountingDown;
+            float auto = Match.Played == 0 ? (counting ? 1f : Mathf.Clamp01((12f - season.Elapsed) / 2f)) : 0f;
+            float a = keysOpen ? 1f : auto;
+            if (a <= 0.01f) return;
+
+            float w = Mathf.Min(UiStyle.S(1020), Screen.width - UiStyle.S(60));
+            float h = UiStyle.S(250);
+            Rect panel = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.52f, w, h);
+            UiStyle.Fill(panel, new Color(0.03f, 0.025f, 0.03f, 0.82f * a));
+            UiStyle.Fill(new Rect(panel.x, panel.y, panel.width, 2f), new Color(1f, 0.8f, 0.42f, 0.9f * a));
+            UiStyle.Fill(new Rect(panel.x, panel.yMax - 2f, panel.width, 2f), new Color(1f, 0.8f, 0.42f, 0.9f * a));
+            GUIStyle head = KeyStyle(0);
+            Text(new Rect(panel.x, panel.y + UiStyle.S(6), panel.width, UiStyle.S(30)), UiStyle.Spaced("LES TOUCHES") + (keysOpen ? "   ·   F1 ou H pour fermer" : "   ·   F1 ou H pour les revoir"), head, new Color(1f, 0.85f, 0.5f, a));
+
+            List<Ability> actives = me.Slot.Actives;
+            string[] keys = AbilityInfo.Keys;
+            string a0 = actives.Count > 0 ? AbilityInfo.Name(actives[0]) : "ta 1re capacité";
+            string a1 = actives.Count > 1 ? AbilityInfo.Name(actives[1]) : "ta 2e capacité";
+            string a2 = actives.Count > 2 ? AbilityInfo.Name(actives[2]) : "ta 3e capacité";
+            string[,] move =
+            {
+                { "ZQSD", "marcher" }, { "Maj", "courir" }, { "Espace", "sauter" }, { "Souris", "regarder" },
+                { "F", "arbaleste, Couronne, don" }
+            };
+            string[,] powers =
+            {
+                { keys[0], a0 }, { "E", a1 }, { "R", a2 }, { "V", "le don d'un sanctuaire" },
+                { AbilityInfo.PushKey, "POUSSER (vole la Couronne)" }
+            };
+            string[,] fly =
+            {
+                { "Vide", "saute : les ailes s'ouvrent seules" }, { "Souris ↓", "piquer (plus vite)" }, { "Souris ↑", "remonter" },
+                { "Espace", "replier / rouvrir les ailes" }, { AbilityInfo.PushKey, "en l'air : PIQUÉ sur le porteur" }
+            };
+            float colW = (panel.width - UiStyle.S(40)) / 3f;
+            float top = panel.y + UiStyle.S(46);
+            KeyColumn(panel.x + UiStyle.S(20), top, colW, "BOUGER", move, new Color(0.75f, 0.9f, 1f), a);
+            KeyColumn(panel.x + UiStyle.S(20) + colW, top, colW, "TES POUVOIRS", powers, new Color(1f, 0.6f, 0.4f), a);
+            KeyColumn(panel.x + UiStyle.S(20) + colW * 2f, top, colW, "VOLER", fly, Wings.Gold, a);
+            GUIStyle foot = KeyStyle(1);
+            Text(new Rect(panel.x, panel.yMax - UiStyle.S(26), panel.width, UiStyle.S(20)),
+                 "Sur ton arbaleste : vise à la souris, MAINTIENS le clic gauche pour tendre, RELÂCHE pour tirer   ·   Capacités qui visent : maintiens, puis relâche",
+                 foot, new Color(0.9f, 0.86f, 0.78f, 0.9f * a));
+        }
+
+        // Les styles du panneau : des COPIES (on ne modifie jamais un style partage).
+        readonly GUIStyle[] keyStyles = new GUIStyle[4];
+        int keyStylesSize = -1;
+        GUIStyle KeyStyle(int i)
+        {
+            if (keyStylesSize != UiStyle.Label.fontSize || keyStyles[i] == null)
+            {
+                keyStylesSize = UiStyle.Label.fontSize;
+                keyStyles[0] = new GUIStyle(UiStyle.Head);
+                keyStyles[0].alignment = TextAnchor.MiddleCenter;
+                keyStyles[1] = new GUIStyle(UiStyle.Small);
+                keyStyles[1].alignment = TextAnchor.MiddleCenter;
+                keyStyles[2] = new GUIStyle(UiStyle.Label);
+                keyStyles[2].fontStyle = FontStyle.Bold;
+                keyStyles[2].alignment = TextAnchor.MiddleLeft;
+                keyStyles[3] = new GUIStyle(UiStyle.Small);
+                keyStyles[3].alignment = TextAnchor.MiddleLeft;
+            }
+            return keyStyles[i];
+        }
+
+        void KeyColumn(float x, float y, float w, string title, string[,] rows, Color c, float a)
+        {
+            GUIStyle t = KeyStyle(2);
+            Text(new Rect(x, y, w, UiStyle.S(22)), UiStyle.Spaced(title), t, new Color(c.r, c.g, c.b, a));
+            y += UiStyle.S(28);
+            GUIStyle key = KeyStyle(1);
+            GUIStyle what = KeyStyle(3);
+            float kw = UiStyle.S(84);
+            for (int i = 0; i < rows.GetLength(0); i++)
+            {
+                Rect k = new Rect(x, y, kw, UiStyle.S(24));
+                UiStyle.Fill(k, new Color(c.r * 0.25f, c.g * 0.25f, c.b * 0.25f, 0.9f * a));
+                UiStyle.Fill(new Rect(k.x, k.yMax - 2f, k.width, 2f), new Color(c.r, c.g, c.b, 0.9f * a));
+                Text(k, rows[i, 0].ToUpperInvariant(), key, new Color(1f, 0.97f, 0.9f, a));
+                Text(new Rect(x + kw + UiStyle.S(10), y, w - kw - UiStyle.S(14), UiStyle.S(24)), rows[i, 1], what, new Color(0.93f, 0.9f, 0.84f, a));
+                y += UiStyle.S(30);
+            }
         }
 
         // ================================================================== l'astuce

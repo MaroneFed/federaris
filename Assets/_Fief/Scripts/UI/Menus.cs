@@ -372,13 +372,15 @@ namespace Fief
                 cam.pitch = 3f;
             }
             // Le compte a rebours : trois secondes ou tout le monde est fige sur sa
-            // ligne de depart. L'horloge (et les bots, les Yeux) ne partent qu'au "PARTEZ".
+            // plateforme. L'horloge (et les bots, les gargouilles) ne partent qu'au "PARTEZ".
             countdown = 3f;
             lastCount = 4;
             Toasts.Clear();
         }
 
         float countdown;
+        /// <summary>Vrai pendant le 3, 2, 1 du depart (le HUD montre alors les touches).</summary>
+        public bool CountingDown { get { return countdown > 0f; } }
         int lastCount;
         float goFlash;
 
@@ -478,8 +480,10 @@ namespace Fief
             int me = Match.Local != null ? Match.Local.Index : 0;
             if (Match.Draft.Done || Match.Draft.Current != me) return;
             if (card < 0 || card >= Match.Draft.Offer.Count || Match.Local.Has(Match.Draft.Offer[card])) { Sfx.Deny(); return; }
+            Ability chosen = Match.Draft.Offer[card];
             if (Match.Draft.TryPick(me, card))
             {
+                CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
                 Sfx.Discovery();
                 botPickTimer = 0.9f;
                 selected = 0;
@@ -502,8 +506,11 @@ namespace Fief
             botPickTimer = 0.9f;
             int card = Match.Draft.BotChoice(slot);
             if (card < 0) card = 0;
+            Ability botTook = card < Match.Draft.Offer.Count ? Match.Draft.Offer[card] : Ability.Ruee;
+            Rect botRect = card < cardRects.Length ? cardRects[card] : new Rect();
             if (Match.Draft.TryPick(slot, card))
             {
+                CardArt.Taken(botRect, AbilityInfo.Tint(botTook), false);
                 Sfx.Pop();
                 if (Match.Draft.Done) botPickTimer = 0f;
             }
@@ -863,7 +870,7 @@ namespace Fief
             else if (Match.Played == 0)
             {
                 float b = Mathf.Clamp01((t - 0.8f) / 0.5f) * a;
-                Centered(y, UiStyle.S(30), "La Couronne est au sommet de la tour. Là-haut, on prend des ailes.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
+                Centered(y, UiStyle.S(30), "Tire-toi de ta plateforme, passe une porte, monte la tour : la Couronne est au sommet.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
                 float c = Mathf.Clamp01((t - 1.8f) / 0.5f) * a;
                 Centered(y + UiStyle.S(38), UiStyle.S(30), "Plane jusqu'à l'un des trois Monuments, sur les îlots : les colonnes bleues.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
                 float d = Mathf.Clamp01((t - 2.8f) / 0.5f) * a;
@@ -987,13 +994,8 @@ namespace Fief
         void DrawDraft()
         {
             EnsureCardTextures();
-            // Un voile colore qui respire derriere les cartes.
-            float breathe = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 0.8f);
-            Color glowTint = new Color(0.9f, 0.7f, 0.35f, 0.10f + 0.05f * breathe);
-            Color was = GUI.color;
-            GUI.color = glowTint;
-            GUI.DrawTexture(new Rect(-Screen.width * 0.2f, Screen.height * 0.15f, Screen.width * 1.4f, Screen.height * 0.8f), glowTex, ScaleMode.StretchToFill, true);
-            GUI.color = was;
+            // Des rayons qui tournent lentement, des braises qui montent (voir CardArt).
+            CardArt.Background(Match.Played == 0 && Match.Draft.Stage == 0 ? new Color(0.55f, 0.75f, 1f) : Palette.Gold);
 
             float y = Screen.height * 0.08f;
             string title = Match.Played > 0 ? "UNE CAPACITÉ DE PLUS"
@@ -1016,14 +1018,15 @@ namespace Fief
             bool myTurn = !Match.Draft.Done && Match.Draft.Current == me;
             int n2 = Mathf.Max(1, offer.Count);
             float gap = UiStyle.S(18);
-            float cw = Mathf.Min(UiStyle.S(270), (Screen.width - UiStyle.S(60) - gap * (n2 - 1)) / n2);
-            float ch = Mathf.Min(UiStyle.S(340), Screen.height * 0.42f);
+            float cw = Mathf.Min(UiStyle.S(250), (Screen.width - UiStyle.S(60) - gap * (n2 - 1)) / n2);
+            float ch = Mathf.Min(cw * 1.45f, Screen.height * 0.46f);
             float cx = (Screen.width - (cw * n2 + gap * (n2 - 1))) * 0.5f;
             if (cardLift.Length < n2) cardLift = new float[Match.MaxPlayers + 2];
             for (int i = 0; i < offer.Count; i++)
             {
                 Ability p = offer[i];
-                float enter = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((stateTime - 0.15f - i * 0.09f) / 0.4f));
+                // Elles arrivent face cachee, puis se retournent une a une.
+                float enter = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((stateTime - 0.25f - i * 0.16f) / 0.5f));
                 bool owned = Match.Local != null && Match.Local.Has(p);
                 Rect hit = new Rect(cx + i * (cw + gap), y, cw, ch);
                 bool hover = hit.Contains(Event.current.mousePosition);
@@ -1032,7 +1035,8 @@ namespace Fief
                 if (Event.current.type == EventType.Repaint)
                     cardLift[i] = Mathf.MoveTowards(cardLift[i], on ? 1f : 0f, Time.unscaledDeltaTime * 6f);
                 float lift = Mathf.SmoothStep(0f, 1f, cardLift[i]);
-                Rect card = new Rect(hit.x, hit.y + (1f - enter) * UiStyle.S(60) - lift * UiStyle.S(16), cw, ch);
+                Rect card = new Rect(hit.x, hit.y + (1f - enter) * UiStyle.S(40) - lift * UiStyle.S(22), cw, ch);
+                cardRects[i] = card;
                 Card(card, p, owned, on, lift, enter, me);
                 if (myTurn && enter > 0.9f && GUI.Button(hit, GUIContent.none, GUIStyle.none)) { selected = i; PickCard(i); }
             }
@@ -1071,9 +1075,11 @@ namespace Fief
                 Centered(bar.y, bar.height, "TES CAPACITÉS   " + mine, UiStyle.Label, new Color(0.92f, 0.88f, 0.8f, 0.95f));
             }
             Footer(Match.Draft.Done ? "Entrée  jouer" : "← →  choisir     Entrée  prendre");
+            CardArt.Sparks();
         }
 
         float[] cardLift = new float[Match.MaxPlayers + 2];
+        readonly Rect[] cardRects = new Rect[Match.MaxPlayers + 2];
 
         /// <summary>La file des joueurs : une pastille par joueur, a sa couleur ; sous celles qui ont choisi, ce qu'elles ont pris.</summary>
         float DrawDraftOrder(float y)
@@ -1115,92 +1121,25 @@ namespace Fief
             UiStyle.Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), c);
         }
 
-        /// <summary>UNE CARTE : fond sombre, degrade de sa couleur, grande initiale en filigrane, les mots.</summary>
+        /// <summary>UNE CARTE (28/09 : dessinee par CardArt -- dos, retournement, cadre d'or, rayons, etincelles).</summary>
         void Card(Rect card, Ability p, bool owned, bool on, float lift, float enter, int me)
         {
-            Color tint = AbilityInfo.Tint(p);
-            float fade = (owned ? 0.4f : 1f) * enter;
-            Color was = GUI.color;
-
-            // Le halo derriere la carte choisie.
-            if (lift > 0.01f)
-            {
-                GUI.color = new Color(tint.r, tint.g, tint.b, 0.55f * lift * enter);
-                float g = UiStyle.S(46);
-                GUI.DrawTexture(new Rect(card.x - g, card.y - g, card.width + g * 2f, card.height + g * 2f), glowTex, ScaleMode.StretchToFill, true);
-                GUI.color = was;
-            }
-
-            GUI.BeginGroup(card);
-            Rect local = new Rect(0f, 0f, card.width, card.height);
-            UiStyle.Fill(local, new Color(0.045f, 0.04f, 0.05f, 0.94f * enter));
-            // Le degrade de la couleur de la capacite, du haut vers le bas.
-            GUI.color = new Color(tint.r, tint.g, tint.b, (on ? 0.62f : 0.42f) * fade);
-            GUI.DrawTexture(new Rect(0f, 0f, card.width, card.height * 0.7f), gradTex, ScaleMode.StretchToFill, true);
-            GUI.color = was;
-            // La grande initiale, en filigrane.
-            string name = AbilityInfo.Name(p);
-            GUIStyle huge = Style(UiStyle.Big, Mathf.Min(170f, card.height / UiStyle.Scale * 0.62f), TextAnchor.LowerRight);
-            UiStyle.Tinted(new Rect(0f, 0f, card.width - UiStyle.S(4), card.height + UiStyle.S(18)), name.Substring(0, 1), huge, new Color(tint.r, tint.g, tint.b, 0.14f * fade));
-            // Le reflet qui traverse la carte choisie.
-            if (on)
-            {
-                float sweep = Mathf.Repeat(Time.unscaledTime * 0.6f, 1.6f) - 0.3f;
-                GUI.color = new Color(1f, 1f, 1f, 0.10f);
-                GUI.DrawTexture(new Rect(card.width * sweep - UiStyle.S(40), 0f, UiStyle.S(80), card.height), glowTex, ScaleMode.StretchToFill, true);
-                GUI.color = was;
-            }
-
-            float pad = UiStyle.S(18);
-            float x = pad, w = card.width - pad * 2f;
-            float y = UiStyle.S(18);
-
-            // La pastille : ACTIVE · touche R, ou PASSIVE.
             bool active = AbilityInfo.IsActive(p);
-            string kind;
-            if (owned) kind = "DÉJÀ À TOI";
-            else if (active)
+            string ribbon;
+            if (active)
             {
                 int count = Match.Local != null ? Match.Local.Actives.Count : 0;
-                kind = "ACTIVE  ·  " + AbilityInfo.Keys[Mathf.Min(count, AbilityInfo.MaxActives - 1)].ToUpperInvariant();
+                ribbon = "ACTIVE  ·  " + AbilityInfo.Keys[Mathf.Min(count, AbilityInfo.MaxActives - 1)].ToUpperInvariant();
             }
-            else kind = "PASSIVE";
-            GUIStyle pill = Style(UiStyle.Tiny, 0, TextAnchor.MiddleCenter);
-            float pw = pill.CalcSize(new GUIContent(kind)).x + UiStyle.S(20);
-            Rect pr = new Rect(x, y, pw, UiStyle.S(22));
-            UiStyle.Fill(pr, new Color(tint.r, tint.g, tint.b, 0.9f * fade));
-            UiStyle.Tinted(pr, kind, pill, new Color(0.05f, 0.04f, 0.05f, enter));
-            y += UiStyle.S(38);
-
-            // Le nom, grand.
-            Shadow(new Rect(x, y, w, UiStyle.S(40)), name, Style(UiStyle.Title, 30, TextAnchor.MiddleLeft),
-                   on ? new Color(1f, 0.93f, 0.72f, enter) : new Color(0.97f, 0.93f, 0.85f, fade));
-            y += UiStyle.S(46);
-            UiStyle.Fill(new Rect(x, y, w * 0.5f, 2f), new Color(tint.r, tint.g, tint.b, 0.8f * fade));
-            y += UiStyle.S(14);
-
-            // Ce qu'elle fait.
-            UiStyle.Tinted(new Rect(x, y, w, card.height - y - UiStyle.S(70)), AbilityInfo.Line(p), Wrapped(), new Color(0.93f, 0.9f, 0.84f, fade));
-
-            // En bas : la recharge ; et ce qu'elle remplace.
-            float by = card.height - UiStyle.S(58);
-            string foot = active ? "Recharge : " + AbilityInfo.Cooldown(p).ToString("0") + " s" : "Toujours active";
-            Shadow(new Rect(x, by, w, UiStyle.S(20)), foot, Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), new Color(tint.r, tint.g, tint.b, 0.9f * fade));
+            else ribbon = "PASSIVE  ·  TOUJOURS LÀ";
+            string foot = active ? "Recharge " + AbilityInfo.Cooldown(p).ToString("0") + " s" : "Sans touche";
+            string replaces = null;
             if (!owned && Match.Local != null)
             {
                 int lost = Match.Draft.WouldReplace(me, p);
-                if (lost >= 0)
-                {
-                    Rect rb = new Rect(0f, card.height - UiStyle.S(30), card.width, UiStyle.S(30));
-                    UiStyle.Fill(rb, new Color(0.55f, 0.12f, 0.1f, 0.85f * enter));
-                    Shadow(rb, "remplace " + AbilityInfo.Name((Ability)lost), Style(UiStyle.Small, 0, TextAnchor.MiddleCenter), new Color(1f, 0.9f, 0.85f, enter));
-                }
+                if (lost >= 0) replaces = "remplace " + AbilityInfo.Name((Ability)lost);
             }
-            // Le liseré.
-            Color edge = new Color(tint.r, tint.g, tint.b, (on ? 1f : 0.45f) * fade);
-            Border(local, edge);
-            if (on) Border(new Rect(1f, 1f, card.width - 2f, card.height - 2f), new Color(1f, 1f, 1f, 0.35f));
-            GUI.EndGroup();
+            CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), ribbon, AbilityInfo.Line(p), foot, replaces, owned, on, lift, enter);
         }
 
         static Texture2D gradTex, glowTex;
