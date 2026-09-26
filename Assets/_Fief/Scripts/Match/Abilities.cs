@@ -75,20 +75,20 @@ namespace Fief
         {
             switch (a)
             {
-                case Ability.Ruee: return "Un bond de huit mètres droit devant toi.";
-                case Ability.Grappin: return "Vise un mur, un arbre, la tour : le grappin t'y tire.";
-                case Ability.Crochet: return "Vise un joueur : il est tiré jusqu'à toi.";
-                case Ability.Onde: return "Projette tout le monde autour de toi.";
-                case Ability.Clignement: return "Tu disparais et réapparais dix mètres plus loin.";
-                case Ability.Bond: return "Un saut immense, droit vers le ciel.";
-                case Ability.Mur: return "Un mur de pierre surgit devant toi pendant huit secondes.";
+                case Ability.Ruee: return "Douze mètres d'un trait : qui est sur ta route est bousculé.";
+                case Ability.Grappin: return "Vise un mur, un rebord, la tour (48 m) : le grappin t'y tire.";
+                case Ability.Crochet: return "Vise un joueur, jusqu'à 32 m : il est tiré jusqu'à toi.";
+                case Ability.Onde: return "Une explosion : tout le monde à neuf mètres s'envole.";
+                case Ability.Clignement: return "Tu disparais et réapparais quinze mètres plus loin.";
+                case Ability.Bond: return "Un saut immense vers le ciel ; le souffle repousse ceux qui sont tout près.";
+                case Ability.Mur: return "Un mur de dix mètres surgit devant toi ; qui est dessus s'envole.";
                 case Ability.Nuee: return "Un nuage de fumée : les Yeux et les autres ne voient plus rien.";
-                case Ability.Mine: return "Pose une mine : qui marche dessus s'envole et lâche la Couronne.";
-                case Ability.Gel: return "Lance une boule de givre : ceux qu'elle touche sont ralentis.";
-                case Ability.Voile: return "Tu deviens invisible pendant six secondes.";
-                case Ability.Echange: return "Vise un joueur : vous échangez vos places.";
+                case Ability.Mine: return "Pose une mine : elle envoie en l'air tous ceux qui passent à côté.";
+                case Ability.Gel: return "Lance une boule de givre : l'éclat bouscule et ralentit.";
+                case Ability.Voile: return "Tu deviens invisible pendant sept secondes.";
+                case Ability.Echange: return "Vise un joueur, jusqu'à 45 m : vous échangez vos places.";
                 case Ability.Rappel: return "Tu reviens là où tu étais il y a quatre secondes.";
-                case Ability.Souffle: return "Une rafale repousse tout ce qui est devant toi.";
+                case Ability.Souffle: return "Une vague de vent qui traverse toute l'île et emporte tout le monde.";
                 case Ability.DoubleSaut: return "Appuie encore sur Espace en l'air : un second saut.";
                 case Ability.Planeur: return "Des ailes d'or pour toujours : tu voles plus vite et plus loin.";
                 case Ability.Coureur: return "Tu vas quinze pour cent plus vite.";
@@ -122,7 +122,7 @@ namespace Fief
                 case Ability.Voile: return 16f;
                 case Ability.Echange: return 14f;
                 case Ability.Rappel: return 10f;
-                case Ability.Souffle: return 7f;
+                case Ability.Souffle: return 9f;
                 default: return 0f;
             }
         }

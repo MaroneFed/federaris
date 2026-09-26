@@ -20,7 +20,7 @@ namespace Fief
 
         const float Gravity = -14f;
         public const float SlowSeconds = 3f;
-        public const float SlowRadius = 4.5f;
+        public const float SlowRadius = 6.5f;
         static readonly Color Frost = new Color(0.6f, 0.9f, 1f);
 
         public static void Launch(Seeker by, Vector3 from, Vector3 velocity)
@@ -31,7 +31,7 @@ namespace Fief
             t.by = by;
             t.velocity = velocity;
             Proto.BeginVisualOnly();
-            GameObject ball = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.4f, Frost, "Givre");
+            GameObject ball = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.7f, Frost, "Givre");
             ball.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Frost, 2.5f);
             Proto.EndVisualOnly();
             Sfx.Whoosh();
@@ -85,6 +85,10 @@ namespace Fief
                 if (s == by || s.Body == null) continue;
                 if ((s.Body.position - at).magnitude > SlowRadius) continue;
                 s.SlowUntil = Time.time + SlowSeconds;
+                // Et un eclat qui bouscule un peu (28/09).
+                Vector3 away = new Vector3(s.Body.position.x - at.x, 0f, s.Body.position.z - at.z);
+                away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward;
+                Combat.Hit(s, away * 8f + Vector3.up * 5f, 0.25f, false, by);
                 if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(Frost.r, Frost.g, Frost.b, 0.6f));
             }
             Destroy(gameObject);
@@ -104,7 +108,7 @@ namespace Fief
             public float until;
         }
 
-        public const float Radius = 5f;
+        public const float Radius = 8f;
         public const float Seconds = 8f;
 
         static readonly List<Cloud> Clouds = new List<Cloud>();

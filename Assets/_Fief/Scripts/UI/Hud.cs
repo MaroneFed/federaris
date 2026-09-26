@@ -328,9 +328,11 @@ namespace Fief
         // ================================================================== les capacites
 
         /// <summary>
-        /// En bas a gauche : une ligne par capacite active -- sa touche, son nom, et
-        /// "prete" ou le temps qui reste (un trait qui se remplit). Puis le don, puis
-        /// les passifs en une ligne. Pas d'icone : un nom se comprend tout de suite.
+        /// En bas au centre (28/09, redessine) : une CARTE par capacite active, puis le
+        /// don. Chaque carte : sa touche, son nom, un liseré a sa couleur ; en recharge,
+        /// un rideau sombre qui remonte et les secondes ; prete, elle luit ; tenue pour
+        /// viser, elle se souleve. Au-dessus : les passifs, puis l'etat du moment.
+        /// Pas d'icone : un nom se comprend tout de suite.
         /// </summary>
         void DrawAbilities()
         {
@@ -339,23 +341,20 @@ namespace Fief
             List<Ability> actives = me.Slot.Actives;
             float now = Time.time;
 
-            float row = UiStyle.S(26);
-            float x = UiStyle.S(28);
-            float keyW = UiStyle.S(96), nameW = UiStyle.S(150), stateW = UiStyle.S(110);
-            int lines = actives.Count + (me.HasGift ? 1 : 0);
-            float y = Screen.height - UiStyle.S(40) - row * lines;
+            int count = actives.Count + (me.HasGift ? 1 : 0);
+            float w = UiStyle.S(158), h = UiStyle.S(70), gap = UiStyle.S(10);
+            float total = count * w + Mathf.Max(0, count - 1) * gap;
+            float x = (Screen.width - total) * 0.5f;
+            float y = Screen.height - UiStyle.S(26) - h;
 
             for (int i = 0; i < actives.Count; i++)
             {
-                AbilityRow(x, y, keyW, nameW, stateW, AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)], actives[i], me, now, false);
-                y += row;
+                AbilityTile(new Rect(x, y, w, h), AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)], actives[i], me, now, false, AbilityUser.AimingSlot == i);
+                x += w + gap;
             }
-            if (me.HasGift)
-            {
-                AbilityRow(x, y, keyW, nameW, stateW, AbilityInfo.GiftKey, me.Gift, me, now, true);
-                y += row;
-            }
+            if (me.HasGift) AbilityTile(new Rect(x, y, w, h), AbilityInfo.GiftKey, me.Gift, me, now, true, AbilityUser.AimingSlot == 3);
 
+            float top = count > 0 ? y - UiStyle.S(24) : Screen.height - UiStyle.S(40);
             // Les passifs, en une ligne.
             string passives = "";
             List<Ability> all = me.Slot.Abilities;
@@ -364,7 +363,11 @@ namespace Fief
                 if (AbilityInfo.IsActive(all[i])) continue;
                 passives += (passives.Length > 0 ? "  ·  " : "") + AbilityInfo.Name(all[i]);
             }
-            if (passives.Length > 0) Text(new Rect(x, y + UiStyle.S(4), UiStyle.S(600), UiStyle.S(18)), passives, UiStyle.Small, UiStyle.InkDim);
+            if (passives.Length > 0)
+            {
+                Text(new Rect(0f, top, Screen.width, UiStyle.S(18)), passives, UiStyle.CenteredSmall, UiStyle.InkDim);
+                top -= UiStyle.S(26);
+            }
 
             // L'etat du moment, en mots, a cote.
             string state = null;
@@ -381,48 +384,78 @@ namespace Fief
             else if (Game.Player != null && Game.Player.Flying) { state = "TIRÉ PAR L'ARBALESTE"; sc = new Color(1f, 0.8f, 0.45f); }
             else if (me.HasWings) { state = "AILES D'OR — saute dans le vide"; sc = Wings.Gold; }
             if (state != null)
-                Text(new Rect(x, Screen.height - UiStyle.S(40) - row * lines - UiStyle.S(26), UiStyle.S(300), UiStyle.S(22)), state, UiStyle.Label, sc);
+                Text(new Rect(0f, top, Screen.width, UiStyle.S(22)), state, UiStyle.Centered, sc);
         }
 
-        void AbilityRow(float x, float y, float keyW, float nameW, float stateW, string key, Ability a, Seeker me, float now, bool gift)
+        /// <summary>Une carte de capacite.</summary>
+        void AbilityTile(Rect r, string key, Ability a, Seeker me, float now, bool gift, bool aimingThis)
         {
             bool ready = me.Ready(a, now);
             bool blocked = AbilityCaster.WhyNot(me, a) == "Mains prises";
+            bool live = ready && !blocked;
             Color tint = AbilityInfo.Tint(a);
-            float h = UiStyle.S(24);
+            if (aimingThis) r.y -= UiStyle.S(10);
 
-            // Elle vient de revenir : sa ligne s'eclaire une demi-seconde.
-            float lit;
-            if (readyFlash.TryGetValue(a, out lit) && Time.unscaledTime - lit < 0.5f)
-                UiStyle.Fill(new Rect(x - UiStyle.S(6), y, keyW + nameW + UiStyle.S(80), h), new Color(tint.r, tint.g, tint.b, 0.25f * (1f - (Time.unscaledTime - lit) / 0.5f)));
-            Text(new Rect(x, y, keyW, h), key.ToUpperInvariant(), UiStyle.Small, ready && !blocked ? Palette.Gold : UiStyle.InkFaint);
-            Text(new Rect(x + keyW, y, nameW, h), AbilityInfo.Name(a), UiStyle.Label, ready && !blocked ? UiStyle.Ink : UiStyle.InkFaint);
+            // L'ombre, le fond, le lavis de couleur en haut, le liseré.
+            UiStyle.Fill(new Rect(r.x + 3f, r.y + 4f, r.width, r.height), new Color(0f, 0f, 0f, 0.35f));
+            UiStyle.Fill(r, new Color(0.06f, 0.055f, 0.05f, 0.84f));
+            UiStyle.Fill(new Rect(r.x, r.y, r.width, r.height * 0.5f), new Color(tint.r, tint.g, tint.b, live ? 0.16f : 0.05f));
+            UiStyle.Fill(new Rect(r.x, r.y, r.width, r.height * 0.22f), new Color(tint.r, tint.g, tint.b, live ? 0.12f : 0.03f));
+            UiStyle.Fill(new Rect(r.x, r.y, r.width, UiStyle.S(3)), new Color(tint.r, tint.g, tint.b, live ? 1f : 0.35f));
 
-            float sx = x + keyW + nameW;
-            if (blocked) Text(new Rect(sx, y, stateW, h), "mains prises", UiStyle.Small, new Color(1f, 0.6f, 0.4f, 0.8f));
-            else if (ready)
-            {
-                // Le trait plein, a la couleur de la capacite.
-                UiStyle.Fill(new Rect(sx, y + h * 0.5f - 1f, UiStyle.S(60), UiStyle.S(3)), new Color(tint.r, tint.g, tint.b, 0.9f));
-                // Une capacite qui vise : ce qu'elle toucherait maintenant.
-                string note = gift ? "don" : null;
-                Color nc = UiStyle.InkFaint;
-                if (AbilityCaster.Aims(a) && viewCamera != null)
-                {
-                    string at = AbilityCaster.AimedAt(me, a, viewCamera.transform.position, viewCamera.transform.forward);
-                    note = at != null ? "→ " + at : "rien en vue";
-                    nc = at != null ? new Color(tint.r, tint.g, tint.b, 1f) : UiStyle.InkFaint;
-                }
-                if (note != null) Text(new Rect(sx + UiStyle.S(68), y, stateW + UiStyle.S(60), h), note, UiStyle.Small, nc);
-            }
-            else
+            // En recharge : un rideau sombre qui remonte a mesure qu'elle revient.
+            if (!ready)
             {
                 float f = me.Ready01(a, now);
-                UiStyle.Fill(new Rect(sx, y + h * 0.5f - 1f, UiStyle.S(60), UiStyle.S(3)), new Color(1f, 1f, 1f, 0.12f));
-                UiStyle.Fill(new Rect(sx, y + h * 0.5f - 1f, UiStyle.S(60) * f, UiStyle.S(3)), new Color(tint.r, tint.g, tint.b, 0.55f));
-                float rem = me.Remaining(a, now);
-                Text(new Rect(sx + UiStyle.S(68), y, stateW, h), rem < 1f ? rem.ToString("0.0") : Mathf.CeilToInt(rem).ToString(), UiStyle.Small, UiStyle.InkDim);
+                float cover = r.height * (1f - f);
+                UiStyle.Fill(new Rect(r.x, r.y + r.height - cover, r.width, cover), new Color(0f, 0f, 0f, 0.5f));
+                UiStyle.Fill(new Rect(r.x, r.y + r.height - cover - 1f, r.width, 2f), new Color(tint.r, tint.g, tint.b, 0.8f));
             }
+
+            // Le contour : il luit quand elle est prete, eclate quand elle revient, brille quand on vise.
+            float glow = aimingThis ? 1f : live ? 0.3f + 0.12f * Mathf.Sin(Time.unscaledTime * 3f) : 0f;
+            float lit;
+            if (readyFlash.TryGetValue(a, out lit) && Time.unscaledTime - lit < 0.6f)
+            {
+                float k = 1f - (Time.unscaledTime - lit) / 0.6f;
+                glow = Mathf.Max(glow, k);
+                UiStyle.Fill(r, new Color(tint.r, tint.g, tint.b, 0.3f * k));
+            }
+            if (glow > 0.01f)
+            {
+                Color e = new Color(tint.r, tint.g, tint.b, glow);
+                float t = aimingThis ? 3f : 2f;
+                UiStyle.Fill(new Rect(r.x, r.y, r.width, t), e);
+                UiStyle.Fill(new Rect(r.x, r.yMax - t, r.width, t), e);
+                UiStyle.Fill(new Rect(r.x, r.y, t, r.height), e);
+                UiStyle.Fill(new Rect(r.xMax - t, r.y, t, r.height), e);
+            }
+
+            // La touche en haut a gauche, "DON" en haut a droite.
+            Text(new Rect(r.x + UiStyle.S(9), r.y + UiStyle.S(6), r.width, UiStyle.S(16)), key.ToUpperInvariant(), UiStyle.Tiny, live ? Palette.Gold : UiStyle.InkFaint);
+            if (gift) Text(new Rect(r.x, r.y + UiStyle.S(6), r.width - UiStyle.S(9), UiStyle.S(16)), "DON", RightSmall(), new Color(tint.r, tint.g, tint.b, 0.9f));
+            // Le nom, au milieu.
+            Text(new Rect(r.x, r.y + UiStyle.S(22), r.width, UiStyle.S(26)), AbilityInfo.Name(a), UiStyle.Centered, live ? UiStyle.Ink : UiStyle.InkFaint);
+
+            // En bas : l'etat.
+            string note;
+            Color nc = UiStyle.InkDim;
+            if (blocked) { note = "mains prises"; nc = new Color(1f, 0.6f, 0.4f, 0.85f); }
+            else if (!ready)
+            {
+                float rem = me.Remaining(a, now);
+                note = rem < 1f ? rem.ToString("0.0") + " s" : Mathf.CeilToInt(rem) + " s";
+            }
+            else if (AbilityCaster.Aims(a) && viewCamera != null)
+            {
+                string at = AbilityCaster.AimedAt(me, a, viewCamera.transform.position, viewCamera.transform.forward);
+                note = at != null ? "→ " + at : "rien en vue";
+                nc = at != null ? new Color(tint.r, tint.g, tint.b, 1f) : UiStyle.InkFaint;
+            }
+            else if (aimingThis) { note = "relâche pour lancer"; nc = new Color(tint.r, tint.g, tint.b, 1f); }
+            else if (AbilityCaster.NeedsAim(a) && Stats.Casts < 8) note = "maintiens pour viser";
+            else note = "prête";
+            Text(new Rect(r.x, r.yMax - UiStyle.S(22), r.width, UiStyle.S(18)), note, UiStyle.CenteredSmall, nc);
         }
 
         // ================================================================== le centre

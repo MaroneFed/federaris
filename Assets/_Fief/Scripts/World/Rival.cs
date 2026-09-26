@@ -763,23 +763,24 @@ namespace Fief
                         break;
                     }
                     case Ability.Grappin:
-                        go = prey != null && preyD > 9f && preyD < 30f && goal == Goal.Hunt;
+                        go = prey != null && preyD > 9f && preyD < AbilityCaster.GrappinRange - 4f && goal == Goal.Hunt;
                         aim = toPrey;
                         break;
                     case Ability.Crochet:
-                        go = prey != null && prey.CarriesCrown && preyD > 5f && preyD < 22f;
+                        go = prey != null && prey.CarriesCrown && preyD > 5f && preyD < AbilityCaster.CrochetRange - 2f;
                         aim = toPrey;
                         break;
                     case Ability.Souffle:
-                        go = prey != null && preyD < 10f && (prey.CarriesCrown || goal == Goal.Fight);
+                        // La vague porte a 150 m : il la lache sur le porteur, meme loin (meme en vol).
+                        go = prey != null && preyD < 90f && (prey.CarriesCrown || goal == Goal.Fight && preyD < 15f);
                         aim = toPrey;
                         break;
                     case Ability.Gel:
-                        go = prey != null && prey.CarriesCrown && preyD > 6f && preyD < 18f;
+                        go = prey != null && prey.CarriesCrown && preyD > 6f && preyD < 24f;
                         aim = toPrey;
                         break;
                     case Ability.Onde:
-                        go = near > 0 && (carrying || holder != null && holder.Body != null && (holder.Body.position - me).magnitude < 5.5f || near >= 2);
+                        go = near > 0 && (carrying || holder != null && holder.Body != null && (holder.Body.position - me).magnitude < AbilityCaster.OndeRadius - 1f || near >= 2);
                         break;
                     case Ability.Bond:
                         go = prey != null && prey.Body.position.y - me.y > 4f && Flat(toPrey).magnitude < 8f;
@@ -787,7 +788,7 @@ namespace Fief
                         break;
                     case Ability.Echange:
                         go = prey != null && prey.CarriesCrown && Monument.All.Count > 0 && preyD > 12f && preyD < 32f
-                             && Monument.NearestDistance(prey.Body.position) < Monument.NearestDistance(me) - 15f;
+                             && Monument.NearestDistance(prey.Body.position) < Monument.NearestDistance(me) - 15f && preyD < AbilityCaster.EchangeRange;
                         aim = toPrey;
                         break;
                     case Ability.Voile:

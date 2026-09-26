@@ -65,11 +65,21 @@ namespace Fief
                 if (Mathf.Abs(d.y) > 1.5f) continue;
                 d.y = 0f;
                 if (d.magnitude > Trigger) continue;
-                Combat.Hit(s, Vector3.up * 15f + d.normalized * 3f, 0.4f, true, owner);
+                // L'explosion emporte tout le monde a 4 m (28/09 : plus fort).
+                for (int k = 0; k < Game.Seekers.Count; k++)
+                {
+                    Seeker o = Game.Seekers[k];
+                    if (o == owner || o.Body == null) continue;
+                    Vector3 e = o.Body.position - transform.position;
+                    if (e.magnitude > 4f) continue;
+                    Vector3 away = new Vector3(e.x, 0f, e.z);
+                    away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward;
+                    Combat.Hit(o, Vector3.up * 19f + away * 6f, 0.4f, true, owner);
+                }
                 // L'explosion : une colonne de feu, une sphere, un anneau, un eclair.
-                Fx.Column(transform.position, Rune, 16f, 0.25f, 0.5f);
-                Fx.Shock(transform.position + Vector3.up * 0.5f, Rune, 2.5f, 0.35f);
-                Fx.GroundRing(transform.position, Rune, 4f, 0.4f);
+                Fx.Column(transform.position, Rune, 22f, 0.3f, 0.7f);
+                Fx.Shock(transform.position + Vector3.up * 0.5f, Rune, 4f, 0.4f);
+                Fx.GroundRing(transform.position, Rune, 5.5f, 0.45f);
                 Fx.Burst(transform.position + Vector3.up * 0.3f, Rune, 80, 12f, 0.2f, 0.8f, 0.6f, Vector3.up, 55f);
                 Fx.Flash(transform.position + Vector3.up, Rune, 14f, 7f, 0.35f);
                 Sfx.TrapSnap();
@@ -82,8 +92,10 @@ namespace Fief
 
     /// <summary>
     /// UN MUR DE PIERRE (la capacite Mur) : il jaillit du sol devant toi en un quart de
-    /// seconde, six metres de large, trois de haut, et redescend huit secondes plus
-    /// tard. Pour couper la route d'un porteur, ou se mettre a l'abri d'un Oeil.
+    /// seconde, DIX metres de large, quatre et demi de haut (28/09 : plus grand), et
+    /// redescend huit secondes plus tard. Qui se tient la ou il sort est PROJETE en
+    /// l'air. Pour couper la route d'un porteur, se mettre a l'abri d'un Oeil -- ou
+    /// catapulter quelqu'un hors de la rampe.
     /// </summary>
     public class StoneWall : MonoBehaviour
     {
@@ -91,7 +103,10 @@ namespace Fief
         Vector3 down, up;
         const float Life = 8f;
 
-        public static void Raise(Vector3 at, Vector3 facing)
+        const float Wide = 10f;
+        const float Tall = 4.5f;
+
+        public static void Raise(Vector3 at, Vector3 facing, Seeker by)
         {
             Vector3 f = new Vector3(facing.x, 0f, facing.z).normalized;
             if (f.sqrMagnitude < 0.01f) f = Vector3.forward;
@@ -102,19 +117,37 @@ namespace Fief
             go.transform.rotation = Quaternion.LookRotation(f, Vector3.up);
             StoneWall w = go.AddComponent<StoneWall>();
             w.up = new Vector3(at.x, ground, at.z);
-            w.down = w.up - Vector3.up * 3.4f;
+            w.down = w.up - Vector3.up * (Tall + 0.3f);
             go.transform.position = w.down;
             BoxCollider box = go.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 1.6f, 0f);
-            box.size = new Vector3(6f, 3.2f, 0.9f);
+            box.center = new Vector3(0f, Tall * 0.5f, 0f);
+            box.size = new Vector3(Wide, Tall, 1.1f);
             Proto.BeginVisualOnly();
             Color stone = new Color(0.34f, 0.33f, 0.31f);
-            for (int i = 0; i < 5; i++)
-                Proto.Cube(go.transform, new Vector3(-2.4f + i * 1.2f, 1.6f + (i % 2) * 0.12f, 0f), new Vector3(1.18f, 3.2f + (i % 2) * 0.24f, 0.9f),
+            int blocks = 8;
+            float bw = Wide / blocks;
+            for (int i = 0; i < blocks; i++)
+            {
+                float extra = (i % 3) * 0.25f;
+                Proto.Cube(go.transform, new Vector3(-Wide * 0.5f + bw * (i + 0.5f), (Tall + extra) * 0.5f, 0f), new Vector3(bw - 0.03f, Tall + extra, 1.1f),
                            i % 2 == 0 ? stone : Palette.Shade(stone, 0.85f), "Pierre");
-            GameObject rune = Proto.Cube(go.transform, new Vector3(0f, 2.2f, -0.46f), new Vector3(0.8f, 0.8f, 0.02f), Color.white, "Rune");
-            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(AbilityInfo.Tint(Ability.Mur), 1.6f);
+            }
+            for (int k = -1; k <= 1; k++)
+            {
+                GameObject rune = Proto.Cube(go.transform, new Vector3(k * 3.2f, Tall * 0.6f, -0.57f), new Vector3(0.7f, 0.7f, 0.02f), Color.white, "Rune");
+                rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(AbilityInfo.Tint(Ability.Mur), 1.8f);
+            }
             Proto.EndVisualOnly();
+            // Qui se tient la ou il sort part en l'air.
+            Vector3 right = new Vector3(f.z, 0f, -f.x);
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s == by || s.Body == null) continue;
+                Vector3 rel = s.Body.position - w.up;
+                if (Mathf.Abs(Vector3.Dot(rel, right)) > Wide * 0.5f || Mathf.Abs(Vector3.Dot(rel, f)) > 1.2f || Mathf.Abs(rel.y) > 2f) continue;
+                Combat.Hit(s, Vector3.up * 19f + f * 5f, 0.3f, true, by);
+            }
             Ambiance.Burst(null, w.up + Vector3.up * 0.5f, new Color(0.5f, 0.45f, 0.4f));
             Sfx.Crash();
         }
