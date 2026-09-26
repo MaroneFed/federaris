@@ -85,7 +85,7 @@ namespace Fief
                 case Ability.Clignement: return "Tu disparais et réapparais quinze mètres plus loin.";
                 case Ability.Bond: return "Un saut immense vers le ciel ; le souffle repousse ceux qui sont tout près.";
                 case Ability.Mur: return "Un mur de dix mètres surgit devant toi ; qui est dessus s'envole.";
-                case Ability.Nuee: return "Un nuage de fumée : les Yeux et les autres ne voient plus rien.";
+                case Ability.Nuee: return "Un nuage de fumée : les gargouilles et les autres ne voient plus rien.";
                 case Ability.Mine: return "Pose une mine : elle envoie en l'air tous ceux qui passent à côté.";
                 case Ability.Gel: return "Lance une boule de givre : l'éclat bouscule et ralentit.";
                 case Ability.Voile: return "Tu deviens invisible pendant sept secondes.";
@@ -99,7 +99,7 @@ namespace Fief
                 case Ability.Poigne: return "Ta poussée envoie deux fois plus loin.";
                 case Ability.Ancrage: return "On te pousse deux fois moins loin.";
                 case Ability.Flair: return "Tu vois toujours où est la Couronne, même à travers les murs.";
-                case Ability.Ombre: return "Les Yeux mettent deux fois plus de temps à te repérer.";
+                case Ability.Ombre: return "Les gargouilles mettent deux fois plus de temps à te repérer.";
                 case Ability.PriseFerme: return "Le premier coup ne te fait pas lâcher la Couronne.";
                 case Ability.Recharge: return "Tes capacités reviennent un tiers plus vite.";
                 case Ability.Rebond: return "Retomber de haut fait une onde de choc autour de toi.";

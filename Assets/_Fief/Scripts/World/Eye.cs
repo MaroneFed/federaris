@@ -4,25 +4,23 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UN OEIL DE LA CITADELLE (27/09 -- Martin : "les PNJ, soit un truc tellement
-    /// excellent, soit rien"). Donc RIEN d'humain : plus de gardes, plus de roi. A la
-    /// place, des sentinelles de pierre qui FLOTTENT (redessinees le 28/09) : un coeur
-    /// de lumiere pris dans HUIT PETALES de pierre -- un diaphragme qui s'ouvre quand il
-    /// te voit --, une pupille de chat qui s'arrondit quand il charge, trois eclats de
-    /// rune qui tournent autour, deux anneaux. Une forme qu'on lit a cinquante metres,
-    /// et qui ne se coince jamais dans un mur puisqu'elle ne marche pas.
+    /// UNE GARGOUILLE (28/09 -- Martin : "les yeux, il n'y a pas un autre moyen, un
+    /// truc un peu plus moyenageux ?"). Rien d'humain, toujours : une bete de pierre
+    /// accroupie sur les tours et les remparts, les ailes repliees, des cornes, deux
+    /// yeux qui luisent. Sa tete tourne ; elle ne descend jamais de son perchoir. (Dans
+    /// le code, la classe s'appelle encore Eye : c'etait des Yeux flottants.)
     ///
-    /// Ce qu'il fait, et ce qu'on voit :
-    ///   BLEU     il balaie la cour de son regard (le cone de lumiere, c'est sa vue) ;
-    ///   ORANGE   il t'a apercu : il te fixe ;
-    ///   ROUGE    il CHARGE : ses petales s'ouvrent grand, un trait rouge le relie a toi
-    ///            et s'epaissit, une CIBLE rouge se resserre a tes pieds. Dans la
-    ///            derniere demi-seconde il ne te suit plus : bouge !
-    ///   BLANC    il tire : un rayon blanc cercle de rouge, une explosion la ou il
-    ///            frappe. Touche, tu es projete, etourdi -- et tu lâches la Couronne.
+    /// Ce qu'elle fait, et ce qu'on voit :
+    ///   AMBRE    elle balaie la cour du regard (le cone de lumiere, c'est sa vue) ;
+    ///   ORANGE   elle t'a apercu : elle te fixe, ses ailes s'entrouvrent ;
+    ///   ROUGE    elle CHARGE : ailes deployees, gueule ouverte et rougeoyante, un trait
+    ///            rouge te relie a elle, une CIBLE rouge se resserre a tes pieds. Dans la
+    ///            derniere demi-seconde elle ne te suit plus : bouge !
+    ///   BLANC    elle crache : un JET DE FEU, une explosion la ou il frappe. Touche,
+    ///            tu es projete, etourdi -- et tu lâches la Couronne.
     ///
-    /// Il ne regarde que la citadelle et sa tour -- et le porteur de la Couronne.
-    /// La Nuee l'aveugle, le Voile te rend invisible, l'Ombre le ralentit.
+    /// Elle ne regarde que la citadelle et sa tour -- et le porteur de la Couronne.
+    /// La Nuee l'aveugle, le Voile te rend invisible, l'Ombre la ralentit.
     /// </summary>
     public class Eye : MonoBehaviour
     {
@@ -42,7 +40,6 @@ namespace Fief
         Light cone;
         LineRenderer beam, beamCore, reticle;
         readonly List<Transform> petals = new List<Transform>();
-        readonly List<Transform> shards = new List<Transform>();
         float open = 0.2f;
         int shown = -1;
 
@@ -52,10 +49,13 @@ namespace Fief
         const float LockTime = 0.5f;       // la fin de la charge : il ne suit plus
         const float RestTime = 3.4f;       // (2,2 s : sur la rampe, on se faisait mitrailler)
 
-        static readonly Color Calm = new Color(0.45f, 0.7f, 1f);
+        static readonly Color Calm = new Color(1f, 0.72f, 0.35f);
         static readonly Color Wary = new Color(1f, 0.6f, 0.2f);
-        static readonly Color Alarm = new Color(1f, 0.12f, 0.08f);
-        static readonly Color Blaze = new Color(1f, 0.92f, 0.85f);
+        static readonly Color Alarm = new Color(1f, 0.18f, 0.05f);
+        static readonly Color Blaze = new Color(1f, 0.9f, 0.6f);
+        static readonly Color Flame = new Color(1f, 0.45f, 0.1f);
+        readonly List<Renderer> eyes = new List<Renderer>();
+        Transform jaw;
 
         public bool Charging { get { return state == State.Charge; } }
         public Seeker Target { get { return state == State.Charge || state == State.Spot ? target : null; } }
@@ -69,93 +69,123 @@ namespace Fief
 
         // ================================================================== construction
 
-        /// <summary>Tous les Yeux de la citadelle : les tours d'angle, les portes, la tour de la Couronne.</summary>
+        /// <summary>
+        /// Toutes les gargouilles : sur les quatre tours d'angle (tournees vers la cour),
+        /// sur le rempart au-dessus de chaque porte (vers la cour), et six sur des
+        /// consoles du fut de la tour, une par tour de rampe, au-dessus du chemin.
+        /// </summary>
         public static void PlaceAll(Transform parent)
         {
-            GameObject root = new GameObject("LES YEUX");
+            GameObject root = new GameObject("LES GARGOUILLES");
             root.transform.SetParent(parent, false);
             Transform t = root.transform;
             float h = Castle.HalfSize;
-            // Au-dessus des quatre tours d'angle.
-            Build(t, new Vector3(-h, Castle.TowerHeight + 8f, h), 0f);
-            Build(t, new Vector3(h, Castle.TowerHeight + 8f, h), 1f);
-            Build(t, new Vector3(h, Castle.TowerHeight + 8f, -h), 2f);
-            Build(t, new Vector3(-h, Castle.TowerHeight + 8f, -h), 3f);
-            // Au-dessus de chaque porte, cote cour.
-            Build(t, new Vector3(0f, Castle.WallHeight + 5f, h - 6f), 4f);
-            Build(t, new Vector3(0f, Castle.WallHeight + 5f, -h + 6f), 5f);
-            Build(t, new Vector3(h - 6f, Castle.WallHeight + 5f, 0f), 6f);
-            Build(t, new Vector3(-h + 6f, Castle.WallHeight + 5f, 0f), 7f);
-            // Autour de la tour, un par tour de rampe, qui flottent dans le vide.
+            Vector3[] corners = { new Vector3(-h, 0f, h), new Vector3(h, 0f, h), new Vector3(h, 0f, -h), new Vector3(-h, 0f, -h) };
+            for (int k = 0; k < 4; k++)
+                Build(t, corners[k] + Vector3.up * (Castle.TowerHeight + 1.2f), -corners[k], k, false);
+            Vector3[] gates = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
+            for (int k = 0; k < 4; k++)
+                Build(t, gates[k] * (h - 1f) + Vector3.up * (Castle.WallHeight + 1.2f), -gates[k], 4 + k, false);
             for (int k = 0; k < Tower.Turns; k++)
             {
                 Vector3 p = Tower.RampPoint((k + 0.62f) / Tower.Turns);
                 Vector3 outward = new Vector3(p.x, 0f, p.z).normalized;
-                Build(t, p + outward * 9f + Vector3.up * 5f, 8f + k);
+                Build(t, outward * (Tower.Radius + 1.1f) + Vector3.up * (p.y + 7f), outward, 8 + k, true);
             }
         }
 
-        public static Eye Build(Transform parent, Vector3 at, float seed)
+        /// <summary>Une gargouille accroupie a "at", tournee vers "facing". "corbel" : posee sur une console du fut.</summary>
+        public static Eye Build(Transform parent, Vector3 at, Vector3 facing, float seed, bool corbel)
         {
-            GameObject go = new GameObject("OEIL");
+            GameObject go = new GameObject("GARGOUILLE");
             go.transform.SetParent(parent, false);
             go.transform.position = at;
+            Vector3 f = new Vector3(facing.x, 0f, facing.z);
+            go.transform.rotation = Quaternion.LookRotation(f.sqrMagnitude > 0.01f ? f.normalized : Vector3.forward, Vector3.up);
             Eye e = go.AddComponent<Eye>();
             e.home = at;
             e.sweepPhase = seed * 1.7f;
+            Transform t = go.transform;
 
-            Color stone = new Color(0.4f, 0.38f, 0.36f);
-            Color stoneDark = new Color(0.22f, 0.21f, 0.22f);
-            Color gold = new Color(0.78f, 0.6f, 0.3f);
+            Color stone = new Color(0.45f, 0.43f, 0.4f);
+            Color dark = new Color(0.28f, 0.27f, 0.27f);
+            Color moss = new Color(0.33f, 0.38f, 0.28f);
             Proto.BeginVisualOnly();
-            GameObject b = new GameObject("Globe");
-            b.transform.SetParent(go.transform, false);
-            e.ball = b.transform;
-            // La coque de pierre, derriere ; le coeur de lumiere devant ; la pupille.
-            Proto.Sphere(e.ball, new Vector3(0f, 0f, -0.3f), new Vector3(1.7f, 1.7f, 1.5f), stone, "Coque");
-            Proto.Cylinder(e.ball, new Vector3(0f, 0f, 0.1f), new Vector3(1.75f, 0.08f, 1.75f), gold, "Cerclage d'or").transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            GameObject core = Proto.Sphere(e.ball, new Vector3(0f, 0f, 0.35f), new Vector3(1.05f, 1.05f, 0.8f), Color.white, "Coeur");
-            e.iris = core.GetComponent<Renderer>();
-            GameObject slit = Proto.Cube(e.ball, new Vector3(0f, 0f, 0.76f), new Vector3(0.14f, 0.7f, 0.05f), new Color(0.03f, 0.03f, 0.04f), "Pupille");
-            e.pupil = slit.transform;
-            // Les huit petales : un diaphragme de pierre autour du coeur.
-            for (int i = 0; i < 8; i++)
+            // Le perchoir : une console de pierre (contre le fut) ou un socle (sur le rempart).
+            if (corbel)
             {
-                Transform pivot = new GameObject("Pétale").transform;
-                pivot.SetParent(e.ball, false);
-                pivot.localPosition = new Vector3(0f, 0f, 0.25f);
-                pivot.localRotation = Quaternion.Euler(0f, 0f, i * 45f);
-                Transform hinge = new GameObject("Charnière").transform;
-                hinge.SetParent(pivot, false);
-                hinge.localPosition = new Vector3(0f, 0.7f, 0f);
-                GameObject plate = Proto.Cube(hinge, new Vector3(0f, 0.42f, 0f), new Vector3(0.5f, 0.85f, 0.1f), i % 2 == 0 ? stone : stoneDark, "Plaque");
-                GameObject inlay = Proto.Cube(plate.transform, new Vector3(0f, 0.1f, 0.6f), new Vector3(0.25f, 0.5f, 0.2f), Color.white, "Rune");
-                inlay.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Calm, 1.6f);
+                Proto.Cube(t, new Vector3(0f, -0.9f, -0.6f), new Vector3(1.8f, 0.6f, 2.6f), dark, "Console");
+                GameObject strut = Proto.Cube(t, new Vector3(0f, -1.9f, -1.2f), new Vector3(1.2f, 1.8f, 0.8f), dark, "Jambage");
+                strut.transform.localRotation = Quaternion.Euler(35f, 0f, 0f);
+            }
+            else Proto.Cube(t, new Vector3(0f, -0.9f, 0f), new Vector3(2f, 0.6f, 2f), dark, "Socle");
+            // Le corps accroupi : le torse penche en avant, les pattes, la queue.
+            GameObject torso = Proto.Cube(t, new Vector3(0f, 0.25f, -0.1f), new Vector3(1.3f, 1.2f, 1.7f), stone, "Torse");
+            torso.transform.localRotation = Quaternion.Euler(-25f, 0f, 0f);
+            Proto.Cube(t, new Vector3(0f, 0.55f, 0.35f), new Vector3(1.05f, 0.9f, 0.9f), moss, "Poitrail");
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Proto.Cube(t, new Vector3(side * 0.55f, -0.35f, -0.55f), new Vector3(0.5f, 0.8f, 0.9f), stone, "Cuisse");
+                Proto.Cube(t, new Vector3(side * 0.5f, -0.45f, 0.6f), new Vector3(0.35f, 0.6f, 0.35f), stone, "Patte");
+                for (int c = -1; c <= 1; c++)
+                    Proto.Cone(t, new Vector3(side * 0.5f + c * 0.1f, -0.7f, 0.82f), 0.06f, 0.2f, dark, "Griffe", 4).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                // Les ailes, repliees dans le dos : elles s'ouvrent quand elle charge.
+                Transform hinge = new GameObject("Aile").transform;
+                hinge.SetParent(t, false);
+                hinge.localPosition = new Vector3(side * 0.45f, 0.75f, -0.45f);
+                GameObject bone = Proto.Cube(hinge, new Vector3(side * 0.9f, 0.35f, -0.1f), new Vector3(1.9f, 0.14f, 0.16f), dark, "Os");
+                bone.transform.localRotation = Quaternion.Euler(0f, 0f, side * 20f);
+                GameObject membrane = Proto.Cube(hinge, new Vector3(side * 0.85f, -0.05f, -0.2f), new Vector3(1.7f, 0.85f, 0.06f), stone, "Membrane");
+                membrane.transform.localRotation = Quaternion.Euler(0f, 0f, side * 12f);
                 e.petals.Add(hinge);
             }
-            // Deux anneaux qui tournent.
-            GameObject ra = new GameObject("Anneau");
-            ra.transform.SetParent(go.transform, false);
-            e.ringA = ra.transform;
-            Ring(e.ringA, 1.75f, gold);
-            GameObject rb = new GameObject("Anneau");
-            rb.transform.SetParent(go.transform, false);
-            e.ringB = rb.transform;
-            Ring(e.ringB, 1.45f, stoneDark);
-            // Trois eclats de rune en orbite.
-            for (int i = 0; i < 3; i++)
+            GameObject tail = Proto.Cube(t, new Vector3(0f, -0.4f, -1.2f), new Vector3(0.22f, 0.22f, 1.2f), stone, "Queue");
+            tail.transform.localRotation = Quaternion.Euler(20f, 15f, 0f);
+            Proto.Cone(t, new Vector3(0.18f, -0.62f, -1.8f), 0.18f, 0.35f, dark, "Pointe de queue", 4).transform.localRotation = Quaternion.Euler(-100f, 0f, 0f);
+
+            // La tete (elle tourne) : un crane, un museau, des cornes, deux yeux, une gueule.
+            GameObject head = new GameObject("Tête");
+            head.transform.SetParent(t, false);
+            head.transform.localPosition = new Vector3(0f, 1.05f, 0.55f);
+            e.ball = head.transform;
+            Proto.Cube(e.ball, new Vector3(0f, 0.05f, 0f), new Vector3(0.9f, 0.75f, 0.85f), stone, "Crâne");
+            Proto.Cube(e.ball, new Vector3(0f, -0.05f, 0.55f), new Vector3(0.62f, 0.4f, 0.55f), stone, "Museau");
+            for (int side = -1; side <= 1; side += 2)
             {
-                GameObject shard = Proto.Cube(go.transform, Vector3.zero, new Vector3(0.18f, 0.42f, 0.18f), Color.white, "Éclat");
-                shard.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Calm, 2.4f);
-                e.shards.Add(shard.transform);
+                GameObject horn = Proto.Cone(e.ball, new Vector3(side * 0.32f, 0.38f, -0.1f), 0.14f, 0.7f, dark, "Corne", 5);
+                horn.transform.localRotation = Quaternion.Euler(-35f, 0f, side * -25f);
+                GameObject ear = Proto.Cone(e.ball, new Vector3(side * 0.45f, 0.2f, -0.2f), 0.1f, 0.35f, stone, "Oreille", 4);
+                ear.transform.localRotation = Quaternion.Euler(-60f, 0f, side * -70f);
+                GameObject eye = Proto.Cube(e.ball, new Vector3(side * 0.2f, 0.16f, 0.43f), new Vector3(0.18f, 0.1f, 0.05f), Color.white, "Œil");
+                eye.transform.localRotation = Quaternion.Euler(0f, 0f, side * -15f);
+                e.eyes.Add(eye.GetComponent<Renderer>());
+                Proto.Cube(e.ball, new Vector3(side * 0.2f, 0.26f, 0.42f), new Vector3(0.26f, 0.08f, 0.1f), dark, "Sourcil").transform.localRotation = Quaternion.Euler(0f, 0f, side * 20f);
             }
+            // La gueule : un fond qui rougeoie, une machoire qui s'ouvre, des crocs.
+            GameObject maw = Proto.Cube(e.ball, new Vector3(0f, -0.17f, 0.6f), new Vector3(0.45f, 0.14f, 0.42f), Color.white, "Gueule");
+            e.iris = maw.GetComponent<Renderer>();
+            GameObject j = new GameObject("Mâchoire");
+            j.transform.SetParent(e.ball, false);
+            j.transform.localPosition = new Vector3(0f, -0.22f, 0.3f);
+            e.jaw = j.transform;
+            Proto.Cube(e.jaw, new Vector3(0f, -0.06f, 0.28f), new Vector3(0.55f, 0.14f, 0.55f), stone, "Mâchoire");
+            for (int k = -1; k <= 1; k += 2)
+                Proto.Cone(e.jaw, new Vector3(k * 0.18f, 0.02f, 0.5f), 0.05f, 0.16f, Color.white, "Croc", 4);
+            GameObject pupilGo = new GameObject("Braise");
+            pupilGo.transform.SetParent(e.ball, false);
+            e.pupil = pupilGo.transform;
             Proto.EndVisualOnly();
+            // (Plus d'anneaux ni d'eclats : ce qui tourne, c'est sa tete.)
+            e.ringA = new GameObject("-").transform;
+            e.ringA.SetParent(t, false);
+            e.ringB = new GameObject("-").transform;
+            e.ringB.SetParent(t, false);
             Renderer[] parts = go.GetComponentsInChildren<Renderer>();
             for (int i = 0; i < parts.Length; i++) parts[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             GameObject coneGo = new GameObject("Regard");
             coneGo.transform.SetParent(e.ball, false);
-            coneGo.transform.localPosition = new Vector3(0f, 0f, 1f);
+            coneGo.transform.localPosition = new Vector3(0f, 0.1f, 0.6f);
             e.cone = coneGo.AddComponent<Light>();
             e.cone.type = LightType.Spot;
             e.cone.spotAngle = Angle * 2f;
@@ -164,8 +194,8 @@ namespace Fief
             e.cone.color = Calm;
             e.cone.shadows = LightShadows.None;
 
-            e.beam = Line(go.transform, "Rayon", MaterialFactory.GetGlow(Alarm, 3f), 2);
-            e.beamCore = Line(go.transform, "Coeur du rayon", MaterialFactory.GetGlow(Blaze, 6f), 2);
+            e.beam = Line(go.transform, "Jet de feu", MaterialFactory.GetGlow(Flame, 3f), 2);
+            e.beamCore = Line(go.transform, "Coeur du jet", MaterialFactory.GetGlow(Blaze, 6f), 2);
             e.reticle = Line(go.transform, "Cible", Ambiance.Additive, 32);
             e.reticle.loop = true;
             e.reticle.startColor = new Color(1f, 0.15f, 0.1f, 0.9f);
@@ -208,8 +238,8 @@ namespace Fief
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            // Il flotte, ses anneaux tournent.
-            transform.position = home + Vector3.up * Mathf.Sin(Time.time * 0.9f + sweepPhase) * 0.35f;
+            // Elle respire, a peine.
+            transform.position = home + Vector3.up * Mathf.Sin(Time.time * 0.9f + sweepPhase) * 0.03f;
             ringA.localRotation = Quaternion.Euler(Time.time * 40f + sweepPhase * 30f, Time.time * 25f, 20f);
             ringB.localRotation = Quaternion.Euler(-Time.time * 30f, 60f, Time.time * 45f + sweepPhase * 10f);
             Animate(dt);
@@ -282,7 +312,7 @@ namespace Fief
             Vector3 chest = target.Body.position + Vector3.up * 1.1f;
             if (timer < ChargeTime - LockTime) aim = chest;
             Look(aim, dt * 10f);
-            Vector3 from = ball.position + ball.forward * 1f;
+            Vector3 from = ball.position + ball.forward * 0.9f - ball.up * 0.15f;
             beam.enabled = true;
             float k = timer / ChargeTime;
             beam.startWidth = Mathf.Lerp(0.02f, 0.14f, k);
@@ -335,6 +365,13 @@ namespace Fief
             // Et a la bouche : un eclair, un anneau.
             Fx.Flash(from, Blaze, 14f, 6f, 0.25f);
             Fx.Ring(from, Blaze, 0.3f, 2.5f, 0.3f, 0.2f, dir);
+            // Le jet de feu : des gerbes de flammes tout le long.
+            float length = (end - from).magnitude;
+            for (int k = 1; k <= 6; k++)
+            {
+                Vector3 at = from + dir * (length * k / 7f);
+                Fx.Burst(at, k % 2 == 0 ? Flame : Alarm, 14, 3f, 0.5f, 0.5f, -0.2f, Vector3.zero, 0f);
+            }
             beamCore.enabled = true;
             beamCore.SetPosition(0, from);
             beamCore.SetPosition(1, end);
@@ -366,19 +403,15 @@ namespace Fief
         {
             float want = state == State.Charge ? 1f : state == State.Spot ? 0.6f : 0.15f;
             open = Mathf.MoveTowards(open, want, dt * (want > open ? 3f : 1.2f));
-            // Ferme : les plaques se penchent devant le coeur ; ouvert : elles s'ecartent.
-            float angle = Mathf.Lerp(112f, 18f, open) + (state == State.Charge ? Mathf.Sin(Time.time * 40f) * 3f : 0f);
-            for (int i = 0; i < petals.Count; i++) petals[i].localRotation = Quaternion.Euler(angle, 0f, 0f);
-            // La pupille de chat : une fente au calme, ronde et large quand il charge.
-            pupil.localScale = new Vector3(Mathf.Lerp(0.14f, 0.5f, open), Mathf.Lerp(0.7f, 0.5f, open), 0.05f);
-            float speed = 1.2f + open * 4f;
-            for (int i = 0; i < shards.Count; i++)
+            // Les ailes : repliees dans le dos au calme, deployees quand elle charge (et qui battent).
+            float flap = state == State.Charge ? Mathf.Sin(Time.time * 14f) * 8f : 0f;
+            for (int i = 0; i < petals.Count; i++)
             {
-                float a = Time.time * speed + i * 2.094f + sweepPhase;
-                float r = Mathf.Lerp(2.1f, 1.5f, open);
-                shards[i].localPosition = new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a * 0.7f) * 0.6f, Mathf.Sin(a) * r);
-                shards[i].localRotation = Quaternion.Euler(0f, a * 90f, 45f);
+                float side = i == 0 ? -1f : 1f;
+                petals[i].localRotation = Quaternion.Euler(Mathf.Lerp(-10f, 10f, open), side * Mathf.Lerp(70f, 5f, open), side * (Mathf.Lerp(-35f, 15f, open) + flap));
             }
+            // La gueule s'ouvre quand elle charge.
+            if (jaw != null) jaw.localRotation = Quaternion.Euler(Mathf.Lerp(0f, 32f, open * open), 0f, 0f);
             // Le rayon : il s'amincit et s'eteint en un quart de seconde.
             float since = Time.time - firedAt;
             if (since < 0.3f)
@@ -432,9 +465,9 @@ namespace Fief
             if (mood == shown) return;
             shown = mood;
             Color c = mood == 3 ? Blaze : mood == 2 ? Alarm : mood == 1 ? Wary : Calm;
-            iris.sharedMaterial = MaterialFactory.GetGlow(c, mood == 3 ? 6f : 3f);
-            Material shardGlow = MaterialFactory.GetGlow(c, 2.4f);
-            for (int i = 0; i < shards.Count; i++) shards[i].GetComponent<Renderer>().sharedMaterial = shardGlow;
+            iris.sharedMaterial = MaterialFactory.GetGlow(mood >= 2 ? Flame : new Color(0.25f, 0.08f, 0.04f), mood == 3 ? 6f : mood == 2 ? 3.5f : 1f);
+            Material eyeGlow = MaterialFactory.GetGlow(c, mood >= 2 ? 5f : 2.6f);
+            for (int i = 0; i < eyes.Count; i++) eyes[i].sharedMaterial = eyeGlow;
             cone.color = c;
             cone.intensity = mood >= 2 ? 5f : 3f;
         }

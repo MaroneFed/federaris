@@ -184,7 +184,7 @@ namespace Fief
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : " + AbilityInfo.PushKey.ToLowerInvariant() + ".");
-            else if (Eye.ChargingAt(me)) Tip("oeil", "Un Œil devient rouge quand il vise : fais un pas de côté au dernier moment.");
+            else if (Eye.ChargingAt(me)) Tip("oeil", "Une gargouille ouvre la gueule et une cible rouge se resserre sous tes pieds : fais un pas de côté au dernier moment.");
             else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (" + AbilityInfo.PushKey.ToLowerInvariant() + ") pour la lui VOLER.");
             else if (me.HasGift) Tip("don", "Ton don est sur la touche V, pour cette manche.");
         }
@@ -799,7 +799,7 @@ namespace Fief
             y += UiStyle.S(32);
             y = Line(x, y, inner, "Version", Game.Version);
             y = Line(x, y, inner, "Monde construit en", Game.BuildMilliseconds + " ms");
-            y = Line(x, y, inner, "Yeux / bots / sanctuaires", Eye.All.Count + " / " + Rival.All.Count + " / " + Shrine.All.Count);
+            y = Line(x, y, inner, "Gargouilles / bots / sanctuaires", Eye.All.Count + " / " + Rival.All.Count + " / " + Shrine.All.Count);
             string crown = Crown.Holder != null ? "portée par " + Crown.Holder.Name : Crown.Where == Crown.State.Dropped ? "à terre" : "au sommet";
             y = Line(x, y, inner, "Couronne", crown);
             if (Game.PlayerTransform != null)
