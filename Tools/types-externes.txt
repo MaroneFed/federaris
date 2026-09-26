@@ -144,3 +144,4 @@ Event
 JsonUtility
 LineRenderer
 TrailRenderer
+LineTextureMode

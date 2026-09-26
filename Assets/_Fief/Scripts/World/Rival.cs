@@ -108,6 +108,8 @@ namespace Fief
 
         /// <summary>Vrai pendant qu'il plane (le HUD, ses ailes s'en servent).</summary>
         public bool Gliding { get { return gliding; } }
+        /// <summary>Vrai pendant un vol d'arbaleste (son carreau le suit).</summary>
+        public bool Flying { get { return ballistic; } }
 
         // ================================================================== construction
 
@@ -370,7 +372,7 @@ namespace Fief
                 Leap(m);
                 return;
             }
-            if (Ground.OnIsland(me.x, me.z) && !Tower.On(me))
+            if ((Ground.OnIsland(me.x, me.z) || IsletAt(me) >= 0) && !Tower.On(me))
             {
                 if (TryBallistaTo(m, 6f, Goal.Deliver, was)) return;
                 // Trop loin pour cette arbaleste : un autre Monument, peut-etre.
@@ -402,7 +404,7 @@ namespace Fief
                 Leap(to);
                 return true;
             }
-            if (Ground.OnIsland(me.x, me.z) && !Tower.On(me) && TryBallistaTo(to, 7f, g, was)) return true;
+            if ((Ground.OnIsland(me.x, me.z) || IsletAt(me) >= 0) && !Tower.On(me) && TryBallistaTo(to, 7f, g, was)) return true;
             return false;
         }
 

@@ -116,6 +116,41 @@ namespace Fief
             }
         }
 
+        /// <summary>Clic gauche maintenu (tendre l'arbaleste).</summary>
+        public static bool PushHeld
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                Mouse m = Mouse.current;
+                return m != null && m.leftButton.isPressed;
+#else
+                return Input.GetMouseButton(0);
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Une capacite, touche MAINTENUE (on vise : l'apercu s'affiche). Memes numeros
+        /// que CastPressed.
+        /// </summary>
+        public static bool CastHeld(int slot)
+        {
+            switch (slot)
+            {
+                case 0:
+#if ENABLE_INPUT_SYSTEM
+                    Mouse m = Mouse.current;
+                    return m != null && m.rightButton.isPressed;
+#else
+                    return Input.GetMouseButton(1);
+#endif
+                case 1: return KeyHeld(KeyCode.R);
+                case 2: return KeyHeld(KeyCode.C);
+                default: return KeyHeld(KeyCode.V);
+            }
+        }
+
         /// <summary>
         /// Les capacites actives : 0 = clic droit, 1 = R, 2 = C, 3 = V (le don d'un
         /// sanctuaire). Voir AbilityInfo.Keys.

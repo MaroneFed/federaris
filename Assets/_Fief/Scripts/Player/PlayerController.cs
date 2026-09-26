@@ -289,9 +289,8 @@ namespace Fief
             if (Gliding) walk = glide;
             else if (ballistic)
             {
-                // Tire par une arbaleste : on suit sa courbe (a peine de controle).
-                flight *= Mathf.Exp(-0.08f * dt);
-                walk = flight + wish * 2f;
+                // Tire par une arbaleste : on suit exactement la courbe dessinee (a peine de controle).
+                walk = flight + wish * 1.5f;
             }
             Vector3 motion = walk + extra + knock + Vector3.up * verticalVelocity;
             if (pullTime > 0f) motion.y = Mathf.Max(motion.y, (pullPoint - transform.position).normalized.y * pullSpeed);

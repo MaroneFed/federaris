@@ -178,7 +178,7 @@ namespace Fief
             if (me == null || me.Body == null) return;
             Vector3 p = me.Body.position;
             if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
-            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, et te faire tirer vers la tour ou un îlot.");
+            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré — vers la tour, un îlot, un Monument.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : clic gauche.");
@@ -246,7 +246,15 @@ namespace Fief
             if (me == null || me.Body == null) return;
             string mine = null;
             if (Ballista.PlayerOn != null)
-                mine = "Clic gauche : tirer   ·   E : descendre   ·   la ligne montre ta course";
+            {
+                Ballista b = Ballista.PlayerOn;
+                string where = b.Landing == Ballista.LandingKind.Monument ? "sur un MONUMENT !"
+                             : b.Landing == Ballista.LandingKind.Ground ? "sur la terre ferme"
+                             : "dans le vide : tu planeras";
+                mine = b.Charging
+                    ? "TENSION " + Mathf.RoundToInt(b.Tension * 100f) + " %   ·   relâche pour tirer   ·   arrivée " + where
+                    : "Maintiens le clic gauche pour tendre   ·   E : descendre   ·   arrivée " + where;
+            }
             else if (me.CarriesCrown && Monument.All.Count > 0)
                 mine = Monument.All.Count + " Monuments : choisis le tien   ·   le plus proche à " + Mathf.RoundToInt(Monument.NearestDistance(me.Body.position)) + " m"
                      + (Tower.On(me.Body.position) ? "   ·   saute dans le vide : tu planes" : "");
