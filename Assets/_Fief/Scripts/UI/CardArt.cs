@@ -130,10 +130,27 @@ namespace Fief
         }
 
         /// <summary>Le fond de l'ecran de choix : deux gerbes de rayons qui tournent lentement, un voile, des braises.</summary>
-        public static void Background(Color tint)
+        public static void Background(Color tint) { Background(tint, 0f); }
+
+        /// <summary>
+        /// "scrim" (0-1) : un voile sombre sur le monde, plus epais en haut et en bas
+        /// (29/09 -- le monde en 3D derriere les cartes, c'etait le bazar).
+        /// </summary>
+        public static void Background(Color tint, float scrim)
         {
             Ensure();
             float time = Time.unscaledTime;
+            if (scrim > 0f)
+            {
+                Rect all = new Rect(0f, 0f, Screen.width, Screen.height);
+                UiStyle.Fill(all, new Color(0.03f, 0.02f, 0.04f, scrim));
+                Tex(new Rect(0f, 0f, Screen.width, Screen.height * 0.35f), grad, new Color(0f, 0f, 0f, scrim * 0.6f));
+                Matrix4x4 up = GUI.matrix;
+                Rect low = new Rect(0f, Screen.height * 0.65f, Screen.width, Screen.height * 0.35f);
+                GUIUtility.ScaleAroundPivot(new Vector2(1f, -1f), low.center);
+                Tex(low, grad, new Color(0f, 0f, 0f, scrim * 0.6f));
+                GUI.matrix = up;
+            }
             Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.55f);
             float size = Mathf.Max(Screen.width, Screen.height) * 1.5f;
             Matrix4x4 m = GUI.matrix;
@@ -204,10 +221,9 @@ namespace Fief
             Tex(card, face, new Color(stone.r, stone.g, stone.b, fade));
             // Le lavis de la couleur, du haut vers le bas, et un second plus vif en haut.
             Rect top = new Rect(card.x, card.y, card.width, card.height * 0.62f);
-            Matrix4x4 flip = GUI.matrix;
-            GUIUtility.ScaleAroundPivot(new Vector2(1f, -1f), top.center);
+            // (29/09) Le degrade est deja opaque en haut et transparent en bas (la ligne 0
+            // d'une texture est celle du BAS) : le retourner faisait une bande dure a 62 %.
             Tex(top, grad, new Color(tint.r, tint.g, tint.b, (on ? 0.75f : 0.5f) * fade));
-            GUI.matrix = flip;
             Tex(new Rect(card.x, card.y, card.width, card.height * 0.25f), glow, new Color(1f, 1f, 1f, 0.12f * fade));
 
             float pad = card.width * 0.09f;

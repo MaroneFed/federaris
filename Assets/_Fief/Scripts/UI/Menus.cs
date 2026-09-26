@@ -920,7 +920,7 @@ namespace Fief
         /// </summary>
         void DrawBriefing()
         {
-            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.72f));
+            UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.01f, 0.01f, 0.02f, 0.82f));
             float t = stateTime;
             float a = Mathf.Clamp01(t / 0.5f) * Mathf.Clamp01((BriefingLength - t) / 0.5f);
             float y = Screen.height * 0.3f;
@@ -1071,7 +1071,7 @@ namespace Fief
         {
             EnsureCardTextures();
             // Des rayons qui tournent lentement, des braises qui montent (voir CardArt).
-            CardArt.Background(Match.Draft.Stage == 0 ? new Color(0.55f, 0.75f, 1f) : Palette.Gold);
+            CardArt.Background(Match.Draft.Stage == 0 ? new Color(0.55f, 0.75f, 1f) : Palette.Gold, 0.68f);
 
             float y = Screen.height * 0.08f;
             string title = Match.Draft.Stage == 0 ? "CHOISIS TA PASSIVE" : "CHOISIS TON CLIC GAUCHE";
@@ -1143,11 +1143,15 @@ namespace Fief
                 for (int i = 0; i < actives.Count; i++) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)].ToUpperInvariant() + "  " + AbilityInfo.Name(actives[i]);
                 for (int i = 0; i < Match.Local.Abilities.Count; i++)
                     if (!AbilityInfo.IsActive(Match.Local.Abilities[i])) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Name(Match.Local.Abilities[i]);
-                float bw = Mathf.Min(Screen.width - UiStyle.S(80), Style(UiStyle.Label, 0, TextAnchor.MiddleCenter).CalcSize(new GUIContent("TES CAPACITÉS   " + mine)).x + UiStyle.S(60));
-                Rect bar = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(96), bw, UiStyle.S(34));
-                UiStyle.Fill(bar, new Color(0f, 0f, 0f, 0.45f));
-                UiStyle.Fill(new Rect(bar.x, bar.y, bar.width, 1f), new Color(1f, 0.8f, 0.4f, 0.4f));
-                Centered(bar.y, bar.height, "TES CAPACITÉS   " + mine, UiStyle.Label, new Color(0.92f, 0.88f, 0.8f, 0.95f));
+                float bw = Mathf.Min(Screen.width - UiStyle.S(80), Style(UiStyle.Label, 0, TextAnchor.MiddleCenter).CalcSize(new GUIContent("TES CAPACITÉS  ·  " + mine)).x + UiStyle.S(60));
+                Rect bar = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(100), bw, UiStyle.S(40));
+                // Un bandeau sombre, filets d'or dessus et dessous, le titre en or : un cartouche.
+                UiStyle.Fill(bar, new Color(0.04f, 0.03f, 0.05f, 0.85f));
+                UiStyle.Fill(new Rect(bar.x, bar.y, bar.width, 1f), new Color(1f, 0.8f, 0.4f, 0.8f));
+                UiStyle.Fill(new Rect(bar.x, bar.yMax - 1f, bar.width, 1f), new Color(1f, 0.8f, 0.4f, 0.8f));
+                UiStyle.Fill(new Rect(bar.x + 4f, bar.y + 4f, bar.width - 8f, 1f), new Color(1f, 0.8f, 0.4f, 0.18f));
+                UiStyle.Fill(new Rect(bar.x + 4f, bar.yMax - 5f, bar.width - 8f, 1f), new Color(1f, 0.8f, 0.4f, 0.18f));
+                Centered(bar.y, bar.height, "TES CAPACITÉS  ·  " + mine, UiStyle.Label, new Color(0.95f, 0.92f, 0.86f, 1f));
             }
             Footer(Match.Draft.Done ? "Entrée  jouer" : "← →  choisir     Entrée  prendre");
             CardArt.Sparks();

@@ -120,8 +120,20 @@ namespace Fief
         public bool HasWings;
         /// <summary>Quand il les a prises (on ne les perd pas en touchant le socle de l'arbaleste au depart).</summary>
         public float WingsAt = -99f;
-        /// <summary>Tout le monde plane (28/09), sauf etourdi.</summary>
-        public bool CanGlide { get { return !Stunned; } }
+        /// <summary>
+        /// LA CHUTE (29/09 -- "les obstacles doivent nous faire retomber en bas de la
+        /// tour") : frappe par un obstacle ou une gargouille sur la tour, on est jete
+        /// hors de la rampe et les ailes restent FERMEES jusqu'a ce qu'on touche le sol.
+        /// On retombe dans la cour, et on remonte.
+        /// </summary>
+        public float TumbleUntil = -1f;
+        public float TumbleAt = -99f;
+        public bool Tumbling { get { return Time.time < TumbleUntil; } }
+        public void Tumble(float seconds) { TumbleAt = Time.time; TumbleUntil = Mathf.Max(TumbleUntil, Time.time + seconds); }
+        /// <summary>Pose au sol : la chute est finie (pas dans la demi-seconde du coup, on est encore sur la rampe).</summary>
+        public void Landed() { if (Tumbling && Time.time - TumbleAt > 0.5f) TumbleUntil = -1f; }
+        /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
+        public bool CanGlide { get { return !Stunned && !Tumbling; } }
         public bool Graced { get { return Time.time < GraceUntil; } }
         /// <summary>
         /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant

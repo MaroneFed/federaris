@@ -177,9 +177,10 @@ namespace Fief
             if (tipsMatch != Match.MatchId) { tipsMatch = Match.MatchId; tipsShown.Clear(); }
             Seeker me = Game.Me;
             if (me == null || me.Body == null) return;
+            // Le panneau des touches est la : une chose a la fois a l'ecran.
+            if (KeysAlpha() > 0.01f) return;
             Vector3 p = me.Body.position;
             if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
-            else if (AbilityUser.DiveAt != null) Tip("pique", "LE PIQUÉ D'AIGLE : en l'air, vise le porteur et appuie sur " + AbilityInfo.PushKey.ToLowerInvariant() + " — tu fonds sur lui et tu lui voles la Couronne.");
             else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. E : monte sur TON arbaleste, clic gauche : elle te pose devant le château. Puis passe la porte et monte la tour.");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
@@ -549,10 +550,24 @@ namespace Fief
                 nameStyle.fontStyle = FontStyle.Bold;
                 nameStyle.wordWrap = false;
             }
+            // (29/09) Du plus proche au plus loin, et un nom ne se pose jamais sur un autre :
+            // on le monte d'un cran, et s'il n'y a pas la place, on ne l'ecrit pas.
+            nameOrder.Clear();
+            nameDist.Clear();
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
                 if (s.IsPlayer || s.Body == null || s.Hidden) continue;
+                float d = (me - s.Body.position).magnitude;
+                int at = 0;
+                while (at < nameDist.Count && nameDist[at] < d) at++;
+                nameOrder.Insert(at, i);
+                nameDist.Insert(at, d);
+            }
+            namePlaced.Clear();
+            for (int n = 0; n < nameOrder.Count; n++)
+            {
+                Seeker s = Game.Seekers[nameOrder[n]];
                 Vector3 head = s.Body.position + Vector3.up * 2.9f;
                 float d = (me - head).magnitude;
                 if (d > 170f) continue;
@@ -561,7 +576,17 @@ namespace Fief
                 float a = Mathf.Clamp01((170f - d) / 40f);
                 nameStyle.fontSize = Mathf.RoundToInt(Mathf.Lerp(UiStyle.S(22), UiStyle.S(13), Mathf.Clamp01(d / 90f)));
                 Color c = s.CarriesCrown ? new Color(1f, 0.82f, 0.35f) : Color.Lerp(s.Colour, Color.white, 0.25f);
-                Rect r = new Rect(sp.x - UiStyle.S(150), Screen.height - sp.y - UiStyle.S(14), UiStyle.S(300), UiStyle.S(28));
+                Vector2 size = nameStyle.CalcSize(new GUIContent(s.Name));
+                Rect r = new Rect(sp.x - size.x * 0.5f, Screen.height - sp.y - size.y * 0.5f, size.x, size.y);
+                bool free = false;
+                for (int tries = 0; tries < 3 && !free; tries++)
+                {
+                    free = true;
+                    for (int k = 0; k < namePlaced.Count; k++)
+                        if (namePlaced[k].Overlaps(r)) { free = false; r.y = namePlaced[k].y - r.height - 2f; break; }
+                }
+                if (!free) continue;
+                namePlaced.Add(r);
                 GUI.color = new Color(0f, 0f, 0f, 0.75f * a);
                 GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), s.Name, nameStyle);
                 GUI.color = new Color(c.r, c.g, c.b, a);
@@ -569,6 +594,9 @@ namespace Fief
                 GUI.color = Color.white;
             }
         }
+        readonly List<int> nameOrder = new List<int>();
+        readonly List<float> nameDist = new List<float>();
+        readonly List<Rect> namePlaced = new List<Rect>();
         GUIStyle nameStyle;
         int nameBase = -1;
 
@@ -664,20 +692,28 @@ namespace Fief
         /// Il s'affiche tout seul au depart de la premiere manche (pendant le 3, 2, 1 et
         /// quelques secondes apres), et a tout moment avec F1 ou H.
         /// </summary>
-        void DrawKeys()
+        /// <summary>0 : cache ; 1 : bien visible. Tout seul pendant le 3, 2, 1 et 9 s apres, a la premiere manche.</summary>
+        float KeysAlpha()
         {
             Season season = Game.Season;
-            Seeker me = Game.Me;
-            if (season == null || me == null) return;
+            if (season == null || Game.Me == null) return 0f;
+            if (keysOpen) return 1f;
             bool counting = menus != null && menus.CountingDown;
-            float auto = Match.Played == 0 ? (counting ? 1f : Mathf.Clamp01((12f - season.Elapsed) / 2f)) : 0f;
-            float a = keysOpen ? 1f : auto;
+            return Match.Played == 0 ? (counting ? 1f : Mathf.Clamp01((9f - season.Elapsed) / 2f)) : 0f;
+        }
+
+        void DrawKeys()
+        {
+            Seeker me = Game.Me;
+            float a = KeysAlpha();
             if (a <= 0.01f) return;
 
+            // (29/09) En BAS de l'ecran, au-dessus de ta capacite : il ne passe plus sur le
+            // "PARTEZ !", ni sur ce que tu vises au milieu.
             float w = Mathf.Min(UiStyle.S(1020), Screen.width - UiStyle.S(60));
             float h = UiStyle.S(250);
-            Rect panel = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.52f, w, h);
-            UiStyle.Fill(panel, new Color(0.03f, 0.025f, 0.03f, 0.82f * a));
+            Rect panel = new Rect((Screen.width - w) * 0.5f, Screen.height - h - UiStyle.S(150), w, h);
+            UiStyle.Fill(panel, new Color(0.03f, 0.025f, 0.03f, 0.92f * a));
             UiStyle.Fill(new Rect(panel.x, panel.y, panel.width, 2f), new Color(1f, 0.8f, 0.42f, 0.9f * a));
             UiStyle.Fill(new Rect(panel.x, panel.yMax - 2f, panel.width, 2f), new Color(1f, 0.8f, 0.42f, 0.9f * a));
             GUIStyle head = KeyStyle(0);
@@ -758,7 +794,7 @@ namespace Fief
 
         void DrawTip()
         {
-            if (tipTimer <= 0f || string.IsNullOrEmpty(tipText)) return;
+            if (tipTimer <= 0f || string.IsNullOrEmpty(tipText) || KeysAlpha() > 0.01f) return;
             float a = Mathf.Clamp01((TipDuration - tipTimer) / 0.3f) * Mathf.Clamp01(tipTimer / 0.6f);
             Rect r = new Rect(Screen.width * 0.2f, Screen.height * 0.68f, Screen.width * 0.6f, UiStyle.S(50));
             Text(r, tipText, WrappedCentered(), new Color(0.96f, 0.92f, 0.8f, a));

@@ -56,6 +56,7 @@ namespace Fief
         public static void Tick(Seeker s, bool grounded)
         {
             if (s == null || s.Body == null) return;
+            if (grounded) s.Landed();
             Vector3 p = s.Body.position;
             if (Tower.Summit(p))
             {

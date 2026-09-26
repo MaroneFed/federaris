@@ -192,7 +192,7 @@ namespace Fief
             // 78 degres : un champ trop etroit en premiere personne donne la nausee.
             Settings.Load();
             cam.fieldOfView = Settings.Fov;
-            cam.nearClipPlane = 0.10f;
+            cam.nearClipPlane = 0.15f;
             cam.farClipPlane = 3000f;
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";

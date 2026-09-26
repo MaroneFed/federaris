@@ -211,6 +211,26 @@ namespace Fief
             return d.normalized;
         }
 
+        /// <summary>
+        /// LA ZONE DE DANGER (29/09) : des bandes ambre et noires peintes en travers de la
+        /// rampe, la ou un obstacle frappe. On lit le danger avant d'y marcher.
+        /// </summary>
+        public static void DangerStripes(Transform parent, int ramp, float u)
+        {
+            Proto.BeginVisualOnly();
+            float du = 0.55f / RampLength;
+            for (int k = -3; k <= 3; k++)
+            {
+                if (k % 2 != 0) continue;
+                float at = u + k * du;
+                Vector3 slope = RampPoint(ramp, at + du * 0.5f) - RampPoint(ramp, at - du * 0.5f);
+                GameObject bar = Proto.Cube(parent, RampPoint(ramp, at) + Vector3.up * 0.06f, new Vector3(RampWidth * 0.8f, 0.04f, 0.45f), Color.white, "Zone de danger");
+                bar.transform.rotation = Quaternion.LookRotation(slope.normalized, Vector3.up);
+                bar.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.55f, 0.12f), 0.7f);
+            }
+            Proto.EndVisualOnly();
+        }
+
         static bool IsGap(int ramp, int segment)
         {
             List<float> g = Gaps[ramp];
@@ -239,9 +259,11 @@ namespace Fief
             mc.sharedMesh = Proto.SharedMesh(PrimitiveType.Cylinder);
 
             Proto.BeginVisualOnly();
-            // Un soubassement plus large, un bandeau d'or a chaque bande de couleur.
+            // Un soubassement plus large, un bandeau d'or entre deux bandes de couleur.
+            // PAS au sommet (k < Turns) : le dernier bandeau tombait pile au niveau du sol
+            // du sommet, deux disques au meme endroit, d'ou les traits blancs qui clignotent.
             Proto.Cylinder(t, new Vector3(0f, 2f, 0f), new Vector3(Radius * 2f + 1.2f, 2f, Radius * 2f + 1.2f), StoneDark, "Soubassement");
-            for (int k = 1; k <= Turns; k++)
+            for (int k = 1; k < Turns; k++)
             {
                 Proto.Cylinder(t, new Vector3(0f, k * Height / Turns - 0.4f, 0f), new Vector3(Radius * 2f + 0.5f, 0.3f, Radius * 2f + 0.5f), StoneDark, "Bandeau");
                 GameObject gilt = Proto.Cylinder(t, new Vector3(0f, k * Height / Turns - 0.05f, 0f), new Vector3(Radius * 2f + 0.55f, 0.05f, Radius * 2f + 0.55f), Color.white, "Filet d'or");
@@ -276,6 +298,7 @@ namespace Fief
                 {
                     float u = Pendulums[r][i];
                     Pendulum.Build(t, RampPoint(r, u), Tangent(r, u), r * 1.7f + i * 2.3f);
+                    DangerStripes(t, r, u);
                 }
                 for (int i = 0; i < Rams[r].Count; i++) Ram.Build(t, r, Rams[r][i], r * 0.9f + i * 0.37f);
                 for (int i = 0; i < Sweepers[r].Count; i++)
@@ -309,7 +332,9 @@ namespace Fief
                 Vector3 a = RampPoint(ramp, ua), b = RampPoint(ramp, ub);
                 Vector3 run = b - a;
                 Color band = ColourAt(a.y);
-                GameObject slab = Proto.Cube(t, (a + b) * 0.5f - Vector3.up * 0.3f, new Vector3(width, 0.6f, run.magnitude * 1.14f), i % 2 == 0 ? Stone : StoneLight, "Rampe");
+                // Les dalles se chevauchent un peu : une sur deux 3 cm plus haut, sinon leurs
+                // dessus, au meme niveau, clignotent l'un a travers l'autre (z-fighting).
+                GameObject slab = Proto.Cube(t, (a + b) * 0.5f - Vector3.up * (i % 2 == 0 ? 0.3f : 0.27f), new Vector3(width, 0.6f, run.magnitude * 1.14f), i % 2 == 0 ? Stone : StoneLight, "Rampe");
                 slab.transform.localRotation = Quaternion.LookRotation(run.normalized, Vector3.up);
 
                 Proto.BeginVisualOnly();
@@ -363,6 +388,7 @@ namespace Fief
                     warn.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.3f, 0.2f), 2.5f);
                     warn.transform.localRotation = Quaternion.LookRotation(Tangent(ramp, u), Vector3.up);
                 }
+                Hole.Build(t, RampPoint(ramp, (at + 1) / (float)total));
             }
             Proto.EndVisualOnly();
         }
@@ -413,7 +439,7 @@ namespace Fief
 
         /// <summary>
         /// Le sommet : des creneaux (sauf aux quatre arrivees), un cercle de runes,
-        /// quatre braseros, et HUIT PLANEURS sur leurs chevalets, tout autour.
+        /// et quatre braseros. (Plus de planeurs sur chevalets : les ailes s'ouvrent seules.)
         /// </summary>
         static void BuildTop(Transform t)
         {
@@ -433,19 +459,16 @@ namespace Fief
                 GameObject m = Proto.Cube(t, p, new Vector3(0.8f, 1.2f, 1.6f), StoneDark, "Merlon");
                 m.transform.localRotation = Quaternion.LookRotation(new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a)), Vector3.up);
             }
-            GameObject ring = Proto.Cylinder(t, new Vector3(0f, Height + 0.02f, 0f), new Vector3(9f, 0.02f, 9f), Color.white, "Cercle");
-            ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.95f, 0.72f, 0.3f), 0.9f);
-            Proto.Cylinder(t, new Vector3(0f, Height + 0.03f, 0f), new Vector3(8.2f, 0.02f, 8.2f), StoneDark, "Dalle");
+            // Deux disques bien separes en hauteur (3 cm), jamais au meme niveau : sinon
+            // la carte graphique ne sait pas lequel dessiner devant (z-fighting).
+            GameObject ring = Proto.Cylinder(t, new Vector3(0f, Height, 0f), new Vector3(9f, 0.015f, 9f), Color.white, "Cercle");
+            ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.95f, 0.72f, 0.3f), 0.55f);
+            Proto.Cylinder(t, new Vector3(0f, Height + 0.02f, 0f), new Vector3(8.2f, 0.04f, 8.2f), StoneDark, "Dalle");
             Proto.EndVisualOnly();
             for (int k = 0; k < 4; k++)
             {
                 float a = (k * 90f + 45f) * Mathf.Deg2Rad;
                 Castle.Torch(t, new Vector3(Mathf.Cos(a) * 10.2f, Height, Mathf.Sin(a) * 10.2f), 2f);
-            }
-            for (int k = 0; k < 8; k++)
-            {
-                float a = (k * 45f + 22.5f) * Mathf.Deg2Rad;
-                Wings.BuildRack(t, new Vector3(Mathf.Cos(a) * 7.2f, Height, Mathf.Sin(a) * 7.2f), a);
             }
             GameObject glowGo = new GameObject("Lueur du sommet");
             glowGo.transform.SetParent(t, false);
@@ -453,8 +476,8 @@ namespace Fief
             Light glow = glowGo.AddComponent<Light>();
             glow.type = LightType.Point;
             glow.color = new Color(1f, 0.8f, 0.45f);
-            glow.intensity = 2.4f;
-            glow.range = 30f;
+            glow.intensity = 0.8f;
+            glow.range = 22f;
             glow.shadows = LightShadows.None;
         }
     }
@@ -625,6 +648,38 @@ namespace Fief
     }
 
     /// <summary>
+    /// UN TROU (29/09 -- "nous faire retomber en bas de la tour") : qui passe au travers
+    /// ne retombe pas sur la rampe d'en dessous, il est jete dehors, ailes fermees,
+    /// et redescend jusqu'en bas.
+    /// </summary>
+    public class Hole : MonoBehaviour
+    {
+        Vector3 centre;
+
+        public static void Build(Transform parent, Vector3 centre)
+        {
+            GameObject go = new GameObject("Trou");
+            go.transform.SetParent(parent, false);
+            Hole h = go.AddComponent<Hole>();
+            h.centre = centre;
+        }
+
+        void Update()
+        {
+            if (Game.Season == null || !Game.Season.Running) return;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s.Body == null || s.Tumbling) continue;
+                Vector3 p = s.Body.position;
+                if (p.y > centre.y - 0.6f || p.y < centre.y - 5f) continue;
+                if (new Vector2(p.x - centre.x, p.z - centre.z).magnitude > 3.4f) continue;
+                Combat.Hit(s, Vector3.down, 0f, false, null);
+            }
+        }
+    }
+
+    /// <summary>
     /// UN BELIER : un bloc de pierre cerclé de fer, loge dans le fut, qui JAILLIT en
     /// travers de la rampe toutes les quatre secondes et repousse vers le vide ce qui
     /// se trouve devant lui. Sa rune passe du bleu au ROUGE une demi-seconde avant.
@@ -655,6 +710,7 @@ namespace Fief
             Ram r = go.AddComponent<Ram>();
             r.phase = phase;
             r.outward = outDir;
+            Tower.DangerStripes(parent, ramp, u);
 
             // Le logement dans le mur : un cadre sombre.
             Proto.BeginVisualOnly();

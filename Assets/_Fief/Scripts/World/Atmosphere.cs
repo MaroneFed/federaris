@@ -59,7 +59,7 @@ namespace Fief
                 view.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
                 view.backgroundColor = haze;
                 view.farClipPlane = Mathf.Max(900f, sight * 3f);
-                view.nearClipPlane = 0.08f;
+                view.nearClipPlane = 0.15f;   // (29/09) 0,08 : trop peu de precision au loin, les surfaces proches clignotaient
             }
 
             ApplySun(cfg);

@@ -139,6 +139,10 @@ namespace Fief
                 return;
             }
             if (victim.Has(Ability.Ancrage)) velocity = new Vector3(velocity.x * 0.5f, velocity.y * 0.7f, velocity.z * 0.5f);
+            // UN OBSTACLE SUR LA TOUR TE RENVOIE EN BAS (29/09) : jete hors de la rampe,
+            // ailes fermees jusqu'au sol. (Les coups des joueurs, eux, ne font que projeter.)
+            if (by == null && Tower.On(victim.Body.position) && !Tower.Summit(victim.Body.position))
+                velocity = Tumble(victim, velocity);
             Knockback(victim, velocity);
             victim.LastHurt = Time.time;
             if (by != null && by != victim) victim.LastHitBy = by;
@@ -181,6 +185,23 @@ namespace Fief
                     r.OnHit(by);
                 }
             }
+        }
+
+        /// <summary>
+        /// LA CHUTE : la poussee d'un obstacle, redressee pour sortir de la rampe (au moins
+        /// 24 m/s vers l'exterieur de la tour, ca fait ~5 m avant que le frottement ne la
+        /// mange : juste de quoi passer le bord), et les ailes fermees jusqu'au sol.
+        /// </summary>
+        static Vector3 Tumble(Seeker victim, Vector3 velocity)
+        {
+            Vector3 p = victim.Body.position;
+            Vector3 outward = new Vector3(p.x, 0f, p.z);
+            outward = outward.sqrMagnitude > 0.01f ? outward.normalized : Vector3.forward;
+            float along = Vector3.Dot(new Vector3(velocity.x, 0f, velocity.z), outward);
+            if (along < 24f) velocity += outward * (24f - along);
+            if (velocity.y > 0.5f) velocity.y = Mathf.Clamp(velocity.y, 5f, 9f);
+            victim.Tumble(6f);
+            return velocity;
         }
 
         /// <summary>Projeter un joueur (sans autre effet).</summary>
