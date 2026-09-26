@@ -101,12 +101,16 @@ namespace Fief
         /// </summary>
         public float GraceUntil = -1f;
         /// <summary>
-        /// LES AILES (27/09) : prises au sommet de la tour (les planeurs), gardees jusqu'au
-        /// prochain atterrissage ailleurs. Avec elles, on plane (Espace maintenu ; le
-        /// porteur de la Couronne plane tout seul). Le Planeur (passif) les donne toujours.
+        /// LES AILES D'OR (28/09) : prises au sommet de la tour (les planeurs) ou au depart
+        /// d'une arbaleste, gardees jusqu'au prochain atterrissage. Tout le monde plane ;
+        /// avec elles, on plane plus vite et plus loin (voir Wings). Le Planeur (passif)
+        /// les donne toujours.
         /// </summary>
         public bool HasWings;
-        public bool CanGlide { get { return HasWings || Has(Ability.Planeur); } }
+        /// <summary>Quand il les a prises (on ne les perd pas en touchant le socle de l'arbaleste au depart).</summary>
+        public float WingsAt = -99f;
+        /// <summary>Tout le monde plane (28/09), sauf etourdi.</summary>
+        public bool CanGlide { get { return !Stunned; } }
         public bool Graced { get { return Time.time < GraceUntil; } }
         /// <summary>
         /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant

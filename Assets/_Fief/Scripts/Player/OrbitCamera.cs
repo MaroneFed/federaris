@@ -166,7 +166,8 @@ namespace Fief
                 if (view != null)
                 {
                     bool running = Game.Player != null && Game.Player.IsSprinting;
-                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f) + kick;
+                    float flight = Game.Player != null ? Game.Player.FlightFov : 0f;
+                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f) + kick + flight;
                     kick = Mathf.MoveTowards(kick, 0f, dt * 30f);
                     view.fieldOfView = Mathf.Lerp(view.fieldOfView, wantedFov, 1f - Mathf.Exp(-9f * dt));
                 }
@@ -179,7 +180,8 @@ namespace Fief
                 }
 
                 transform.position = head + jolt1;
-                transform.rotation = Quaternion.Euler(pitch + crouched * 22f, yaw, lateral * 40f + crouched * 3f);
+                float roll = Game.Player != null ? Game.Player.FlightRoll : 0f;
+                transform.rotation = Quaternion.Euler(pitch + crouched * 22f, yaw, lateral * 40f + crouched * 3f + roll);
                 return;
             }
 

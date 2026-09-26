@@ -124,6 +124,7 @@ namespace Fief
             folk.transform.SetParent(worldRoot, false);
             Eye.PlaceAll(folk.transform);
             Ballista.PlaceAll(folk.transform);
+            Thermal.PlaceAll(folk.transform);
         }
 
         /// <summary>

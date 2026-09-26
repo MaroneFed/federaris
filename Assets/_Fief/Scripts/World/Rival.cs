@@ -80,6 +80,7 @@ namespace Fief
         float detourSign = 1f;
         bool airJumped;
         bool gliding;
+        float airspeed;
         bool ballistic;
         Vector3 flight;
         float launchAge;
@@ -835,7 +836,7 @@ namespace Fief
             launchAge += dt;
             if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
             Wings.Tick(seeker, grounded);
-            gliding = false;
+            if (grounded || !seeker.CanGlide) gliding = false;
             Vector3 walk = dir * speed;
             if (grounded)
             {
@@ -854,24 +855,37 @@ namespace Fief
             {
                 airTop = Mathf.Max(airTop, transform.position.y);
                 fallSpeed -= 22f * dt;
-                // Avec des ailes : il plane vers sa cible (le porteur, toujours).
-                if (seeker.CanGlide && fallSpeed < -3f && (leaping || seeker.CarriesCrown || airTop - transform.position.y > 6f))
+                // LE VOL PLANE (28/09) : comme toi, ses ailes s'ouvrent seules au-dessus du vide.
+                if (!gliding && seeker.CanGlide && fallSpeed < -6f && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
                 {
                     gliding = true;
+                    airspeed = Wings.OpeningSpeed(Flat(flight) + Vector3.up * fallSpeed);
+                }
+                if (gliding)
+                {
                     ballistic = false;
-                    Vector3 aimAt = goal == Goal.Hunt || goal == Goal.Guard ? (prey != null && prey.Body != null && goal == Goal.Hunt ? prey.Body.position : target) : target;
-                    Vector3 flat = Flat(aimAt - transform.position);
-                    float horizontal = Mathf.Max(1f, flat.magnitude);
-                    float drop = transform.position.y - (aimAt.y + 1.5f);
-                    // Juste ce qu'il faut de pique pour arriver a hauteur de la cible.
-                    float needSink = drop / (horizontal / Wings.SpeedFlat);
-                    float dive = Mathf.Sqrt(Mathf.Clamp01((needSink - Wings.SinkFlat) / (Wings.SinkDive - Wings.SinkFlat)));
-                    float sink, gspeed;
-                    Wings.Glide(dive, out sink, out gspeed);
-                    fallSpeed = -sink;
-                    walk = flat.normalized * gspeed;
-                    if (flat.magnitude < 1.5f) walk = Vector3.zero;
-                    dir = flat.sqrMagnitude > 0.01f ? flat.normalized : dir;
+                    Vector3 aimAt = goal == Goal.Hunt && prey != null && prey.Body != null ? prey.Body.position : target;
+                    Vector3 look = Wings.LookFor(transform.position, aimAt);
+                    // Trop bas pour y arriver : il va chercher un courant d'air et tourne dedans.
+                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard) && !Wings.CanReach(transform.position, aimAt))
+                    {
+                        Thermal t = Thermal.Nearest(transform.position);
+                        if (t != null)
+                        {
+                            Vector3 c = t.transform.position;
+                            Vector3 off = Flat(transform.position - c);
+                            if (off.magnitude < Thermal.Radius * 0.8f)
+                            {
+                                Vector3 around = new Vector3(-off.z, 0f, off.x).normalized;
+                                look = (around - off.normalized * 0.3f).normalized + Vector3.up * 0.05f;
+                            }
+                            else if (off.magnitude < 140f) look = Flat(c - transform.position).normalized;
+                        }
+                    }
+                    Vector3 v = Wings.Fly(ref airspeed, look, 0f, false, seeker, dt);
+                    fallSpeed = v.y;
+                    walk = Flat(v);
+                    dir = walk.sqrMagnitude > 0.01f ? walk.normalized : dir;
                 }
                 else if (ballistic) walk = flight;
             }

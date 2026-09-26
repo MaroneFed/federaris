@@ -999,6 +999,43 @@ namespace Fief
             Play(stash, 0.85f);
         }
 
+        static AudioClip flightWind;
+
+        /// <summary>
+        /// LE VENT DU VOL (28/09) : un souffle continu qui BOUCLE sans couture (la fin se
+        /// fond dans le debut). On le joue en boucle pendant qu'on plane (voir GlideFeel).
+        /// </summary>
+        public static AudioClip FlightWind()
+        {
+            if (flightWind != null) return flightWind;
+            int count = Rate * 3;
+            float[] data = new float[count];
+            System.Random r = new System.Random(31);
+            float low = 0f;
+            float low2 = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float n = (float)r.NextDouble() * 2f - 1f;
+                float cutoff = 0.035f + 0.02f * Mathf.Sin(i / (float)Rate * 2.1f);
+                low += (n - low) * cutoff;
+                low2 += (low - low2) * 0.25f;
+                data[i] = low2;
+            }
+            int x = Rate * 3 / 10;
+            int length = count - x;
+            float[] loop = new float[length];
+            for (int i = 0; i < length; i++) loop[i] = data[i];
+            for (int i = 0; i < x; i++)
+            {
+                float k = (float)i / x;
+                loop[i] = data[i] * k + data[length + i] * (1f - k);
+            }
+            Normalize(loop, 0.6f);
+            flightWind = AudioClip.Create("vent du vol", length, 1, Rate, false);
+            flightWind.SetData(loop, 0);
+            return flightWind;
+        }
+
         static AudioClip whoosh, thud;
 
         /// <summary>Un coup dans le vide : un souffle bref dont le filtre monte puis descend.</summary>

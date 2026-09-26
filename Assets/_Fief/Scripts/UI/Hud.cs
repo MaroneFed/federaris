@@ -365,9 +365,13 @@ namespace Fief
             else if (me.Slowed) { state = "GELÉ — " + Mathf.CeilToInt(me.SlowUntil - now) + " s"; sc = AbilityInfo.Tint(Ability.Gel); }
             else if (me.Hidden) { state = "INVISIBLE — " + Mathf.CeilToInt(me.HiddenUntil - now) + " s"; sc = AbilityInfo.Tint(Ability.Voile); }
             else if (me.Graced) { state = "PROTÉGÉ — " + (me.GraceUntil - now).ToString("0.0") + " s"; sc = new Color(0.85f, 0.93f, 1f); }
-            else if (Game.Player != null && Game.Player.Gliding) { state = "EN VOL — regarde en bas pour piquer"; sc = Wings.Glow; }
+            else if (Game.Player != null && Game.Player.Gliding)
+            {
+                state = "EN VOL — " + Mathf.RoundToInt(Game.Player.Airspeed * 3.6f) + " km/h" + (Thermal.LiftAt(me.Body.position) > 0.5f ? "  ·  COURANT D'AIR ↑" : "");
+                sc = me.HasWings || me.Has(Ability.Planeur) ? Wings.Gold : Wings.Glow;
+            }
             else if (Game.Player != null && Game.Player.Flying) { state = "TIRÉ PAR L'ARBALESTE"; sc = new Color(1f, 0.8f, 0.45f); }
-            else if (me.HasWings) { state = "AILES — saute, puis Espace maintenu pour planer"; sc = Wings.Glow; }
+            else if (me.HasWings) { state = "AILES D'OR — saute dans le vide"; sc = Wings.Gold; }
             if (state != null)
                 Text(new Rect(x, Screen.height - UiStyle.S(40) - row * lines - UiStyle.S(26), UiStyle.S(300), UiStyle.S(22)), state, UiStyle.Label, sc);
         }

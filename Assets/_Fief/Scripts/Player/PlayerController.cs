@@ -12,7 +12,9 @@ namespace Fief
     /// Ce qui change la facon de bouger (voir Match/Abilities.cs) :
     ///   - les CAPACITES passent par l'interface IMover : Dash (ruee), PullTo (grappin),
     ///     Blink (clignement, echange, rappel), Push (poussees, bond, onde...) ;
-    ///   - le DOUBLE SAUT, le PLANEUR (Espace maintenu en l'air), le REBOND ;
+    ///   - le DOUBLE SAUT, le REBOND ;
+    ///   - LE VOL PLANE (28/09) : les ailes s'ouvrent seules au-dessus du vide, on
+    ///     dirige a la souris (voir World/Wings.cs) ; Espace les replie ou les rouvre ;
     ///   - l'ETOURDISSEMENT (on ne bouge plus), le GIVRE (moitie moins vite) ;
     ///   - la COURONNE : si son porteur tombe (sans planer), elle reste la ou il a
     ///     quitte le sol (Crown.Slip). On ne redescend pas la tour d'un saut.
@@ -57,6 +59,16 @@ namespace Fief
         public float CurrentSpeed { get; private set; }
         public bool IsSprinting { get; private set; }
         public bool Gliding { get; private set; }
+        /// <summary>La vitesse en vol plane (m/s) : le HUD, la camera, le vent s'en servent.</summary>
+        public float Airspeed { get { return Gliding ? airspeed : 0f; } }
+        /// <summary>L'inclinaison de la camera en vol (degres) : on penche dans les virages.</summary>
+        public float FlightRoll { get; private set; }
+        /// <summary>L'ouverture du champ de vision en vol (degres) : plus on va vite, plus il s'ouvre.</summary>
+        public float FlightFov { get; private set; }
+        float airspeed;
+        bool folded;                // Espace en l'air : ailes repliees jusqu'au prochain appui (ou au sol)
+        float lastYaw;
+        GlideFeel feel;
 
         float strideAccumulator;
         Vector3 knock;              // ce qui pousse le joueur de l'exterieur
@@ -186,11 +198,13 @@ namespace Fief
             launchAge += dt;
             if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
 
-            // --- le saut, le second saut, le planeur
+            // --- le saut, le second saut, le vol plane
             bool canAct = !InputLocked && factor > 0f;
-            Gliding = false;
             if (grounded)
             {
+                if (Gliding) Sfx.Thud();
+                Gliding = false;
+                folded = false;
                 airJumpUsed = false;
                 lastGround = transform.position;
                 airTop = transform.position.y;
@@ -201,8 +215,9 @@ namespace Fief
             {
                 airTop = Mathf.Max(airTop, transform.position.y);
                 // Une vraie chute : le vent siffle (une fois).
-                if (verticalVelocity < -16f && !windPlayed) { windPlayed = true; Sfx.Whoosh(); }
-                if (canAct && FiefInput.JumpPressed && !airJumpUsed && me != null && me.Has(Ability.DoubleSaut))
+                if (verticalVelocity < -16f && !windPlayed && !Gliding) { windPlayed = true; Sfx.Whoosh(); }
+                bool jump = canAct && FiefInput.JumpPressed;
+                if (jump && !Gliding && !airJumpUsed && me != null && me.Has(Ability.DoubleSaut))
                 {
                     airJumpUsed = true;
                     verticalVelocity = cfg.jumpSpeed * 1.05f;
@@ -210,22 +225,33 @@ namespace Fief
                     Fx.Ring(transform.position + Vector3.up * 0.1f, AbilityInfo.Tint(Ability.DoubleSaut), 0.3f, 2.4f, 0.3f, 0.2f, Vector3.up);
                     Fx.Burst(transform.position, AbilityInfo.Tint(Ability.DoubleSaut), 25, 5f, 0.14f, 0.5f, 0.3f, Vector3.down, 40f);
                 }
-                // LE VOL PLANE : avec des ailes, Espace maintenu (le porteur de la
-                // Couronne plane tout seul : il ne la laisse pas tomber par megarde).
-                else if (me != null && me.CanGlide && verticalVelocity < -3f && (canAct && FiefInput.JumpHeld || me.CarriesCrown))
-                    Gliding = true;
+                // Espace en vol : on replie les ailes (on tombe comme une pierre).
+                else if (jump && Gliding) { Gliding = false; folded = true; Sfx.Whoosh(); }
+                // Espace en tombant : on les rouvre (ou on les ouvre plus tot).
+                else if (jump && me != null && me.CanGlide && verticalVelocity < 2f) OpenWings(me);
+                // LES AILES S'OUVRENT TOUTES SEULES : on tombe, et il y a du vide dessous.
+                // (Tire par une arbaleste : seulement au-dessus du grand vide, pour
+                // retomber la ou la ligne l'avait dit.)
+                else if (!Gliding && !folded && me != null && me.CanGlide && verticalVelocity < -6f
+                         && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
+                    OpenWings(me);
+                // Etourdi en plein vol : les ailes se ferment (on tombe), elles se rouvriront.
+                if (Gliding && me != null && !me.CanGlide) Gliding = false;
             }
-            verticalVelocity += cfg.gravity * dt;
-            float glideSpeed = 0f;
+            Vector3 glide = Vector3.zero;
             if (Gliding)
             {
-                // On regarde vers le bas : on pique (plus vite, on descend plus vite).
-                float dive = cameraTransform != null ? Mathf.Clamp01(-cameraTransform.forward.y / 0.75f) : 0f;
-                float sink;
-                Wings.Glide(dive, out sink, out glideSpeed);
-                verticalVelocity = -sink;
+                // ON VOLE COMME ON REGARDE : en bas on pique, en haut on remonte.
+                Vector3 look = cameraTransform != null ? cameraTransform.forward : transform.forward;
+                glide = Wings.Fly(ref airspeed, look, InputLocked ? 0f : input.x, !InputLocked && input.y < -0.5f, me, dt);
+                verticalVelocity = glide.y;
+                glide.y = 0f;
                 ballistic = false;
+                // Un mur en face : on perd sa vitesse.
+                if ((controller.collisionFlags & CollisionFlags.Sides) != 0) airspeed = Mathf.Max(Wings.MinSpeed, airspeed * 0.5f);
             }
+            else verticalVelocity += cfg.gravity * dt;
+            FlightFeel(input, dt);
 
             // --- la Couronne glisse des mains de qui tombe (sans planer)
             if (me != null && me.CarriesCrown && !grounded && !Gliding && verticalVelocity < -13f)
@@ -260,11 +286,7 @@ namespace Fief
             // Pendant un gros recul, on ne contre-marche pas : le coup porte vraiment.
             float control = Mathf.Lerp(0.2f, 1f, Mathf.Clamp01(1f - knock.magnitude / 16f));
             Vector3 walk = wish * speed * control;
-            if (Gliding)
-            {
-                // En planant, on avance toujours ; Z accelere, Q/D tournent un peu.
-                walk = forward * glideSpeed * (0.6f + 0.4f * Mathf.Max(0f, input.y)) + right * input.x * 6f;
-            }
+            if (Gliding) walk = glide;
             else if (ballistic)
             {
                 // Tire par une arbaleste : on suit sa courbe (a peine de controle).
@@ -279,6 +301,38 @@ namespace Fief
             Footsteps();
             DriveRig(cfg);
             KeepInsideMap(cfg);
+        }
+
+        /// <summary>OUVRIR LES AILES : on garde son elan, un claquement de toile, un anneau.</summary>
+        void OpenWings(Seeker me)
+        {
+            Gliding = true;
+            folded = false;
+            airspeed = Wings.OpeningSpeed(controller.velocity);
+            ballistic = false;
+            Sfx.Whoosh();
+            Color c = me != null && (me.HasWings || me.Has(Ability.Planeur)) ? Wings.Gold : Wings.Glow;
+            Fx.Ring(transform.position + Vector3.up * 1.2f, c, 0.5f, 4f, 0.35f, 0.18f, Vector3.up);
+            if (orbitCamera != null) orbitCamera.Kick(6f);
+            if (me != null && Game.Hud != null)
+                Game.Hud.Tip("vol", "TU VOLES ! Regarde en bas pour piquer et prendre de la vitesse, en haut pour remonter. Espace replie les ailes.");
+        }
+
+        /// <summary>
+        /// Les SENSATIONS du vol : la camera penche dans les virages, le champ de vision
+        /// s'ouvre avec la vitesse, le vent souffle et des filets d'air filent autour.
+        /// </summary>
+        void FlightFeel(Vector2 input, float dt)
+        {
+            float yaw = transform.eulerAngles.y;
+            float turn = Mathf.DeltaAngle(lastYaw, yaw) / Mathf.Max(dt, 0.001f);
+            lastYaw = yaw;
+            float roll = Gliding ? Mathf.Clamp(-turn * 0.08f - input.x * 8f, -22f, 22f) : 0f;
+            FlightRoll = Mathf.Lerp(FlightRoll, roll, 1f - Mathf.Exp(-5f * dt));
+            float fast = Gliding ? Mathf.Clamp01((airspeed - Wings.Cruise) / (Wings.MaxSpeed - Wings.Cruise)) : 0f;
+            FlightFov = Mathf.Lerp(FlightFov, Gliding ? 6f + fast * 20f : 0f, 1f - Mathf.Exp(-4f * dt));
+            if (feel == null && cameraTransform != null) feel = GlideFeel.Attach(cameraTransform);
+            if (feel != null) feel.Set(Gliding ? 0.25f + fast * 0.75f : 0f, Gliding ? airspeed : 0f);
         }
 
         /// <summary>Retomber : une secousse, et avec le Rebond une onde de choc si l'on tombait de haut.</summary>

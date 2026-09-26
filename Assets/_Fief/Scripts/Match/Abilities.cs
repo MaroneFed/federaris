@@ -90,7 +90,7 @@ namespace Fief
                 case Ability.Rappel: return "Tu reviens là où tu étais il y a quatre secondes.";
                 case Ability.Souffle: return "Une rafale repousse tout ce qui est devant toi.";
                 case Ability.DoubleSaut: return "Appuie encore sur Espace en l'air : un second saut.";
-                case Ability.Planeur: return "Maintiens Espace en l'air : tu planes. La Couronne ne tombe pas.";
+                case Ability.Planeur: return "Des ailes d'or pour toujours : tu voles plus vite et plus loin.";
                 case Ability.Coureur: return "Tu vas quinze pour cent plus vite.";
                 case Ability.Porteur: return "Avec la Couronne, tu n'es plus ralenti et tu peux pousser.";
                 case Ability.Poigne: return "Ta poussée envoie deux fois plus loin.";
