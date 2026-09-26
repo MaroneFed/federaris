@@ -36,11 +36,11 @@ le 26/09 : manches, départage, choix des pouvoirs).
 
 Décision verrouillée : *l'hôte décide de tout ce qui compte* (Couronne, coups, fin de
 manche). C'est déjà respecté, même en solo : chaque geste passe par **une méthode qui
-prend le joueur qui agit** — `Crown.TryTakeFor(s)`, `Monument.TryDeliver(s)`,
+prend le joueur qui agit** — `Crown.TryTakeFor(s)`, `Crown.TrySteal(voleur, porteur)`, `Monument.TryDeliver(s)`, `Ballista.Mount(s)`,
 `Shrine.TryTakeFor(s)`, `AbilityCaster.Cast(s, capacité, œil, visée)`, `Combat.Shove(s, …)`,
 `Combat.Hit(victime, …, s)`, `Match.Draft.TryPick(place, carte)`. Les capacités ne
 bougent un corps qu'à travers l'interface **`IMover`** (Push, Dash, PullTo, Blink),
-que `PlayerController` et `Rival` implémentent tous les deux. Toi et les bots passez par
+que `PlayerController` et `Rival` implémentent tous les deux (Launch compris : le vol d'arbaleste). Toi et les bots passez par
 les mêmes. La manche ne se termine **qu'à un endroit** : `Menus.EndRound(place)`.
 
 **En Phase 3 :** ces méthodes ne s'exécutent que chez l'hôte ; un invité envoie son

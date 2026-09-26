@@ -1,6 +1,6 @@
 # FIEF — La Couronne
 
-> Une Couronne au sommet d'un château gardé. Quatre joueurs dans une forêt noire.
+> Une Couronne au sommet d'une tour de 100 m, sur une île qui flotte au-dessus des nuages. Jusqu'à huit joueurs.
 > Le premier qui la porte au Monument gagne la manche.
 
 Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
@@ -75,31 +75,34 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 | **ZQSD** / WASD | Se déplacer |
 | **Souris** | Regarder |
 | **Maj** | Courir |
-| **Espace** | Sauter (encore en l'air : Double saut ; maintenu : Planeur) |
-| **Clic gauche** | **Pousser** (le porteur lâche la Couronne) |
+| **Espace** | Sauter ; **maintenu en l'air avec des ailes : planer** (regarde en bas pour piquer) |
+| **Clic gauche** | **Pousser** — pousser le porteur, c'est lui **voler la Couronne** |
 | **Clic droit** | Ta 1re capacité |
 | **R** | Ta 2e capacité |
 | **C** | Ta 3e capacité |
 | **V** | Le don d'un sanctuaire (pour la manche) |
-| **E** (maintenu) | Prendre la Couronne sur son socle, prendre un don |
-| **F** | Grimper à un arbre |
+| **E** | Prendre la Couronne sur son socle, prendre un don, **monter sur une arbaleste** |
+| **Sur une arbaleste** | Souris : viser (la trajectoire se dessine) · clic gauche : tirer · E : descendre |
 | **Tab** | Le score et les capacités de chacun |
 | **Échap** | Pause |
 | **F3** | Diagnostic |
 
 ## 4. Ce qu'il faut tester — la Porte 1
 
-> **« Un match de 30 minutes contre trois bots est-il haletant du début à la fin ? »**
+> **« Un match de 30 minutes contre des bots est-il haletant du début à la fin ? »**
 
-1. Avant la manche 1, choisis ta première **capacité** (lis la phrase : elle dit tout).
-2. Va à la **citadelle** (la tour de 64 m perce la brume). En chemin, un **sanctuaire**
-   (cristal qui flotte, E maintenu) te donne une capacité de plus, sur **V**.
-3. Monte la **rampe en spirale** de la tour : saute les trous, évite les pendules et
-   les rayons des **Yeux**, pousse les bots dans le vide.
-4. Prends la **Couronne** au sommet (E maintenu) et entre dans le cercle du **Monument**
-   (la colonne bleue). Si tu sautes de la tour, elle reste en haut ! Tombé ? Les
-   **courants** (disques pâles au bord intérieur de la rampe) te renvoient d'un tour.
-5. Entre deux manches, choisis une **capacité** de plus.
+1. Avant la manche 1, choisis ta première **capacité** (lis la carte : elle dit tout).
+2. **3, 2, 1, PARTEZ !** Tu pars de ta petite zone, sur la ligne de départ, à côté des
+   autres. Cours au pied de la rampe — ou saute sur une **arbaleste** (E), vise, et
+   fais-toi tirer haut sur la tour.
+3. Monte la **rampe** (100 m, six tours de couleur) : saute les trous, prends les
+   **courants**, esquive pendules, béliers, boulets et rayons des **Yeux**, pousse les
+   autres dans le vide.
+4. Au sommet : la **Couronne** (E maintenu) et des **ailes**. Saute, et **plane**
+   (Espace ; regarde en bas pour piquer) jusqu'au **Monument** sur son îlot (colonne
+   bleue). Entre dans son cercle.
+5. Quelqu'un d'autre l'a ? **Pousse-le : tu la lui voles.**
+6. Entre deux manches, choisis une **capacité** de plus.
 
 **Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et
 à quel moment tu as eu envie de lâcher.
@@ -131,9 +134,14 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | Les 26 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` |
 | Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
 | Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
-| La Couronne, le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |
+| La Couronne (et le vol), le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |
 | Les Yeux (sentinelles) | `Scripts/World/Eye.cs` |
-| La citadelle, la tour, les pendules | `Scripts/World/Castle.cs`, `Tower.cs` |
+| L'île, les îlots, la mer de nuages | `Scripts/World/Ground.cs`, `Ambiance.cs` ; le ciel : `Atmosphere.cs` |
+| La tour et ses obstacles (courants, pendules, béliers, boulets) | `Scripts/World/Tower.cs` ; la citadelle : `Castle.cs` |
+| Les planeurs, le vol | `Scripts/World/Wings.cs` |
+| Les arbalestes géantes | `Scripts/World/Ballista.cs` |
+| Les effets spéciaux | `Scripts/World/Fx.cs` |
+| La ligne de départ, le respawn | `Scripts/World/Combat.cs` (Spawns, Respawn) |
 | Les bots | `Scripts/World/Rival.cs` |
 | L'écran de jeu | `Scripts/UI/Hud.cs` |
 | Titre, salon, pause, fin de manche, choix des capacités, podium | `Scripts/UI/Menus.cs` |
@@ -151,7 +159,7 @@ Assets/_Fief/
     Match/    le match, les capacités (C# pur : survit aux manches)
     Season/   le joueur (Seeker), le chrono, les stats
     Player/   déplacement, caméra, interactions, poussée et capacités, entrées
-    World/    forêt, citadelle, tour, Yeux, Couronne, Monument, sanctuaires, bots
+    World/    île, citadelle, tour, Yeux, Couronne, Monument, planeurs, arbalestes, effets, bots
     UI/       écran de jeu, menus (texte seul, sans icône), style
   Editor/     menu FIEF (outils éditeur, jamais dans le build)
 docs/

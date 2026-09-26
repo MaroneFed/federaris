@@ -177,12 +177,13 @@ namespace Fief
             Seeker me = Game.Me;
             if (me == null || me.Body == null) return;
             Vector3 p = me.Body.position;
-            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. File au Monument — si tu sautes de haut, la Couronne reste là-haut.");
+            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à l'îlot du Monument (colonne bleue) — pousser le porteur, c'est lui voler la Couronne !");
+            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, et te faire tirer vers la tour ou un îlot.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : clic gauche.");
             else if (Eye.ChargingAt(me)) Tip("oeil", "Un Œil devient rouge quand il vise : fais un pas de côté au dernier moment.");
-            else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le pour qu'il la lâche.");
+            else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (clic gauche) pour la lui VOLER.");
             else if (me.HasGift) Tip("don", "Ton don est sur la touche V, pour cette manche.");
         }
 
@@ -244,8 +245,11 @@ namespace Fief
             Seeker me = Game.Me;
             if (me == null || me.Body == null) return;
             string mine = null;
-            if (me.CarriesCrown && Monument.Instance != null)
-                mine = "Monument à " + Mathf.RoundToInt(Combat.Flat(Monument.Instance.transform.position - me.Body.position).magnitude) + " m";
+            if (Ballista.PlayerOn != null)
+                mine = "Clic gauche : tirer   ·   E : descendre   ·   la ligne montre ta course";
+            else if (me.CarriesCrown && Monument.Instance != null)
+                mine = "Monument à " + Mathf.RoundToInt(Combat.Flat(Monument.Instance.transform.position - me.Body.position).magnitude) + " m"
+                     + (me.CanGlide ? "   ·   tu as des ailes : saute et plane" : Tower.On(me.Body.position) ? "   ·   des ailes t'attendent au sommet" : "");
             else if (Tower.On(me.Body.position))
                 mine = Tower.Progress(me.Body.position) >= 0.999f ? "Au sommet" : "Tour " + (Mathf.FloorToInt(Tower.Progress(me.Body.position) * Tower.Turns) + 1) + " sur " + Tower.Turns;
             if (mine != null)
@@ -258,9 +262,12 @@ namespace Fief
             if (s == null || s.Body == null) return "";
             Vector3 p = s.Body.position;
             if (Tower.On(p)) return Tower.Progress(p) >= 0.999f ? "au sommet de la tour" : "sur la rampe";
+            if (Monument.Instance != null && Combat.Flat(Monument.Instance.transform.position - p).magnitude < 25f) return "près du Monument";
             if (Castle.Inside(p)) return "dans la citadelle";
-            if (Monument.Instance != null && Combat.Flat(Monument.Instance.transform.position - p).magnitude < 40f) return "près du Monument";
-            return "en forêt";
+            if (Ground.OnIsland(p.x, p.z) && p.y > -3f && p.y < 20f) return "sur l'île";
+            for (int i = 0; i < Ground.IsletCount; i++)
+                if (Combat.Flat(Ground.GetIslet(i).Top - p).magnitude < Ground.GetIslet(i).Radius + 2f && Mathf.Abs(p.y - Ground.GetIslet(i).Top.y) < 4f) return "sur un îlot";
+            return "en plein vol";
         }
 
         /// <summary>Une phrase qui dit ou est la Couronne, et quoi faire.</summary>
@@ -274,7 +281,7 @@ namespace Fief
                 if (holder == me)
                 {
                     float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 5f);
-                    line = "TU PORTES LA COURONNE — entre dans le cercle du Monument (la colonne bleue)";
+                    line = "TU PORTES LA COURONNE — plane jusqu'au Monument, sur son îlot (la colonne bleue)";
                     tint = new Color(1f, 0.82f * pulse + 0.1f, 0.4f);
                 }
                 else
@@ -357,7 +364,10 @@ namespace Fief
             if (me.Stunned) { state = "ÉTOURDI"; sc = new Color(1f, 0.85f, 0.4f); }
             else if (me.Slowed) { state = "GELÉ — " + Mathf.CeilToInt(me.SlowUntil - now) + " s"; sc = AbilityInfo.Tint(Ability.Gel); }
             else if (me.Hidden) { state = "INVISIBLE — " + Mathf.CeilToInt(me.HiddenUntil - now) + " s"; sc = AbilityInfo.Tint(Ability.Voile); }
-            else if (Game.Player != null && Game.Player.Gliding) { state = "PLANÉ"; sc = AbilityInfo.Tint(Ability.Planeur); }
+            else if (me.Graced) { state = "PROTÉGÉ — " + (me.GraceUntil - now).ToString("0.0") + " s"; sc = new Color(0.85f, 0.93f, 1f); }
+            else if (Game.Player != null && Game.Player.Gliding) { state = "EN VOL — regarde en bas pour piquer"; sc = Wings.Glow; }
+            else if (Game.Player != null && Game.Player.Flying) { state = "TIRÉ PAR L'ARBALESTE"; sc = new Color(1f, 0.8f, 0.45f); }
+            else if (me.HasWings) { state = "AILES — saute, puis Espace maintenu pour planer"; sc = Wings.Glow; }
             if (state != null)
                 Text(new Rect(x, Screen.height - UiStyle.S(40) - row * lines - UiStyle.S(26), UiStyle.S(300), UiStyle.S(22)), state, UiStyle.Label, sc);
         }

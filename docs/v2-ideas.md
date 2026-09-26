@@ -173,3 +173,11 @@ emplacements de construction.
 - Garantir au moins une capacité active dans chaque choix.
 - Au podium : les « moments » du match (plus longue chute, Couronne volée au bord du Monument).
 - Une page « Règles » dans la pause.
+
+### Le 27/09 au soir (l'île flottante)
+
+- Des **courants d'air** entre les îlots pour enchaîner les vols.
+- Une arbaleste **à charger** (plus on maintient, plus elle tire fort).
+- Des îlots qui **bougent** lentement (le Monument dérive pendant la manche).
+- Remplacer les primitives (tour, arbalestes, planeurs) par des modèles Kenney/Synty.
+- Un son de vent continu qui monte avec la vitesse en vol plané.

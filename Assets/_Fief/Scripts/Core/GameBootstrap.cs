@@ -35,7 +35,7 @@ namespace Fief
 
             // A l'ecran-titre, pas de match : on en prepare un "d'apercu" (toi et trois
             // bots) pour que la foret vive derriere le menu. Le salon le remplacera.
-            if (!Match.Active) Match.Begin(3, 5, Mathf.RoundToInt(config.seasonMinutes));
+            if (!Match.Active) Match.Begin(5, 5, Mathf.RoundToInt(config.seasonMinutes));
             if (!Match.Launched) Stats.Reset();
 
             Game.Reset();

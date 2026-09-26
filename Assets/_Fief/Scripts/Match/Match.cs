@@ -62,7 +62,12 @@ namespace Fief
         /// <summary>Change a chaque nouveau match (les astuces du HUD se remontrent).</summary>
         public static int MatchId { get; private set; }
 
-        static readonly string[] BotNames = { "Mahaut", "Oswin", "Guerin" };
+        /// <summary>Jusqu'a HUIT joueurs (27/09 -- Martin : "tu peux monter le nombre de joueurs").</summary>
+        public const int MaxPlayers = 8;
+        static readonly string[] BotNames = { "Mahaut", "Oswin", "Guérin", "Aliénor", "Tancrède", "Isaure", "Bohémond" };
+
+        /// <summary>Le nom de la place "index" (0 : toi).</summary>
+        public static string NameOf(int index) { return index <= 0 ? "Toi" : BotNames[Mathf.Clamp(index - 1, 0, BotNames.Length - 1)]; }
 
         /// <summary>
         /// LE NIVEAU DES BOTS (choisi au salon, garde d'un match a l'autre) : 0 faciles,
@@ -76,23 +81,27 @@ namespace Fief
             new Color(0.95f, 0.78f, 0.35f),     // toi : or
             new Color(0.88f, 0.35f, 0.28f),     // rouge
             new Color(0.35f, 0.6f, 0.95f),      // bleu
-            new Color(0.72f, 0.48f, 0.98f)      // violet (27/09 : le vert se confondait avec le rouge pour un daltonien)
+            new Color(0.72f, 0.48f, 0.98f),     // violet (27/09 : le vert se confondait avec le rouge pour un daltonien)
+            new Color(0.30f, 0.86f, 0.86f),     // turquoise
+            new Color(1f, 0.55f, 0.18f),        // orange
+            new Color(1f, 0.48f, 0.78f),        // rose
+            new Color(0.92f, 0.93f, 0.97f)      // blanc
         };
 
         public static Color ColourOf(int index) { return Colours[Mathf.Clamp(index, 0, Colours.Length - 1)]; }
 
-        /// <summary>Commencer un match : toi, puis "bots" adversaires (1 a 3).</summary>
+        /// <summary>Commencer un match : toi, puis "bots" adversaires (1 a 7).</summary>
         public static void Begin(int bots, int rounds, int minutes)
         {
             Slots.Clear();
-            int total = Mathf.Clamp(bots, 1, 3) + 1;
+            int total = Mathf.Clamp(bots, 1, MaxPlayers - 1) + 1;
             for (int i = 0; i < total; i++)
             {
                 PlayerSlot s = new PlayerSlot();
                 s.Index = i;
                 s.IsBot = i > 0;
                 s.IsLocal = i == 0;
-                s.Name = i == 0 ? "Toi" : BotNames[i - 1];
+                s.Name = NameOf(i);
                 s.Colour = Colours[i];
                 Slots.Add(s);
             }

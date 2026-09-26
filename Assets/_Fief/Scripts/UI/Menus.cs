@@ -57,7 +57,7 @@ namespace Fief
         Vector2 lastMouse;
 
         // --- le salon
-        int lobbyBots = 3;
+        int lobbyBots = 5;
         int lobbyRounds = 5;
         int lobbyMinutes = 6;
 
@@ -309,7 +309,7 @@ namespace Fief
         /// <summary>Le salon : regler une ligne (joueurs, bots, manches, duree) d'un cran.</summary>
         void Adjust(int row, int step)
         {
-            if (row == 0) lobbyBots = Mathf.Clamp(lobbyBots + step, 1, 3);
+            if (row == 0) lobbyBots = Mathf.Clamp(lobbyBots + step, 1, Match.MaxPlayers - 1);
             else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
             else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
             else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
@@ -726,7 +726,7 @@ namespace Fief
                     float wx = x + UiStyle.S(16);
                     for (int k = 0; k <= lobbyBots; k++)
                     {
-                        string name = k == 0 ? "Toi" : k == 1 ? "Mahaut" : k == 2 ? "Oswin" : "Guerin";
+                        string name = Match.NameOf(k);
                         GUIStyle ns = Style(UiStyle.Small, 0, TextAnchor.MiddleLeft);
                         float nw = ns.CalcSize(new GUIContent(name)).x;
                         Shadow(new Rect(wx, y - UiStyle.S(8), nw + 4f, UiStyle.S(20)), name, ns, Match.ColourOf(k));
@@ -846,11 +846,11 @@ namespace Fief
             else if (Match.Played == 0)
             {
                 float b = Mathf.Clamp01((t - 0.8f) / 0.5f) * a;
-                Centered(y, UiStyle.S(30), "La Couronne est au sommet de la tour, au centre du château.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
+                Centered(y, UiStyle.S(30), "La Couronne est au sommet de la tour. Là-haut, on prend des ailes.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
                 float c = Mathf.Clamp01((t - 1.8f) / 0.5f) * a;
-                Centered(y + UiStyle.S(38), UiStyle.S(30), "Porte-la au Monument : la colonne bleue.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
+                Centered(y + UiStyle.S(38), UiStyle.S(30), "Plane jusqu'au Monument, sur son îlot flottant : la colonne bleue.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
                 float d = Mathf.Clamp01((t - 2.8f) / 0.5f) * a;
-                Centered(y + UiStyle.S(76), UiStyle.S(30), "Clic gauche pousse. Qui porte la Couronne la lâche.", UiStyle.Head, new Color(0.95f, 0.7f, 0.6f, d));
+                Centered(y + UiStyle.S(76), UiStyle.S(30), "Clic gauche pousse. Pousser le porteur, c'est lui voler la Couronne.", UiStyle.Head, new Color(0.95f, 0.7f, 0.6f, d));
                 y += UiStyle.S(130);
             }
             else
@@ -959,65 +959,76 @@ namespace Fief
         // ------------------------------------------------------------------ le choix
 
         /// <summary>
-        /// LE CHOIX DES CAPACITES : quelques cartes, que du texte -- le nom, "ACTIVE,
-        /// touche R" ou "PASSIVE", une phrase qui dit exactement ce qu'elle fait, et
-        /// si elle remplace une de tes actives (trois au plus). Chacun son tour, le
-        /// vainqueur de la manche en dernier. Gauche/droite, Entree -- ou la souris.
+        /// LE CHOIX DES CAPACITES (redessine le 27/09 -- Martin : "que tous les designs,
+        /// quand tu choisis tes trucs, soient beaucoup mieux"). Des cartes hautes qui
+        /// arrivent une a une : un degrade a la couleur de la capacite, la grande
+        /// initiale en filigrane, "ACTIVE · touche R" ou "PASSIVE", une phrase qui dit
+        /// exactement ce qu'elle fait, sa recharge, et ce qu'elle remplace. Celle qu'on
+        /// vise se souleve, s'entoure d'un halo et un reflet la traverse. En haut, la
+        /// file des joueurs : qui choisit, et ce que chacun a pris.
         /// </summary>
         void DrawDraft()
         {
-            float y = Screen.height * 0.14f;
-            string title = Match.Played == 0 ? "TA PREMIÈRE CAPACITÉ" : "UNE CAPACITÉ DE PLUS";
-            Headline(y, 40, UiStyle.Spaced(title), Palette.Gold);
-            y += UiStyle.S(64);
+            EnsureCardTextures();
+            // Un voile colore qui respire derriere les cartes.
+            float breathe = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 0.8f);
+            Color glowTint = new Color(0.9f, 0.7f, 0.35f, 0.10f + 0.05f * breathe);
+            Color was = GUI.color;
+            GUI.color = glowTint;
+            GUI.DrawTexture(new Rect(-Screen.width * 0.2f, Screen.height * 0.15f, Screen.width * 1.4f, Screen.height * 0.8f), glowTex, ScaleMode.StretchToFill, true);
+            GUI.color = was;
 
-            // L'ordre de passage, en une ligne : les noms, celui dont c'est le tour en clair.
-            List<int> order = Match.Draft.Order;
-            GUIStyle os = Style(UiStyle.Label, 0, TextAnchor.MiddleLeft);
-            float total = 0f;
-            for (int i = 0; i < order.Count; i++) total += os.CalcSize(new GUIContent(Match.Slots[order[i]].Name)).x + UiStyle.S(36);
-            float ox = (Screen.width - total) * 0.5f;
-            for (int i = 0; i < order.Count; i++)
-            {
-                PlayerSlot s = Match.Slots[order[i]];
-                bool now = !Match.Draft.Done && Match.Draft.Current == order[i];
-                bool done = i < Match.Draft.Turn;
-                string n = s.Name;
-                float nw = os.CalcSize(new GUIContent(n)).x;
-                Color c = s.IsLocal ? Palette.Gold : s.Colour;
-                Shadow(new Rect(ox, y, nw + 4f, UiStyle.S(24)), n, os, new Color(c.r, c.g, c.b, now ? 1f : done ? 0.35f : 0.6f));
-                if (now) UiStyle.Fill(new Rect(ox, y + UiStyle.S(24), nw, 2f), c);
-                ox += nw + UiStyle.S(36);
-            }
-            y += UiStyle.S(56);
+            float y = Screen.height * 0.08f;
+            string title = Match.Played == 0 ? "CHOISIS TA PREMIÈRE CAPACITÉ" : "UNE CAPACITÉ DE PLUS";
+            Headline(y, 42, UiStyle.Spaced(title), Palette.Gold);
+            y += UiStyle.S(64);
+            string sub = Match.Played == 0 ? "Avant la manche 1 · chacun son tour"
+                       : Match.LastWinner >= 0 ? Match.Slots[Match.LastWinner].Name + " a gagné la manche : il choisit en dernier"
+                       : "Personne n'a gagné la manche · le moins de victoires choisit d'abord";
+            Centered(y, UiStyle.S(24), sub, UiStyle.Label, new Color(0.9f, 0.85f, 0.75f, 0.8f));
+            y += UiStyle.S(44);
+
+            y = DrawDraftOrder(y);
+            y += UiStyle.S(26);
 
             // Les cartes.
             List<Ability> offer = Match.Draft.Offer;
             int me = Match.Local != null ? Match.Local.Index : 0;
             bool myTurn = !Match.Draft.Done && Match.Draft.Current == me;
             int n2 = Mathf.Max(1, offer.Count);
-            float gap = UiStyle.S(20);
-            float cw = Mathf.Min(UiStyle.S(250), (Screen.width - UiStyle.S(80) - gap * (n2 - 1)) / n2);
-            float ch = UiStyle.S(230);
+            float gap = UiStyle.S(18);
+            float cw = Mathf.Min(UiStyle.S(270), (Screen.width - UiStyle.S(60) - gap * (n2 - 1)) / n2);
+            float ch = Mathf.Min(UiStyle.S(340), Screen.height * 0.42f);
             float cx = (Screen.width - (cw * n2 + gap * (n2 - 1))) * 0.5f;
+            if (cardLift.Length < n2) cardLift = new float[Match.MaxPlayers + 2];
             for (int i = 0; i < offer.Count; i++)
             {
                 Ability p = offer[i];
-                Rect card = new Rect(cx + i * (cw + gap), y, cw, ch);
+                float enter = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((stateTime - 0.15f - i * 0.09f) / 0.4f));
                 bool owned = Match.Local != null && Match.Local.Has(p);
-                bool hover = card.Contains(Event.current.mousePosition);
+                Rect hit = new Rect(cx + i * (cw + gap), y, cw, ch);
+                bool hover = hit.Contains(Event.current.mousePosition);
                 if (hover && hoverFollows && myTurn) selected = i;
                 bool on = myTurn && selected == i && !owned;
-                Card(card, p, owned, on, me);
-                if (myTurn && GUI.Button(card, GUIContent.none, GUIStyle.none)) { selected = i; PickCard(i); }
+                if (Event.current.type == EventType.Repaint)
+                    cardLift[i] = Mathf.MoveTowards(cardLift[i], on ? 1f : 0f, Time.unscaledDeltaTime * 6f);
+                float lift = Mathf.SmoothStep(0f, 1f, cardLift[i]);
+                Rect card = new Rect(hit.x, hit.y + (1f - enter) * UiStyle.S(60) - lift * UiStyle.S(16), cw, ch);
+                Card(card, p, owned, on, lift, enter, me);
+                if (myTurn && enter > 0.9f && GUI.Button(hit, GUIContent.none, GUIStyle.none)) { selected = i; PickCard(i); }
             }
-            y += ch + UiStyle.S(30);
+            y += ch + UiStyle.S(26);
 
-            if (myTurn) Centered(y, UiStyle.S(28), "À toi de choisir", UiStyle.Head, Palette.Gold);
+            if (myTurn)
+            {
+                float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
+                Centered(y, UiStyle.S(30), "À TOI DE CHOISIR", UiStyle.Head, new Color(1f, 0.85f, 0.5f, pulse));
+            }
             else if (!Match.Draft.Done)
             {
                 PlayerSlot who = Match.Slots[Match.Draft.Current];
-                Centered(y, UiStyle.S(28), who.Name + " choisit…", UiStyle.Head, who.Colour);
+                string dots = new string('.', 1 + Mathf.FloorToInt(Time.unscaledTime * 3f) % 3);
+                Centered(y, UiStyle.S(30), who.Name + " choisit" + dots, UiStyle.Head, who.Colour);
             }
             else
             {
@@ -1026,62 +1037,182 @@ namespace Fief
                 if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, UiStyle.S(48)), label, 0, true, 1f)) FinishDraft();
             }
 
-            // Ce que les autres viennent de prendre : on sait ce qui nous attend.
-            string taken = "";
-            for (int i = 0; i < Match.Draft.Picked.Count; i++)
-            {
-                PlayerSlot who = Match.Slots[Match.Draft.PickedBy[i]];
-                if (who.IsLocal) continue;
-                taken += (taken.Length > 0 ? "   ·   " : "") + who.Name + " a pris " + AbilityInfo.Name(Match.Draft.Picked[i]);
-            }
-            if (taken.Length > 0) Centered(Screen.height - UiStyle.S(122), UiStyle.S(24), taken, UiStyle.Label, new Color(0.86f, 0.8f, 0.7f, 0.85f));
-
             // Ce que tu as deja, en bas : on sait ce qu'on echange.
             if (Match.Local != null && Match.Local.Abilities.Count > 0)
             {
                 string mine = "";
                 List<Ability> actives = Match.Local.Actives;
-                for (int i = 0; i < actives.Count; i++) mine += (mine.Length > 0 ? "   ·   " : "") + AbilityInfo.Keys[Mathf.Min(i, 2)] + " " + AbilityInfo.Name(actives[i]);
+                for (int i = 0; i < actives.Count; i++) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Keys[Mathf.Min(i, 2)].ToUpperInvariant() + "  " + AbilityInfo.Name(actives[i]);
                 for (int i = 0; i < Match.Local.Abilities.Count; i++)
-                    if (!AbilityInfo.IsActive(Match.Local.Abilities[i])) mine += (mine.Length > 0 ? "   ·   " : "") + AbilityInfo.Name(Match.Local.Abilities[i]);
-                Centered(Screen.height - UiStyle.S(90), UiStyle.S(24), "Tu as : " + mine, UiStyle.Label, UiStyle.InkDim);
+                    if (!AbilityInfo.IsActive(Match.Local.Abilities[i])) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Name(Match.Local.Abilities[i]);
+                float bw = Mathf.Min(Screen.width - UiStyle.S(80), Style(UiStyle.Label, 0, TextAnchor.MiddleCenter).CalcSize(new GUIContent("TES CAPACITÉS   " + mine)).x + UiStyle.S(60));
+                Rect bar = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(96), bw, UiStyle.S(34));
+                UiStyle.Fill(bar, new Color(0f, 0f, 0f, 0.45f));
+                UiStyle.Fill(new Rect(bar.x, bar.y, bar.width, 1f), new Color(1f, 0.8f, 0.4f, 0.4f));
+                Centered(bar.y, bar.height, "TES CAPACITÉS   " + mine, UiStyle.Label, new Color(0.92f, 0.88f, 0.8f, 0.95f));
             }
             Footer(Match.Draft.Done ? "Entrée  jouer" : "← →  choisir     Entrée  prendre");
         }
 
-        /// <summary>Une carte : que des mots, sur un fond a peine plus sombre.</summary>
-        void Card(Rect card, Ability p, bool owned, bool on, int me)
+        float[] cardLift = new float[Match.MaxPlayers + 2];
+
+        /// <summary>La file des joueurs : une pastille par joueur, a sa couleur ; sous celles qui ont choisi, ce qu'elles ont pris.</summary>
+        float DrawDraftOrder(float y)
+        {
+            List<int> order = Match.Draft.Order;
+            GUIStyle os = Style(UiStyle.Label, 0, TextAnchor.MiddleCenter);
+            GUIStyle ps = Style(UiStyle.Small, 0, TextAnchor.MiddleCenter);
+            float chipW = Mathf.Min(UiStyle.S(150), (Screen.width - UiStyle.S(80)) / Mathf.Max(1, order.Count) - UiStyle.S(10));
+            float total = order.Count * (chipW + UiStyle.S(10));
+            float ox = (Screen.width - total) * 0.5f;
+            for (int i = 0; i < order.Count; i++)
+            {
+                PlayerSlot s = Match.Slots[order[i]];
+                bool now = !Match.Draft.Done && Match.Draft.Current == order[i];
+                bool done = i < Match.Draft.Turn;
+                Color c = s.IsLocal ? Palette.Gold : s.Colour;
+                Rect chip = new Rect(ox + i * (chipW + UiStyle.S(10)), y, chipW, UiStyle.S(30));
+                float pulse = now ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f) : 0f;
+                UiStyle.Fill(chip, new Color(c.r * 0.25f, c.g * 0.25f, c.b * 0.25f, now ? 0.9f : 0.6f));
+                UiStyle.Fill(new Rect(chip.x, chip.yMax - UiStyle.S(3), chip.width, UiStyle.S(3)), new Color(c.r, c.g, c.b, now ? 0.6f + 0.4f * pulse : done ? 0.4f : 0.8f));
+                if (now) Border(chip, new Color(c.r, c.g, c.b, 0.5f + 0.5f * pulse));
+                Shadow(chip, (i + 1) + ". " + s.Name, os, new Color(1f, 1f, 1f, done ? 0.55f : 1f));
+                // Ce qu'il a pris a ce tour-ci.
+                for (int k = 0; k < Match.Draft.Picked.Count; k++)
+                {
+                    if (Match.Draft.PickedBy[k] != order[i]) continue;
+                    Color t = AbilityInfo.Tint(Match.Draft.Picked[k]);
+                    Shadow(new Rect(chip.x, chip.yMax + UiStyle.S(2), chip.width, UiStyle.S(20)), AbilityInfo.Name(Match.Draft.Picked[k]), ps, t);
+                }
+            }
+            return y + UiStyle.S(54);
+        }
+
+        static void Border(Rect r, Color c)
+        {
+            UiStyle.Fill(new Rect(r.x, r.y, r.width, 1f), c);
+            UiStyle.Fill(new Rect(r.x, r.yMax - 1f, r.width, 1f), c);
+            UiStyle.Fill(new Rect(r.x, r.y, 1f, r.height), c);
+            UiStyle.Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), c);
+        }
+
+        /// <summary>UNE CARTE : fond sombre, degrade de sa couleur, grande initiale en filigrane, les mots.</summary>
+        void Card(Rect card, Ability p, bool owned, bool on, float lift, float enter, int me)
         {
             Color tint = AbilityInfo.Tint(p);
-            UiStyle.Fill(card, new Color(0f, 0f, 0f, on ? 0.5f : 0.32f));
-            UiStyle.Fill(new Rect(card.x, card.y, card.width, UiStyle.S(on ? 4 : 2)), new Color(tint.r, tint.g, tint.b, owned ? 0.3f : 0.9f));
-            float pad = UiStyle.S(16);
-            float x = card.x + pad, w = card.width - pad * 2f;
-            float y = card.y + UiStyle.S(18);
-            float fade = owned ? 0.35f : 1f;
+            float fade = (owned ? 0.4f : 1f) * enter;
+            Color was = GUI.color;
 
+            // Le halo derriere la carte choisie.
+            if (lift > 0.01f)
+            {
+                GUI.color = new Color(tint.r, tint.g, tint.b, 0.55f * lift * enter);
+                float g = UiStyle.S(46);
+                GUI.DrawTexture(new Rect(card.x - g, card.y - g, card.width + g * 2f, card.height + g * 2f), glowTex, ScaleMode.StretchToFill, true);
+                GUI.color = was;
+            }
+
+            GUI.BeginGroup(card);
+            Rect local = new Rect(0f, 0f, card.width, card.height);
+            UiStyle.Fill(local, new Color(0.045f, 0.04f, 0.05f, 0.94f * enter));
+            // Le degrade de la couleur de la capacite, du haut vers le bas.
+            GUI.color = new Color(tint.r, tint.g, tint.b, (on ? 0.62f : 0.42f) * fade);
+            GUI.DrawTexture(new Rect(0f, 0f, card.width, card.height * 0.7f), gradTex, ScaleMode.StretchToFill, true);
+            GUI.color = was;
+            // La grande initiale, en filigrane.
+            string name = AbilityInfo.Name(p);
+            GUIStyle huge = Style(UiStyle.Big, Mathf.Min(170f, card.height / UiStyle.Scale * 0.62f), TextAnchor.LowerRight);
+            UiStyle.Tinted(new Rect(0f, 0f, card.width - UiStyle.S(4), card.height + UiStyle.S(18)), name.Substring(0, 1), huge, new Color(tint.r, tint.g, tint.b, 0.14f * fade));
+            // Le reflet qui traverse la carte choisie.
+            if (on)
+            {
+                float sweep = Mathf.Repeat(Time.unscaledTime * 0.6f, 1.6f) - 0.3f;
+                GUI.color = new Color(1f, 1f, 1f, 0.10f);
+                GUI.DrawTexture(new Rect(card.width * sweep - UiStyle.S(40), 0f, UiStyle.S(80), card.height), glowTex, ScaleMode.StretchToFill, true);
+                GUI.color = was;
+            }
+
+            float pad = UiStyle.S(18);
+            float x = pad, w = card.width - pad * 2f;
+            float y = UiStyle.S(18);
+
+            // La pastille : ACTIVE · touche R, ou PASSIVE.
             bool active = AbilityInfo.IsActive(p);
             string kind;
-            if (owned) kind = "TU L'AS DÉJÀ";
+            if (owned) kind = "DÉJÀ À TOI";
             else if (active)
             {
                 int count = Match.Local != null ? Match.Local.Actives.Count : 0;
-                kind = "ACTIVE · touche " + AbilityInfo.Keys[Mathf.Min(count, AbilityInfo.MaxActives - 1)].ToUpperInvariant();
+                kind = "ACTIVE  ·  " + AbilityInfo.Keys[Mathf.Min(count, AbilityInfo.MaxActives - 1)].ToUpperInvariant();
             }
-            else kind = "PASSIVE · toujours là";
-            Shadow(new Rect(x, y, w, UiStyle.S(18)), kind, Style(UiStyle.Tiny, 0, TextAnchor.MiddleLeft), new Color(tint.r, tint.g, tint.b, fade));
-            y += UiStyle.S(24);
-            Shadow(new Rect(x, y, w, UiStyle.S(36)), AbilityInfo.Name(p), Style(UiStyle.Title, 26, TextAnchor.MiddleLeft),
-                   on ? new Color(1f, 0.88f, 0.6f) : new Color(0.95f, 0.9f, 0.8f, fade));
-            y += UiStyle.S(46);
-            UiStyle.Tinted(new Rect(x, y, w, UiStyle.S(100)), AbilityInfo.Line(p), Wrapped(), new Color(0.88f, 0.84f, 0.76f, fade * 0.95f));
+            else kind = "PASSIVE";
+            GUIStyle pill = Style(UiStyle.Tiny, 0, TextAnchor.MiddleCenter);
+            float pw = pill.CalcSize(new GUIContent(kind)).x + UiStyle.S(20);
+            Rect pr = new Rect(x, y, pw, UiStyle.S(22));
+            UiStyle.Fill(pr, new Color(tint.r, tint.g, tint.b, 0.9f * fade));
+            UiStyle.Tinted(pr, kind, pill, new Color(0.05f, 0.04f, 0.05f, enter));
+            y += UiStyle.S(38);
 
+            // Le nom, grand.
+            Shadow(new Rect(x, y, w, UiStyle.S(40)), name, Style(UiStyle.Title, 30, TextAnchor.MiddleLeft),
+                   on ? new Color(1f, 0.93f, 0.72f, enter) : new Color(0.97f, 0.93f, 0.85f, fade));
+            y += UiStyle.S(46);
+            UiStyle.Fill(new Rect(x, y, w * 0.5f, 2f), new Color(tint.r, tint.g, tint.b, 0.8f * fade));
+            y += UiStyle.S(14);
+
+            // Ce qu'elle fait.
+            UiStyle.Tinted(new Rect(x, y, w, card.height - y - UiStyle.S(70)), AbilityInfo.Line(p), Wrapped(), new Color(0.93f, 0.9f, 0.84f, fade));
+
+            // En bas : la recharge ; et ce qu'elle remplace.
+            float by = card.height - UiStyle.S(58);
+            string foot = active ? "Recharge : " + AbilityInfo.Cooldown(p).ToString("0") + " s" : "Toujours active";
+            Shadow(new Rect(x, by, w, UiStyle.S(20)), foot, Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), new Color(tint.r, tint.g, tint.b, 0.9f * fade));
             if (!owned && Match.Local != null)
             {
                 int lost = Match.Draft.WouldReplace(me, p);
                 if (lost >= 0)
-                    Shadow(new Rect(x, card.yMax - UiStyle.S(32), w, UiStyle.S(20)), "remplace " + AbilityInfo.Name((Ability)lost),
-                           Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), new Color(1f, 0.6f, 0.45f, 0.9f));
+                {
+                    Rect rb = new Rect(0f, card.height - UiStyle.S(30), card.width, UiStyle.S(30));
+                    UiStyle.Fill(rb, new Color(0.55f, 0.12f, 0.1f, 0.85f * enter));
+                    Shadow(rb, "remplace " + AbilityInfo.Name((Ability)lost), Style(UiStyle.Small, 0, TextAnchor.MiddleCenter), new Color(1f, 0.9f, 0.85f, enter));
+                }
+            }
+            // Le liseré.
+            Color edge = new Color(tint.r, tint.g, tint.b, (on ? 1f : 0.45f) * fade);
+            Border(local, edge);
+            if (on) Border(new Rect(1f, 1f, card.width - 2f, card.height - 2f), new Color(1f, 1f, 1f, 0.35f));
+            GUI.EndGroup();
+        }
+
+        static Texture2D gradTex, glowTex;
+
+        /// <summary>Deux textures faites au lancement : un degrade (haut plein, bas vide) et un halo rond et doux.</summary>
+        static void EnsureCardTextures()
+        {
+            if (gradTex == null)
+            {
+                gradTex = new Texture2D(1, 64, TextureFormat.RGBA32, false);
+                gradTex.wrapMode = TextureWrapMode.Clamp;
+                for (int y = 0; y < 64; y++)
+                {
+                    float t = y / 63f;          // (la ligne 0 est en BAS de la texture)
+                    gradTex.SetPixel(0, y, new Color(1f, 1f, 1f, t * t));
+                }
+                gradTex.Apply();
+            }
+            if (glowTex == null)
+            {
+                const int Size = 64;
+                glowTex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
+                glowTex.wrapMode = TextureWrapMode.Clamp;
+                for (int y = 0; y < Size; y++)
+                    for (int x = 0; x < Size; x++)
+                    {
+                        float dx = (x + 0.5f) / Size * 2f - 1f, dy = (y + 0.5f) / Size * 2f - 1f;
+                        float d = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+                        glowTex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Pow(1f - d, 2f)));
+                    }
+                glowTex.Apply();
             }
         }
 
@@ -1152,14 +1283,14 @@ namespace Fief
             { "ZQSD / WASD", "Se déplacer" },
             { "Souris", "Regarder" },
             { "Maj", "Courir" },
-            { "Espace", "Sauter (maintenu en l'air : planer, si tu as le Planeur)" },
+            { "Espace", "Sauter ; maintenu en l'air avec des ailes : planer (regarde en bas pour piquer)" },
             { "Clic gauche", "Pousser — qui porte la Couronne la lâche" },
             { "Clic droit", "Ta première capacité" },
             { "R", "Ta deuxième capacité" },
             { "C", "Ta troisième capacité" },
             { "V", "Le don d'un sanctuaire (pour la manche)" },
-            { "E (maintenu)", "Prendre la Couronne, un don, poser au Monument" },
-            { "F", "Grimper à un arbre" },
+            { "E", "Prendre la Couronne, un don ; monter sur une arbaleste" },
+            { "Sur l'arbaleste", "Souris : viser  ·  clic gauche : tirer  ·  E : descendre" },
             { "Tab", "Le score et les capacités de chacun" },
             { "Échap", "Pause" }
         };

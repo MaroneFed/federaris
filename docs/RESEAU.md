@@ -69,6 +69,9 @@ Tout ce qui change l'état du jeu passe par une méthode qui prend **le joueur q
 |---|---|
 | Prendre la Couronne | `Crown.TryTakeFor(seeker)` |
 | La poser au Monument | `Monument.TryDeliver(seeker)` |
+| La voler (pousser le porteur) | `Crown.TrySteal(voleur, porteur)` (appelée par `Combat.Shove`) |
+| Monter sur une arbaleste / tirer | `Ballista.Mount(seeker)`, `Ballista.MountAndAim(seeker, vitesse)` |
+| Tomber dans les nuages | `Respawn.Of(seeker)` |
 | Prendre un don | `Shrine.TryTakeFor(seeker)` |
 | Pousser | `Combat.Shove(seeker, direction)` |
 | Lancer une capacité | `AbilityCaster.Cast(seeker, capacité, œil, visée)` |
