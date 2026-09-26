@@ -43,11 +43,16 @@ namespace Fief
         float open = 0.2f;
         int shown = -1;
 
-        const float Range = 30f;
-        const float Angle = 34f;
-        const float ChargeTime = 1.1f;
-        const float LockTime = 0.5f;       // la fin de la charge : il ne suit plus
-        const float RestTime = 3.4f;       // (2,2 s : sur la rampe, on se faisait mitrailler)
+        // 29/09 (Martin : "l'oeil c'est beaucoup trop facile ; s'il me vise, ca fait un
+        // BOUM et ca me fait redescendre ; hyper complique, mais pas trop") : elles voient
+        // plus loin, chargent plus vite, et leur tir EXPLOSE et projette hors de la rampe.
+        const float Range = 42f;
+        const float Angle = 50f;
+        const float ChargeTime = 0.95f;
+        const float LockTime = 0.4f;       // la fin de la charge : elle ne suit plus
+        const float RestTime = 2.4f;
+        /// <summary>Le rayon de l'explosion du jet de feu (on est projete meme sans etre touche en plein).</summary>
+        public const float BlastRadius = 3.6f;
 
         static readonly Color Calm = new Color(1f, 0.72f, 0.35f);
         static readonly Color Wary = new Color(1f, 0.6f, 0.2f);
@@ -296,7 +301,7 @@ namespace Fief
             if (target == null || !Interested(target) || !Sees(target, false, out d)) { state = State.Watch; return; }
             Look(target.Body.position + Vector3.up * 1.1f, dt * 6f);
             suspicion += dt * (target.Has(Ability.Ombre) ? 0.5f : 1f) * (target.CarriesCrown ? 1.6f : 1f);
-            if (suspicion < 0.7f) return;
+            if (suspicion < 0.35f) return;
             suspicion = 0f;
             state = State.Charge;
             timer = 0f;
@@ -312,11 +317,11 @@ namespace Fief
             timer += dt;
             if (target == null || target.Body == null || target.Hidden || Smoke.Inside(target.Body.position)) { Cancel(); return; }
             Vector3 chest = target.Body.position + Vector3.up * 1.1f;
-            if (timer < ChargeTime - LockTime) aim = chest;
+            if (timer < ChargeTime / Mathf.Sqrt(Tower.Hardness) - LockTime) aim = chest;
             Look(aim, dt * 10f);
             Vector3 from = ball.position + ball.forward * 0.9f - ball.up * 0.15f;
             beam.enabled = true;
-            float k = timer / ChargeTime;
+            float k = Mathf.Clamp01(timer / (ChargeTime / Mathf.Sqrt(Tower.Hardness)));
             beam.startWidth = Mathf.Lerp(0.02f, 0.14f, k);
             beam.endWidth = beam.startWidth * 0.6f;
             beam.SetPosition(0, from);
@@ -332,7 +337,7 @@ namespace Fief
                 float notch = i % 8 < 2 ? 0.75f : 1f;
                 reticle.SetPosition(i, feet + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r * notch);
             }
-            if (timer < ChargeTime) return;
+            if (timer < ChargeTime / Mathf.Sqrt(Tower.Hardness)) return;
             reticle.enabled = false;
             Fire(from);
         }
@@ -343,24 +348,35 @@ namespace Fief
             RaycastHit wall;
             float reach = Range * 1.2f;
             if (Physics.Raycast(from, dir, out wall, reach, ~0, QueryTriggerInteraction.Ignore)) reach = wall.distance + 0.5f;
+            Vector3 end = from + dir * Mathf.Min(reach, Range * 1.2f);
+            // BOUM : le jet touche en plein, ou l'explosion a son bout -- et on est projete
+            // HORS de la rampe (vers le vide) : on redescend.
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
                 if (s.Body == null) continue;
                 Vector3 c = s.Body.position + Vector3.up * 1.1f;
                 float along = Vector3.Dot(c - from, dir);
-                if (along < 0f || along > reach) continue;
-                if ((from + dir * along - c).magnitude > 0.9f) continue;
-                Vector3 push = new Vector3(dir.x, 0f, dir.z).normalized;
-                Combat.Hit(s, push * 15f + Vector3.up * 5f, 0.7f, true, null);
-                Fx.Impact(c, Blaze, 1.3f);
-                if (s.IsPlayer) Stats.EyeHits++;
+                bool inBeam = along >= 0f && along <= reach && (from + dir * along - c).magnitude <= 1.1f;
+                bool inBlast = (c - end).magnitude <= BlastRadius;
+                if (!inBeam && !inBlast) continue;
+                Vector3 push = new Vector3(c.x, 0f, c.z);
+                // Sur la tour : vers le vide. Ailleurs : dans le sens du jet.
+                push = Tower.On(s.Body.position) && push.sqrMagnitude > 0.01f ? push.normalized : new Vector3(dir.x, 0f, dir.z).normalized;
+                Combat.Hit(s, push * 34f + Vector3.up * 11f, 0.6f, true, null);
+                Fx.Impact(c, Blaze, 1.8f);
+                if (s.IsPlayer)
+                {
+                    Stats.EyeHits++;
+                    if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.5f);
+                }
             }
             // L'EXPLOSION la ou il frappe : une sphere, un anneau, une gerbe, un eclair.
-            Vector3 end = from + dir * Mathf.Min(reach, 40f);
-            Fx.Shock(end, Alarm, 2.6f, 0.3f);
-            Fx.Shock(end, Blaze, 1.2f, 0.2f);
-            Fx.Burst(end, Alarm, 70, 12f, 0.2f, 0.6f, 0.4f, -dir, 60f);
+            Fx.Shock(end, Alarm, BlastRadius + 0.6f, 0.35f);
+            Fx.Shock(end, Blaze, 1.8f, 0.25f);
+            Fx.GroundRing(end - Vector3.up * 1f, Flame, BlastRadius + 2f, 0.4f);
+            Fx.Column(end - Vector3.up * 1f, Flame, 10f, 0.25f, 1f);
+            Fx.Burst(end, Alarm, 110, 14f, 0.24f, 0.7f, 0.4f, -dir, 70f);
             Fx.Burst(end, Blaze, 30, 6f, 0.3f, 0.4f, 0f, Vector3.zero, 0f);
             Fx.Ring(end, Alarm, 0.3f, 3.5f, 0.35f, 0.2f, -dir);
             Fx.Flash(end, Alarm, 14f, 6f, 0.3f);
@@ -379,11 +395,12 @@ namespace Fief
             beamCore.SetPosition(1, end);
             beam.SetPosition(1, end);
             Sfx.Thud();
-            if (NearPlayer(40f) && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.12f);
+            if (NearPlayer(40f) && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.2f);
+            Sfx.Crash();
             beam.startWidth = 0.35f;
             beam.endWidth = 0.2f;
             state = State.Rest;
-            timer = RestTime;
+            timer = RestTime / Tower.Hardness;
             firedAt = Time.time;
         }
 

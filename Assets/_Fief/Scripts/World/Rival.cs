@@ -708,6 +708,25 @@ namespace Fief
                 Combat.Shove(seeker, prey.Body.position - transform.position);
                 if (goal == Goal.Fight && rng.NextDouble() < 0.4) preyTimer = 0f;
             }
+            // EN MONTANT, IL SE BAT (29/09 -- Martin : "faut qu'il y ait du combat, j'arrive a
+            // monter facilement") : qui passe a portee dans la citadelle ou sur la rampe se
+            // fait pousser -- toi le premier.
+            else if ((goal == Goal.Raid || goal == Goal.Grab || goal == Goal.Roam) && Match.BotLevel > 0 && seeker.CanShove
+                     && Time.time >= seeker.ShoveReadyAt && Castle.Inside(transform.position))
+            {
+                Seeker foe = NearestFoe(2.7f);
+                if (foe != null)
+                {
+                    seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
+                    if (rng.NextDouble() < 0.45 + temper * 0.45)
+                    {
+                        if (rig != null) rig.PlaySwing();
+                        Combat.Shove(seeker, foe.Body.position - transform.position);
+                        // Il se souvient de toi : il te cherche un moment.
+                        if (rng.NextDouble() < temper) { prey = foe; preyTimer = 4f; }
+                    }
+                }
+            }
 
             float speed = (goal == Goal.Roam ? WalkSpeed : RunSpeed) * seeker.SpeedFactor;
             if (!arrived)
@@ -1028,6 +1047,23 @@ namespace Fief
 
             if (walk.sqrMagnitude > 0.1f)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Flat(walk).normalized, Vector3.up), 360f * dt);
+        }
+
+        /// <summary>Le joueur le plus proche a moins de "metres" (toi d'abord, a distance egale), null sinon.</summary>
+        Seeker NearestFoe(float metres)
+        {
+            Seeker best = null;
+            float bestD = metres;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s == seeker || s.Body == null || s.Graced || s.Hidden) continue;
+                float d = (s.Body.position - transform.position).magnitude - (s.IsPlayer ? 0.5f : 0f);
+                if (Mathf.Abs(s.Body.position.y - transform.position.y) > 2f || d >= bestD) continue;
+                bestD = d;
+                best = s;
+            }
+            return best;
         }
 
         /// <summary>Vrai s'il n'y a plus de sol juste devant (le bord d'un trou, ou de l'ile).</summary>
