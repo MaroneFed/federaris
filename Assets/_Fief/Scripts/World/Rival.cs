@@ -589,8 +589,15 @@ namespace Fief
             {
                 Vector3[] exit = Castle.EntryFrom(to);
                 for (int i = exit.Length - 1; i >= 0; i--) path.Add(exit[i]);
+                // Puis le couloir de la porte, a l'envers (28/09).
+                path.AddRange(Course.Exit(to));
             }
-            else if (!fromIn && toIn) path.AddRange(Castle.EntryFrom(from));
+            else if (!fromIn && toIn)
+            {
+                // Le couloir de la porte : ses chicanes, ses moulinets (28/09).
+                path.AddRange(Course.Route(from));
+                path.AddRange(Castle.EntryFrom(from));
+            }
             if (toTower)
             {
                 path.Add(Tower.Foot);
@@ -970,6 +977,8 @@ namespace Fief
 
             // Au bord de l'ile (pas sur la tour) : il ne saute pas dans le vide, il s'arrete.
             if (grounded && !leaping && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir)) walk = Vector3.zero;
+            // Une barre (moulinet, balayeur) arrive : il saute par-dessus.
+            else if (grounded && speed > 0f && Sweeper.Threat(transform.position + dir * 1.2f)) fallSpeed = 7.5f;
             // Au bord d'un trou de la rampe (ou bloque) : il saute. Deux fois, s'il sait.
             else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
             else if (!grounded && !gliding && !ballistic && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))

@@ -15,7 +15,7 @@ namespace Fief
     public static class Combat
     {
         public const float ShoveReach = 3f;
-        public const float ShoveForce = 14f;
+        public const float ShoveForce = 20f;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -43,7 +43,7 @@ namespace Fief
             bool stole = best.CarriesCrown && !best.Graced && Crown.TrySteal(by, best);
             // Un court etourdissement : on ne contre-marche pas une poussee (c'est ce
             // qui la rendait molle -- on reculait de deux metres en appuyant sur Z).
-            Hit(best, push * force + Vector3.up * 4.5f, 0.2f, !stole, by);
+            Hit(best, push * force + Vector3.up * 7f, 0.25f, !stole, by);
             Fx.Impact(best.Body.position + Vector3.up * 1.1f, by.Colour, stole ? 1.4f : 0.7f);
             if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.05f); }
             return true;

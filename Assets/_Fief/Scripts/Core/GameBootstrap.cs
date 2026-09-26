@@ -53,7 +53,11 @@ namespace Fief
             {
                 Ground.Prepare(config);
                 Ground.Build(worldRoot, config);
+                // Les obstacles de la tour, tires au hasard a chaque manche.
+                Tower.Randomize(round);
                 Castle.Build(worldRoot, config);
+                // Le parcours devant les portes (couloirs, chicanes, moulinets...).
+                Course.Build(worldRoot, round);
 
                 // Les trois Monuments se posent sur trois des ilots flottants -- d'autres a
                 // chaque manche. Le porteur de la Couronne choisit ou aller.

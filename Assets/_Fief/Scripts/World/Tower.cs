@@ -36,9 +36,65 @@ namespace Fief
         // Ou, dans chaque tour de rampe (0 = le pied du tour, 1 = un tour plus loin),
         // se trouvent les obstacles. Les trous sont a ~0,58 tour les uns des autres : on
         // marche un peu entre deux courants.
-        static readonly float[] GapAt = { -1f, 0.36f, 0.95f, 0.52f, 0.10f, 0.68f };        // (tour 0 : pas de trou)
-        static readonly float[] PendulumAt = { -1f, 0.72f, 0.30f, 0.84f, 0.46f, 0.22f };
-        static readonly float[] RamAt = { 0.55f, 0.12f, 0.64f, 0.18f, 0.80f, 0.40f };
+        // 28/09 (Martin : "que ce soit aleatoire, sinon une fois qu'on connait la map on
+        // connait") : TIRES AU HASARD a chaque manche (Randomize, graine de la manche).
+        // -1 : rien sur ce tour.
+        static float[] GapAt = { -1f, 0.36f, 0.95f, 0.52f, 0.10f, 0.68f };        // (tour 0 : pas de trou)
+        static float[] PendulumAt = { -1f, 0.72f, 0.30f, 0.84f, 0.46f, 0.22f };
+        static float[] Pendulum2At = { -1f, -1f, -1f, -1f, -1f, -1f };
+        static float[] RamAt = { 0.55f, 0.12f, 0.64f, 0.18f, 0.80f, 0.40f };
+        static float[] SweeperAt = { -1f, -1f, -1f, -1f, -1f, -1f };
+        static float[] SpikeAt = { -1f, -1f, -1f, -1f, -1f, -1f };
+
+        /// <summary>
+        /// TIRER LES OBSTACLES DE LA MANCHE : ou sont les trous (et donc les courants),
+        /// les pendules, les beliers, les BALAYEURS (une barre a hauteur de genou qui
+        /// balaie la rampe vers le vide : on saute par-dessus) et les HERSES (des pointes
+        /// qui jaillissent du sol). Jamais deux obstacles colles ; plus on monte, plus
+        /// il y en a.
+        /// </summary>
+        public static void Randomize(int seed)
+        {
+            System.Random rng = new System.Random(seed * 7919 + 11);
+            List<float>[] taken = new List<float>[Turns];
+            for (int t = 0; t < Turns; t++) taken[t] = new List<float>();
+            // D'abord les trous ; le courant est un tour plus bas, au meme endroit.
+            GapAt = new float[Turns];
+            GapAt[0] = -1f;
+            for (int t = 1; t < Turns; t++)
+            {
+                GapAt[t] = Free(rng, taken[t], 0.12f);
+                taken[t - 1].Add(GapAt[t]);
+            }
+            PendulumAt = new float[Turns];
+            Pendulum2At = new float[Turns];
+            RamAt = new float[Turns];
+            SweeperAt = new float[Turns];
+            SpikeAt = new float[Turns];
+            for (int t = 0; t < Turns; t++)
+            {
+                PendulumAt[t] = t >= 1 ? Free(rng, taken[t], 0.11f) : -1f;
+                Pendulum2At[t] = t >= 3 && rng.NextDouble() < 0.7 ? Free(rng, taken[t], 0.11f) : -1f;
+                RamAt[t] = Free(rng, taken[t], 0.1f);
+                SweeperAt[t] = Free(rng, taken[t], 0.11f);
+                SpikeAt[t] = t >= 1 && rng.NextDouble() < 0.8 ? Free(rng, taken[t], 0.1f) : -1f;
+            }
+        }
+
+        /// <summary>Une place libre dans le tour (0-1), a "gap" au moins des autres ; -1 s'il n'y en a plus.</summary>
+        static float Free(System.Random rng, List<float> taken, float gap)
+        {
+            for (int tries = 0; tries < 40; tries++)
+            {
+                float f = 0.06f + (float)rng.NextDouble() * 0.88f;
+                bool ok = true;
+                for (int i = 0; i < taken.Count; i++) if (Mathf.Abs(taken[i] - f) < gap) { ok = false; break; }
+                if (!ok) continue;
+                taken.Add(f);
+                return f;
+            }
+            return -1f;
+        }
 
         /// <summary>La couleur de chaque tour de rampe, du pied au sommet.</summary>
         public static readonly Color[] TurnColour =
@@ -181,7 +237,25 @@ namespace Fief
                     float u = U(turn, PendulumAt[turn]);
                     Pendulum.Build(t, RampPoint(u), Tangent(u), turn * 1.7f);
                 }
-                Ram.Build(t, U(turn, RamAt[turn]), turn * 0.9f);
+                if (Pendulum2At[turn] >= 0f)
+                {
+                    float u = U(turn, Pendulum2At[turn]);
+                    Pendulum.Build(t, RampPoint(u), Tangent(u), turn * 1.7f + 1.6f);
+                }
+                if (RamAt[turn] >= 0f) Ram.Build(t, U(turn, RamAt[turn]), turn * 0.9f);
+                if (SweeperAt[turn] >= 0f)
+                {
+                    // Le balayeur : son pied contre le fut, sa barre balaie la rampe vers le vide.
+                    float u = U(turn, SweeperAt[turn]);
+                    Vector3 foot = RampPoint(u, -(RampWidth * 0.5f - 0.5f));
+                    Vector3 outward = new Vector3(foot.x, 0f, foot.z).normalized;
+                    Sweeper.Build(t, foot, outward, RampWidth - 0.6f, 0.8f + turn * 0.1f, turn * 1.3f, true);
+                }
+                if (SpikeAt[turn] >= 0f)
+                {
+                    float u = U(turn, SpikeAt[turn]);
+                    SpikeTrap.Build(t, RampPoint(u), Tangent(u), RampWidth - 0.4f, 2.6f, 3.2f - turn * 0.2f, turn * 0.7f);
+                }
             }
             BoulderChute.Build(t);
 
@@ -189,6 +263,7 @@ namespace Fief
             Updraft.All.Clear();
             for (int turn = 1; turn < Turns; turn++)
             {
+                if (GapAt[turn] < 0f) continue;
                 float u = (Mathf.RoundToInt((turn + GapAt[turn]) * SegmentsPerTurn) + 1f) / TotalSegments - 1f / Turns;
                 Vector3 below = RampPoint(u, -(RampWidth * 0.5f - 1.3f));
                 Updraft.Build(t, below, TurnColour[turn]);
@@ -260,6 +335,7 @@ namespace Fief
             Proto.BeginVisualOnly();
             for (int turn = 1; turn < Turns; turn++)
             {
+                if (GapAt[turn] < 0f) continue;
                 int g = Mathf.RoundToInt((turn + GapAt[turn]) * SegmentsPerTurn);
                 for (int side = 0; side < 2; side++)
                 {
@@ -497,7 +573,7 @@ namespace Fief
                 if (lastHit.TryGetValue(s, out last) && Time.time - last < 1f) continue;
                 lastHit[s] = Time.time;
                 Vector3 push = velocity.sqrMagnitude > 1f ? new Vector3(velocity.x, 0f, velocity.z).normalized : transform.right;
-                Combat.Hit(s, push * 18f + Vector3.up * 6f, 0.3f, true, null);
+                Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.Impact(s.Body.position + Vector3.up * 1.1f, new Color(1f, 0.55f, 0.3f), 1f);
                 Sfx.Clang();
             }
@@ -606,7 +682,7 @@ namespace Fief
                 float last;
                 if (lastHit.TryGetValue(s, out last) && Time.time - last < 1f) continue;
                 lastHit[s] = Time.time;
-                Combat.Hit(s, outward * 20f + Vector3.up * 5f, 0.35f, true, null);
+                Combat.Hit(s, outward * 32f + Vector3.up * 8f, 0.4f, true, null);
                 Fx.Impact(s.Body.position + Vector3.up * 1.1f, new Color(1f, 0.4f, 0.25f), 1f);
                 Sfx.Crash();
             }
@@ -730,7 +806,7 @@ namespace Fief
                 lastHit[s] = Time.time;
                 Vector3 away = new Vector3(d.x, 0f, d.z);
                 if (away.sqrMagnitude < 0.01f) away = moved;
-                Combat.Hit(s, (away.normalized + moved.normalized).normalized * 16f + Vector3.up * 7f, 0.4f, true, null);
+                Combat.Hit(s, (away.normalized + moved.normalized).normalized * 26f + Vector3.up * 10f, 0.45f, true, null);
                 Fx.Impact(s.Body.position + Vector3.up, new Color(1f, 0.55f, 0.25f), 1.2f);
                 Sfx.Crash();
             }
