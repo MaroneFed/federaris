@@ -294,7 +294,20 @@ namespace Fief
             }
             Vector3 motion = walk + extra + knock + Vector3.up * verticalVelocity;
             if (pullTime > 0f) motion.y = Mathf.Max(motion.y, (pullPoint - transform.position).normalized.y * pullSpeed);
+            Vector3 before = transform.position;
             controller.Move(motion * dt);
+            // Le sceau de la citadelle : on n'y entre pas par les airs.
+            if ((Gliding || ballistic) && Ward.Crossing(before, transform.position))
+            {
+                Vector3 push = Ward.Repel(me, transform.position);
+                controller.enabled = false;
+                transform.position = before;
+                controller.enabled = true;
+                Gliding = false;
+                ballistic = false;
+                knock = new Vector3(push.x, 0f, push.z);
+                verticalVelocity = push.y;
+            }
 
             Remember(dt);
             Footsteps();

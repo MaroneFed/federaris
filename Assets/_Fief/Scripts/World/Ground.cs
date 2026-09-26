@@ -43,6 +43,31 @@ namespace Fief
 
         static readonly List<Islet> islets = new List<Islet>();
         public static int IsletCount { get { return islets.Count; } }
+
+        /// <summary>
+        /// LES PLATEFORMES DE DEPART (28/09) : un petit rocher volant par joueur (voir
+        /// Spawns). Ce ne sont pas des ilots (ni Monument ni sanctuaire), mais le sol y
+        /// existe : Height() les connait.
+        /// </summary>
+        static readonly List<Islet> pads = new List<Islet>();
+
+        /// <summary>Vrai si "p" est sur une plateforme de depart.</summary>
+        public static bool OnPad(Vector3 p)
+        {
+            for (int i = 0; i < pads.Count; i++)
+                if (new Vector2(p.x - pads[i].Top.x, p.z - pads[i].Top.z).magnitude <= pads[i].Radius + 1f && Mathf.Abs(p.y - pads[i].Top.y) < 4f) return true;
+            return false;
+        }
+
+        /// <summary>Batir une plateforme de depart : un rocher volant, dessus plat, dessous en pointe.</summary>
+        public static void BuildPad(Transform parent, Vector3 top, float radius, int padSeed)
+        {
+            Islet it = new Islet();
+            it.Top = top;
+            it.Radius = radius;
+            pads.Add(it);
+            BuildRock(parent, "Plateforme", top, radius, 12f + radius, 20, 3, seed * 53 + padSeed, false);
+        }
         public static Islet GetIslet(int i) { return islets[i]; }
 
         // ================================================================== la forme
@@ -52,6 +77,7 @@ namespace Fief
         {
             seed = cfg != null ? cfg.worldSeed : 1;
             islets.Clear();
+            pads.Clear();
             System.Random rng = new System.Random(seed * 17 + 3);
             float turn = (float)rng.NextDouble() * 360f;
             for (int i = 0; i < 6; i++)
@@ -86,6 +112,11 @@ namespace Fief
             {
                 Vector3 t = islets[i].Top;
                 if (new Vector2(x - t.x, z - t.z).magnitude <= islets[i].Radius) return t.y;
+            }
+            for (int i = 0; i < pads.Count; i++)
+            {
+                Vector3 t = pads[i].Top;
+                if (new Vector2(x - t.x, z - t.z).magnitude <= pads[i].Radius) return t.y;
             }
             return Void;
         }

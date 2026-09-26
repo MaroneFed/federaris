@@ -178,6 +178,7 @@ namespace Fief
             if (me == null || me.Body == null) return;
             Vector3 p = me.Body.position;
             if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
+            else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. F : monte sur TON arbaleste, maintiens le clic gauche, relâche — ou saute dans le vide et plane jusqu'à l'île. Puis entre dans la citadelle par une porte.");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : F pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
@@ -248,7 +249,8 @@ namespace Fief
             if (Ballista.PlayerOn != null)
             {
                 Ballista b = Ballista.PlayerOn;
-                string where = b.Landing == Ballista.LandingKind.Monument ? "sur un MONUMENT !"
+                string where = b.Landing == Ballista.LandingKind.Ward ? "sur le SCEAU de la citadelle : il te renverra"
+                             : b.Landing == Ballista.LandingKind.Monument ? "sur un MONUMENT !"
                              : b.Landing == Ballista.LandingKind.Ground ? "sur la terre ferme"
                              : "dans le vide : tu planeras";
                 mine = b.Charging
@@ -270,6 +272,7 @@ namespace Fief
             if (s == null || s.Body == null) return "";
             Vector3 p = s.Body.position;
             if (Tower.On(p)) return Tower.Progress(p) >= 0.999f ? "au sommet de la tour" : "sur la rampe";
+            if (Spawns.OnPad(p)) return "sur sa plateforme";
             if (Monument.NearestDistance(p) < 25f) return "près d'un Monument";
             if (Castle.Inside(p)) return "dans la citadelle";
             if (Ground.OnIsland(p.x, p.z) && p.y > -3f && p.y < 20f) return "sur l'île";

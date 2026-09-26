@@ -66,8 +66,8 @@ namespace Fief
                 // Les sanctuaires de la manche (un don chacun, touche V).
                 Shrine.Scatter(worldRoot, round);
 
-                // La ligne de depart : une petite zone par joueur, toutes a la meme
-                // distance du pied de la rampe.
+                // Les plateformes de depart : un rocher volant par joueur, tous a la meme
+                // distance de la tour, chacun avec son arbaleste.
                 Spawns.Place(Match.Slots.Count, round);
                 Spawns.Build(worldRoot);
 
@@ -140,7 +140,7 @@ namespace Fief
             {
                 PlayerSlot slot = Match.Slots[i];
                 if (slot.IsLocal) continue;
-                Vector3 spawn = Spawns.Of(slot.Index, Tower.Foot + Vector3.back * Spawns.Distance) + Vector3.up * 0.1f;
+                Vector3 spawn = Spawns.Of(slot.Index, Spawns.PadOf(slot.Index)) + Vector3.up * 0.1f;
                 Rival r = Rival.Build(root.transform, slot, spawn, config.worldSeed * 41 + Match.RoundSeed + i);
                 r.transform.rotation = Quaternion.Euler(0f, Spawns.YawOf(slot.Index), 0f);
             }
@@ -158,7 +158,7 @@ namespace Fief
             Game.Seekers.Add(me);
 
             // On apparait SUR SA ZONE, sur la ligne de depart, face au pied de la rampe.
-            Vector3 spawn = Spawns.Of(mine.Index, Tower.Foot + Vector3.back * Spawns.Distance) + Vector3.up * 1.2f;
+            Vector3 spawn = Spawns.Of(mine.Index, Spawns.PadOf(mine.Index)) + Vector3.up * 1.2f;
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
             float yaw = Spawns.YawOf(mine.Index);

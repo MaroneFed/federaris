@@ -200,86 +200,115 @@ namespace Fief
     }
 
     /// <summary>
-    /// LA LIGNE DE DEPART (27/09 -- Martin : "on arrive chacun dans sa petite zone, il
-    /// ne faut pas qu'on soit desavantage, on commence tous a cote"). Une GRILLE, comme
-    /// une course : un arc de petites zones lumineuses, une par joueur, a sa couleur,
-    /// TOUTES A LA MEME DISTANCE du pied de la rampe. Personne ne part avantage.
+    /// LES PLATEFORMES DE DEPART (28/09 -- Martin : "on doit chacun commencer depuis sa
+    /// plateforme, depuis les petits ilots, pour apres aller dans le chateau ; les
+    /// arbaletes pour remonter direct tout en haut c'est hyper cheate ; chacun a une
+    /// arbalete dans son truc, on fonce dans le chateau, on monte").
     ///
-    /// C'est aussi la qu'on REAPPARAIT quand on tombe de l'ile (voir Respawn).
+    /// Chaque joueur a SA plateforme : un petit rocher volant, a 42 m de haut, a
+    /// 116 m du centre -- TOUTES A LA MEME DISTANCE de la tour, a egale distance les
+    /// unes des autres. Un disque a sa couleur, un fanion, une colonne de lumiere, et
+    /// SON ARBALESTE, tournee vers la citadelle. Au PARTEZ : on se fait tirer (ou on
+    /// saute et on plane) jusqu'a l'ile, on passe le parcours, on entre par une porte,
+    /// on monte. On ne vole pas dans la citadelle : le SCEAU renvoie (voir Ward).
+    ///
+    /// C'est aussi la qu'on REAPPARAIT quand on tombe dans les nuages (voir Respawn).
     /// </summary>
     public static class Spawns
     {
         static readonly Dictionary<int, Vector3> Points = new Dictionary<int, Vector3>();
-        /// <summary>La distance de chaque zone au pied de la rampe.</summary>
-        public const float Distance = 20f;
+        static readonly Dictionary<int, Ballista> Ballistas = new Dictionary<int, Ballista>();
+        /// <summary>La distance de chaque plateforme au centre, sa hauteur, son rayon.</summary>
+        public const float Distance = 116f;
+        public const float Altitude = 42f;
+        public const float PadRadius = 6f;
 
         public static void Place(int players, int seed)
         {
             Points.Clear();
-            Vector3 foot = Tower.Foot;
-            Vector3 outward = new Vector3(foot.x, 0f, foot.z).normalized;
-            if (outward.sqrMagnitude < 0.01f) outward = Vector3.back;
-            // Ecartees de 11 degres (4 m), jamais plus de 150 degres en tout. L'ordre des
-            // places change a chaque manche : personne n'a toujours le meme bout.
-            float step = Mathf.Min(11f, 150f / Mathf.Max(1, players - 1));
+            Ballistas.Clear();
             System.Random rng = new System.Random(seed ^ 0x51a);
+            // Une rotation au hasard a chaque manche ; puis toutes a egale distance.
+            float turn = (float)rng.NextDouble() * 360f;
             int shift = rng.Next(Mathf.Max(1, players));
+            int n = Mathf.Max(1, players);
             for (int i = 0; i < players; i++)
             {
-                int place = (i + shift) % players;
-                float angle = (place - (players - 1) * 0.5f) * step;
-                Vector3 dir = Quaternion.Euler(0f, angle, 0f) * outward;
-                Vector3 p = foot + dir * Distance;
-                Points[i] = Ground.Place(p.x, p.z, 0.05f);
+                int place = (i + shift) % n;
+                float a = (turn + place * 360f / n) * Mathf.Deg2Rad;
+                Points[i] = new Vector3(Mathf.Cos(a) * Distance, Altitude, Mathf.Sin(a) * Distance);
             }
         }
 
+        /// <summary>Le centre de la plateforme de "slot".</summary>
+        public static Vector3 PadOf(int slot)
+        {
+            Vector3 p;
+            return Points.TryGetValue(slot, out p) ? p : new Vector3(0f, Altitude, -Distance);
+        }
+
+        /// <summary>Ou l'on apparait : sur sa plateforme, un peu en arriere de l'arbaleste.</summary>
         public static Vector3 Of(int slot, Vector3 fallback)
         {
             Vector3 p;
-            return Points.TryGetValue(slot, out p) ? p : fallback;
+            if (!Points.TryGetValue(slot, out p)) return fallback;
+            Vector3 outward = new Vector3(p.x, 0f, p.z).normalized;
+            return p + outward * 2.2f + Vector3.up * 0.05f;
         }
 
-        /// <summary>L'orientation de depart : face au pied de la rampe.</summary>
+        /// <summary>L'orientation de depart : face a la citadelle.</summary>
         public static float YawOf(int slot)
         {
-            Vector3 p = Of(slot, Tower.Foot + Vector3.back * Distance);
-            Vector3 d = Tower.Foot - p;
-            return Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            Vector3 p = PadOf(slot);
+            return Mathf.Atan2(-p.x, -p.z) * Mathf.Rad2Deg;
         }
 
-        /// <summary>Les petites zones : un disque qui luit a la couleur du joueur, un fanion, une colonne de lumiere.</summary>
+        /// <summary>L'arbaleste de la plateforme de "slot" (null s'il n'y en a pas).</summary>
+        public static Ballista BallistaOf(int slot)
+        {
+            Ballista b;
+            return Ballistas.TryGetValue(slot, out b) ? b : null;
+        }
+
+        /// <summary>Vrai si "p" est sur une plateforme de depart.</summary>
+        public static bool OnPad(Vector3 p) { return Ground.OnPad(p); }
+
+        /// <summary>Les plateformes : le rocher, un cercle a la couleur du joueur, un fanion, une colonne, l'arbaleste.</summary>
         public static void Build(Transform parent)
         {
-            GameObject root = new GameObject("LIGNE DE DÉPART");
+            GameObject root = new GameObject("PLATEFORMES DE DÉPART");
             root.transform.SetParent(parent, false);
             for (int i = 0; i < Match.Slots.Count; i++)
             {
-                Vector3 at = Of(i, Vector3.zero);
+                Vector3 at = PadOf(i);
                 Color c = Match.Slots[i].Colour;
-                Transform t = new GameObject("Zone de " + Match.Slots[i].Name).transform;
+                Ground.BuildPad(root.transform, at, PadRadius, i);
+                Transform t = new GameObject("Plateforme de " + Match.Slots[i].Name).transform;
                 t.SetParent(root.transform, false);
                 t.position = at;
                 t.rotation = Quaternion.Euler(0f, YawOf(i), 0f);
                 Proto.BeginVisualOnly();
-                Proto.Cylinder(t, new Vector3(0f, 0.02f, 0f), new Vector3(3.2f, 0.03f, 3.2f), new Color(0.2f, 0.19f, 0.2f), "Dalle");
-                GameObject ring = Proto.Cylinder(t, new Vector3(0f, 0.04f, 0f), new Vector3(2.7f, 0.02f, 2.7f), Color.white, "Cercle");
-                ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.4f);
-                Proto.Cylinder(t, new Vector3(0f, 0.06f, 0f), new Vector3(2.3f, 0.02f, 2.3f), new Color(0.16f, 0.15f, 0.16f), "Centre");
-                // Le fanion, derriere : on retrouve sa zone de loin.
-                Proto.Cube(t, new Vector3(0f, 1.6f, -1.9f), new Vector3(0.1f, 3.2f, 0.1f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
-                GameObject flag = Proto.Cube(t, new Vector3(0.45f, 2.75f, -1.9f), new Vector3(0.9f, 0.6f, 0.04f), c, "Fanion");
+                GameObject ring = Proto.Cylinder(t, new Vector3(0f, 0.04f, 0f), new Vector3(PadRadius * 2f - 0.6f, 0.02f, PadRadius * 2f - 0.6f), Color.white, "Cercle");
+                ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.2f);
+                Proto.Cylinder(t, new Vector3(0f, 0.06f, 0f), new Vector3(PadRadius * 2f - 1.4f, 0.02f, PadRadius * 2f - 1.4f), new Color(0.2f, 0.19f, 0.2f), "Dalle");
+                // Le fanion, derriere : on retrouve sa plateforme de loin.
+                Proto.Cube(t, new Vector3(-2.6f, 2.6f, -3.8f), new Vector3(0.14f, 5.2f, 0.14f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
+                GameObject flag = Proto.Cube(t, new Vector3(-1.95f, 4.4f, -3.8f), new Vector3(1.3f, 0.9f, 0.05f), c, "Fanion");
                 flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 0.9f);
                 Proto.EndVisualOnly();
-                LightBeam beam = LightBeam.Build(root.transform, at, c, 1.2f, 7f);
-                if (beam != null) beam.targetAlpha = 0.28f;
+                LightBeam beam = LightBeam.Build(root.transform, at, c, 1.4f, 24f);
+                if (beam != null) beam.targetAlpha = 0.3f;
+                // SON arbaleste, au bord, tournee vers la citadelle.
+                Vector3 inward = new Vector3(-at.x, 0f, -at.z).normalized;
+                Ballista b = Ballista.Build(root.transform, at + inward * 2.6f, YawOf(i));
+                Ballistas[i] = b;
             }
         }
     }
 
     /// <summary>
     /// TOMBER DANS LES NUAGES (27/09 -- "un beau respawn"). On ne meurt pas : on
-    /// reapparait sur sa zone de depart, dans une colonne de lumiere a sa couleur,
+    /// reapparait sur sa plateforme de depart (28/09), dans une colonne de lumiere a sa couleur,
     /// protege trois secondes. Si l'on portait la Couronne, elle rentre au sommet.
     /// </summary>
     public static class Respawn
@@ -290,7 +319,7 @@ namespace Fief
         {
             if (s == null || s.Body == null) return;
             if (s.CarriesCrown) Crown.BackToTop();
-            Vector3 at = Spawns.Of(s.Index, Tower.Foot + Vector3.back * Spawns.Distance) + Vector3.up * 0.1f;
+            Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;
             float yaw = Spawns.YawOf(s.Index);
             if (s.IsPlayer && Game.Player != null) Game.Player.Teleport(at, yaw);
             else

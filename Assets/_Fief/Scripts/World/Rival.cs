@@ -289,6 +289,9 @@ namespace Fief
             // En route vers une arbaleste : on y va (sauf si elle est prise, ou si c'est long).
             if (goal == Goal.Ballista && ballista != null && ballista.Free && Time.time - ballistaChosen < 10f && !(seeker.CarriesCrown && Tower.On(me))) return;
 
+            // Sur sa plateforme de depart (au debut, apres une chute) : il s'elance vers l'ile.
+            if (Spawns.OnPad(me)) { LeaveThePad(was); return; }
+
             if (seeker.CarriesCrown && Monument.All.Count > 0) { PlanDeliver(was); return; }
 
             if (Crown.Where == Crown.State.Dropped)
@@ -348,6 +351,21 @@ namespace Fief
             Vector3 foot = Tower.Foot;
             float t = Time.time * 0.1f + seeker.Index;
             SetGoal(Goal.Roam, foot + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 12f, was);
+        }
+
+        /// <summary>
+        /// QUITTER SA PLATEFORME (28/09) : son arbaleste l'envoie devant la porte la plus
+        /// proche ; si elle ne peut pas (ou s'il est un bot facile), il saute et plane.
+        /// </summary>
+        void LeaveThePad(Goal was)
+        {
+            Vector3 me = transform.position;
+            Vector3 gate = Castle.EntryFrom(me)[0];
+            gate = Ground.Place(gate.x, gate.z, 0f);
+            if (TryBallistaTo(gate, 12f, Goal.Raid, was)) return;
+            goal = Goal.Raid;
+            target = gate;
+            Leap(gate);
         }
 
         /// <summary>
@@ -591,7 +609,18 @@ namespace Fief
             Vector3 dir = Flat(toward - me);
             if (dir.sqrMagnitude < 0.01f) dir = transform.forward;
             dir.Normalize();
-            if (Tower.Summit(me))
+            if (Spawns.OnPad(me))
+            {
+                // Du bord de sa plateforme, vers la cible -- un peu de biais, pour
+                // contourner son arbaleste.
+                Vector3 centre = Spawns.PadOf(seeker.Index);
+                Vector3 slant = Quaternion.Euler(0f, 45f, 0f) * dir;
+                Vector3 edge = centre + slant * (Spawns.PadRadius - 0.4f);
+                edge.y = centre.y;
+                path.Add(edge);
+                path.Add(edge + slant * 8f);
+            }
+            else if (Tower.Summit(me))
             {
                 Vector3 edge = dir * (Tower.Radius - 0.6f);
                 edge.y = Tower.Height;
@@ -953,6 +982,20 @@ namespace Fief
 
             Vector3 before = transform.position;
             body.Move((walk + extra + knock + Vector3.up * fallSpeed) * dt);
+            // Le sceau de la citadelle : renvoye dehors s'il y entre par les airs.
+            if ((gliding || ballistic) && Ward.Crossing(before, transform.position))
+            {
+                Vector3 push = Ward.Repel(seeker, transform.position);
+                body.enabled = false;
+                transform.position = before;
+                body.enabled = true;
+                gliding = false;
+                ballistic = false;
+                leaping = false;
+                knock = Flat(push);
+                fallSpeed = push.y;
+                think = 0f;
+            }
             float moved = Flat(transform.position - before).magnitude;
             if (grounded && speed > 0f && moved < speed * dt * 0.3f)
             {

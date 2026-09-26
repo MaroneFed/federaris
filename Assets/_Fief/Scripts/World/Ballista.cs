@@ -42,7 +42,7 @@ namespace Fief
         const float Reload = 1.5f;
 
         /// <summary>Ou la trajectoire retombe (le HUD le dit, l'anneau en prend la couleur).</summary>
-        public enum LandingKind { None, Ground, Monument, Void }
+        public enum LandingKind { None, Ground, Monument, Void, Ward }
         public LandingKind Landing { get; private set; }
         /// <summary>La tension montree (0 a 1), pour le HUD.</summary>
         public float Tension { get { return charging ? charge : 1f; } }
@@ -273,9 +273,9 @@ namespace Fief
         }
 
         /// <summary>
-        /// Les arbalestes : huit sur l'ile (quatre dans la cour, quatre dehors, entre les
-        /// portes et les tours d'angle) et une sur chaque ilot, tournee vers la tour --
-        /// pour revenir.
+        /// Les arbalestes communes : quatre sur l'ile (dehors, entre les portes et les
+        /// tours d'angle : elles visent les ilots) et une sur chaque ilot, tournee vers
+        /// l'ile -- pour revenir. (Plus celle de chaque plateforme de depart.)
         /// </summary>
         public static void PlaceAll(Transform parent)
         {
@@ -283,10 +283,8 @@ namespace Fief
             root.transform.SetParent(parent, false);
             for (int k = 0; k < 4; k++)
             {
-                // Dans la cour, aux quatre diagonales : elles visent la tour.
-                float a = (k * 90f + 45f) * Mathf.Deg2Rad;
-                Vector3 inside = Ground.Place(Mathf.Cos(a) * 34f, Mathf.Sin(a) * 34f, 0f);
-                Build(root.transform, inside, YawTowards(inside, Vector3.zero));
+                // (28/09 : plus d'arbaleste dans la cour -- "remonter direct tout en haut,
+                // c'est hyper cheate". Chacun a la sienne sur sa plateforme, voir Spawns.)
                 // Dehors, sur l'herbe : elles visent les ilots.
                 float b = (k * 90f + 64f) * Mathf.Deg2Rad;
                 float r = Mathf.Min(Ground.EdgeAt(b) - 11f, 80f);
@@ -518,6 +516,7 @@ namespace Fief
             Vector3 p = from;
             Vector3 vel = v;
             bool hit = false;
+            bool warded = false;
             RaycastHit rh = new RaycastHit();
             for (int i = 0; i < max - 1; i++)
             {
@@ -531,12 +530,16 @@ namespace Fief
                     break;
                 }
                 if (next.y < Ground.FallLine) break;
+                // Le sceau de la citadelle arrete le tir (on ne s'y fait pas tirer).
+                if (Ward.Crossing(p, next)) { points[n++] = next; warded = true; break; }
                 p = next;
             }
-            Landing = !hit ? LandingKind.Void
+            Landing = warded ? LandingKind.Ward
+                    : !hit ? LandingKind.Void
                     : Monument.NearestDistance(rh.point) < Monument.DeliverRadius + 1.5f && rh.point.y > 0f ? LandingKind.Monument
                     : LandingKind.Ground;
-            Color c = Landing == LandingKind.Monument ? Monument.Blue : Landing == LandingKind.Ground ? GroundOk : new Color(1f, 0.55f, 0.35f);
+            Color c = Landing == LandingKind.Monument ? Monument.Blue : Landing == LandingKind.Ground ? GroundOk
+                    : Landing == LandingKind.Ward ? new Color(1f, 0.3f, 0.2f) : new Color(1f, 0.55f, 0.35f);
             arc.enabled = true;
             arc.positionCount = n;
             for (int i = 0; i < n; i++) arc.SetPosition(i, points[i]);
@@ -544,6 +547,19 @@ namespace Fief
             arc.startColor = new Color(start.r, start.g, start.b, 0.9f * brightness);
             // Dans le vide : la ligne s'eteint vers le bout.
             arc.endColor = new Color(c.r, c.g, c.b, (Landing == LandingKind.Void ? 0.05f : 0.9f) * brightness);
+            if (warded)
+            {
+                // Un anneau rouge debout la ou le sceau renverra.
+                marker.gameObject.SetActive(true);
+                marker.position = points[n - 1];
+                marker.rotation = Quaternion.FromToRotation(Vector3.up, -new Vector3(v.x, 0f, v.z).normalized);
+                marker.localScale = Vector3.one;
+                markerRing.startColor = c;
+                markerRing.endColor = c;
+                markerDisc.sharedMaterial = MaterialFactory.GetGlow(c, 2.2f);
+                markerBeam.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.6f);
+                return;
+            }
             arc.widthMultiplier = 0.45f;
             marker.gameObject.SetActive(hit);
             if (!hit) return;
@@ -591,7 +607,7 @@ namespace Fief
                 vel += Vector3.down * Gravity * 0.05f;
                 RaycastHit rh;
                 if (Physics.Linecast(p, next, out rh, ~0, QueryTriggerInteraction.Ignore)) return (rh.point - target).magnitude < tolerance;
-                if (next.y < Ground.FallLine) return false;
+                if (next.y < Ground.FallLine || Ward.Crossing(p, next)) return false;
                 p = next;
             }
             return false;

@@ -513,4 +513,53 @@ namespace Fief
             else if (wind.volume <= 0.001f && wind.isPlaying) wind.Stop();
         }
     }
+
+    /// <summary>
+    /// LE SCEAU DE LA CITADELLE (28/09 -- Martin : "les arbaletes pour remonter direct
+    /// tout en haut, c'est hyper cheate"). Un dome invisible au-dessus des remparts :
+    /// qui ENTRE dans la citadelle PAR LES AIRS (en planant, ou tire par une arbaleste)
+    /// est renvoye dehors dans un eclair de runes d'or. On entre par les PORTES, a
+    /// pied, et on monte la rampe. On en SORT en volant sans souci : le porteur saute
+    /// du sommet et s'en va.
+    /// </summary>
+    public static class Ward
+    {
+        public static readonly Color Rune = new Color(1f, 0.8f, 0.35f);
+
+        /// <summary>Au-dessus de la cour et des remparts (hors de la tour elle-meme).</summary>
+        public static bool In(Vector3 p)
+        {
+            return Castle.Inside(p) && p.y > Castle.WallHeight + 1.5f && !Tower.On(p);
+        }
+
+        /// <summary>Vrai si l'on passe de dehors a dedans entre "from" et "to".</summary>
+        public static bool Crossing(Vector3 from, Vector3 to) { return !In(from) && In(to); }
+
+        /// <summary>LE RENVOI : un eclair de runes la ou il frappe ; renvoie la poussee a donner (dehors, un peu vers le haut).</summary>
+        public static Vector3 Repel(Seeker s, Vector3 at)
+        {
+            Vector3 away = new Vector3(at.x, 0f, at.z);
+            away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward;
+            Fx.Ring(at, Rune, 0.5f, 7f, 0.45f, 0.3f, away);
+            Fx.Ring(at, Color.white, 0.3f, 4f, 0.3f, 0.15f, away);
+            for (int k = 0; k < 6; k++)
+            {
+                // Les runes du dome s'allument un instant, en couronne autour du choc.
+                float a = k / 6f * Mathf.PI * 2f;
+                Vector3 side = new Vector3(away.z, 0f, -away.x);
+                Vector3 p = at + (side * Mathf.Cos(a) + Vector3.up * Mathf.Sin(a)) * 3.5f;
+                Fx.Ring(p, Rune, 0.2f, 1.4f, 0.5f, 0.12f, away);
+            }
+            Fx.Burst(at, Rune, 70, 11f, 0.2f, 0.6f, 0.2f, away, 60f);
+            Fx.Flash(at, Rune, 18f, 6f, 0.35f);
+            Sfx.Thud();
+            if (s != null && s.IsPlayer && Game.Hud != null)
+            {
+                Game.Hud.Tip("sceau", "LE SCEAU DE LA CITADELLE : on n'y entre pas par les airs. Pose-toi dehors et passe par une porte.");
+                Game.Hud.Flash(new Color(Rune.r, Rune.g, Rune.b, 0.4f));
+                if (Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.3f);
+            }
+            return away * 16f + Vector3.up * 5f;
+        }
+    }
 }
