@@ -25,6 +25,9 @@
 > clic gauche, qui changent à chaque manche ; E pour interagir », « l'œil trop facile :
 > un BOUM qui fait redescendre », « du combat », « enlève les courants de la rampe »,
 > et une musique de référence : « Montagem Orquestra – Isagi ».
+> Puis, toujours le 29/09, avec des captures : « quand tu vois ça c'est pas quali, au-dessus
+> du château tout est buggé » (le sommet clignotait : corrigé, voir « La tour ») et « les
+> obstacles doivent être mieux et nous faire retomber en bas de la tour ».
 >
 > C'est **la référence** : quand le code et ce document ne disent pas la même chose,
 > c'est un des deux qu'il faut corriger. L'histoire des choix : `docs/100-RAISONS.md`,
@@ -69,7 +72,7 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
    passe le **couloir piégé**, le **pont-levis**, la porte.
 3. **La montée.** En face de chaque porte, **sa rampe** (quatre rampes, le même chemin
    pour tous), **à pied**, en se battant. Au sommet, la Couronne sur son socle (**E
-   maintenu 1 s**), et tout autour les **planeurs** : des **ailes d'or**.
+   maintenu 1 s**) ; qui pose le pied au sommet reçoit des **ailes d'or**.
 4. **Le vol.** On saute dans le vide : **les ailes s'ouvrent toutes seules**. On va où
    l'on regarde (voir « Le vol plané »). Destination : **un des trois Monuments**, sur
    trois îlots flottants (leurs colonnes bleues), d'autres à chaque manche — **celui
@@ -257,9 +260,14 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
 - **Les obstacles, TIRÉS AU HASARD à chaque manche**, **le même nombre sur chaque
   rampe**, et **de plus en plus nombreux et rapides à chaque manche** (manche 1 : 2
   trous, 2 pendules, 2 béliers, 2 balayeurs, 1 herse par rampe ; jusqu'à 4, 4, 3, 4, 3).
-  Tous annoncés avant de frapper, tous laissent une **traînée de braise**, et
-  projettent **loin** (un impact qui explose) :
-  - des **trous** à sauter en courant (une barre rouge au bord) ;
+  Tous annoncés avant de frapper (des **bandes ambre peintes sur la rampe** là où
+  frappent pendules et béliers), tous laissent une **traînée de braise**, et
+  **UN OBSTACLE TE RENVOIE EN BAS DE LA TOUR** (29/09) : touché sur la rampe par un
+  obstacle, une gargouille ou en tombant dans un trou, tu es **jeté hors de la rampe,
+  ailes fermées jusqu'au sol** (`Seeker.Tumble`) — tu retombes dans la cour et tu
+  remontes. Les coups des joueurs, eux, ne font que projeter :
+  - des **trous** à sauter en courant (une barre rouge au bord) : dedans, on ne
+    retombe plus sur la rampe d'en dessous, on redescend **tout en bas** ;
   - des **pendules** à pointes qui balaient la rampe du mur vers le vide ;
   - des **béliers** qui jaillissent du mur (leur rune **rougit** avant) ;
   - des **balayeurs** : une barre cloutée à hauteur de genou, contre le fût, qui balaie
@@ -269,8 +277,10 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   - les **gargouilles** (ci-dessous) ;
   - **plus de courants** sur la rampe (« ça c'est n'importe quoi »).
 - **Au sommet** : la Couronne sur un socle à trois marches cerclées d'or, un cercle de
-  runes qui tourne, quatre cristaux qui gravitent ; **huit planeurs** sur leurs
-  chevalets ; quatre braseros.
+  runes qui tourne, quatre cristaux qui gravitent ; quatre braseros. (Les huit
+  planeurs sur chevalets sont partis le 29/09 : les ailes s'ouvrent seules.)
+  **Pas deux surfaces au même niveau** : le dernier filet d'or de la tour tombait pile
+  sur le sol du sommet et clignotait en traits blancs (le *z-fighting*).
 
 ### Les gargouilles (pas de PNJ humains)
 

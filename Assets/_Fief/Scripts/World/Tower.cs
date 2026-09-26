@@ -388,7 +388,7 @@ namespace Fief
                     warn.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.3f, 0.2f), 2.5f);
                     warn.transform.localRotation = Quaternion.LookRotation(Tangent(ramp, u), Vector3.up);
                 }
-                Hole.Build(t, RampPoint(ramp, (at + 1) / (float)total));
+                Hole.Build(t, RampPoint(ramp, (at + 1) / (float)total), Tangent(ramp, (at + 1) / (float)total));
             }
             Proto.EndVisualOnly();
         }
@@ -654,14 +654,16 @@ namespace Fief
     /// </summary>
     public class Hole : MonoBehaviour
     {
-        Vector3 centre;
+        Vector3 centre, along, outward;
 
-        public static void Build(Transform parent, Vector3 centre)
+        public static void Build(Transform parent, Vector3 centre, Vector3 tangent)
         {
             GameObject go = new GameObject("Trou");
             go.transform.SetParent(parent, false);
             Hole h = go.AddComponent<Hole>();
             h.centre = centre;
+            h.along = tangent;
+            h.outward = new Vector3(centre.x, 0f, centre.z).normalized;
         }
 
         void Update()
@@ -670,10 +672,14 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s.Body == null || s.Tumbling) continue;
-                Vector3 p = s.Body.position;
-                if (p.y > centre.y - 0.6f || p.y < centre.y - 5f) continue;
-                if (new Vector2(p.x - centre.x, p.z - centre.z).magnitude > 3.4f) continue;
+                if (s.Body == null || s.Tumbling || s.Graced) continue;
+                Vector3 d = s.Body.position - centre;
+                // Dans le trou : le long de la rampe (2 m de chaque cote), sur sa largeur, et
+                // SOUS le niveau de la rampe a cet endroit (elle monte d'un demi-metre par metre).
+                float run = Vector3.Dot(new Vector3(d.x, 0f, d.z), along);
+                if (Mathf.Abs(run) > 1.8f) continue;
+                if (Mathf.Abs(Vector3.Dot(new Vector3(d.x, 0f, d.z), outward)) > Tower.RampWidth * 0.5f + 0.3f) continue;
+                if (d.y > run * 0.5f - 0.8f || d.y < -6f) continue;
                 Combat.Hit(s, Vector3.down, 0f, false, null);
             }
         }

@@ -546,7 +546,11 @@ namespace Fief
         {
             float c = rider != null ? charge : 0f;
             yawPivot.rotation = Quaternion.Euler(0f, yaw, 0f);
-            pitchPivot.localRotation = Quaternion.Euler(-pitch + recoil * 8f, 0f, 0f);
+            // (29/09) L'arbaleste d'une plateforme tire en cloche tres haute (~66 degres) :
+            // dressee comme ca, sa crosse basculait devant les yeux de qui est dessus.
+            // Le MODELE ne se leve pas au-dela de 38 degres ; le tir, lui, part comme prevu.
+            float shown = hasFixed ? Mathf.Min(pitch, 38f) : pitch;
+            pitchPivot.localRotation = Quaternion.Euler(-shown + recoil * 8f, 0f, 0f);
             // L'arc plie : chaque articulation tourne un peu plus quand on tend (et il vibre au tir).
             float bend = Mathf.Lerp(5f, 15f, c) + Mathf.Sin(Time.time * 60f) * recoil * 6f;
             for (int i = 0; i < jointsR.Count; i++) jointsR[i].localRotation = Quaternion.Euler(0f, i == 0 ? bend * 0.5f : bend, 0f);

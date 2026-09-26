@@ -327,7 +327,7 @@ namespace Fief
         /// <summary>La distance de chaque plateforme au centre, sa hauteur, son rayon.</summary>
         public const float Distance = 116f;
         public const float Altitude = 42f;
-        public const float PadRadius = 6f;
+        public const float PadRadius = 7f;
 
         public static void Place(int players, int seed)
         {
@@ -358,13 +358,17 @@ namespace Fief
             return Points.TryGetValue(slot, out p) ? p : new Vector3(0f, Altitude, -Distance);
         }
 
-        /// <summary>Ou l'on apparait : sur sa plateforme, un peu en arriere de l'arbaleste.</summary>
+        /// <summary>
+        /// Ou l'on apparait : sur sa plateforme, un peu en arriere et A COTE de l'arbaleste
+        /// (29/09 : juste derriere, sa crosse bouchait toute la vue).
+        /// </summary>
         public static Vector3 Of(int slot, Vector3 fallback)
         {
             Vector3 p;
             if (!Points.TryGetValue(slot, out p)) return fallback;
             Vector3 outward = new Vector3(p.x, 0f, p.z).normalized;
-            return p + outward * 2.2f + Vector3.up * 0.05f;
+            Vector3 side = new Vector3(-outward.z, 0f, outward.x);
+            return p + outward * 1.6f + side * 2.6f + Vector3.up * 0.05f;
         }
 
         /// <summary>L'orientation de depart : face a la citadelle.</summary>
@@ -408,13 +412,15 @@ namespace Fief
                 Proto.BeginVisualOnly();
                 GameObject ring = Proto.Cylinder(t, new Vector3(0f, 0.04f, 0f), new Vector3(PadRadius * 2f - 0.6f, 0.02f, PadRadius * 2f - 0.6f), Color.white, "Cercle");
                 ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.2f);
-                Proto.Cylinder(t, new Vector3(0f, 0.06f, 0f), new Vector3(PadRadius * 2f - 1.4f, 0.02f, PadRadius * 2f - 1.4f), new Color(0.2f, 0.19f, 0.2f), "Dalle");
+                Proto.Cylinder(t, new Vector3(0f, 0.08f, 0f), new Vector3(PadRadius * 2f - 1.4f, 0.02f, PadRadius * 2f - 1.4f), new Color(0.2f, 0.19f, 0.2f), "Dalle");
                 // Le fanion, derriere : on retrouve sa plateforme de loin.
-                Proto.Cube(t, new Vector3(-2.6f, 2.6f, -3.8f), new Vector3(0.14f, 5.2f, 0.14f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
-                GameObject flag = Proto.Cube(t, new Vector3(-1.95f, 4.4f, -3.8f), new Vector3(1.3f, 0.9f, 0.05f), c, "Fanion");
+                Proto.Cube(t, new Vector3(-3.4f, 2.6f, -4.6f), new Vector3(0.14f, 5.2f, 0.14f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
+                GameObject flag = Proto.Cube(t, new Vector3(-2.75f, 4.4f, -4.6f), new Vector3(1.3f, 0.9f, 0.05f), c, "Fanion");
                 flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 0.9f);
                 Proto.EndVisualOnly();
-                LightBeam beam = LightBeam.Build(root.transform, at, c, 1.4f, 24f);
+                // La colonne de lumiere monte du fanion, au bord : pas en plein milieu, ou
+                // l'on apparait (on ne voyait qu'elle).
+                LightBeam beam = LightBeam.Build(root.transform, t.TransformPoint(new Vector3(-3.4f, 0f, -4.6f)), c, 0.9f, 24f);
                 if (beam != null) beam.targetAlpha = 0.3f;
                 // SON arbaleste, au bord, tournee vers la citadelle.
                 Vector3 inward = new Vector3(-at.x, 0f, -at.z).normalized;

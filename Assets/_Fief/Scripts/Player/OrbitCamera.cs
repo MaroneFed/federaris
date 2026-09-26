@@ -65,6 +65,13 @@ namespace Fief
         }
 
         /// <summary>Cadrage large pour l'ecran-titre : on recule et on prend de la hauteur.</summary>
+        /// <summary>
+        /// Le plan d'ensemble de l'ecran-titre (29/09) : la camera tourne tres loin, au-dessus
+        /// du vide. On ne la rapproche pas quand un mur est entre elle et son pivot (le pivot
+        /// est au milieu de la tour).
+        /// </summary>
+        public bool wide;
+
         public void SetCinematic(float distanceOut, float pitchOut)
         {
             cinematic = true;
@@ -190,7 +197,7 @@ namespace Fief
 
             // Si un obstacle est entre le joueur et la camera, on rapproche la camera.
             float wanted = distance;
-            float blocked = SweepDistance(pivot, direction, distance);
+            float blocked = wide ? distance : SweepDistance(pivot, direction, distance);
             if (blocked < wanted) wanted = blocked;
 
             currentDistance = Mathf.Lerp(currentDistance, wanted, 1f - Mathf.Exp(-14f * dt));

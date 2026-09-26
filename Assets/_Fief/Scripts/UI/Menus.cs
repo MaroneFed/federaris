@@ -153,8 +153,25 @@ namespace Fief
         {
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (cam == null) return;
-            bool outside = !Match.Launched && (Current == State.Title || Current == State.Lobby || Current == State.Online || Current == State.Draft);
-            if (outside)
+            bool establishing = !Match.Launched && (Current == State.Title || Current == State.Lobby || Current == State.Online);
+            bool outside = !Match.Launched && Current == State.Draft;
+            if (!establishing && cam.wide) LeaveEstablishingShot(cam);
+            if (establishing)
+            {
+                // LE PLAN D'ENSEMBLE (29/09 -- l'ecran-titre collait au chateau, "tout est
+                // bugge") : tres loin, un peu au-dessus, on tourne lentement autour de l'ile --
+                // la tour, la citadelle, les plateformes, les ilots et la mer de nuages.
+                if (titleAnchor == null)
+                {
+                    titleAnchor = new GameObject("Pivot du plan d'ensemble").transform;
+                    titleAnchor.position = new Vector3(0f, 48f, 0f);
+                }
+                if (cam.target != titleAnchor) { cam.target = titleAnchor; cam.pitch = 12f; }
+                cam.wide = true;
+                cam.autoOrbitSpeed = 2.4f;
+                cam.SetCinematic(165f, 12f);
+            }
+            else if (outside)
             {
                 // Six metres, a peine au-dessus de la tete : assez pres pour que la
                 // brume ne l'efface pas, assez loin pour voir la silhouette.
@@ -180,6 +197,15 @@ namespace Fief
                 cam.SetCinematic(10f, 16f);
             }
             else cam.autoOrbitSpeed = 0f;
+        }
+
+        Transform titleAnchor;
+
+        /// <summary>Fin du plan d'ensemble : la camera revient sur toi.</summary>
+        void LeaveEstablishingShot(OrbitCamera cam)
+        {
+            cam.wide = false;
+            if (Game.PlayerTransform != null) cam.target = Game.PlayerTransform;
         }
 
         /// <summary>Le corps du gagnant de la manche (null s'il n'y en a pas).</summary>
@@ -406,6 +432,7 @@ namespace Fief
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (cam != null)
             {
+                if (cam.wide) LeaveEstablishingShot(cam);
                 cam.ReleaseCinematic();
                 if (cam.target != null) cam.yaw = cam.target.eulerAngles.y;
                 cam.pitch = 3f;
