@@ -328,4 +328,51 @@ namespace Fief
             if (life < -trail.time) Destroy(gameObject);
         }
     }
+
+    /// <summary>
+    /// LA BULLE DE PROTECTION : une sphere de lumiere pale autour d'un joueur protege
+    /// (au depart, apres un respawn, juste apres un vol). On voit qu'il est intouchable.
+    /// </summary>
+    public class GraceShell : MonoBehaviour
+    {
+        public Seeker seeker;
+        Renderer shell;
+        Material mat;
+
+        public static GraceShell Attach(Transform body, Seeker s)
+        {
+            Material source = Ambiance.Additive;
+            if (source == null) return null;
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            go.name = "Bulle de protection";
+            Object.Destroy(go.GetComponent<Collider>());
+            go.transform.SetParent(body, false);
+            go.transform.localPosition = new Vector3(0f, 1f, 0f);
+            go.transform.localScale = new Vector3(1.6f, 2.3f, 1.6f);
+            GraceShell g = go.AddComponent<GraceShell>();
+            g.seeker = s;
+            g.shell = go.GetComponent<Renderer>();
+            g.mat = new Material(source);
+            g.mat.mainTexture = null;
+            g.shell.sharedMaterial = g.mat;
+            g.shell.shadowCastingMode = ShadowCastingMode.Off;
+            g.shell.receiveShadows = false;
+            g.shell.enabled = false;
+            return g;
+        }
+
+        void OnDestroy() { if (mat != null) Destroy(mat); }
+
+        void Update()
+        {
+            bool on = seeker != null && seeker.Graced && !seeker.Hidden;
+            if (shell.enabled != on) shell.enabled = on;
+            if (!on) return;
+            float left = seeker.GraceUntil - Time.time;
+            float blink = left < 0.8f ? 0.5f + 0.5f * Mathf.Sin(Time.time * 30f) : 1f;
+            Color c = new Color(0.8f, 0.92f, 1f, 0.16f * blink);
+            if (mat.HasProperty("_TintColor")) mat.SetColor("_TintColor", c);
+            else mat.color = c;
+        }
+    }
 }

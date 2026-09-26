@@ -392,6 +392,9 @@ namespace Fief
             countdown = 0f;
             goFlash = 1f;
             if (Game.Season != null) Game.Season.Begin();
+            // Trois secondes de protection au depart : on quitte sa zone sans se faire
+            // pousser ni tirer dessus avant d'avoir fait un pas.
+            for (int i = 0; i < Game.Seekers.Count; i++) Game.Seekers[i].GraceUntil = Time.time + 3f;
             Sfx.Bell();
         }
 

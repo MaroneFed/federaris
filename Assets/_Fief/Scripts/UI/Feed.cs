@@ -42,6 +42,15 @@ namespace Fief
             Toasts.Show(line, victim.IsPlayer ? Loss : by != null ? Of(by) : Calm);
         }
 
+        public static void CrownStolen(Seeker thief, Seeker victim)
+        {
+            if (thief == null || victim == null || !Live) return;
+            string line = thief.IsPlayer ? "Tu as volé la Couronne à " + victim.Name + " !"
+                        : victim.IsPlayer ? thief.Name + " t'a volé la Couronne !"
+                        : thief.Name + " a volé la Couronne à " + victim.Name + " !";
+            Toasts.Show(line, victim.IsPlayer ? Loss : Of(thief));
+        }
+
         public static void CrownSlipped(Seeker s)
         {
             if (s == null || !Live) return;

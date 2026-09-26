@@ -38,9 +38,13 @@ namespace Fief
             if (best == null) return false;
             Vector3 push = Flat(best.Body.position - by.Body.position).normalized;
             if (push.sqrMagnitude < 0.01f) push = f;
+            // POUSSER LE PORTEUR, C'EST LUI VOLER LA COURONNE (27/09 -- Martin : "il se la
+            // reprend en une demi-seconde"). Elle passe directement dans tes mains.
+            bool stole = best.CarriesCrown && !best.Graced && Crown.TrySteal(by, best);
             // Un court etourdissement : on ne contre-marche pas une poussee (c'est ce
             // qui la rendait molle -- on reculait de deux metres en appuyant sur Z).
-            Hit(best, push * force + Vector3.up * 4.5f, 0.2f, true, by);
+            Hit(best, push * force + Vector3.up * 4.5f, 0.2f, !stole, by);
+            Fx.Impact(best.Body.position + Vector3.up * 1.1f, by.Colour, stole ? 1.4f : 0.7f);
             if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.05f); }
             return true;
         }
@@ -52,6 +56,12 @@ namespace Fief
         public static void Hit(Seeker victim, Vector3 velocity, float stun, bool dropsCrown, Seeker by)
         {
             if (victim == null || victim.Body == null) return;
+            // Protege (au depart, apres un respawn, juste apres un vol) : rien ne le touche.
+            if (victim.Graced)
+            {
+                Fx.Sparks(victim.Body.position + Vector3.up * 1.1f, new Color(1f, 1f, 1f, 0.8f), 12, 3f);
+                return;
+            }
             if (victim.Has(Ability.Ancrage)) velocity = new Vector3(velocity.x * 0.5f, velocity.y * 0.7f, velocity.z * 0.5f);
             Knockback(victim, velocity);
             victim.LastHurt = Time.time;

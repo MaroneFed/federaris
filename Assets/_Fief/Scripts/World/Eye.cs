@@ -292,7 +292,7 @@ namespace Fief
         /// <summary>Qui l'interesse : quiconque est dans la citadelle, et le porteur de la Couronne jusqu'a 40 m.</summary>
         bool Interested(Seeker s)
         {
-            if (s == null || s.Body == null || s.Hidden) return false;
+            if (s == null || s.Body == null || s.Hidden || s.Graced) return false;
             Vector3 p = s.Body.position;
             if (s.CarriesCrown) return (p - transform.position).magnitude < 45f;
             return Castle.Inside(p);

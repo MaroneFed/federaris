@@ -277,8 +277,8 @@ namespace Fief
         bool hiddenForMe;
         Vector3 pedestal;
 
-        /// <summary>Tombee, la Couronne attend 45 s qu'on la ramasse -- puis elle rentre au donjon.</summary>
-        public const float ReturnSeconds = 45f;
+        /// <summary>Tombee, la Couronne attend 20 s qu'on la ramasse -- puis elle rentre au sommet.</summary>
+        public const float ReturnSeconds = 20f;
 
         /// <summary>Encore combien de temps avant qu'elle retourne sur son socle (0 si elle n'est pas par terre).</summary>
         public static float ReturnIn { get { return Instance == null || Instance.state != State.Dropped ? 0f : Mathf.Max(0f, ReturnSeconds - (Time.time - Instance.droppedAt)); } }
@@ -310,6 +310,7 @@ namespace Fief
         {
             if (s == null || s.Body == null || s.Stunned || state == State.Carried || state == State.Delivered) return false;
             if (Game.Season == null || !Game.Season.Running) return false;
+            if (Time.time < s.CrownLockUntil) return false;
             bool fromPedestal = state == State.OnPedestal;
             state = State.Carried;
             Holder = s;
@@ -355,8 +356,8 @@ namespace Fief
             at = SafeSpot(at, fallback);
             float y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 30f, ~0, QueryTriggerInteraction.Ignore)
                 ? hit.point.y : Ground.Sample(at.x, at.z);
-            // Celui qui vient de la perdre ne la rattrape pas en retombant dessus.
-            if (was != null) was.CrownLockUntil = Time.time + 1.2f;
+            // Celui qui vient de la perdre ne la reprend pas tout de suite (trois secondes).
+            if (was != null) was.CrownLockUntil = Time.time + LockSeconds;
             groundY = y + 0.35f;
             // Le declencheur d'abord (la couronne visible est son enfant : le bouger
             // apres elle la decalerait d'autant), puis la couronne elle-meme.
@@ -428,6 +429,36 @@ namespace Fief
                 if ((s.Body.position + Vector3.up * 0.9f - visual.position).magnitude > 1.7f) continue;
                 if (TryTakeFor(s)) return;
             }
+        }
+
+        /// <summary>Qui vient de perdre (ou de se faire voler) la Couronne ne peut pas la reprendre avant...</summary>
+        public const float LockSeconds = 3f;
+        /// <summary>Le voleur est protege un instant : on ne la lui reprend pas dans la foulee.</summary>
+        public const float StealGrace = 1.5f;
+
+        /// <summary>
+        /// LE VOL : "thief" pousse le porteur "victim" -- la Couronne passe directement
+        /// dans ses mains. Le voleur est protege 1,5 s, la victime ne peut pas la
+        /// reprendre pendant 3 s. Faux si le vol est impossible (Prise ferme, voleur
+        /// encore "verrouille") : elle tombe alors normalement.
+        /// </summary>
+        public static bool TrySteal(Seeker thief, Seeker victim)
+        {
+            if (Instance == null || Holder != victim || thief == null || thief.Body == null) return false;
+            if (Time.time < thief.CrownLockUntil || thief.Stunned) return false;
+            if (victim.Has(Ability.PriseFerme) && !victim.GripUsed) return false;       // Combat.Hit s'en charge
+            Holder = thief;
+            thief.GripUsed = false;
+            thief.GraceUntil = Time.time + StealGrace;
+            victim.CrownLockUntil = Time.time + LockSeconds;
+            // La Couronne saute d'une tete a l'autre : un trait d'or, une gerbe.
+            Tether.Show(victim.Body, thief.Body, Vector3.zero, 0.5f, Gold);
+            Fx.Sparks(thief.Body.position + Vector3.up * 2.3f, Gold, 50, 6f);
+            Fx.Flash(thief.Body.position + Vector3.up * 2f, Gold, 14f, 5f, 0.4f);
+            Sfx.Bell();
+            if (thief.IsPlayer) { Stats.CrownsStolen++; Stats.CrownsTaken++; if (Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f)); }
+            Feed.CrownStolen(thief, victim);
+            return true;
         }
 
         public static void KnockOff(Seeker victim, Vector3 direction)

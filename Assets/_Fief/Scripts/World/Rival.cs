@@ -143,6 +143,7 @@ namespace Fief
             r.figure = rig.transform;
             r.lantern = PlayerLook.Dress(rig, root.transform, colour);
             r.wings = WingsOnBack.Attach(root.transform, seeker);
+            GraceShell.Attach(root.transform, seeker);
 
             All.Add(r);
             return r;
