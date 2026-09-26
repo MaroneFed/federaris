@@ -6,16 +6,20 @@ namespace Fief
     /// <summary>
     /// UN OEIL DE LA CITADELLE (27/09 -- Martin : "les PNJ, soit un truc tellement
     /// excellent, soit rien"). Donc RIEN d'humain : plus de gardes, plus de roi. A la
-    /// place, des sentinelles de pierre qui FLOTTENT -- une sphere, un iris qui luit,
-    /// deux anneaux qui tournent autour. Une forme simple, qu'on lit a cinquante metres,
+    /// place, des sentinelles de pierre qui FLOTTENT (redessinees le 28/09) : un coeur
+    /// de lumiere pris dans HUIT PETALES de pierre -- un diaphragme qui s'ouvre quand il
+    /// te voit --, une pupille de chat qui s'arrondit quand il charge, trois eclats de
+    /// rune qui tournent autour, deux anneaux. Une forme qu'on lit a cinquante metres,
     /// et qui ne se coince jamais dans un mur puisqu'elle ne marche pas.
     ///
     /// Ce qu'il fait, et ce qu'on voit :
     ///   BLEU     il balaie la cour de son regard (le cone de lumiere, c'est sa vue) ;
     ///   ORANGE   il t'a apercu : il te fixe ;
-    ///   ROUGE    il CHARGE : un trait rouge le relie a toi et s'epaissit pendant une
-    ///            seconde. Dans la derniere demi-seconde il ne te suit plus : bouge !
-    ///   BLANC    il tire. Touche, tu es projete, etourdi -- et tu lâches la Couronne.
+    ///   ROUGE    il CHARGE : ses petales s'ouvrent grand, un trait rouge le relie a toi
+    ///            et s'epaissit, une CIBLE rouge se resserre a tes pieds. Dans la
+    ///            derniere demi-seconde il ne te suit plus : bouge !
+    ///   BLANC    il tire : un rayon blanc cercle de rouge, une explosion la ou il
+    ///            frappe. Touche, tu es projete, etourdi -- et tu lâches la Couronne.
     ///
     /// Il ne regarde que la citadelle et sa tour -- et le porteur de la Couronne.
     /// La Nuee l'aveugle, le Voile te rend invisible, l'Ombre le ralentit.
@@ -33,10 +37,13 @@ namespace Fief
         Vector3 aim;
         Vector3 home;
         float sweepPhase;
-        Transform ball, ringA, ringB;
+        Transform ball, ringA, ringB, pupil;
         Renderer iris;
         Light cone;
-        LineRenderer beam;
+        LineRenderer beam, beamCore, reticle;
+        readonly List<Transform> petals = new List<Transform>();
+        readonly List<Transform> shards = new List<Transform>();
+        float open = 0.2f;
         int shown = -1;
 
         const float Range = 30f;
@@ -97,23 +104,51 @@ namespace Fief
             e.home = at;
             e.sweepPhase = seed * 1.7f;
 
-            Color stone = new Color(0.36f, 0.35f, 0.33f);
+            Color stone = new Color(0.4f, 0.38f, 0.36f);
+            Color stoneDark = new Color(0.22f, 0.21f, 0.22f);
+            Color gold = new Color(0.78f, 0.6f, 0.3f);
             Proto.BeginVisualOnly();
             GameObject b = new GameObject("Globe");
             b.transform.SetParent(go.transform, false);
             e.ball = b.transform;
-            Proto.Sphere(e.ball, Vector3.zero, Vector3.one * 1.8f, stone, "Pierre");
-            Proto.Sphere(e.ball, new Vector3(0f, 0f, 0.62f), new Vector3(1.1f, 1.1f, 0.7f), new Color(0.06f, 0.06f, 0.07f), "Orbite");
-            GameObject iris = Proto.Sphere(e.ball, new Vector3(0f, 0f, 0.86f), new Vector3(0.6f, 0.6f, 0.3f), Color.white, "Iris");
-            e.iris = iris.GetComponent<Renderer>();
+            // La coque de pierre, derriere ; le coeur de lumiere devant ; la pupille.
+            Proto.Sphere(e.ball, new Vector3(0f, 0f, -0.3f), new Vector3(1.7f, 1.7f, 1.5f), stone, "Coque");
+            Proto.Cylinder(e.ball, new Vector3(0f, 0f, 0.1f), new Vector3(1.75f, 0.08f, 1.75f), gold, "Cerclage d'or").transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            GameObject core = Proto.Sphere(e.ball, new Vector3(0f, 0f, 0.35f), new Vector3(1.05f, 1.05f, 0.8f), Color.white, "Coeur");
+            e.iris = core.GetComponent<Renderer>();
+            GameObject slit = Proto.Cube(e.ball, new Vector3(0f, 0f, 0.76f), new Vector3(0.14f, 0.7f, 0.05f), new Color(0.03f, 0.03f, 0.04f), "Pupille");
+            e.pupil = slit.transform;
+            // Les huit petales : un diaphragme de pierre autour du coeur.
+            for (int i = 0; i < 8; i++)
+            {
+                Transform pivot = new GameObject("Pétale").transform;
+                pivot.SetParent(e.ball, false);
+                pivot.localPosition = new Vector3(0f, 0f, 0.25f);
+                pivot.localRotation = Quaternion.Euler(0f, 0f, i * 45f);
+                Transform hinge = new GameObject("Charnière").transform;
+                hinge.SetParent(pivot, false);
+                hinge.localPosition = new Vector3(0f, 0.7f, 0f);
+                GameObject plate = Proto.Cube(hinge, new Vector3(0f, 0.42f, 0f), new Vector3(0.5f, 0.85f, 0.1f), i % 2 == 0 ? stone : stoneDark, "Plaque");
+                GameObject inlay = Proto.Cube(plate.transform, new Vector3(0f, 0.1f, 0.6f), new Vector3(0.25f, 0.5f, 0.2f), Color.white, "Rune");
+                inlay.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Calm, 1.6f);
+                e.petals.Add(hinge);
+            }
+            // Deux anneaux qui tournent.
             GameObject ra = new GameObject("Anneau");
             ra.transform.SetParent(go.transform, false);
             e.ringA = ra.transform;
-            Ring(e.ringA, 1.5f, new Color(0.62f, 0.5f, 0.28f));
+            Ring(e.ringA, 1.75f, gold);
             GameObject rb = new GameObject("Anneau");
             rb.transform.SetParent(go.transform, false);
             e.ringB = rb.transform;
-            Ring(e.ringB, 1.25f, new Color(0.3f, 0.3f, 0.32f));
+            Ring(e.ringB, 1.45f, stoneDark);
+            // Trois eclats de rune en orbite.
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject shard = Proto.Cube(go.transform, Vector3.zero, new Vector3(0.18f, 0.42f, 0.18f), Color.white, "Éclat");
+                shard.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Calm, 2.4f);
+                e.shards.Add(shard.transform);
+            }
             Proto.EndVisualOnly();
             Renderer[] parts = go.GetComponentsInChildren<Renderer>();
             for (int i = 0; i < parts.Length; i++) parts[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -129,17 +164,29 @@ namespace Fief
             e.cone.color = Calm;
             e.cone.shadows = LightShadows.None;
 
-            GameObject beamGo = new GameObject("Rayon");
-            beamGo.transform.SetParent(go.transform, false);
-            e.beam = beamGo.AddComponent<LineRenderer>();
-            e.beam.positionCount = 2;
-            e.beam.useWorldSpace = true;
-            e.beam.sharedMaterial = MaterialFactory.GetGlow(Alarm, 3f);
-            e.beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            e.beam.enabled = false;
+            e.beam = Line(go.transform, "Rayon", MaterialFactory.GetGlow(Alarm, 3f), 2);
+            e.beamCore = Line(go.transform, "Coeur du rayon", MaterialFactory.GetGlow(Blaze, 6f), 2);
+            e.reticle = Line(go.transform, "Cible", Ambiance.Additive, 32);
+            e.reticle.loop = true;
+            e.reticle.startColor = new Color(1f, 0.15f, 0.1f, 0.9f);
+            e.reticle.endColor = new Color(1f, 0.4f, 0.2f, 0.9f);
 
             All.Add(e);
             return e;
+        }
+
+        static LineRenderer Line(Transform parent, string name, Material m, int points)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            LineRenderer l = go.AddComponent<LineRenderer>();
+            l.positionCount = points;
+            l.useWorldSpace = true;
+            l.sharedMaterial = m;
+            l.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            l.receiveShadows = false;
+            l.enabled = false;
+            return l;
         }
 
         /// <summary>Un anneau : seize petits blocs sur un cercle.</summary>
@@ -165,6 +212,7 @@ namespace Fief
             transform.position = home + Vector3.up * Mathf.Sin(Time.time * 0.9f + sweepPhase) * 0.35f;
             ringA.localRotation = Quaternion.Euler(Time.time * 40f + sweepPhase * 30f, Time.time * 25f, 20f);
             ringB.localRotation = Quaternion.Euler(-Time.time * 30f, 60f, Time.time * 45f + sweepPhase * 10f);
+            Animate(dt);
             ShowMood();
 
             Season season = Game.Season;
@@ -241,7 +289,19 @@ namespace Fief
             beam.endWidth = beam.startWidth * 0.6f;
             beam.SetPosition(0, from);
             beam.SetPosition(1, from + (aim - from).normalized * Range * 1.2f);
+            // La CIBLE a ses pieds : un cercle rouge qui se resserre et tourne.
+            reticle.enabled = true;
+            reticle.widthMultiplier = Mathf.Lerp(0.08f, 0.2f, k);
+            float r = Mathf.Lerp(3.2f, 0.7f, k);
+            Vector3 feet = target.Body.position + Vector3.up * 0.15f;
+            for (int i = 0; i < 32; i++)
+            {
+                float a = i / 32f * Mathf.PI * 2f + Time.time * 4f;
+                float notch = i % 8 < 2 ? 0.75f : 1f;
+                reticle.SetPosition(i, feet + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r * notch);
+            }
             if (timer < ChargeTime) return;
+            reticle.enabled = false;
             Fire(from);
         }
 
@@ -264,10 +324,21 @@ namespace Fief
                 Fx.Impact(c, Blaze, 1.3f);
                 if (s.IsPlayer) Stats.EyeHits++;
             }
-            Ambiance.Burst(null, from + dir * Mathf.Min(reach, 40f), Alarm);
+            // L'EXPLOSION la ou il frappe : une sphere, un anneau, une gerbe, un eclair.
+            Vector3 end = from + dir * Mathf.Min(reach, 40f);
+            Fx.Shock(end, Alarm, 2.6f, 0.3f);
+            Fx.Shock(end, Blaze, 1.2f, 0.2f);
+            Fx.Burst(end, Alarm, 70, 12f, 0.2f, 0.6f, 0.4f, -dir, 60f);
+            Fx.Burst(end, Blaze, 30, 6f, 0.3f, 0.4f, 0f, Vector3.zero, 0f);
+            Fx.Ring(end, Alarm, 0.3f, 3.5f, 0.35f, 0.2f, -dir);
+            Fx.Flash(end, Alarm, 14f, 6f, 0.3f);
+            // Et a la bouche : un eclair, un anneau.
             Fx.Flash(from, Blaze, 14f, 6f, 0.25f);
             Fx.Ring(from, Blaze, 0.3f, 2.5f, 0.3f, 0.2f, dir);
-            Fx.Sparks(from + dir * Mathf.Min(reach, 40f), Alarm, 40, 7f);
+            beamCore.enabled = true;
+            beamCore.SetPosition(0, from);
+            beamCore.SetPosition(1, end);
+            beam.SetPosition(1, end);
             Sfx.Thud();
             if (NearPlayer(40f) && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.12f);
             beam.startWidth = 0.35f;
@@ -284,6 +355,42 @@ namespace Fief
             state = State.Rest;
             timer = 1f;
             beam.enabled = false;
+            reticle.enabled = false;
+        }
+
+        /// <summary>
+        /// La vie du corps : les petales s'ouvrent quand il te voit (grand ouverts quand il
+        /// charge), la pupille s'arrondit, les eclats tournent plus vite, le rayon s'eteint.
+        /// </summary>
+        void Animate(float dt)
+        {
+            float want = state == State.Charge ? 1f : state == State.Spot ? 0.6f : 0.15f;
+            open = Mathf.MoveTowards(open, want, dt * (want > open ? 3f : 1.2f));
+            // Ferme : les plaques se penchent devant le coeur ; ouvert : elles s'ecartent.
+            float angle = Mathf.Lerp(112f, 18f, open) + (state == State.Charge ? Mathf.Sin(Time.time * 40f) * 3f : 0f);
+            for (int i = 0; i < petals.Count; i++) petals[i].localRotation = Quaternion.Euler(angle, 0f, 0f);
+            // La pupille de chat : une fente au calme, ronde et large quand il charge.
+            pupil.localScale = new Vector3(Mathf.Lerp(0.14f, 0.5f, open), Mathf.Lerp(0.7f, 0.5f, open), 0.05f);
+            float speed = 1.2f + open * 4f;
+            for (int i = 0; i < shards.Count; i++)
+            {
+                float a = Time.time * speed + i * 2.094f + sweepPhase;
+                float r = Mathf.Lerp(2.1f, 1.5f, open);
+                shards[i].localPosition = new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a * 0.7f) * 0.6f, Mathf.Sin(a) * r);
+                shards[i].localRotation = Quaternion.Euler(0f, a * 90f, 45f);
+            }
+            // Le rayon : il s'amincit et s'eteint en un quart de seconde.
+            float since = Time.time - firedAt;
+            if (since < 0.3f)
+            {
+                float k = 1f - since / 0.3f;
+                beam.enabled = true;
+                beam.startWidth = 0.9f * k;
+                beam.endWidth = 0.6f * k;
+                beamCore.startWidth = 0.35f * k;
+                beamCore.endWidth = 0.25f * k;
+            }
+            else if (beamCore.enabled) beamCore.enabled = false;
         }
 
         void Look(Vector3 at, float speed)
@@ -321,11 +428,13 @@ namespace Fief
         void ShowMood()
         {
             int mood = state == State.Rest && Time.time - firedAt < 0.15f ? 3 : state == State.Charge ? 2 : state == State.Spot ? 1 : 0;
-            if (beam.enabled && state != State.Charge && Time.time - firedAt > 0.15f) beam.enabled = false;
+            if (beam.enabled && state != State.Charge && Time.time - firedAt > 0.3f) beam.enabled = false;
             if (mood == shown) return;
             shown = mood;
             Color c = mood == 3 ? Blaze : mood == 2 ? Alarm : mood == 1 ? Wary : Calm;
             iris.sharedMaterial = MaterialFactory.GetGlow(c, mood == 3 ? 6f : 3f);
+            Material shardGlow = MaterialFactory.GetGlow(c, 2.4f);
+            for (int i = 0; i < shards.Count; i++) shards[i].GetComponent<Renderer>().sharedMaterial = shardGlow;
             cone.color = c;
             cone.intensity = mood >= 2 ? 5f : 3f;
         }
