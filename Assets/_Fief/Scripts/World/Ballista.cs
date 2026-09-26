@@ -139,6 +139,13 @@ namespace Fief
                 float a = k / 8f * Mathf.PI * 2f;
                 GameObject m = Proto.Cube(t, new Vector3(Mathf.Cos(a) * 2.15f, 0.9f, Mathf.Sin(a) * 2.15f), new Vector3(0.5f, 0.45f, 0.5f), StoneC, "Merlon");
                 m.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
+                // Un merlon sur deux porte une flamme (29/09 : des objets "vraiment styles").
+                if (k % 2 == 0)
+                {
+                    GameObject fire = Proto.Cube(t, new Vector3(Mathf.Cos(a) * 2.15f, 1.35f, Mathf.Sin(a) * 2.15f), new Vector3(0.3f, 0.45f, 0.3f), Color.white, "Flamme");
+                    fire.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.2f), 3f);
+                    fire.AddComponent<Flame>();
+                }
             }
             Proto.EndVisualOnly();
 
@@ -187,6 +194,14 @@ namespace Fief
             Proto.Cube(p, new Vector3(0f, 0f, 1.1f), new Vector3(0.6f, 0.42f, 7f), Wood, "Fût");
             for (int k = 0; k < 4; k++)
                 Proto.Cube(p, new Vector3(0f, 0f, -1.7f + k * 1.9f), new Vector3(0.68f, 0.5f, 0.16f), Iron, "Cerclage");
+            // Des filets d'or le long du fut, et une tete de lion (un bloc d'or) a l'arriere.
+            for (int k = -1; k <= 1; k += 2)
+            {
+                GameObject gilt = Proto.Cube(p, new Vector3(k * 0.31f, 0.1f, 1.1f), new Vector3(0.03f, 0.08f, 6.6f), Color.white, "Filet d'or");
+                gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.8f, 0.4f), 1.4f);
+            }
+            GameObject crest = Proto.Cube(p, new Vector3(0f, 0.05f, -2.5f), new Vector3(0.75f, 0.6f, 0.3f), new Color(0.85f, 0.65f, 0.25f), "Écusson");
+            crest.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
             b.chargeBar = new GameObject("Tension").transform;
             b.chargeBar.SetParent(p, false);
             b.chargeBar.localPosition = new Vector3(0f, 0.22f, -2.3f);

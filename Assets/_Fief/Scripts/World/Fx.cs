@@ -198,6 +198,41 @@ namespace Fief
             t.life = seconds;
         }
 
+        /// <summary>Une trainee qui reste (sur un obstacle qui bouge) : on voit sa course dans l'air.</summary>
+        public static void KeepTrail(Transform body, Vector3 local, Color c, float width, float seconds)
+        {
+            Material m = Ambiance.Additive;
+            if (m == null || body == null) return;
+            GameObject go = new GameObject("Trainee");
+            go.transform.SetParent(body, false);
+            go.transform.localPosition = local;
+            TrailRenderer tr = go.AddComponent<TrailRenderer>();
+            tr.sharedMaterial = m;
+            tr.time = seconds;
+            tr.startWidth = width;
+            tr.endWidth = 0f;
+            tr.startColor = new Color(c.r, c.g, c.b, 0.8f);
+            tr.endColor = new Color(c.r, c.g, c.b, 0f);
+            tr.shadowCastingMode = ShadowCastingMode.Off;
+            tr.receiveShadows = false;
+            tr.minVertexDistance = 0.25f;
+        }
+
+        /// <summary>
+        /// UN OBSTACLE QUI FRAPPE (29/09 -- "que ca fasse des dingues") : une explosion
+        /// d'etincelles, une sphere, un anneau, un eclair -- et l'ecran tremble si c'est toi.
+        /// </summary>
+        public static void ObstacleHit(Seeker s, Color c)
+        {
+            if (s == null || s.Body == null) return;
+            Vector3 at = s.Body.position + Vector3.up * 1.1f;
+            Impact(at, c, 1.6f);
+            Shock(at, c, 2.8f, 0.3f);
+            Burst(at, Color.Lerp(c, Color.white, 0.4f), 60, 13f, 0.18f, 0.6f, 0.5f, Vector3.zero, 0f);
+            Ring(at, Color.white, 0.4f, 4.5f, 0.35f, 0.25f, Vector3.up);
+            if (s.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) { Game.Hud.orbitCamera.Shake(0.45f); Game.Hud.orbitCamera.Kick(10f); }
+        }
+
         // ================================================================== les recettes
 
         /// <summary>LE RESPAWN : une colonne de lumiere a sa couleur, un anneau, un eclair, une gerbe.</summary>

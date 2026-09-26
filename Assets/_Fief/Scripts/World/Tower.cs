@@ -580,6 +580,8 @@ namespace Fief
             band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.25f), 2.4f);
             band.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
             Proto.EndVisualOnly();
+            // Une trainee de braise suit la boule : on voit sa course.
+            Fx.KeepTrail(p.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.2f, 0.35f);
             p.lastHead = p.Head;
             return p;
         }
@@ -616,7 +618,7 @@ namespace Fief
                 lastHit[s] = Time.time;
                 Vector3 push = velocity.sqrMagnitude > 1f ? new Vector3(velocity.x, 0f, velocity.z).normalized : transform.right;
                 Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, null);
-                Fx.Impact(s.Body.position + Vector3.up * 1.1f, new Color(1f, 0.55f, 0.3f), 1f);
+                Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.3f));
                 Sfx.Clang();
             }
         }
@@ -726,7 +728,7 @@ namespace Fief
                 if (lastHit.TryGetValue(s, out last) && Time.time - last < 1f) continue;
                 lastHit[s] = Time.time;
                 Combat.Hit(s, outward * 32f + Vector3.up * 8f, 0.4f, true, null);
-                Fx.Impact(s.Body.position + Vector3.up * 1.1f, new Color(1f, 0.4f, 0.25f), 1f);
+                Fx.ObstacleHit(s, new Color(1f, 0.4f, 0.25f));
                 Sfx.Crash();
             }
         }
@@ -852,7 +854,7 @@ namespace Fief
                 Vector3 away = new Vector3(d.x, 0f, d.z);
                 if (away.sqrMagnitude < 0.01f) away = moved;
                 Combat.Hit(s, (away.normalized + moved.normalized).normalized * 26f + Vector3.up * 10f, 0.45f, true, null);
-                Fx.Impact(s.Body.position + Vector3.up, new Color(1f, 0.55f, 0.25f), 1.2f);
+                Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.25f));
                 Sfx.Crash();
             }
         }

@@ -238,37 +238,39 @@ namespace Fief
     }
 
     /// <summary>
-    /// LE PHONK, FABRIQUE PAR LE CODE (en attendant les vrais morceaux de Martin : un
-    /// fichier dont le nom contient "phonk" ou "aura", dans Resources/Music, le
-    /// remplace -- voir MusicDirector). La recette du genre : une CLOCHE (deux ondes
-    /// carrees desaccordees qui s'eteignent vite) qui joue un motif en mineur, une
-    /// BASSE 808 (une sinusoide qui glisse vers le grave et sature), un kick, un clap
-    /// sur les temps 2 et 4, des charlestons. 140 battements par minute.
+    /// LA MUSIQUE D'AURA, FABRIQUEE PAR LE CODE (29/09 -- Martin montre "Montagem
+    /// Orquestra - Isagi" : un "montagem" orchestral, du funk bresilien avec un
+    /// orchestre dessus). On ne peut pas mettre ce morceau-la dans le jeu (il n'est pas
+    /// a nous : Steam le refuserait) ; alors on fabrique la meme recette :
+    ///   - des CORDES piquees qui martelent les accords en re mineur ;
+    ///   - des CUIVRES qui claquent au debut de chaque mesure ;
+    ///   - un CHOEUR tenu dessous ;
+    ///   - une BASSE 808 qui glisse et sature ;
+    ///   - le rythme "montagem" (kick syncope, clap, charleston), 130 battements par minute.
+    /// Un vrai morceau dont le nom contient "phonk", "aura" ou "funk", dans
+    /// Resources/Music, le remplace (voir MusicDirector) -- libre de droits pour Steam.
     /// </summary>
     public static class Phonk
     {
         const int Rate = 22050;
-        const float Bpm = 140f;
+        const float Bpm = 130f;
         static AudioClip loop, sting;
 
-        // La cloche : quatre mesures de seize doubles-croches (-1 : silence), en demi-tons au-dessus de la base.
-        static readonly int[] Bell =
+        // Quatre accords, une mesure chacun : re mineur, si bemol, fa, do (en Hz, trois voix).
+        static readonly float[][] Chords =
         {
-            0, -1, 0, -1, 3, -1, 0, -1, 7, -1, 5, -1, 3, -1, 0, -1,
-            0, -1, 0, -1, 3, -1, 0, -1, 8, -1, 7, -1, 5, -1, 3, -1,
-            0, -1, 0, -1, 3, -1, 0, -1, 7, -1, 5, -1, 3, -1, 5, -1,
-            7, -1, 7, -1, 8, -1, 7, -1, 5, -1, 3, -1, 2, -1, 0, -1
+            new[] { 293.66f, 349.23f, 440.00f },
+            new[] { 233.08f, 293.66f, 349.23f },
+            new[] { 261.63f, 349.23f, 440.00f },
+            new[] { 261.63f, 329.63f, 392.00f }
         };
-        // La basse (demi-tons sous la tonique, -99 : rien) et les kicks, par double-croche.
-        static readonly int[] Bass =
-        {
-            0, -99, -99, -99, -99, -99, 0, -99, -99, -99, -99, -99, -99, -99, -2, -99,
-            -4, -99, -99, -99, -99, -99, -4, -99, -99, -99, -99, -99, -99, -99, -5, -99,
-            0, -99, -99, -99, -99, -99, 0, -99, -99, -99, -99, -99, -99, -99, -2, -99,
-            -4, -99, -99, -99, -99, -99, -4, -99, -99, -99, 3, -99, -99, -99, 2, -99
-        };
+        static readonly float[] Roots = { 73.42f, 58.27f, 87.31f, 65.41f };
+        // Par double-croche : les cordes piquees, les kicks "montagem", la basse.
+        static readonly bool[] StringStep = { true, false, false, true, false, false, true, false, true, false, true, false, true, false, true, true };
+        static readonly bool[] KickStep = { true, false, false, true, false, false, true, false, false, false, true, true, false, false, false, false };
+        static readonly bool[] BassStep = { true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false };
 
-        /// <summary>La boucle (quatre mesures, environ sept secondes).</summary>
+        /// <summary>La boucle (quatre mesures, environ sept secondes et demie).</summary>
         public static AudioClip Loop()
         {
             if (loop != null) return loop;
@@ -276,57 +278,134 @@ namespace Fief
             int count = Mathf.RoundToInt(Rate * step * 64f);
             float[] data = new float[count];
             System.Random rng = new System.Random(808);
-            for (int s = 0; s < 64; s++)
+            for (int bar = 0; bar < 4; bar++)
             {
-                int at = Mathf.RoundToInt(Rate * step * s);
-                if (Bell[s] >= 0) Cowbell(data, at, Bell[s], 0.28f);
-                if (Bass[s] > -99) Bass808(data, at, Bass[s], step * 5.5f, 0.6f);
-                if (s % 16 == 0 || s % 16 == 10) Kick(data, at, 0.7f);
-                if (s % 8 == 4) Clap(data, at, rng, 0.35f);
-                if (s % 2 == 0) Hat(data, at, rng, s % 4 == 2 ? 0.12f : 0.07f);
+                float[] chord = Chords[bar];
+                int barStart = Mathf.RoundToInt(Rate * step * bar * 16);
+                Choir(data, barStart, chord, step * 16f, 0.16f);
+                Brass(data, barStart, chord, 0.42f, 0.55f);
+                if (bar == 3) Brass(data, Mathf.RoundToInt(Rate * step * (bar * 16 + 12)), Chords[0], 0.3f, 0.45f);
+                Timpani(data, barStart, Roots[bar] * 2f, 0.5f);
+                for (int k = 0; k < 16; k++)
+                {
+                    int at = Mathf.RoundToInt(Rate * step * (bar * 16 + k));
+                    if (StringStep[k]) Strings(data, at, chord, step * 0.8f, k % 4 == 0 ? 0.32f : 0.24f, k % 3);
+                    if (KickStep[k]) Kick(data, at, 0.75f);
+                    if (BassStep[k]) Bass808(data, at, Roots[bar], step * 5f, 0.55f);
+                    if (k == 4 || k == 12) Clap(data, at, rng, 0.4f);
+                    if (k % 2 == 0) Hat(data, at, rng, k % 4 == 2 ? 0.1f : 0.06f);
+                }
             }
-            Saturate(data, 1.6f);
-            loop = Make("phonk (fabriqué)", data);
+            Saturate(data, 1.5f);
+            loop = Make("montagem orchestral (fabriqué)", data);
             return loop;
         }
 
-        /// <summary>Le coup d'aura : une basse qui tombe, trois coups de cloche, un clap.</summary>
+        /// <summary>Le coup d'aura : un souffle qui monte, un accord de cuivres, un timbale, un clap.</summary>
         public static AudioClip Sting()
         {
             if (sting != null) return sting;
-            int count = Mathf.RoundToInt(Rate * 1.4f);
+            int count = Mathf.RoundToInt(Rate * 1.6f);
             float[] data = new float[count];
             System.Random rng = new System.Random(909);
-            float step = 60f / Bpm / 4f;
-            Kick(data, 0, 0.9f);
-            Bass808(data, 0, 0, 1.2f, 0.9f);
-            int[] notes = { 0, 3, 7, 5, 7 };
-            for (int i = 0; i < notes.Length; i++) Cowbell(data, Mathf.RoundToInt(Rate * step * i), notes[i], 0.4f);
-            Clap(data, Mathf.RoundToInt(Rate * step * 4f), rng, 0.5f);
-            Saturate(data, 2f);
+            // Le souffle qui monte (un bruit qui s'ouvre), puis tout tombe ensemble a 0,25 s.
+            float low = 0f;
+            int swell = Mathf.RoundToInt(Rate * 0.25f);
+            for (int i = 0; i < swell; i++)
+            {
+                float t = (float)i / swell;
+                float n = (float)rng.NextDouble() * 2f - 1f;
+                low += (n - low) * (0.05f + 0.5f * t);
+                data[i] += low * t * t * 0.5f;
+            }
+            Kick(data, swell, 1f);
+            Timpani(data, swell, 146.8f, 0.9f);
+            Brass(data, swell, Chords[0], 0.9f, 0.9f);
+            Strings(data, swell, Chords[0], 0.5f, 0.5f, 0);
+            Bass808(data, swell, Roots[0], 1.1f, 0.8f);
+            Clap(data, swell, rng, 0.5f);
+            Saturate(data, 1.8f);
             sting = Make("aura", data);
             return sting;
         }
 
-        static float Semi(int n) { return Mathf.Pow(2f, n / 12f); }
+        static float Saw(float phase) { return 2f * (phase - Mathf.Floor(phase + 0.5f)); }
 
-        static void Cowbell(float[] d, int at, int note, float level)
+        /// <summary>Des cordes piquees : trois scies desaccordees par note, adoucies, une attaque seche.</summary>
+        static void Strings(float[] d, int at, float[] chord, float seconds, float level, int inversion)
         {
-            float k = Semi(note);
-            float f1 = 540f * k, f2 = 800f * k;
-            int len = Mathf.RoundToInt(Rate * 0.22f);
+            int len = Mathf.RoundToInt(Rate * seconds);
+            float lp = 0f;
             for (int i = 0; i < len && at + i < d.Length; i++)
             {
                 float t = (float)i / Rate;
-                float sq = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * f1 * t)) + Mathf.Sign(Mathf.Sin(2f * Mathf.PI * f2 * t)) * 0.8f;
-                float env = Mathf.Exp(-t * 18f) * 0.8f + Mathf.Exp(-t * 60f) * 0.4f;
-                d[at + i] += sq * env * level * 0.5f;
+                float v = 0f;
+                for (int n = 0; n < chord.Length; n++)
+                {
+                    float f = chord[(n + inversion) % chord.Length] * (n + inversion >= chord.Length ? 2f : 1f);
+                    v += Saw(f * t) + Saw(f * 1.006f * t) * 0.7f + Saw(f * 0.994f * t) * 0.7f;
+                }
+                lp += (v - lp) * 0.28f;
+                float env = Mathf.Min(1f, t * 200f) * Mathf.Exp(-t * 9f);
+                d[at + i] += lp * env * level / chord.Length * 0.5f;
             }
         }
 
-        static void Bass808(float[] d, int at, int note, float seconds, float level)
+        /// <summary>Des cuivres : un accord brillant, une attaque rapide qui s'eteint en une demi-seconde.</summary>
+        static void Brass(float[] d, int at, float[] chord, float seconds, float level)
         {
-            float f = 49f * Semi(note);          // autour d'un sol grave
+            int len = Mathf.RoundToInt(Rate * seconds);
+            float lp = 0f;
+            for (int i = 0; i < len && at + i < d.Length; i++)
+            {
+                float t = (float)i / Rate;
+                float v = 0f;
+                for (int n = 0; n < chord.Length; n++)
+                {
+                    float f = chord[n] * 0.5f;
+                    v += Saw(f * t) + Saw(f * 1.004f * t) + Saw(f * 2f * t) * 0.4f;
+                }
+                // Le "blat" : le filtre s'ouvre puis se referme.
+                float open = 0.12f + 0.5f * Mathf.Exp(-t * 7f);
+                lp += (v - lp) * open;
+                float env = Mathf.Min(1f, t * 60f) * Mathf.Exp(-t * 4.5f);
+                d[at + i] += lp * env * level / chord.Length * 0.45f;
+            }
+        }
+
+        /// <summary>Un choeur : des sinus doux avec un vibrato, tenus toute la mesure.</summary>
+        static void Choir(float[] d, int at, float[] chord, float seconds, float level)
+        {
+            int len = Mathf.RoundToInt(Rate * seconds);
+            for (int i = 0; i < len && at + i < d.Length; i++)
+            {
+                float t = (float)i / Rate;
+                float vib = 1f + 0.004f * Mathf.Sin(2f * Mathf.PI * 5.5f * t);
+                float v = 0f;
+                for (int n = 0; n < chord.Length; n++)
+                {
+                    float f = chord[n] * vib;
+                    v += Mathf.Sin(2f * Mathf.PI * f * t) + Mathf.Sin(2f * Mathf.PI * f * 2.01f * t) * 0.25f + Mathf.Sin(2f * Mathf.PI * f * 3f * t) * 0.1f;
+                }
+                float env = Mathf.Min(1f, t * 3f) * Mathf.Min(1f, (seconds - t) * 4f);
+                d[at + i] += v * env * level / chord.Length;
+            }
+        }
+
+        static void Timpani(float[] d, int at, float f, float level)
+        {
+            int len = Mathf.RoundToInt(Rate * 0.9f);
+            float phase = 0f;
+            for (int i = 0; i < len && at + i < d.Length; i++)
+            {
+                float t = (float)i / Rate;
+                phase += 2f * Mathf.PI * f * (1f + 0.15f * Mathf.Exp(-t * 20f)) / Rate;
+                d[at + i] += (Mathf.Sin(phase) + Mathf.Sin(phase * 1.5f) * 0.3f) * Mathf.Exp(-t * 4f) * level;
+            }
+        }
+
+        static void Bass808(float[] d, int at, float f, float seconds, float level)
+        {
             int len = Mathf.RoundToInt(Rate * seconds);
             float phase = 0f;
             for (int i = 0; i < len && at + i < d.Length; i++)

@@ -239,6 +239,8 @@ namespace Fief
                 tipB.GetComponent<Renderer>().sharedMaterial = tipA.GetComponent<Renderer>().sharedMaterial;
             }
             Proto.EndVisualOnly();
+            Fx.KeepTrail(w.bar, new Vector3(0f, 0f, reach), new Color(1f, 0.45f, 0.2f), 0.5f, 0.25f);
+            if (!wiper) Fx.KeepTrail(w.bar, new Vector3(0f, 0f, -reach), new Color(1f, 0.45f, 0.2f), 0.5f, 0.25f);
             w.lastTip = w.Tip;
             All.Add(w);
             return w;
@@ -311,7 +313,7 @@ namespace Fief
                 push = push.sqrMagnitude > 0.1f ? push.normalized : transform.forward;
                 if (wiper) push = (push + transform.forward).normalized;
                 Combat.Hit(s, push * 26f + Vector3.up * 9f, 0.35f, true, null);
-                Fx.Impact(s.Body.position + Vector3.up * 0.8f, new Color(1f, 0.5f, 0.25f), 1f);
+                Fx.ObstacleHit(s, new Color(1f, 0.5f, 0.25f));
                 Sfx.Clang();
             }
         }
@@ -388,7 +390,7 @@ namespace Fief
                 if (Mathf.Abs(local.x) > width * 0.5f + 0.3f || Mathf.Abs(local.z) > depth * 0.5f + 0.3f || local.y < -0.5f || local.y > 1.2f) continue;
                 Vector3 side = transform.right * (local.x >= 0f ? 1f : -1f);
                 Combat.Hit(s, Vector3.up * 20f + side * 6f, 0.35f, true, null);
-                Fx.Impact(s.Body.position + Vector3.up * 0.5f, new Color(1f, 0.35f, 0.2f), 1f);
+                Fx.ObstacleHit(s, new Color(1f, 0.35f, 0.2f));
                 near = true;
             }
             Transform p = Game.PlayerTransform;
@@ -438,6 +440,7 @@ namespace Fief
             GameObject band = Proto.Cube(m.arm, new Vector3(0f, -Length, 0f), new Vector3(2.7f, 0.3f, 1.6f), Color.white, "Rune");
             band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 2.4f);
             Proto.EndVisualOnly();
+            Fx.KeepTrail(m.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.6f, 0.3f);
             m.lastHead = m.Head;
             return m;
         }
@@ -464,7 +467,7 @@ namespace Fief
                 Vector3 push = new Vector3(velocity.x, 0f, velocity.z);
                 push = push.sqrMagnitude > 1f ? push.normalized : transform.right;
                 Combat.Hit(s, push * 32f + Vector3.up * 12f, 0.45f, true, null);
-                Fx.Impact(s.Body.position + Vector3.up * 1.1f, new Color(1f, 0.5f, 0.25f), 1.3f);
+                Fx.ObstacleHit(s, new Color(1f, 0.5f, 0.25f));
                 Sfx.Crash();
             }
         }
