@@ -129,7 +129,7 @@ namespace Fief
 
         /// <summary>
         /// Les sanctuaires de la manche (27/09, l'ile) : un sur chaque ilot flottant
-        /// (sauf celui du Monument) -- la recompense de ceux qui y vont en planant ou
+        /// (sauf ceux des Monuments) -- la recompense de ceux qui y vont en planant ou
         /// par l'arbaleste --, et quatre sur l'ile, hors des murs, aux quatre coins.
         /// </summary>
         public static void Scatter(Transform parent, int seed)
@@ -139,7 +139,7 @@ namespace Fief
             root.transform.SetParent(parent, false);
             for (int i = 0; i < Ground.IsletCount; i++)
             {
-                if (i == Monument.Islet) continue;
+                if (Monument.OnIslet(i)) continue;
                 Ground.Islet it = Ground.GetIslet(i);
                 Build(root.transform, it.Top, RandomGift(rng), true);
             }

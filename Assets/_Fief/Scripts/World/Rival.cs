@@ -12,7 +12,8 @@ namespace Fief
     ///   - il MONTE LA TOUR : la rampe, les courants, les trous a sauter -- ou il saute
     ///     sur une ARBALESTE qui l'envoie haut sur la rampe ;
     ///   - au sommet il prend la Couronne et des AILES, et il se JETTE dans le vide pour
-    ///     PLANER jusqu'a l'ilot du Monument ; ou, depuis le sol, il se fait tirer
+    ///     PLANER jusqu'a l'un des trois Monuments (le plus commode : pres, et que
+    ///     personne ne garde) ; ou, depuis le sol, il se fait tirer
     ///     jusqu'a l'ilot par une arbaleste ;
     ///   - si un autre la tient, il le CHASSE (et le pousse : c'est ainsi qu'on la
     ///     VOLE) ; l'un d'eux va l'attendre au Monument ;
@@ -62,6 +63,7 @@ namespace Fief
 
         // --- l'arbaleste visee
         Ballista ballista;
+        Monument aimMonument;
         Vector3 ballistaShot;
         float ballistaChosen;
         bool mounted;
@@ -285,7 +287,7 @@ namespace Fief
             // En route vers une arbaleste : on y va (sauf si elle est prise, ou si c'est long).
             if (goal == Goal.Ballista && ballista != null && ballista.Free && Time.time - ballistaChosen < 10f && !(seeker.CarriesCrown && Tower.On(me))) return;
 
-            if (seeker.CarriesCrown && Monument.Instance != null) { PlanDeliver(was); return; }
+            if (seeker.CarriesCrown && Monument.All.Count > 0) { PlanDeliver(was); return; }
 
             if (Crown.Where == Crown.State.Dropped)
             {
@@ -298,14 +300,15 @@ namespace Fief
             {
                 prey = holder;
                 preyTimer = 5f;
-                if (Monument.Instance != null)
+                Monument watched = Monument.Nearest(holder.Body.position);
+                if (watched != null)
                 {
-                    Vector3 m = Monument.Instance.transform.position;
+                    Vector3 m = watched.transform.position;
                     Vector3 hp = holder.Body.position;
                     bool holderAway = !OnFoot(hp);      // il vole, ou il est sur un ilot
                     // L'un d'eux (le plus pres du Monument) va l'y attendre, par l'arbaleste
                     // ou en planant ; les autres le chassent.
-                    if (holderAway || Guardian() == this && Flat(hp - m).magnitude > 35f)
+                    if (holderAway || Guardian(watched) == this && Flat(hp - m).magnitude > 35f)
                     {
                         if (ReachTo(m + Flat(me - m).normalized * 5f, Goal.Guard, was)) return;
                     }
@@ -353,8 +356,13 @@ namespace Fief
         void PlanDeliver(Goal was)
         {
             Vector3 me = transform.position;
-            Vector3 m = Monument.Instance.transform.position;
-            if (IsletAt(me) == Monument.Islet && Monument.Islet >= 0) { SetGoal(Goal.Deliver, m, was); return; }
+            // Deja sur l'ilot d'un Monument : c'est celui-la.
+            for (int i = 0; i < Monument.All.Count; i++)
+                if (Monument.All[i] != null && IsletAt(me) >= 0 && IsletAt(me) == Monument.All[i].Islet) aimMonument = Monument.All[i];
+            if (aimMonument == null || IsletAt(me) < 0 || IsletAt(me) != aimMonument.Islet) aimMonument = ChooseMonument();
+            if (aimMonument == null) return;
+            Vector3 m = aimMonument.transform.position;
+            if (IsletAt(me) == aimMonument.Islet) { SetGoal(Goal.Deliver, m, was); return; }
             if (seeker.CanGlide && (Tower.Summit(me) || Tower.On(me) && me.y > m.y + 25f))
             {
                 goal = Goal.Deliver;
@@ -362,7 +370,17 @@ namespace Fief
                 Leap(m);
                 return;
             }
-            if (Ground.OnIsland(me.x, me.z) && !Tower.On(me) && TryBallistaTo(m, Monument.Instance == null ? 8f : 6f, Goal.Deliver, was)) return;
+            if (Ground.OnIsland(me.x, me.z) && !Tower.On(me))
+            {
+                if (TryBallistaTo(m, 6f, Goal.Deliver, was)) return;
+                // Trop loin pour cette arbaleste : un autre Monument, peut-etre.
+                for (int i = 0; i < Monument.All.Count; i++)
+                {
+                    Monument other = Monument.All[i];
+                    if (other == null || other == aimMonument) continue;
+                    if (TryBallistaTo(other.transform.position, 6f, Goal.Deliver, was)) { aimMonument = other; return; }
+                }
+            }
             // Sinon : au sommet, chercher des ailes.
             SetGoal(Goal.Deliver, Tower.CrownSpot, was);
             PlanPath(Tower.CrownSpot);
@@ -444,10 +462,37 @@ namespace Fief
             if (fresh) PlanPath(at);
         }
 
-        /// <summary>Le bot qui garde le Monument pendant que les autres chassent : le plus proche du Monument (null s'ils sont moins de deux).</summary>
-        static Rival Guardian()
+        /// <summary>
+        /// OU POSER LA COURONNE (28/09 : trois Monuments) : le plus commode -- pres de
+        /// lui, sans personne qui l'y attende. Il garde son idee, sauf si c'est bien mieux ailleurs.
+        /// </summary>
+        Monument ChooseMonument()
         {
-            if (Monument.Instance == null || Match.BotLevel == 0) return null;
+            Vector3 me = transform.position;
+            Monument best = null;
+            float bestScore = float.MaxValue;
+            for (int i = 0; i < Monument.All.Count; i++)
+            {
+                Monument mo = Monument.All[i];
+                if (mo == null) continue;
+                Vector3 at = mo.transform.position;
+                float score = Flat(at - me).magnitude;
+                for (int k = 0; k < Game.Seekers.Count; k++)
+                {
+                    Seeker o = Game.Seekers[k];
+                    if (o == seeker || o.Body == null) continue;
+                    if (Flat(o.Body.position - at).magnitude < 22f && Mathf.Abs(o.Body.position.y - at.y) < 10f) score += 70f;
+                }
+                if (mo == aimMonument) score -= 30f;
+                if (score < bestScore) { bestScore = score; best = mo; }
+            }
+            return best;
+        }
+
+        /// <summary>Le bot qui garde "m" pendant que les autres chassent : le plus proche (null s'ils sont moins de deux).</summary>
+        static Rival Guardian(Monument m)
+        {
+            if (m == null || Match.BotLevel == 0) return null;
             Rival best = null;
             float bestD = float.MaxValue;
             int free = 0;
@@ -456,7 +501,7 @@ namespace Fief
                 Rival r = All[i];
                 if (r == null || r.seeker.CarriesCrown) continue;
                 free++;
-                float d = Flat(r.transform.position - Monument.Instance.transform.position).magnitude;
+                float d = Flat(r.transform.position - m.transform.position).magnitude;
                 if (d < bestD) { bestD = d; best = r; }
             }
             return free >= 2 ? best : null;
@@ -612,8 +657,8 @@ namespace Fief
         {
             if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null) target = prey.Body.position;
             if (goal == Goal.Grab) target = Crown.Position;
-            if (goal == Goal.Deliver && Monument.Instance != null && (gliding || ballistic || IsletAt(transform.position) >= 0))
-                target = Monument.Instance.transform.position;
+            if (goal == Goal.Deliver && aimMonument != null && (gliding || ballistic || IsletAt(transform.position) >= 0))
+                target = aimMonument.transform.position;
             Vector3 step = Waypoint();
             float distance = Flat(target - transform.position).magnitude;
             float dy = Mathf.Abs(target.y - transform.position.y);
@@ -645,7 +690,7 @@ namespace Fief
             {
                 case Goal.Deliver:
                     // (Le Monument le prend tout seul des qu'il entre dans le cercle.)
-                    if (Monument.Instance != null && Monument.Instance.TryDeliver(seeker)) Bark("Victoire !");
+                    if (aimMonument != null && aimMonument.TryDeliver(seeker)) Bark("Victoire !");
                     think = 0f;
                     break;
                 case Goal.Raid:
@@ -739,8 +784,8 @@ namespace Fief
                         aim = Flat(toPrey);
                         break;
                     case Ability.Echange:
-                        go = prey != null && prey.CarriesCrown && Monument.Instance != null && preyD > 12f && preyD < 32f
-                             && Flat(prey.Body.position - Monument.Instance.transform.position).magnitude < Flat(me - Monument.Instance.transform.position).magnitude - 15f;
+                        go = prey != null && prey.CarriesCrown && Monument.All.Count > 0 && preyD > 12f && preyD < 32f
+                             && Monument.NearestDistance(prey.Body.position) < Monument.NearestDistance(me) - 15f;
                         aim = toPrey;
                         break;
                     case Ability.Voile:

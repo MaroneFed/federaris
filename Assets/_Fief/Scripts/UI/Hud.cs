@@ -177,7 +177,7 @@ namespace Fief
             Seeker me = Game.Me;
             if (me == null || me.Body == null) return;
             Vector3 p = me.Body.position;
-            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à l'îlot du Monument (colonne bleue) — pousser le porteur, c'est lui voler la Couronne !");
+            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, et te faire tirer vers la tour ou un îlot.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
@@ -247,9 +247,9 @@ namespace Fief
             string mine = null;
             if (Ballista.PlayerOn != null)
                 mine = "Clic gauche : tirer   ·   E : descendre   ·   la ligne montre ta course";
-            else if (me.CarriesCrown && Monument.Instance != null)
-                mine = "Monument à " + Mathf.RoundToInt(Combat.Flat(Monument.Instance.transform.position - me.Body.position).magnitude) + " m"
-                     + (me.CanGlide ? "   ·   tu as des ailes : saute et plane" : Tower.On(me.Body.position) ? "   ·   des ailes t'attendent au sommet" : "");
+            else if (me.CarriesCrown && Monument.All.Count > 0)
+                mine = Monument.All.Count + " Monuments : choisis le tien   ·   le plus proche à " + Mathf.RoundToInt(Monument.NearestDistance(me.Body.position)) + " m"
+                     + (Tower.On(me.Body.position) ? "   ·   saute dans le vide : tu planes" : "");
             else if (Tower.On(me.Body.position))
                 mine = Tower.Progress(me.Body.position) >= 0.999f ? "Au sommet" : "Tour " + (Mathf.FloorToInt(Tower.Progress(me.Body.position) * Tower.Turns) + 1) + " sur " + Tower.Turns;
             if (mine != null)
@@ -262,7 +262,7 @@ namespace Fief
             if (s == null || s.Body == null) return "";
             Vector3 p = s.Body.position;
             if (Tower.On(p)) return Tower.Progress(p) >= 0.999f ? "au sommet de la tour" : "sur la rampe";
-            if (Monument.Instance != null && Combat.Flat(Monument.Instance.transform.position - p).magnitude < 25f) return "près du Monument";
+            if (Monument.NearestDistance(p) < 25f) return "près d'un Monument";
             if (Castle.Inside(p)) return "dans la citadelle";
             if (Ground.OnIsland(p.x, p.z) && p.y > -3f && p.y < 20f) return "sur l'île";
             for (int i = 0; i < Ground.IsletCount; i++)
@@ -281,7 +281,7 @@ namespace Fief
                 if (holder == me)
                 {
                     float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 5f);
-                    line = "TU PORTES LA COURONNE — plane jusqu'au Monument, sur son îlot (la colonne bleue)";
+                    line = "TU PORTES LA COURONNE — plane jusqu'à un Monument (une colonne bleue), celui que tu veux";
                     tint = new Color(1f, 0.82f * pulse + 0.1f, 0.4f);
                 }
                 else

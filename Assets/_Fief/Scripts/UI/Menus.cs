@@ -160,11 +160,11 @@ namespace Fief
                 cam.autoOrbitSpeed = 3.2f;
                 cam.SetCinematic(6.2f, 6f);
             }
-            else if ((Current == State.RoundOver || Current == State.Draft || Current == State.Ended) && Monument.Instance != null)
+            else if ((Current == State.RoundOver || Current == State.Draft || Current == State.Ended) && Monument.Focus != null)
             {
                 // La manche est finie : la camera quitte tes yeux et tourne lentement
                 // autour du Monument -- on voit la Couronne posee sur l'autel.
-                if (cam.target != Monument.Instance.transform) cam.target = Monument.Instance.transform;
+                if (cam.target != Monument.Focus.transform) cam.target = Monument.Focus.transform;
                 cam.autoOrbitSpeed = 9f;
                 cam.SetCinematic(10f, 16f);
             }
@@ -848,7 +848,7 @@ namespace Fief
                 float b = Mathf.Clamp01((t - 0.8f) / 0.5f) * a;
                 Centered(y, UiStyle.S(30), "La Couronne est au sommet de la tour. Là-haut, on prend des ailes.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
                 float c = Mathf.Clamp01((t - 1.8f) / 0.5f) * a;
-                Centered(y + UiStyle.S(38), UiStyle.S(30), "Plane jusqu'au Monument, sur son îlot flottant : la colonne bleue.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
+                Centered(y + UiStyle.S(38), UiStyle.S(30), "Plane jusqu'à l'un des trois Monuments, sur les îlots : les colonnes bleues.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
                 float d = Mathf.Clamp01((t - 2.8f) / 0.5f) * a;
                 Centered(y + UiStyle.S(76), UiStyle.S(30), "Clic gauche pousse. Pousser le porteur, c'est lui voler la Couronne.", UiStyle.Head, new Color(0.95f, 0.7f, 0.6f, d));
                 y += UiStyle.S(130);

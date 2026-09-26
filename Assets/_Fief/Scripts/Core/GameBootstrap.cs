@@ -55,9 +55,10 @@ namespace Fief
                 Ground.Build(worldRoot, config);
                 Castle.Build(worldRoot, config);
 
-                // Le Monument se pose sur un des ilots flottants -- un autre a chaque manche.
+                // Les trois Monuments se posent sur trois des ilots flottants -- d'autres a
+                // chaque manche. Le porteur de la Couronne choisit ou aller.
                 Monument.Choose(round);
-                Monument.Build(worldRoot, round);
+                Monument.BuildAll(worldRoot, round);
 
                 // La Couronne, au sommet de la tour.
                 Crown.Build(worldRoot, Tower.CrownSpot);
