@@ -190,33 +190,37 @@ namespace Fief
     }
 
     /// <summary>
-    /// LES POINTS DE DEPART : un par place, a la lisiere, a egale distance du chateau,
-    /// tournes d'un angle au hasard a chaque manche.
+    /// LA LIGNE DE DEPART (27/09 -- Martin : "on arrive chacun dans sa petite zone, il
+    /// ne faut pas qu'on soit desavantage, on commence tous a cote"). Une GRILLE, comme
+    /// une course : un arc de petites zones lumineuses, une par joueur, a sa couleur,
+    /// TOUTES A LA MEME DISTANCE du pied de la rampe. Personne ne part avantage.
+    ///
+    /// C'est aussi la qu'on REAPPARAIT quand on tombe de l'ile (voir Respawn).
     /// </summary>
     public static class Spawns
     {
         static readonly Dictionary<int, Vector3> Points = new Dictionary<int, Vector3>();
+        /// <summary>La distance de chaque zone au pied de la rampe.</summary>
+        public const float Distance = 20f;
 
         public static void Place(int players, int seed)
         {
             Points.Clear();
+            Vector3 foot = Tower.Foot;
+            Vector3 outward = new Vector3(foot.x, 0f, foot.z).normalized;
+            if (outward.sqrMagnitude < 0.01f) outward = Vector3.back;
+            // Ecartees de 11 degres (4 m), jamais plus de 150 degres en tout. L'ordre des
+            // places change a chaque manche : personne n'a toujours le meme bout.
+            float step = Mathf.Min(11f, 150f / Mathf.Max(1, players - 1));
             System.Random rng = new System.Random(seed ^ 0x51a);
-            float turn = (float)rng.NextDouble() * 360f;
+            int shift = rng.Next(Mathf.Max(1, players));
             for (int i = 0; i < players; i++)
             {
-                float a = (turn + i * 360f / Mathf.Max(1, players)) * Mathf.Deg2Rad;
-                Vector3 best = Vector3.zero;
-                float bestScore = float.MaxValue;
-                for (int k = 0; k < 24; k++)
-                {
-                    float aa = a + (k - 12) * 0.02f;
-                    float r = 118f + (k % 4) * 5f;
-                    float x = Mathf.Cos(aa) * r, z = Mathf.Sin(aa) * r;
-                    if (Landmarks.Near(x, z, 10f)) continue;
-                    float score = Forest.Canopy(x, z) + Ground.Slope(x, z);
-                    if (score < bestScore) { bestScore = score; best = new Vector3(x, 0f, z); }
-                }
-                Points[i] = Ground.Place(best.x, best.z, 1f);
+                int place = (i + shift) % players;
+                float angle = (place - (players - 1) * 0.5f) * step;
+                Vector3 dir = Quaternion.Euler(0f, angle, 0f) * outward;
+                Vector3 p = foot + dir * Distance;
+                Points[i] = Ground.Place(p.x, p.z, 0.05f);
             }
         }
 
@@ -224,6 +228,74 @@ namespace Fief
         {
             Vector3 p;
             return Points.TryGetValue(slot, out p) ? p : fallback;
+        }
+
+        /// <summary>L'orientation de depart : face au pied de la rampe.</summary>
+        public static float YawOf(int slot)
+        {
+            Vector3 p = Of(slot, Tower.Foot + Vector3.back * Distance);
+            Vector3 d = Tower.Foot - p;
+            return Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>Les petites zones : un disque qui luit a la couleur du joueur, un fanion, une colonne de lumiere.</summary>
+        public static void Build(Transform parent)
+        {
+            GameObject root = new GameObject("LIGNE DE DÉPART");
+            root.transform.SetParent(parent, false);
+            for (int i = 0; i < Match.Slots.Count; i++)
+            {
+                Vector3 at = Of(i, Vector3.zero);
+                Color c = Match.Slots[i].Colour;
+                Transform t = new GameObject("Zone de " + Match.Slots[i].Name).transform;
+                t.SetParent(root.transform, false);
+                t.position = at;
+                t.rotation = Quaternion.Euler(0f, YawOf(i), 0f);
+                Proto.BeginVisualOnly();
+                Proto.Cylinder(t, new Vector3(0f, 0.02f, 0f), new Vector3(3.2f, 0.03f, 3.2f), new Color(0.2f, 0.19f, 0.2f), "Dalle");
+                GameObject ring = Proto.Cylinder(t, new Vector3(0f, 0.04f, 0f), new Vector3(2.7f, 0.02f, 2.7f), Color.white, "Cercle");
+                ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.4f);
+                Proto.Cylinder(t, new Vector3(0f, 0.06f, 0f), new Vector3(2.3f, 0.02f, 2.3f), new Color(0.16f, 0.15f, 0.16f), "Centre");
+                // Le fanion, derriere : on retrouve sa zone de loin.
+                Proto.Cube(t, new Vector3(0f, 1.6f, -1.9f), new Vector3(0.1f, 3.2f, 0.1f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
+                GameObject flag = Proto.Cube(t, new Vector3(0.45f, 2.75f, -1.9f), new Vector3(0.9f, 0.6f, 0.04f), c, "Fanion");
+                flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 0.9f);
+                Proto.EndVisualOnly();
+                LightBeam beam = LightBeam.Build(root.transform, at, c, 1.2f, 7f);
+                if (beam != null) beam.targetAlpha = 0.28f;
+            }
+        }
+    }
+
+    /// <summary>
+    /// TOMBER DANS LES NUAGES (27/09 -- "un beau respawn"). On ne meurt pas : on
+    /// reapparait sur sa zone de depart, dans une colonne de lumiere a sa couleur,
+    /// protege trois secondes. Si l'on portait la Couronne, elle rentre au sommet.
+    /// </summary>
+    public static class Respawn
+    {
+        public const float Grace = 3f;
+
+        public static void Of(Seeker s)
+        {
+            if (s == null || s.Body == null) return;
+            if (s.CarriesCrown) Crown.BackToTop();
+            Vector3 at = Spawns.Of(s.Index, Tower.Foot + Vector3.back * Spawns.Distance) + Vector3.up * 0.1f;
+            float yaw = Spawns.YawOf(s.Index);
+            if (s.IsPlayer && Game.Player != null) Game.Player.Teleport(at, yaw);
+            else
+            {
+                Rival r = Rival.Of(s);
+                if (r == null) return;
+                r.Teleport(at);
+                r.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+            s.GraceUntil = Time.time + Grace;
+            s.StunnedUntil = -1f;
+            s.SlowUntil = -1f;
+            Fx.Respawn(at, s.Colour);
+            Feed.FellIntoClouds(s);
+            if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(s.Colour.r, s.Colour.g, s.Colour.b, 0.6f));
         }
     }
 }

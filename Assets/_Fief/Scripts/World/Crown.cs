@@ -155,7 +155,7 @@ namespace Fief
             }
             if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.45f; beam.fadeSpeed = mine ? 30f : 0.5f; }
             // Tombee et oubliee (45 s), ou tombee hors d'atteinte : elle retourne sur son socle.
-            if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.Sample(visual.position.x, visual.position.z) - 3f))
+            if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.FallLine))
                 ReturnHome();
             // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
             if (state == State.Dropped) { Attract(); PickUpByTouch(); }
@@ -174,6 +174,16 @@ namespace Fief
 
         /// <summary>Encore combien de temps avant qu'elle retourne sur son socle (0 si elle n'est pas par terre).</summary>
         public static float ReturnIn { get { return Instance == null || Instance.state != State.Dropped ? 0f : Mathf.Max(0f, ReturnSeconds - (Time.time - Instance.droppedAt)); } }
+
+        /// <summary>La Couronne rentre au sommet tout de suite (son porteur est tombe dans les nuages).</summary>
+        public static void BackToTop()
+        {
+            if (Instance == null || Instance.state == State.Delivered) return;
+            if (Holder != null) Holder.CrownLockUntil = Time.time + 1f;
+            Holder = null;
+            Instance.state = State.Dropped;
+            Instance.ReturnHome();
+        }
 
         void ReturnHome()
         {

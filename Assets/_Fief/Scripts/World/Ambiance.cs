@@ -30,25 +30,51 @@ namespace Fief
     {
         static Texture2D softDot;
         static Material additive;
+        /// <summary>Le materiau des particules qui s'ajoutent a la lumiere (etincelles, eclats) : Fx s'en sert aussi.</summary>
+        public static Material Additive { get { EnsureMaterials(); return additive; } }
         static Material blended;
         static uint sparkleCount;
 
         public static void Build(Transform worldRoot, Transform player, GameConfig cfg)
         {
             if (!EnsureMaterials()) return;
+            if (player != null) BuildMotes(player);
+            BuildCloudSea(worldRoot);
+        }
 
-            if (player != null)
+        /// <summary>
+        /// LA MER DE NUAGES sous l'ile (27/09) : de grandes nappes a plat, roses et
+        /// dorees, qui derivent tres lentement. C'est elle qui dit "l'ile flotte" --
+        /// et c'est la qu'on tombe quand on se fait pousser du bord.
+        /// </summary>
+        static void BuildCloudSea(Transform worldRoot)
+        {
+            GameObject holder = new GameObject("MER DE NUAGES");
+            holder.transform.SetParent(worldRoot, false);
+            for (int layer = 0; layer < 2; layer++)
             {
-                BuildMotes(player);
-                BuildGroundMist(player, cfg);
-            }
-
-            GameObject flies = new GameObject("LUCIOLES");
-            flies.transform.SetParent(worldRoot, false);
-            for (int i = 0; i < Gathering.HollowSpotCount; i++)
-            {
-                Vector2 spot = Gathering.HollowSpot(i);
-                BuildFireflies(flies.transform, Ground.Place(spot.x, spot.y, 1.2f), i);
+                ParticleSystem ps = NewSystem("Nappe", holder.transform, new Vector3(0f, layer == 0 ? -58f : -34f, 0f), blended);
+                ParticleSystem.MainModule main = ps.main;
+                main.duration = 60f;
+                main.loop = true;
+                main.prewarm = true;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(50f, 70f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.8f);
+                main.startSize = new ParticleSystem.MinMaxCurve(layer == 0 ? 70f : 45f, layer == 0 ? 130f : 80f);
+                main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+                Color warm = layer == 0 ? new Color(1f, 0.86f, 0.82f, 0.55f) : new Color(1f, 0.93f, 0.86f, 0.32f);
+                main.startColor = new ParticleSystem.MinMaxGradient(warm, new Color(0.85f, 0.78f, 0.9f, warm.a));
+                main.maxParticles = layer == 0 ? 220 : 120;
+                ParticleSystem.EmissionModule emission = ps.emission;
+                emission.rateOverTime = layer == 0 ? 3.6f : 1.8f;
+                ParticleSystem.ShapeModule shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(1100f, 6f, 1100f);
+                ParticleSystemRenderer flat = ps.GetComponent<ParticleSystemRenderer>();
+                flat.renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+                flat.sortingFudge = 10f;
+                FadeInOut(ps, 1f);
+                ps.Play();
             }
         }
 
@@ -65,7 +91,7 @@ namespace Fief
             main.startLifetime = new ParticleSystem.MinMaxCurve(7f, 12f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.12f);
             main.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.06f);
-            main.startColor = new Color(0.55f, 0.56f, 0.46f, 0.55f);
+            main.startColor = new Color(1f, 0.88f, 0.62f, 0.5f);
             main.maxParticles = 450;
 
             ParticleSystem.EmissionModule emission = ps.emission;
@@ -385,7 +411,7 @@ namespace Fief
         /// Un ParticleSystem neuf, ARRETE : Unity refuse qu'on change la duree d'un
         /// systeme qui tourne, et AddComponent le demarre tout seul.
         /// </summary>
-        static ParticleSystem NewSystem(string name, Transform parent, Vector3 localPosition, Material material)
+        public static ParticleSystem NewSystem(string name, Transform parent, Vector3 localPosition, Material material)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -410,7 +436,7 @@ namespace Fief
         }
 
         /// <summary>Apparition et disparition en fondu : jamais de grain qui "pop".</summary>
-        static void FadeInOut(ParticleSystem ps, float peak)
+        public static void FadeInOut(ParticleSystem ps, float peak)
         {
             ParticleSystem.ColorOverLifetimeModule color = ps.colorOverLifetime;
             color.enabled = true;
@@ -431,7 +457,7 @@ namespace Fief
         /// (build trop depouille), il n'y a simplement pas de particules -- le jeu,
         /// lui, tourne.
         /// </summary>
-        static bool EnsureMaterials()
+        public static bool EnsureMaterials()
         {
             if (additive != null && blended != null) return true;
 

@@ -303,8 +303,8 @@ namespace Fief
         }
 
         /// <summary>
-        /// Filet de securite : on ne sort pas de la carte, et si on passe a travers le
-        /// sol on est remis DESSUS (regle relative au sol, jamais une altitude en dur).
+        /// Filet de securite : on ne sort pas de l'espace de jeu ; si on passe a travers
+        /// le sol on est remis DESSUS ; si on tombe de l'ile, on reapparait (Respawn).
         /// </summary>
         void KeepInsideMap(GameConfig cfg)
         {
@@ -313,8 +313,15 @@ namespace Fief
             bool clamped = false;
             if (Mathf.Abs(p.x) > limit) { p.x = Mathf.Sign(p.x) * limit; clamped = true; }
             if (Mathf.Abs(p.z) > limit) { p.z = Mathf.Sign(p.z) * limit; clamped = true; }
+            // Tombe dans les nuages : on reapparait sur sa zone de depart.
+            if (p.y < Ground.FallLine)
+            {
+                Respawn.Of(Game.Me);
+                return;
+            }
+            // Passe a travers le sol (juste en dessous, pas en tombant de l'ile) : remis dessus.
             float ground = Ground.Sample(p.x, p.z);
-            if (p.y < ground - 4f)
+            if (p.y < ground - 4f && p.y > ground - 9f)
             {
                 p.y = ground + 1.5f;
                 clamped = true;

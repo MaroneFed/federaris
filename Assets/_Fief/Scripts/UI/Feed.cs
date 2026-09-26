@@ -66,6 +66,12 @@ namespace Fief
             Toasts.Show(Is(s) + " tombé de la tour.", s.IsPlayer ? Loss : Calm);
         }
 
+        public static void FellIntoClouds(Seeker s)
+        {
+            if (s == null || !Live) return;
+            Toasts.Show(Is(s) + " tombé dans les nuages.", s.IsPlayer ? Loss : Calm);
+        }
+
         public static void Said(string line, Color c)
         {
             if (!Live) return;

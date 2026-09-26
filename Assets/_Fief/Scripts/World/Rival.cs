@@ -161,6 +161,8 @@ namespace Fief
             pullTime = 0f;
         }
         float launchedUntil;
+        /// <summary>Vrai quand il a DECIDE de sauter dans le vide (pour planer ou apres un tir d'arbaleste).</summary>
+        bool Leaping { get { return false; } }
 
         public void Dash(Vector3 direction, float speed, float seconds)
         {
@@ -208,6 +210,7 @@ namespace Fief
             Season season = Game.Season;
             if (season == null || !season.Running || Time.deltaTime <= 0f) return;
             float dt = Time.deltaTime;
+            if (transform.position.y < Ground.FallLine) { Respawn.Of(seeker); return; }
             if (preyTimer > 0f) preyTimer -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
             if (castTimer > 0f) castTimer -= dt;
@@ -597,10 +600,9 @@ namespace Fief
                 else { extra += p.normalized * pullSpeed; fallSpeed = Mathf.Max(fallSpeed, p.normalized.y * pullSpeed); }
             }
 
-            bool seen = PlayerWithin(70f) || knock.sqrMagnitude > 1f || extra.sqrMagnitude > 1f;
-            if (body.enabled != seen) body.enabled = seen;
-
-            if (seen)
+            // (27/09 : plus de "glisse sans physique" loin de toi -- c'etait pour la grande
+            // foret. Sur l'ile, tout le monde a toujours un vrai corps.)
+            if (!body.enabled) body.enabled = true;
             {
                 bool grounded = body.isGrounded;
                 gliding = false;
@@ -618,7 +620,10 @@ namespace Fief
                     fallSpeed -= 22f * dt;
                     if (seeker.Has(Ability.Planeur) && fallSpeed < -2.5f && (seeker.CarriesCrown || airTop - transform.position.y > 5f)) { fallSpeed = -2.5f; gliding = true; }
                 }
-                // Au bord d'un trou (ou bloque) : il saute. Deux fois, s'il sait.
+                // Au bord de l'ile (pas sur la tour) : il ne saute pas dans le vide, il s'arrete.
+                bool cliff = grounded && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir) && !Leaping;
+                if (cliff) speed = 0f;
+                // Au bord d'un trou de la rampe (ou bloque) : il saute. Deux fois, s'il sait.
                 if (grounded && speed > 0f && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
                 else if (!grounded && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
                 {
@@ -638,17 +643,6 @@ namespace Fief
                 }
                 else stuck = 0f;
             }
-            else if (speed > 0f)
-            {
-                // Loin de toi : il glisse. Sur la rampe, il suit la hauteur du chemin.
-                Vector3 p = transform.position + dir * speed * dt;
-                float ground = Ground.Sample(p.x, p.z);
-                p.y = Tower.On(p) || destination.y > ground + 1f ? Mathf.MoveTowards(transform.position.y, destination.y, speed * dt * 0.8f + 0.02f) : ground;
-                transform.position = p;
-                lastGround = p;
-                airTop = p.y;
-            }
-
             if (speed > 0f)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 360f * dt);
         }
@@ -683,7 +677,7 @@ namespace Fief
             if (figure == null) return;
             // Loin de toi, ou sous le Voile, le corps s'eteint. La lanterne et le halo
             // restent (sauf sous le Voile) : c'est comme ca qu'on repere un joueur.
-            bool near = PlayerWithin(60f) && !seeker.Hidden;
+            bool near = PlayerWithin(300f) && !seeker.Hidden;
             if (figure.gameObject.activeSelf != near) figure.gameObject.SetActive(near);
             if (lantern != null) lantern.enabled = !seeker.Hidden;
             Vector3 moved = Flat(transform.position - lastPosition);

@@ -6,18 +6,17 @@ namespace Fief
     /// LE point d'entree du jeu -- et de chaque MANCHE.
     ///
     /// La scene Main.unity ne contient qu'UN seul objet : celui qui porte ce script.
-    /// Tout le reste -- relief, foret, chateau, gardes, joueurs, camera -- est
+    /// Tout le reste -- l'ile, la citadelle, la tour, les joueurs, la camera -- est
     /// fabrique ici au lancement. Une scene construite par code se relit dans Git ;
     /// une scene .unity ne se relit pas.
     ///
     /// CHAQUE MANCHE RECHARGE LA SCENE (voir Menus) : ce script refait tout. Ce qui
-    /// ne change pas d'une manche a l'autre -- le relief, la foret, le chateau -- est
-    /// tire de la graine du MONDE (config.worldSeed) : on apprend la foret. Ce qui
-    /// change -- le Monument, les coffres, les points de depart -- est tire de la
-    /// graine de la MANCHE (Match.RoundSeed).
+    /// ne change pas d'une manche a l'autre -- l'ile, les ilots, la citadelle -- est
+    /// tire de la graine du MONDE (config.worldSeed). Ce qui change -- l'ilot du
+    /// Monument, les dons des sanctuaires, l'ordre sur la ligne de depart -- est tire
+    /// de la graine de la MANCHE (Match.RoundSeed).
     ///
-    /// L'ordre compte : le relief avant ce qui pousse dessus ; la place du Monument
-    /// avant la foret (elle lui laisse une clairiere) ; la brume apres la camera.
+    /// L'ordre compte : l'ile avant ce qui se pose dessus ; la brume apres la camera.
     /// </summary>
     [DisallowMultipleComponent]
     public class GameBootstrap : MonoBehaviour
@@ -47,7 +46,7 @@ namespace Fief
 
             System.Diagnostics.Stopwatch chrono = System.Diagnostics.Stopwatch.StartNew();
             rng = new System.Random(config.worldSeed);
-            worldRoot = new GameObject("=== SYLVE ===").transform;
+            worldRoot = new GameObject("=== L'ÎLE ===").transform;
             int round = Match.RoundSeed;
 
             try
@@ -56,15 +55,8 @@ namespace Fief
                 Ground.Build(worldRoot, config);
                 Castle.Build(worldRoot, config);
 
-                // Le Monument choisit sa place AVANT la foret, qui lui laisse une clairiere.
+                // Le Monument se pose sur un des ilots flottants -- un autre a chaque manche.
                 Monument.Choose(round);
-                Gathering.Reset();
-                Gathering.FindHollows(config);
-                Landmarks.Find(config);
-                Forest.Plant(worldRoot, config, rng);
-                Gathering.PlaceMoonstones(worldRoot, config, rng);
-                Landmarks.Build(worldRoot, config);
-                Nature.Build(worldRoot, config);
                 Monument.Build(worldRoot, round);
 
                 // La Couronne, au sommet de la tour.
@@ -73,8 +65,10 @@ namespace Fief
                 // Les sanctuaires de la manche (un don chacun, touche V).
                 Shrine.Scatter(worldRoot, round);
 
-                // Les points de depart, un par joueur, a la lisiere.
+                // La ligne de depart : une petite zone par joueur, toutes a la meme
+                // distance du pied de la rampe.
                 Spawns.Place(Match.Slots.Count, round);
+                Spawns.Build(worldRoot);
 
                 BuildInhabitants();
             }
@@ -92,13 +86,9 @@ namespace Fief
             // La brume a besoin de la camera (pour caler le plan lointain) et du
             // joueur (pour lui accrocher la lanterne) : elle vient donc en dernier.
             Atmosphere.Apply(config, viewCamera, player != null ? player.transform : null);
-            Sky.Build(config, viewCamera, player != null ? player.transform : null);
 
             try { Ambiance.Build(worldRoot, player != null ? player.transform : null, config); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignorée : " + error.Message); }
-
-            try { if (player != null) GroundCover.Build(worldRoot, player.transform, config); }
-            catch (System.Exception error) { Debug.LogWarning("[FIEF] Tapis de forêt ignore : " + error.Message); }
 
             BuildHud(player);
 
@@ -107,7 +97,7 @@ namespace Fief
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] " + Game.Version + " -- manche " + Match.RoundNumber + " construite en " + chrono.ElapsedMilliseconds + " ms : "
-                      + Forest.TreeCount + " arbres, " + Eye.All.Count + " Yeux, " + Shrine.All.Count + " sanctuaires, "
+                      + Eye.All.Count + " Yeux, " + Shrine.All.Count + " sanctuaires, "
                       + Game.Seekers.Count + " joueurs.");
         }
 
@@ -133,8 +123,6 @@ namespace Fief
             GameObject folk = new GameObject("HABITANTS");
             folk.transform.SetParent(worldRoot, false);
             Eye.PlaceAll(folk.transform);
-            Wisp.SpawnAll(folk.transform, config, 6);
-            Soundscape.Build(folk.transform);
         }
 
         /// <summary>
@@ -149,10 +137,9 @@ namespace Fief
             {
                 PlayerSlot slot = Match.Slots[i];
                 if (slot.IsLocal) continue;
-                Vector3 spawn = Spawns.Of(slot.Index, Ground.Place(0f, -150f, 0.1f)) + Vector3.up * 0.1f;
+                Vector3 spawn = Spawns.Of(slot.Index, Tower.Foot + Vector3.back * Spawns.Distance) + Vector3.up * 0.1f;
                 Rival r = Rival.Build(root.transform, slot, spawn, config.worldSeed * 41 + Match.RoundSeed + i);
-                Vector3 look = -new Vector3(spawn.x, 0f, spawn.z);
-                r.transform.rotation = Quaternion.LookRotation(look.sqrMagnitude > 0.01f ? look.normalized : Vector3.forward, Vector3.up);
+                r.transform.rotation = Quaternion.Euler(0f, Spawns.YawOf(slot.Index), 0f);
             }
             // Game.Seekers dans l'ordre des places : toi d'abord (place 0), puis les autres.
             Game.Seekers.Sort((a, b) => a.Index.CompareTo(b.Index));
@@ -167,13 +154,11 @@ namespace Fief
             Game.Me = me;
             Game.Seekers.Add(me);
 
-            // On apparait A LA LISIERE, a son point de depart, tourne vers le chateau :
-            // on le devine au loin, sa tour de guet au-dessus de la brume.
-            Vector3 spawn = Spawns.Of(mine.Index, Ground.Place(0f, -150f, 1.2f)) + Vector3.up * 1.2f;
+            // On apparait SUR SA ZONE, sur la ligne de depart, face au pied de la rampe.
+            Vector3 spawn = Spawns.Of(mine.Index, Tower.Foot + Vector3.back * Spawns.Distance) + Vector3.up * 1.2f;
             GameObject go = new GameObject("JOUEUR");
             go.transform.position = spawn;
-            Vector3 look = -new Vector3(spawn.x, 0f, spawn.z);
-            float yaw = Mathf.Atan2(look.x, look.z) * Mathf.Rad2Deg;
+            float yaw = Spawns.YawOf(mine.Index);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
             CharacterController controller = go.AddComponent<CharacterController>();

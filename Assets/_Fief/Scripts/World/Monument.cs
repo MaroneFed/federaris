@@ -20,32 +20,24 @@ namespace Fief
 
         LightBeam beam;
 
-        /// <summary>Sa place pour cette manche (choisie par Choose, avant la foret).</summary>
+        /// <summary>Sa place pour cette manche : le centre du dessus de son ilot.</summary>
         public static Vector3 Site { get; private set; }
+        /// <summary>L'ilot du Monument (voir Ground.GetIslet), -1 s'il n'y en a pas.</summary>
+        public static int Islet { get; private set; }
         static bool sited;
 
         /// <summary>
-        /// Choisir sa place : 100-138 m du chateau, sur un sol plat. A appeler AVANT la
-        /// foret (elle lui laisse une clairiere) et avant les lieux-dits (qui s'en
-        /// ecartent) : chaque manche, il est ailleurs.
+        /// Choisir sa place (27/09) : un des ILOTS FLOTTANTS, tire de la graine de la
+        /// manche. On y va en planant depuis la tour, ou tire par une arbaleste.
         /// </summary>
         public static void Choose(int seed)
         {
             System.Random rng = new System.Random(seed);
-            sited = false;
-            Site = new Vector3(0f, 0f, -118f);
-            for (int tries = 0; tries < 400; tries++)
-            {
-                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                // Carte de 320 m (27/09) : entre la citadelle et la lisiere.
-                float r = 100f + (float)rng.NextDouble() * 38f;
-                float x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r;
-                if (Mathf.Abs(x) > 138f || Mathf.Abs(z) > 138f) continue;
-                if (Castle.Covers(x, z, 20f) || Ground.Slope(x, z) > 0.25f) continue;
-                Site = new Vector3(x, 0f, z);
-                break;
-            }
             sited = true;
+            Islet = -1;
+            if (Ground.IsletCount == 0) { Site = new Vector3(0f, 0f, -80f); return; }
+            Islet = rng.Next(Ground.IsletCount);
+            Site = Ground.GetIslet(Islet).Top;
         }
 
         /// <summary>Vrai si (x, z) tombe dans la clairiere du Monument (plus une marge).</summary>
@@ -57,7 +49,7 @@ namespace Fief
             return dx * dx + dz * dz < r * r;
         }
 
-        /// <summary>Le batir a sa place (apres la foret).</summary>
+        /// <summary>Le batir sur son ilot.</summary>
         public static Monument Build(Transform parent, int seed)
         {
             System.Random rng = new System.Random(seed ^ 0x77);

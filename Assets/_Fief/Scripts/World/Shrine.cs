@@ -127,26 +127,30 @@ namespace Fief
             return (Ability)rng.Next((int)Ability.DoubleSaut);
         }
 
-        /// <summary>Quelques sanctuaires de plus dans les clairieres (chaque lieu-dit a deja le sien).</summary>
+        /// <summary>
+        /// Les sanctuaires de la manche (27/09, l'ile) : un sur chaque ilot flottant
+        /// (sauf celui du Monument) -- la recompense de ceux qui y vont en planant ou
+        /// par l'arbaleste --, et quatre sur l'ile, hors des murs, aux quatre coins.
+        /// </summary>
         public static void Scatter(Transform parent, int seed)
         {
             System.Random rng = new System.Random(seed ^ 0x51);
             GameObject root = new GameObject("SANCTUAIRES");
             root.transform.SetParent(parent, false);
-            float half = (Game.Config != null ? Game.Config.mapSize : 320f) * 0.5f - 25f;
-            int placed = 0;
-            for (int tries = 0; tries < 600 && placed < 4; tries++)
+            for (int i = 0; i < Ground.IsletCount; i++)
             {
-                float x = ((float)rng.NextDouble() * 2f - 1f) * half;
-                float z = ((float)rng.NextDouble() * 2f - 1f) * half;
-                if (Castle.Covers(x, z, 12f) || Landmarks.Near(x, z, 8f) || Monument.Near(x, z, 6f) || Ground.Slope(x, z) > 0.25f) continue;
-                Vector3 at = Ground.Place(x, z, 0f);
-                if (Physics.CheckSphere(at + Vector3.up * 1.2f, 2.6f, ~0, QueryTriggerInteraction.Ignore)) continue;
-                bool far = true;
-                for (int k = 0; k < All.Count && far; k++) if ((All[k].transform.position - at).magnitude < 45f) far = false;
-                if (!far) continue;
+                if (i == Monument.Islet) continue;
+                Ground.Islet it = Ground.GetIslet(i);
+                Build(root.transform, it.Top, RandomGift(rng), true);
+            }
+            for (int k = 0; k < 4; k++)
+            {
+                // Entre une porte et une tour d'angle (jamais contre la tour d'angle).
+                float a = (k * 90f + 22f + (float)rng.NextDouble() * 16f) * Mathf.Deg2Rad;
+                float edge = Ground.EdgeAt(a);
+                float r = Mathf.Min(edge - 10f, 82f);
+                Vector3 at = Ground.Place(Mathf.Cos(a) * r, Mathf.Sin(a) * r, 0f);
                 Build(root.transform, at, RandomGift(rng));
-                placed++;
             }
         }
     }

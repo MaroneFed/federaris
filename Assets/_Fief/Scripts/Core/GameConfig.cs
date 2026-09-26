@@ -31,51 +31,32 @@ namespace Fief
         }
 
         [Header("Monde")]
-        [Tooltip("Côté de la carte en mètres. 320 m (27/09, réduite de 420) : on croise " +
-                 "les autres, on voit la tour de partout, la course au Monument dure 30 s.")]
-        public float mapSize = 320f;
-        [Tooltip("Graine du générateur aléatoire : même graine = même map.")]
+        [Tooltip("Côté de l'espace de jeu en mètres (l'île fait ~200 m, les îlots flottent " +
+                 "jusqu'à 175 m du centre). Au-delà, on est ramené dedans.")]
+        public float mapSize = 440f;
+        [Tooltip("Graine du générateur aléatoire : même graine = même île, mêmes îlots.")]
         public int worldSeed = 1337;
 
-        [Header("La sylve")]
-        [Tooltip("Distance à laquelle la brume efface tout, en mètres. C'est le réglage " +
-                 "le plus important du jeu : il décide de l'enfermement. À 14 m un tronc " +
-                 "est à moitié effacé à 7 m -- on ne voit jamais ce qu'il y a deux arbres " +
-                 "plus loin. Remonte à 20 ou 30 pour respirer.")]
-        public float sightDistance = 18f;
+        [Header("Le ciel (27/09 : l'île flottante)")]
+        [Tooltip("Distance à laquelle la brume efface tout, en mètres. Grande : on doit voir " +
+                 "les planeurs, les îlots et la tour de partout.")]
+        public float sightDistance = 320f;
 
-        [Tooltip("Couleur de la brume et du fond. Gris-vert, et PLUS CLAIRE que les " +
-                 "troncs proches : c'est ce qui les découpe en silhouettes. Une brume plus " +
-                 "sombre que les arbres donne un vide noir, pas une forêt.")]
-        public Color hazeColor = new Color(0.17f, 0.19f, 0.17f);
+        [Tooltip("Couleur de la brume à l'horizon : l'or du soir, comme le ciel.")]
+        public Color hazeColor = new Color(0.78f, 0.66f, 0.58f);
 
-        [Tooltip("Hauteur de la lumière au-dessus de l'horizon, en degrés. Sous un couvert " +
-                 "la lumière tombe d'en haut : en dessous de 35 elle éclaire les troncs de " +
-                 "côté, comme un projecteur, et plus rien n'a l'air naturel.")]
-        public float sunElevation = 52f;
+        [Tooltip("Hauteur du soleil au-dessus de l'horizon, en degrés. Bas : lumière dorée, " +
+                 "longues ombres, la tour se découpe.")]
+        public float sunElevation = 20f;
 
-        [Tooltip("Force de la lumière du ciel. Faible : c'est un temps couvert.")]
-        public float sunIntensity = 0.45f;
+        [Tooltip("Force du soleil.")]
+        public float sunIntensity = 1.15f;
 
-        [Tooltip("Force de la lanterne que tu portes. Sans elle, sombre veut dire " +
-                 "'on ne voit rien' et le jeu devient pénible. Trop forte, elle repeint " +
-                 "la forêt en orange.")]
-        public float lampIntensity = 1.0f;
+        [Tooltip("Force de la lanterne que tu portes (discrète en plein jour).")]
+        public float lampIntensity = 0.5f;
 
         [Tooltip("Portée de la lanterne, en mètres.")]
-        public float lampRange = 13f;
-
-        [Tooltip("Écart moyen entre deux emplacements d'arbre, en mètres. Plus petit = " +
-                 "plus dense, mais aussi plus long à construire.")]
-        public float treeSpacing = 4.6f;
-
-        [Tooltip("Proportion des emplacements réellement plantes, module par le couvert. " +
-                 "Monte-le pour un fourre, descends-le pour une futaie claire.")]
-        public float treeDensity = 0.80f;
-
-        [Tooltip("Densité des touffes et blocs au sol. Ils poussent là où le couvert " +
-                 "s'ouvre, donc ils remplissent les clairières au lieu de les vider.")]
-        public float undergrowthDensity = 0.55f;
+        public float lampRange = 10f;
 
         [Header("Déplacement")]
         [Tooltip("Vitesse de marche, en m/s (le pouvoir Coureur ajoute 15 %).")]

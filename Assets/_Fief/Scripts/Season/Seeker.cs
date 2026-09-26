@@ -96,6 +96,12 @@ namespace Fief
         /// <summary>Le dernier coup encaisse (la musique, l'ecran s'en servent).</summary>
         public float LastHurt = -99f;
         /// <summary>
+        /// LA GRACE : protege (rien ne le projette, les Yeux l'ignorent). Au depart, apres
+        /// un respawn, et une seconde et demie apres avoir vole la Couronne.
+        /// </summary>
+        public float GraceUntil = -1f;
+        public bool Graced { get { return Time.time < GraceUntil; } }
+        /// <summary>
         /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant
         /// dessus (sinon on la "rattrape" d'office en volant dans la meme direction).
         /// </summary>
