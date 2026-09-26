@@ -261,9 +261,13 @@ namespace Fief
                 if ((from + dir * along - c).magnitude > 0.9f) continue;
                 Vector3 push = new Vector3(dir.x, 0f, dir.z).normalized;
                 Combat.Hit(s, push * 15f + Vector3.up * 5f, 0.7f, true, null);
+                Fx.Impact(c, Blaze, 1.3f);
                 if (s.IsPlayer) Stats.EyeHits++;
             }
             Ambiance.Burst(null, from + dir * Mathf.Min(reach, 40f), Alarm);
+            Fx.Flash(from, Blaze, 14f, 6f, 0.25f);
+            Fx.Ring(from, Blaze, 0.3f, 2.5f, 0.3f, 0.2f, dir);
+            Fx.Sparks(from + dir * Mathf.Min(reach, 40f), Alarm, 40, 7f);
             Sfx.Thud();
             if (NearPlayer(40f) && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.12f);
             beam.startWidth = 0.35f;

@@ -207,7 +207,8 @@ namespace Fief
                     airJumpUsed = true;
                     verticalVelocity = cfg.jumpSpeed * 1.05f;
                     Sfx.Whoosh();
-                    Ambiance.Burst(null, transform.position + Vector3.up * 0.2f, AbilityInfo.Tint(Ability.DoubleSaut));
+                    Fx.Ring(transform.position + Vector3.up * 0.1f, AbilityInfo.Tint(Ability.DoubleSaut), 0.3f, 2.4f, 0.3f, 0.2f, Vector3.up);
+                    Fx.Burst(transform.position, AbilityInfo.Tint(Ability.DoubleSaut), 25, 5f, 0.14f, 0.5f, 0.3f, Vector3.down, 40f);
                 }
                 // LE VOL PLANE : avec des ailes, Espace maintenu (le porteur de la
                 // Couronne plane tout seul : il ne la laisse pas tomber par megarde).
@@ -291,7 +292,8 @@ namespace Fief
             if (fall > 4f && me != null && me.Has(Ability.Rebond))
             {
                 Combat.Blast(transform.position, 5f, 13f, 5f, me);
-                Ambiance.Burst(null, transform.position + Vector3.up * 0.3f, AbilityInfo.Tint(Ability.Rebond));
+                Fx.GroundRing(transform.position, AbilityInfo.Tint(Ability.Rebond), 6f, 0.45f);
+                Fx.Shock(transform.position + Vector3.up * 0.5f, AbilityInfo.Tint(Ability.Rebond), 4f, 0.35f);
                 Sfx.Crash();
             }
             if (fall > 3f) Sfx.Thud();

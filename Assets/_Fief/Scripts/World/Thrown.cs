@@ -73,7 +73,11 @@ namespace Fief
 
         void Burst(Vector3 at)
         {
-            Ambiance.Burst(null, at + Vector3.up * 0.3f, Frost);
+            // L'eclat de givre : une sphere glacee, un anneau de gel au sol, une gerbe de cristaux.
+            Fx.Shock(at + Vector3.up * 0.5f, Frost, SlowRadius, 0.45f);
+            Fx.GroundRing(at, Frost, SlowRadius + 1f, 0.5f);
+            Fx.Burst(at + Vector3.up * 0.3f, Frost, 70, 9f, 0.18f, 0.9f, 0.5f, Vector3.zero, 0f);
+            Fx.Flash(at + Vector3.up, Frost, 10f, 4f, 0.35f);
             Sfx.Chip();
             for (int i = 0; i < Game.Seekers.Count; i++)
             {

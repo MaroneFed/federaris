@@ -66,7 +66,12 @@ namespace Fief
                 d.y = 0f;
                 if (d.magnitude > Trigger) continue;
                 Combat.Hit(s, Vector3.up * 15f + d.normalized * 3f, 0.4f, true, owner);
-                Ambiance.Burst(null, transform.position + Vector3.up * 0.4f, Rune);
+                // L'explosion : une colonne de feu, une sphere, un anneau, un eclair.
+                Fx.Column(transform.position, Rune, 16f, 0.25f, 0.5f);
+                Fx.Shock(transform.position + Vector3.up * 0.5f, Rune, 2.5f, 0.35f);
+                Fx.GroundRing(transform.position, Rune, 4f, 0.4f);
+                Fx.Burst(transform.position + Vector3.up * 0.3f, Rune, 80, 12f, 0.2f, 0.8f, 0.6f, Vector3.up, 55f);
+                Fx.Flash(transform.position + Vector3.up, Rune, 14f, 7f, 0.35f);
                 Sfx.TrapSnap();
                 if (owner != null && owner.IsPlayer) Stats.MineHits++;
                 Destroy(gameObject);
@@ -147,8 +152,8 @@ namespace Fief
             t.line = go.AddComponent<LineRenderer>();
             t.line.positionCount = 2;
             t.line.useWorldSpace = true;
-            t.line.startWidth = 0.08f;
-            t.line.endWidth = 0.05f;
+            t.line.startWidth = 0.16f;
+            t.line.endWidth = 0.1f;
             t.line.sharedMaterial = MaterialFactory.GetGlow(colour, 2.5f);
             t.line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             t.LateUpdate();
