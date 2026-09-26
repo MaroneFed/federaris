@@ -318,7 +318,9 @@ namespace Fief
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
             if (fromPedestal) Sfx.Alarm();
-            if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "À un Monument : une colonne bleue !", "", Gold);
+            // Prise au sommet : un moment d'aura (sinon, ramassee par terre : le titre simple).
+            if (fromPedestal) Aura.Moment(s, "LA COURONNE EST À TOI", Gold, 1f);
+            else if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "À un Monument : une colonne bleue !", "", Gold);
             Feed.CrownTaken(s, fromPedestal);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;

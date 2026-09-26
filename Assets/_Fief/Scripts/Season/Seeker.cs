@@ -97,6 +97,8 @@ namespace Fief
         public float HiddenUntil = -1f;     // voile : invisible
         /// <summary>Le dernier coup encaisse (la musique, l'ecran s'en servent).</summary>
         public float LastHurt = -99f;
+        /// <summary>Qui l'a frappe en dernier (pour l'aura de qui l'a ejecte dans les nuages).</summary>
+        public Seeker LastHitBy;
         /// <summary>
         /// LA GRACE : protege (rien ne le projette, les Yeux l'ignorent). Au depart, apres
         /// un respawn, et une seconde et demie apres avoir vole la Couronne.

@@ -1078,6 +1078,8 @@ namespace Fief
         void Animate(float dt)
         {
             if (figure == null) return;
+            // Le porteur de la Couronne brule d'une aura d'or : on le voit de loin.
+            AuraFlames.Keep(transform, Wings.Gold, seeker.CarriesCrown && !seeker.Hidden);
             // Sous le Voile, le corps s'eteint. La lanterne et le halo restent (sauf sous le
             // Voile) : c'est comme ca qu'on repere un joueur.
             bool near = PlayerWithin(320f) && !seeker.Hidden;

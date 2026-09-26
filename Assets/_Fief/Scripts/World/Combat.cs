@@ -41,6 +41,7 @@ namespace Fief
             // POUSSER LE PORTEUR, C'EST LUI VOLER LA COURONNE (27/09 -- Martin : "il se la
             // reprend en une demi-seconde"). Elle passe directement dans tes mains.
             bool stole = best.CarriesCrown && !best.Graced && Crown.TrySteal(by, best);
+            if (stole) Aura.Moment(by, "COURONNE VOLÉE", Wings.Gold, 1f);
             // Un court etourdissement : on ne contre-marche pas une poussee (c'est ce
             // qui la rendait molle -- on reculait de deux metres en appuyant sur Z).
             Hit(best, push * force + Vector3.up * 7f, 0.25f, !stole, by);
@@ -117,6 +118,7 @@ namespace Fief
             Vector3 dir = Flat(target.Body.position - by.Body.position);
             dir = dir.sqrMagnitude > 0.01f ? dir.normalized : by.Body.forward;
             bool stole = target.CarriesCrown && !target.Graced && Crown.TrySteal(by, target);
+            if (stole) Aura.Moment(by, "PIQUÉ D'AIGLE", Wings.Gold, 1.3f);
             Hit(target, dir * 24f + Vector3.up * 6f, 0.3f, !stole, by);
             Fx.Impact(target.Body.position + Vector3.up * 1.1f, Wings.Gold, stole ? 1.8f : 1f);
             Fx.Shock(target.Body.position + Vector3.up * 1.1f, Wings.Gold, 3f, 0.3f);
@@ -139,6 +141,13 @@ namespace Fief
             if (victim.Has(Ability.Ancrage)) velocity = new Vector3(velocity.x * 0.5f, velocity.y * 0.7f, velocity.z * 0.5f);
             Knockback(victim, velocity);
             victim.LastHurt = Time.time;
+            if (by != null && by != victim) victim.LastHitBy = by;
+            // Tes coups PORTENT : une micro-pause, un petit tremblement (28/09 : "que les capacites soient vraiment impactantes").
+            if (by != null && by.IsPlayer)
+            {
+                Hud.HitStop(0.06f);
+                if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.12f);
+            }
             if (stun > 0f) victim.StunnedUntil = Mathf.Max(victim.StunnedUntil, Time.time + stun);
 
             if (dropsCrown && victim.CarriesCrown)
@@ -393,6 +402,10 @@ namespace Fief
         {
             if (s == null || s.Body == null) return;
             if (s.CarriesCrown) Crown.BackToTop();
+            // Pousse dans le vide il y a moins de six secondes : l'aura est pour qui l'a ejecte.
+            if (s.LastHitBy != null && Time.time - s.LastHurt < 6f)
+                Aura.Moment(s.LastHitBy, "ÉJECTÉ : " + s.Name.ToUpperInvariant(), s.LastHitBy.Colour, 0.8f);
+            s.LastHitBy = null;
             Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;
             float yaw = Spawns.YawOf(s.Index);
             if (s.IsPlayer && Game.Player != null) Game.Player.Teleport(at, yaw);

@@ -425,6 +425,13 @@ namespace Fief
             if (Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
             roundWinner = winner;
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
+            // Le vainqueur flambe d'aura pendant toute la fin de manche.
+            for (int i = 0; i < Game.Seekers.Count; i++)
+                if (Game.Seekers[i].Index == winner && Game.Seekers[i].Body != null)
+                {
+                    AuraFlames.Burn(Game.Seekers[i].Body, Game.Seekers[i].Colour, 12f);
+                    Fx.Column(Game.Seekers[i].Body.position, Game.Seekers[i].Colour, 40f, 0.8f, 1.2f);
+                }
             Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();

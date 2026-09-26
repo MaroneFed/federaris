@@ -626,8 +626,9 @@ namespace Fief
             if (me.Slowed) Edges(UiStyle.S(60), new Color(0.5f, 0.8f, 1f, 0.22f));
             if (me.CarriesCrown)
             {
-                float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3f);
-                Edges(UiStyle.S(30), new Color(1f, 0.78f, 0.3f, 0.06f + 0.06f * pulse));
+                // L'aura du porteur : les bords brulent d'or, au rythme du phonk (140 par minute).
+                float beat = Mathf.Pow(1f - Mathf.Repeat(Time.unscaledTime * 140f / 60f, 1f), 3f);
+                Edges(UiStyle.S(40 + 40 * beat), new Color(1f, 0.78f, 0.3f, 0.08f + 0.16f * beat));
             }
         }
 

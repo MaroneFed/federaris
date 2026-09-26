@@ -9,7 +9,8 @@ namespace Fief
     ///   TITRE     l'ecran-titre ;
     ///   FORET     l'exploration, le calme inquietant ;
     ///   TENSION   le mage descend, un garde court, on se bat, un voleur file ;
-    ///   FIN       la cloche a sonne.
+    ///   FIN       la cloche a sonne ;
+    ///   AURA      (28/09) tu portes la Couronne, ou tu viens de gagner : du PHONK.
     ///
     /// LES MORCEAUX DE MARTIN : mets des fichiers audio (mp3, ogg, wav) dans
     /// Assets/_Fief/Resources/Music. Leur NOM dit leur humeur :
@@ -17,6 +18,7 @@ namespace Fief
     ///     "foret", "calme", "explor", "ambiance"    -> FORET
     ///     "tension", "combat", "mage", "danger"     -> TENSION
     ///     "fin", "final", "victoire", "cloche"      -> FIN
+    ///     "phonk", "aura", "funk"                   -> AURA
     /// Plusieurs morceaux par humeur : ils s'enchainent au hasard.
     ///
     /// Sans fichier, la musique est FABRIQUEE ici : des nappes lentes en re mineur
@@ -30,7 +32,7 @@ namespace Fief
     /// </summary>
     public class MusicDirector : MonoBehaviour
     {
-        enum Mood { Title, Forest, Tension, End }
+        enum Mood { Title, Forest, Tension, End, Aura }
 
         readonly Dictionary<Mood, List<AudioClip>> tracks = new Dictionary<Mood, List<AudioClip>>();
         AudioSource a, b;
@@ -61,12 +63,13 @@ namespace Fief
 
         void LoadTracks()
         {
-            foreach (Mood md in new[] { Mood.Title, Mood.Forest, Mood.Tension, Mood.End }) tracks[md] = new List<AudioClip>();
+            foreach (Mood md in new[] { Mood.Title, Mood.Forest, Mood.Tension, Mood.End, Mood.Aura }) tracks[md] = new List<AudioClip>();
             AudioClip[] found = Resources.LoadAll<AudioClip>("Music");
             for (int i = 0; i < found.Length; i++)
             {
                 string n = found[i].name.ToLowerInvariant();
-                if (Has(n, "titre", "menu", "title")) tracks[Mood.Title].Add(found[i]);
+                if (Has(n, "phonk", "aura", "funk")) tracks[Mood.Aura].Add(found[i]);
+                else if (Has(n, "titre", "menu", "title")) tracks[Mood.Title].Add(found[i]);
                 else if (Has(n, "tension", "combat", "mage", "danger", "chase")) tracks[Mood.Tension].Add(found[i]);
                 else if (Has(n, "fin", "final", "victoire", "cloche", "end")) tracks[Mood.End].Add(found[i]);
                 else tracks[Mood.Forest].Add(found[i]);
@@ -78,6 +81,7 @@ namespace Fief
             if (tracks[Mood.Title].Count == 0) tracks[Mood.Title].AddRange(tracks[Mood.Forest]);
             if (tracks[Mood.Tension].Count == 0) tracks[Mood.Tension].Add(MusicSynth.Tension());
             if (tracks[Mood.End].Count == 0) tracks[Mood.End].AddRange(tracks[Mood.Forest]);
+            if (tracks[Mood.Aura].Count == 0) tracks[Mood.Aura].Add(Phonk.Loop());
         }
 
         static bool Has(string name, params string[] keys)
@@ -104,10 +108,12 @@ namespace Fief
                 live = next;
             }
 
-            float wanted = Sfx.Muted ? 0f : volume * (mood == Mood.Tension ? 1.1f : 1f);
-            live.volume = Mathf.MoveTowards(live.volume, wanted, dt * 0.25f);
+            float wanted = Sfx.Muted ? 0f : volume * (mood == Mood.Tension ? 1.1f : mood == Mood.Aura ? 1.4f : 1f);
+            // Le phonk entre d'un coup ; le reste en fondu lent.
+            float fade = mood == Mood.Aura ? 1.2f : 0.25f;
+            live.volume = Mathf.MoveTowards(live.volume, wanted, dt * fade);
             AudioSource other = live == a ? b : a;
-            other.volume = Mathf.MoveTowards(other.volume, 0f, dt * 0.25f);
+            other.volume = Mathf.MoveTowards(other.volume, 0f, dt * fade);
             if (other.volume <= 0f && other.isPlaying) other.Stop();
         }
 
@@ -115,6 +121,10 @@ namespace Fief
         Mood Decide()
         {
             Menus menus = Game.Menus;
+            // L'AURA (28/09) : tu portes la Couronne, ou tu viens de gagner -- le phonk.
+            bool won = Match.Local != null && Match.LastWinner == Match.Local.Index;
+            if (menus != null && (menus.Current == Menus.State.RoundOver || menus.Current == Menus.State.Ended) && won) return Mood.Aura;
+            if (Game.Me != null && Game.Me.CarriesCrown && menus != null && menus.Current == Menus.State.Playing) return Mood.Aura;
             if (menus != null && menus.Current == Menus.State.Ended) return Mood.End;
             if (menus != null && menus.Current != Menus.State.Playing && menus.Current != Menus.State.Paused) return Mood.Title;
 
