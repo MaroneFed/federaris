@@ -11,6 +11,13 @@
 > (trois Monuments), « des meilleures arbalètes », de nouveaux Yeux, et des pouvoirs
 > bien plus forts (« le souffle, que ça passe toute la map »).
 >
+> Puis, le 28/09 au soir : « un jeu plein d'aura (la Yara Yara funk) », « la route
+> jusqu'au château plus compliquée », « chacun commence sur sa plateforme, les arbalètes
+> pour remonter direct, c'est cheaté », « plus d'obstacles, aléatoires », « les cartes
+> sont mal faites », « on comprend pas les touches », « la première carte : une passive ;
+> une active sur le clic gauche, une sur E, pas sur C », « choper facilement la couronne
+> en l'air », « les yeux : un truc plus moyenâgeux ».
+>
 > C'est **la référence** : quand le code et ce document ne disent pas la même chose,
 > c'est un des deux qu'il faut corriger. L'histoire des choix : `docs/100-RAISONS.md`,
 > `docs/100-PROBLEMES.md`. Les versions précédentes (la forêt, l'épée, les objets, la
@@ -43,14 +50,18 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 
 ### Une manche
 
-1. **Le départ.** Chacun apparaît **sur sa petite zone** (un disque lumineux et un
-   fanion à sa couleur), sur une **ligne de départ en arc** dans la cour : toutes les
-   zones sont **à la même distance du pied de la rampe**, côte à côte. Personne ne part
-   avantagé. **3, 2, 1, PARTEZ !** — trois secondes de protection pour s'élancer.
-2. **La montée.** La rampe de la tour, en courant — ou une **arbaleste géante** qui
-   t'envoie d'un coup haut sur la rampe.
-3. **Le sommet.** La Couronne sur son socle (**E maintenu 1 s**). Et tout autour, les
-   **planeurs** : en arrivant au sommet, **on prend des ailes d'or** (plus rapides).
+1. **Le départ.** Chacun apparaît sur **SA PLATEFORME** : un petit rocher volant à
+   42 m de haut et 116 m du centre, un cercle et un fanion à sa couleur, et **SON
+   ARBALESTE**, tournée vers la citadelle. Toutes les plateformes sont **à la même
+   distance de la tour**, également espacées. Un panneau montre **les touches**.
+   **3, 2, 1, PARTEZ !** — trois secondes de protection.
+2. **L'approche.** On se fait **tirer par son arbaleste** (F, puis tendre et relâcher)
+   ou on **saute et on plane** jusqu'à l'île. **On n'entre pas dans la citadelle par
+   les airs** : le **sceau** (un dôme de runes d'or au-dessus des remparts) renvoie
+   dehors qui essaie. On entre **par une porte**, au bout de son **couloir piégé**.
+3. **La montée.** La rampe de la tour, en courant, **à pied** (les arbalestes ne
+   peuvent plus y envoyer). Au sommet, la Couronne sur son socle (**F maintenu 1 s**),
+   et tout autour les **planeurs** : on prend des **ailes d'or** (plus rapides).
 4. **Le vol.** On saute dans le vide : **les ailes s'ouvrent toutes seules**. On va où
    l'on regarde (voir « Le vol plané »). Destination : **un des trois Monuments**, sur
    trois îlots flottants (leurs colonnes bleues), d'autres à chaque manche — **celui
@@ -70,6 +81,11 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 - Les autres coups (onde, souffle, Œil, pendule, bélier, boulet, mine) la font
   **tomber** ; même verrou de 3 s pour qui la perd. À terre, on la **ramasse en passant
   dessus** ; oubliée, elle **rentre au sommet au bout de 20 s**.
+- **En l'air, on l'attrape facilement : LE PIQUÉ D'AIGLE.** Le porteur dans le viseur
+  (à 45 m, dans un cône de 30°), la touche pour pousser : on **fond sur lui**, guidé, à
+  48 m/s ; au contact, c'est un **vol**. Recharge 3 s. (Choisi parmi : une poussée à
+  plus grande portée en l'air, un vol au simple contact, un aimant… Le piqué est le
+  plus lisible et le plus spectaculaire, et il récompense la visée.)
 - **Replier ses ailes** (Espace en vol) avec la Couronne et tomber comme une pierre :
   elle **reste là où tu as quitté le sol**. Tomber dans les nuages avec : elle
   **rentre au sommet**.
@@ -95,28 +111,30 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 
 ### Tomber dans les nuages
 
-On ne meurt pas. Qui tombe de l'île (ou rate l'îlot) **réapparaît sur sa zone de
-départ**, dans une **colonne de lumière** à sa couleur, protégé 3 s.
+On ne meurt pas. Qui tombe de l'île (ou rate l'îlot) **réapparaît sur sa
+plateforme de départ**, dans une **colonne de lumière** à sa couleur, protégé 3 s.
 
 ---
 
-## Les mains vides
+## Les touches (refaites le 28/09)
 
-- **Clic gauche : POUSSER.** Le plus proche devant toi (3 m) part en arrière et en
-  l'air, étourdi 0,2 s. **S'il porte la Couronne, tu la lui voles.** Recharge 0,9 s.
-- **Clic droit, R, C : tes trois capacités actives**, dans l'ordre où tu les as prises.
-  Celles qu'on **vise** (Ruée, Grappin, Crochet, Clignement, Mur, Givre, Échange,
-  Souffle) : **maintiens** la touche, un **aperçu** montre où elle ira (le point
-  d'accroche, la cible entourée, ton fantôme, le chemin, la courbe, le couloir du
-  vent) ; **relâche** pour lancer. Les autres partent dès qu'on appuie.
-- **V : le don** d'un sanctuaire (pour la manche seulement).
-- **Espace** : sauter (encore une fois en l'air avec Double saut) ; en vol, replier
-  ou rouvrir les ailes.
-- **E** : prendre la Couronne sur son socle, prendre un don, **monter sur une arbaleste**.
-- **Sur une arbaleste** : la souris vise (la **trajectoire se dessine en perles de
-  lumière**), **clic gauche maintenu : on tend** (la courbe s'allonge), **relâché : on
-  est tiré**, E descend.
-- **Tab** : le score et les capacités de chacun.
+| Touche | Ce qu'elle fait |
+|---|---|
+| **Clic gauche** | ta **première capacité active** (celle de la manche 1) |
+| **E** | ta deuxième capacité active |
+| **R** | ta troisième |
+| **V** | le **don** d'un sanctuaire (pour la manche) |
+| **Clic droit** | **POUSSER** (3 m, recharge 0,9 s, projette fort) — pousser le porteur, c'est lui **voler** la Couronne ; **en l'air, sur le porteur : le piqué d'aigle** |
+| **F** | prendre la Couronne, un don ; **monter sur une arbaleste** (et en descendre) |
+| **Espace** | sauter ; en vol, replier ou rouvrir les ailes |
+| **Sur une arbaleste** | souris : viser ; **clic gauche maintenu : tendre**, relâché : tiré |
+| **F1 ou H** | le panneau des touches, à tout moment |
+| **Tab** | le score et les capacités de chacun |
+
+Le réglage **« Pousser sur »** (Réglages) inverse les deux clics pour qui préfère
+pousser au clic gauche. Les capacités qu'on **vise** (Ruée, Grappin, Crochet,
+Clignement, Mur, Givre, Échange, Souffle) : **maintiens** la touche, un **aperçu** montre
+où elle ira ; **relâche** pour lancer. Les autres partent dès qu'on appuie.
 
 Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projette et
 étourdit un court instant (0,2 à 0,7 s), jamais plus.
@@ -125,10 +143,19 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 
 ## Les 26 capacités
 
+**Avant la manche 1, deux tours de table : une PASSIVE d'abord, puis une ACTIVE** (qui
+va sur le clic gauche). Ensuite, une carte de plus entre chaque manche, tout mélangé.
 Trois actives au plus : en prendre une quatrième **remplace la plus ancienne** (la carte
 le dit avant qu'on choisisse). Les passives s'accumulent.
 
-### Actives (sur clic droit, R, C — ou V pour un don)
+**Les cartes** (refaites le 28/09) : elles arrivent **face cachée** (un dos de velours,
+un losange d'or) et **se retournent** une à une ; la face : une pierre granuleuse, un
+lavis à la couleur de la capacité, un **cadre d'or** ouvragé, un ruban (ACTIVE · CLIC
+GAUCHE / PASSIVE), le nom, un fleuron, la phrase, la recharge. Celle qu'on vise se
+soulève, s'entoure de **rayons qui tournent** et d'étincelles ; la prendre : un éclair,
+une gerbe d'étincelles, un **coup de phonk**.
+
+### Actives (sur clic gauche, E, R — ou V pour un don)
 
 | Capacité | Ce que ça fait | Recharge |
 |---|---|---|
@@ -139,7 +166,7 @@ le dit avant qu'on choisisse). Les passives s'accumulent.
 | **Clignement** | Tu disparais et réapparais quinze mètres plus loin. | 5 s |
 | **Bond** | Un saut immense ; le souffle du départ repousse ceux qui sont tout près. | 8 s |
 | **Mur** | Un mur de 10 m sur 4,5 m surgit devant toi ; qui est dessus s'envole. | 12 s |
-| **Nuée** | Un nuage de fumée de 16 m : les Yeux et les autres ne voient plus rien. | 14 s |
+| **Nuée** | Un nuage de fumée de 16 m : les gargouilles et les autres ne voient plus rien. | 14 s |
 | **Mine** | Pose une mine : elle envoie en l'air tous ceux qui passent à 4 m. | 9 s |
 | **Givre** | Une boule de givre (26 m) : l'éclat bouscule et ralentit, 6,5 m autour. | 8 s |
 | **Voile** | Tu deviens invisible pendant sept secondes. | 16 s |
@@ -158,7 +185,7 @@ le dit avant qu'on choisisse). Les passives s'accumulent.
 | **Poigne** | Ta poussée envoie deux fois plus loin. |
 | **Ancrage** | On te pousse deux fois moins loin. |
 | **Flair** | Tu vois toujours où est la Couronne, même à travers les murs. |
-| **Ombre** | Les Yeux mettent deux fois plus de temps à te repérer. |
+| **Ombre** | Les gargouilles mettent deux fois plus de temps à te repérer. |
 | **Prise ferme** | Le premier coup ne te fait pas lâcher la Couronne. |
 | **Recharge** | Tes capacités reviennent un tiers plus vite. |
 | **Rebond** | Retomber de haut fait une onde de choc autour de toi. |
@@ -188,60 +215,94 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
 - **Six courants d'air**, un entre l'île et chaque îlot.
 - **La citadelle** au centre : enceinte de 100 m, murs de 18 m, quatre tours d'angle,
   **quatre portes ouvertes**, quatre escaliers vers les remparts.
-- **Quatorze arbalestes géantes** (refaites le 28/09) : quatre dans la cour (elles
-  visent la tour), quatre dehors sur l'herbe (elles visent les îlots), une par îlot.
+- **Huit plateformes de départ** (une par joueur), à 42 m de haut, chacune avec **son
+  arbaleste**. On y réapparaît après une chute.
+- **Les arbalestes géantes** : celle de chaque plateforme, quatre dehors sur l'herbe
+  (elles visent les îlots), une par îlot (pour revenir). **Plus aucune dans la cour.**
   Un socle de pierre à merlons, une tourelle tournante cerclée de bronze, un treuil à
   deux roues, un fanion ; un arc dont les **bras plient** quand on tend, une **corde**
   qui recule, un **carreau de cinq mètres** sur lequel on s'assoit. On règle l'angle à
   la souris et la **tension** au clic (de 28 à 56 m/s). L'anneau d'arrivée est **vert**
-  sur la terre ferme, **bleu** sur un Monument ; pas d'anneau : la ligne file dans le
-  vide, tu planeras. On part avec des **ailes d'or**. Les bots, eux, montent sur leur
-  **carreau qui vole** dans le ciel.
+  sur la terre ferme, **bleu** sur un Monument, **rouge** sur le sceau de la citadelle
+  (il te renverra) ; pas d'anneau : la ligne file dans le vide, tu planeras. On part
+  avec des **ailes d'or**. Les bots montent sur leur **carreau qui vole**.
+- **Le sceau de la citadelle** : qui entre dans l'enceinte **par les airs** (en planant,
+  tiré, en piqué) est renvoyé dehors dans un éclair de runes. On en sort en volant sans
+  souci.
+- **Le parcours des portes** (tiré au hasard à chaque manche) : devant chaque porte, un
+  **couloir** de 40 m bordé de murets de 3 m (on ne les saute pas), une arche de
+  lumière à l'entrée, et **cinq stations** parmi :
+  - une **chicane** : un mur en travers, un passage d'un côté (on zigzague) ;
+  - un **moulinet** : une barre cloutée qui tourne à hauteur de genou (on saute) ;
+  - une **herse** : des pointes qui jaillissent du sol (ses runes rougissent avant) ;
+  - un **marteau** : une masse de fer qui balaie le couloir d'un mur à l'autre.
 
 ## La tour de la Couronne
 
 - **100 m de haut**, 26 m de large. Une **rampe en spirale** extérieure de 6,5 m de
   large, **six tours**, **sans parapet**. **Chaque tour a sa couleur** (bleu, vert, or,
   orange, rouge, violet : bannières et liseré du bord) : on lit sa hauteur d'un regard.
-- **Les obstacles**, tous annoncés avant de frapper :
+- **Les obstacles, TIRÉS AU HASARD à chaque manche** (on ne connaît jamais la tour par
+  cœur), tous annoncés avant de frapper, et qui projettent **loin** :
   - **5 trous** à sauter en courant (une barre rouge au bord) — et sous chacun, un tour
     plus bas, un **courant** (disque pâle au bord intérieur) qui renvoie d'un tour vers
     le haut, à travers le trou ;
-  - **5 pendules** à pointes qui balaient la rampe du mur vers le vide (ils sifflent) ;
-  - **6 béliers** qui jaillissent du mur toutes les 4 s (leur rune **rougit** une
-    demi-seconde avant) ;
+  - **5 à 8 pendules** à pointes qui balaient la rampe du mur vers le vide ;
+  - **6 béliers** qui jaillissent du mur toutes les 4 s (leur rune **rougit** avant) ;
+  - **6 balayeurs** : une barre cloutée à hauteur de genou, plantée contre le fût, qui
+    balaie la rampe **vers le vide** (on saute par-dessus) ;
+  - **4 à 5 herses** : des pointes qui jaillissent de la rampe ;
   - des **boulets** qui dévalent la rampe depuis le sommet toutes les 20 s, d'un côté
     ou de l'autre : on change de côté ;
-  - les **Yeux** (ci-dessous).
+  - les **gargouilles** (ci-dessous).
 - **Au sommet** : la Couronne sur un socle à trois marches cerclées d'or, un cercle de
   runes qui tourne, quatre cristaux qui gravitent ; **huit planeurs** sur leurs
   chevalets ; quatre braseros.
 
-### Les Yeux (pas de PNJ humains)
+### Les gargouilles (pas de PNJ humains)
 
-**Quatorze Yeux** (redessinés le 28/09) : un **cœur de lumière** pris dans **huit
-pétales de pierre** — un diaphragme qui s'ouvre quand il te voit, grand ouvert quand il
-charge —, une **pupille de chat** qui s'arrondit, trois **éclats de rune** qui tournent
-autour, deux anneaux. Huit sur les tours et les portes de la citadelle, six autour de
-la tour (un par tour de rampe).
+**Quatorze gargouilles** (28/09, à la place des Yeux : « un truc plus moyenâgeux ») :
+des bêtes de pierre accroupies, ailes repliées, cornes, deux yeux qui luisent, une
+gueule. Quatre sur les tours d'angle et quatre au-dessus des portes (tournées vers la
+cour), six sur des consoles du fût de la tour (une par tour de rampe). Leur **tête
+tourne** ; elles ne quittent jamais leur perchoir.
 
-| Couleur | Ce qu'il fait |
+| Couleur | Ce qu'elle fait |
 |---|---|
-| **Bleu** | il balaie la cour de son regard (un cône de lumière) |
-| **Orange** | il t'a aperçu : il te fixe |
-| **Rouge** | il **charge** 1,1 s : un trait rouge vous relie et une **cible rouge se resserre à tes pieds**. La dernière demi-seconde, il ne te suit plus — bouge ! |
-| **Blanc** | il tire : un rayon blanc cerclé de rouge, une **explosion** là où il frappe ; projeté, étourdi 0,7 s, et **tu lâches la Couronne** |
+| **Ambre** | elle balaie la cour du regard (un cône de lumière) |
+| **Orange** | elle t'a aperçu : elle te fixe, ses ailes s'entrouvrent |
+| **Rouge** | elle **charge** 1,1 s : ailes déployées, gueule ouverte qui rougeoie, un trait rouge vous relie et une **cible rouge se resserre à tes pieds**. La dernière demi-seconde, elle ne te suit plus — bouge ! |
+| **Blanc** | elle **crache un jet de feu** : une **explosion** là où il frappe ; projeté, étourdi 0,7 s, et **tu lâches la Couronne** |
 
-Ils ne regardent que la citadelle, la tour — et le porteur de la Couronne. Ils
+Elles ne regardent que la citadelle, la tour — et le porteur de la Couronne. Elles
 ignorent qui est protégé. La Nuée les aveugle, le Voile te cache, l'Ombre les ralentit.
+
+## L'AURA
+
+« Un jeu plein d'aura » : quand tu fais quelque chose de fort — **prendre la Couronne
+au sommet**, la **voler**, un **piqué d'aigle**, **éjecter** quelqu'un dans les nuages
+(moins de 6 s après l'avoir frappé), un **doublé** ou un **triplé** à l'Onde ou au
+Souffle — c'est un **MOMENT D'AURA** : le temps **ralentit** trois quarts de seconde, un
+**gros titre** claque (« COURONNE VOLÉE », « +1000 AURA »), un **coup de phonk**, des
+**flammes d'aura** montent autour de toi, les bords de l'écran brûlent à ta couleur.
+Les bots ont leurs flammes aussi.
+
+- Le **porteur** de la Couronne brûle d'une **aura d'or** qu'on voit de loin ; si c'est
+  toi, les bords de l'écran battent au rythme de la musique, qui passe en **PHONK**.
+- Le **vainqueur** de la manche flambe pendant toute la fin de manche, sur du phonk.
+- Le phonk est **fabriqué par le code** (cloche, basse 808, clap, 140 BPM). Pour un vrai
+  morceau : un fichier dont le nom contient « phonk », « aura » ou « funk » dans
+  `Assets/_Fief/Resources/Music` le remplace (attention aux droits d'auteur : un
+  morceau libre de droits).
+- Tes coups **portent** : une micro-pause et un tremblement à chaque impact.
 
 ---
 
 ## Ce qu'on voit
 
 - **Pas de boussole, pas de carte, pas de marqueur** : la tour, les colonnes bleues des
-  Monuments, la colonne dorée de la Couronne, les courants d'air, les fanions des zones
-  de départ.
+  Monuments, la colonne dorée de la Couronne, les courants d'air, les colonnes et
+  fanions des plateformes de départ, les arches des couloirs.
 - **Les joueurs se voient** : écharpe, lanterne et halo à leur couleur ; leurs **ailes
   dans le dos** (repliées au sol, grandes ouvertes en vol, liseré d'or pour les ailes
   d'or) ; une **bulle** quand ils sont protégés.
@@ -258,12 +319,14 @@ ignorent qui est protégé. La Nuée les aveugle, le Voile te cache, l'Ombre les
 
 Ils jouent **avec tes règles, par les mêmes méthodes** (`World/Rival.cs`) et courent
 presque aussi vite que toi (9 / 10,2 / 10,7 m/s selon leur niveau, toi 10,8). Ils
-montent la rampe (sautent les trous, prennent les courants, **changent de côté devant
-un boulet**), prennent les **arbalestes** (ils calculent l'angle), sautent du sommet et
+quittent leur plateforme par **leur arbaleste** (visée devant une porte) ou en planant,
+passent le **couloir** de la porte (ses chicanes, en contournant les moulinets), montent
+la rampe (sautent les trous, **les balayeurs et les moulinets**, prennent les courants,
+**changent de côté devant un boulet**), prennent les **arbalestes**, sautent du sommet et
 **planent** jusqu'au Monument le plus commode (près d'eux, que personne ne garde), vont
 chercher un **courant d'air** quand ils sont trop bas, **chassent** le porteur (en vol
-aussi) et l'un d'eux va **l'attendre au Monument** le plus proche de lui. Ils se
-servent de toutes leurs capacités (le Souffle, jusqu'à 90 m).
+aussi, avec le **piqué d'aigle**) et l'un d'eux va **l'attendre au Monument** le plus
+proche de lui. Ils se servent de toutes leurs capacités (le Souffle, jusqu'à 90 m).
 
 ## Retiré
 
@@ -273,6 +336,9 @@ servent de toutes leurs capacités (le Souffle, jusqu'à 90 m).
   le Roi Creux, les loups, les revenants, le cerf blanc, le donjon, toutes les icônes.
 - **Le 27/09 au soir : LA FORÊT** (arbres, lieux-dits, creux, feux-follets, sons du
   sous-bois, escalade des arbres), la brume épaisse, l'orage et la nuit.
+- Le 28/09 au soir : la ligne de départ dans la cour (remplacée par les plateformes),
+  les arbalestes de la cour (elles envoyaient « direct tout en haut »), les Yeux
+  flottants (remplacés par les gargouilles), la touche C.
 
 ## Phases
 
