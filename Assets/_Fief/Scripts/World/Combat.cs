@@ -49,6 +49,80 @@ namespace Fief
             return true;
         }
 
+        // ================================================================== le pique d'aigle
+
+        /// <summary>
+        /// LE PIQUE D'AIGLE (28/09 -- Martin : "une fois qu'on est dans l'air, qu'on puisse
+        /// facilement choper la couronne"). EN L'AIR, la touche pour pousser, le porteur
+        /// dans le viseur (a 45 m, dans un cone de 30 degres) : on FOND SUR LUI, guide, a
+        /// 48 m/s. Au contact, c'est un vol (comme une poussee). Recharge 3 s.
+        /// </summary>
+        public const float DiveRange = 45f;
+        public const float DiveAngle = 30f;
+        public const float DiveSpeed = 48f;
+        public const float DiveCooldown = 3f;
+        public const float DiveSeconds = 1.2f;
+
+        /// <summary>Le porteur sur qui "by" peut piquer maintenant (null sinon). A appeler seulement en l'air.</summary>
+        public static Seeker DiveTarget(Seeker by, Vector3 eye, Vector3 forward)
+        {
+            if (by == null || by.Body == null || by.Stunned || Time.time < by.DiveReadyAt) return null;
+            Seeker h = Crown.Holder;
+            if (h == null || h == by || h.Body == null || h.Hidden) return null;
+            Vector3 to = h.Body.position + Vector3.up * 1f - eye;
+            if (to.magnitude > DiveRange || Vector3.Angle(forward, to) > DiveAngle) return null;
+            RaycastHit hit;
+            if (Physics.Raycast(eye, to.normalized, out hit, to.magnitude - 0.8f, ~0, QueryTriggerInteraction.Ignore)
+                && !hit.collider.transform.IsChildOf(h.Body) && !hit.collider.transform.IsChildOf(by.Body)) return null;
+            return h;
+        }
+
+        /// <summary>Lancer le pique (toi comme un bot). Vrai s'il part.</summary>
+        public static bool Dive(Seeker by, Seeker target)
+        {
+            IMover m = AbilityCaster.MoverOf(by);
+            if (m == null || target == null) return false;
+            by.DiveReadyAt = Time.time + DiveCooldown;
+            m.Dive(target);
+            Fx.Trail(by.Body, Wings.Gold, 1.4f, 1.3f);
+            Fx.Ring(by.Body.position + Vector3.up * 1.2f, Wings.Gold, 0.5f, 5f, 0.35f, 0.3f, target.Body.position - by.Body.position);
+            Fx.Burst(by.Body.position + Vector3.up * 1.2f, Wings.Gold, 50, 12f, 0.2f, 0.5f, 0f, by.Body.position - target.Body.position, 30f);
+            Sfx.Whoosh();
+            return true;
+        }
+
+        /// <summary>
+        /// Une image de pique : la vitesse vers la cible. Vrai quand c'est fini (touche,
+        /// rate, ou le temps ecoule) ; "time" decompte.
+        /// </summary>
+        public static bool DiveStep(Seeker by, Seeker target, Vector3 from, ref float time, float dt, out Vector3 velocity)
+        {
+            velocity = Vector3.zero;
+            time -= dt;
+            if (by == null || target == null || target.Body == null || by.Stunned || time <= 0f) { time = 0f; return true; }
+            Vector3 to = target.Body.position + Vector3.up * 0.9f - (from + Vector3.up * 0.9f);
+            if (to.magnitude < 2.4f)
+            {
+                DiveStrike(by, target);
+                time = 0f;
+                return true;
+            }
+            velocity = to.normalized * DiveSpeed;
+            return false;
+        }
+
+        /// <summary>LE CHOC du pique : s'il porte la Couronne, elle passe dans tes mains.</summary>
+        static void DiveStrike(Seeker by, Seeker target)
+        {
+            Vector3 dir = Flat(target.Body.position - by.Body.position);
+            dir = dir.sqrMagnitude > 0.01f ? dir.normalized : by.Body.forward;
+            bool stole = target.CarriesCrown && !target.Graced && Crown.TrySteal(by, target);
+            Hit(target, dir * 24f + Vector3.up * 6f, 0.3f, !stole, by);
+            Fx.Impact(target.Body.position + Vector3.up * 1.1f, Wings.Gold, stole ? 1.8f : 1f);
+            Fx.Shock(target.Body.position + Vector3.up * 1.1f, Wings.Gold, 3f, 0.3f);
+            if (by.IsPlayer) Hud.HitStop(0.08f);
+        }
+
         /// <summary>
         /// UN COUP : "velocity" projette le joueur, "stun" l'etourdit (secondes), et s'il
         /// porte la Couronne et que "dropsCrown", il la lache -- sauf Prise ferme.

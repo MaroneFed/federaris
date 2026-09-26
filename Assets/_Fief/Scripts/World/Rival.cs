@@ -193,6 +193,20 @@ namespace Fief
         }
 
         /// <summary>Tire par une arbaleste : il suit sa courbe jusqu'a toucher quelque chose.</summary>
+        Seeker diveTarget;
+        float diveTime;
+
+        public void Dive(Seeker target)
+        {
+            diveTarget = target;
+            diveTime = Combat.DiveSeconds;
+            gliding = false;
+            ballistic = false;
+            knock = Vector3.zero;
+            dashTime = 0f;
+            pullTime = 0f;
+        }
+
         public void Launch(Vector3 velocity)
         {
             ballistic = true;
@@ -989,11 +1003,30 @@ namespace Fief
             // La Couronne glisse s'il tombe (sans planer).
             if (seeker.CarriesCrown && !grounded && !gliding && fallSpeed < -13f) Crown.Slip(seeker, lastGround);
 
+            // Le pique d'aigle : en vol, il fond sur le porteur qu'il a dans le viseur.
+            if (diveTime <= 0f && gliding && prey != null && prey.CarriesCrown && Match.BotLevel > 0)
+            {
+                Seeker t = Combat.DiveTarget(seeker, transform.position + Vector3.up * 1.5f, Flat(prey.Body.position - transform.position).normalized + Vector3.down * 0.2f);
+                if (t != null) Combat.Dive(seeker, t);
+            }
+            if (diveTime > 0f)
+            {
+                Vector3 dv;
+                if (!Combat.DiveStep(seeker, diveTarget, transform.position, ref diveTime, dt, out dv))
+                {
+                    walk = new Vector3(dv.x, 0f, dv.z);
+                    fallSpeed = dv.y;
+                    extra = Vector3.zero;
+                    knock = Vector3.zero;
+                }
+                else fallSpeed = Mathf.Max(fallSpeed, 5f);
+            }
             Vector3 before = transform.position;
             body.Move((walk + extra + knock + Vector3.up * fallSpeed) * dt);
             // Le sceau de la citadelle : renvoye dehors s'il y entre par les airs.
-            if ((gliding || ballistic) && Ward.Crossing(before, transform.position))
+            if ((gliding || ballistic || diveTime > 0f) && Ward.Crossing(before, transform.position))
             {
+                diveTime = 0f;
                 Vector3 push = Ward.Repel(seeker, transform.position);
                 body.enabled = false;
                 transform.position = before;

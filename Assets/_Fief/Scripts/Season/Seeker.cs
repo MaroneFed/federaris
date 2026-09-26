@@ -87,6 +87,8 @@ namespace Fief
 
         public const float ShoveCooldown = 0.9f;
         public float ShoveReadyAt;
+        /// <summary>Le prochain piqué d'aigle possible (voir Combat.DiveTarget).</summary>
+        public float DiveReadyAt;
 
         // ------------------------------------------------------------------ les etats
 

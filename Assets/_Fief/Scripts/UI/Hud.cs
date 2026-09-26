@@ -178,6 +178,7 @@ namespace Fief
             if (me == null || me.Body == null) return;
             Vector3 p = me.Body.position;
             if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
+            else if (AbilityUser.DiveAt != null) Tip("pique", "LE PIQUÉ D'AIGLE : en l'air, vise le porteur et appuie sur " + AbilityInfo.PushKey.ToLowerInvariant() + " — tu fonds sur lui et tu lui voles la Couronne.");
             else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. F : monte sur TON arbaleste, maintiens le clic gauche, relâche — ou saute dans le vide et plane jusqu'à l'île. Puis entre dans la citadelle par une porte.");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : F pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
@@ -473,7 +474,19 @@ namespace Fief
             float d = UiStyle.S(foe ? 6 : 3);
             Color c = foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : new Color(1f, 1f, 1f, 0.7f);
             UiStyle.Fill(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), c);
-            if (foe && Stats.Shoves < 3) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), AbilityInfo.PushKey.ToLowerInvariant() + "  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
+            // Le pique d'aigle : le porteur est dans ton viseur, en l'air.
+            if (AbilityUser.DiveAt != null)
+            {
+                float pulse = 0.7f + 0.3f * Mathf.Sin(Time.unscaledTime * 10f);
+                float r = UiStyle.S(16);
+                Color g = new Color(Wings.Gold.r, Wings.Gold.g, Wings.Gold.b, pulse);
+                UiStyle.Fill(new Rect(cx - r, cy - r, r * 2f, 2f), g);
+                UiStyle.Fill(new Rect(cx - r, cy + r - 2f, r * 2f, 2f), g);
+                UiStyle.Fill(new Rect(cx - r, cy - r, 2f, r * 2f), g);
+                UiStyle.Fill(new Rect(cx + r - 2f, cy - r, 2f, r * 2f), g);
+                Text(new Rect(0f, cy + UiStyle.S(22), Screen.width, UiStyle.S(24)), AbilityInfo.PushKey.ToUpperInvariant() + " : PIQUÉ D'AIGLE sur " + AbilityUser.DiveAt.Name + " !", UiStyle.Centered, g);
+            }
+            else if (foe && Stats.Shoves < 3) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), AbilityInfo.PushKey.ToLowerInvariant() + "  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
 
             // La recharge de la poussee : un trait fin sous le point.
             if (me != null && Time.time < me.ShoveReadyAt)

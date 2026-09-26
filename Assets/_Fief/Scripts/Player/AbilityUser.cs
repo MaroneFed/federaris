@@ -32,6 +32,8 @@ namespace Fief
         public static float RefusalAt = -9f;
         /// <summary>La touche qu'on tient pour viser (0 a 3), -1 sinon : le HUD souleve sa carte.</summary>
         public static int AimingSlot = -1;
+        /// <summary>Le porteur sur qui tu peux piquer maintenant (le HUD l'annonce), null sinon.</summary>
+        public static Seeker DiveAt;
 
         PlayerController player;
         AbilityPreview preview;
@@ -52,6 +54,7 @@ namespace Fief
         {
             Hint = null;
             FoeInReach = false;
+            DiveAt = null;
             Seeker me = Game.Me;
             if (me == null || player == null || player.InputLocked || Ballista.PlayerOn != null || player.cameraTransform == null)
             {
@@ -63,7 +66,10 @@ namespace Fief
 
             // --- pousser
             FoeInReach = me.CanShove && Combat.FoeAhead(me, eye.forward);
-            if (FiefInput.PushPressed)
+            // En l'air, le porteur dans le viseur : la poussee devient le PIQUE D'AIGLE.
+            DiveAt = player.Airborne && !player.Diving ? Combat.DiveTarget(me, eye.position, eye.forward) : null;
+            if (FiefInput.PushPressed && DiveAt != null) Combat.Dive(me, DiveAt);
+            else if (FiefInput.PushPressed)
             {
                 if (!me.CanShove) Refuse(me.Stunned ? "Étourdi" : "Mains prises");
                 else if (Time.time < me.ShoveReadyAt) Sfx.Deny();

@@ -18,6 +18,8 @@ namespace Fief
         void PullTo(Vector3 point, float speed);
         /// <summary>Etre lance sur une trajectoire balistique (une arbaleste geante).</summary>
         void Launch(Vector3 velocity);
+        /// <summary>LE PIQUE D'AIGLE : fondre sur "target" (le porteur), guide, jusqu'au contact.</summary>
+        void Dive(Seeker target);
         /// <summary>Disparaitre et reapparaitre ailleurs (clignement, echange, rappel).</summary>
         void Blink(Vector3 position);
         /// <summary>Ou l'on etait il y a "seconds" secondes (le rappel).</summary>

@@ -142,6 +142,27 @@ namespace Fief
         bool ballistic;
         float launchAge;
         Vector3 flight;
+        Seeker diveTarget;
+        float diveTime;
+
+        /// <summary>LE PIQUE D'AIGLE : on fond sur le porteur (voir Combat.Dive).</summary>
+        public void Dive(Seeker target)
+        {
+            diveTarget = target;
+            diveTime = Combat.DiveSeconds;
+            Gliding = false;
+            ballistic = false;
+            knock = Vector3.zero;
+            dashTime = 0f;
+            pullTime = 0f;
+            if (orbitCamera != null) { orbitCamera.Kick(22f); orbitCamera.Shake(0.15f); }
+        }
+
+        /// <summary>En l'air pour de bon (pas un petit saut) : le pique d'aigle est possible.</summary>
+        public bool Airborne { get { return !controller.isGrounded && (Gliding || ballistic || airTop - transform.position.y > 1.5f || verticalVelocity < -4f); } }
+
+        /// <summary>Vrai pendant un pique.</summary>
+        public bool Diving { get { return diveTime > 0f; } }
 
         /// <summary>Vrai pendant un vol d'arbaleste (le HUD, les bots s'en servent).</summary>
         public bool Flying { get { return ballistic; } }
@@ -294,11 +315,23 @@ namespace Fief
             }
             Vector3 motion = walk + extra + knock + Vector3.up * verticalVelocity;
             if (pullTime > 0f) motion.y = Mathf.Max(motion.y, (pullPoint - transform.position).normalized.y * pullSpeed);
+            // Le pique d'aigle remplace tout le reste.
+            if (diveTime > 0f)
+            {
+                Vector3 dv;
+                if (!Combat.DiveStep(me, diveTarget, transform.position, ref diveTime, dt, out dv))
+                {
+                    motion = dv;
+                    verticalVelocity = 0f;
+                }
+                else verticalVelocity = Mathf.Max(verticalVelocity, 5f);
+            }
             Vector3 before = transform.position;
             controller.Move(motion * dt);
             // Le sceau de la citadelle : on n'y entre pas par les airs.
-            if ((Gliding || ballistic) && Ward.Crossing(before, transform.position))
+            if ((Gliding || ballistic || diveTime > 0f) && Ward.Crossing(before, transform.position))
             {
+                diveTime = 0f;
                 Vector3 push = Ward.Repel(me, transform.position);
                 controller.enabled = false;
                 transform.position = before;
