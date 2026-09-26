@@ -1,7 +1,7 @@
 # FIEF — La Couronne
 
 > Une Couronne au sommet d'une tour de 100 m, sur une île qui flotte au-dessus des nuages. Jusqu'à huit joueurs.
-> Le premier qui la porte au Monument gagne la manche.
+> Le premier qui la porte à l'un des trois Monuments gagne la manche.
 
 Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 
@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · v2 · 27/09` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · v6 · le vol · 28/09` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -75,14 +75,15 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 | **ZQSD** / WASD | Se déplacer |
 | **Souris** | Regarder |
 | **Maj** | Courir |
-| **Espace** | Sauter ; **maintenu en l'air avec des ailes : planer** (regarde en bas pour piquer) |
+| **Espace** | Sauter ; en vol : replier ou rouvrir les ailes |
+| **Voler** | Tombe dans le vide : **les ailes s'ouvrent seules**. Souris en bas : piquer (vite) ; en haut : remonter. Q/D : glisser, S : freiner |
 | **Clic gauche** | **Pousser** — pousser le porteur, c'est lui **voler la Couronne** |
-| **Clic droit** | Ta 1re capacité |
+| **Clic droit** | Ta 1re capacité (celles qu'on vise : **maintiens** pour voir l'aperçu, **relâche** pour lancer) |
 | **R** | Ta 2e capacité |
 | **C** | Ta 3e capacité |
 | **V** | Le don d'un sanctuaire (pour la manche) |
 | **E** | Prendre la Couronne sur son socle, prendre un don, **monter sur une arbaleste** |
-| **Sur une arbaleste** | Souris : viser (la trajectoire se dessine) · clic gauche : tirer · E : descendre |
+| **Sur une arbaleste** | Souris : viser · **clic gauche maintenu : tendre**, relâché : tirer · E : descendre |
 | **Tab** | Le score et les capacités de chacun |
 | **Échap** | Pause |
 | **F3** | Diagnostic |
@@ -93,16 +94,18 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 
 1. Avant la manche 1, choisis ta première **capacité** (lis la carte : elle dit tout).
 2. **3, 2, 1, PARTEZ !** Tu pars de ta petite zone, sur la ligne de départ, à côté des
-   autres. Cours au pied de la rampe — ou saute sur une **arbaleste** (E), vise, et
-   fais-toi tirer haut sur la tour.
+   autres. Cours au pied de la rampe — ou saute sur une **arbaleste** (E), vise,
+   **maintiens le clic** pour tendre, relâche : tu es tiré haut sur la tour.
 3. Monte la **rampe** (100 m, six tours de couleur) : saute les trous, prends les
    **courants**, esquive pendules, béliers, boulets et rayons des **Yeux**, pousse les
    autres dans le vide.
-4. Au sommet : la **Couronne** (E maintenu) et des **ailes**. Saute, et **plane**
-   (Espace ; regarde en bas pour piquer) jusqu'au **Monument** sur son îlot (colonne
-   bleue). Entre dans son cercle.
+4. Au sommet : la **Couronne** (E maintenu) et des **ailes d'or**. Saute dans le vide :
+   **tes ailes s'ouvrent toutes seules**. Regarde en bas pour piquer, en haut pour
+   remonter, et vole jusqu'à **l'un des trois Monuments** (les colonnes bleues), celui
+   que tu veux. Entre dans son cercle. Trop bas ? Un **courant d'air** te remonte.
 5. Quelqu'un d'autre l'a ? **Pousse-le : tu la lui voles.**
-6. Entre deux manches, choisis une **capacité** de plus.
+6. Essaie le **Souffle** : la vague traverse toute l'île.
+7. Entre deux manches, choisis une **capacité** de plus.
 
 **Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et
 à quel moment tu as eu envie de lâcher.
@@ -140,6 +143,7 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | La tour et ses obstacles (courants, pendules, béliers, boulets) | `Scripts/World/Tower.cs` ; la citadelle : `Castle.cs` |
 | Les planeurs, le vol | `Scripts/World/Wings.cs` |
 | Les arbalestes géantes | `Scripts/World/Ballista.cs` |
+| Le vol plané, les courants d'air | `Scripts/World/Wings.cs` |
 | Les effets spéciaux | `Scripts/World/Fx.cs` |
 | La ligne de départ, le respawn | `Scripts/World/Combat.cs` (Spawns, Respawn) |
 | Les bots | `Scripts/World/Rival.cs` |

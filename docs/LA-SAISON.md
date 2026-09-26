@@ -6,6 +6,11 @@
 > côté ; en haut on prend un planeur et on plane jusqu'à un endroit hors du château ;
 > des énormes arbalètes pour se tirer dessus ; et quand quelqu'un court avec la
 > couronne, il la reprend en une demi-seconde ».
+> Complétée le 28/09 : « je ne sais même pas comment on fait pour planer » (le vol
+> refait : plus rien à apprendre), « des endroits où poser la couronne, où on veut »
+> (trois Monuments), « des meilleures arbalètes », de nouveaux Yeux, et des pouvoirs
+> bien plus forts (« le souffle, que ça passe toute la map »).
+>
 > C'est **la référence** : quand le code et ce document ne disent pas la même chose,
 > c'est un des deux qu'il faut corriger. L'histoire des choix : `docs/100-RAISONS.md`,
 > `docs/100-PROBLEMES.md`. Les versions précédentes (la forêt, l'épée, les objets, la
@@ -16,8 +21,8 @@
 ## En une phrase
 
 **Jusqu'à huit joueurs sur une île qui flotte au-dessus des nuages. Une Couronne au
-sommet d'une tour de 100 m. On la prend, on saute, on PLANE jusqu'au Monument posé sur
-un îlot — et tous les autres vous volent dessus pour vous la voler.**
+sommet d'une tour de 100 m. On la prend, on saute, on PLANE jusqu'à l'un des trois
+Monuments posés sur les îlots — et tous les autres vous volent dessus pour vous la voler.**
 
 C'est **Smash** (on ne meurt pas, on se fait pousser dans le vide), **Fall Guys** (une
 tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
@@ -45,12 +50,13 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 2. **La montée.** La rampe de la tour, en courant — ou une **arbaleste géante** qui
    t'envoie d'un coup haut sur la rampe.
 3. **Le sommet.** La Couronne sur son socle (**E maintenu 1 s**). Et tout autour, les
-   **planeurs** : en arrivant au sommet, **on prend des ailes**.
-4. **Le vol.** On saute du sommet et on **plane** (Espace maintenu ; le porteur plane
-   tout seul) jusqu'à l'**îlot flottant du Monument** (sa colonne bleue), qui change à
-   chaque manche. Regarder vers le bas : on pique, plus vite. On peut aussi y aller en
-   se faisant **tirer par une arbaleste** depuis l'île.
-5. **Le Monument.** Entrer **dans son cercle** avec la Couronne : manche gagnée.
+   **planeurs** : en arrivant au sommet, **on prend des ailes d'or** (plus rapides).
+4. **Le vol.** On saute dans le vide : **les ailes s'ouvrent toutes seules**. On va où
+   l'on regarde (voir « Le vol plané »). Destination : **un des trois Monuments**, sur
+   trois îlots flottants (leurs colonnes bleues), d'autres à chaque manche — **celui
+   qu'on veut** : le plus proche, ou celui que personne ne garde. On peut aussi s'y
+   faire **tirer par une arbaleste**.
+5. **Le Monument.** Entrer **dans son cercle lumineux** avec la Couronne : manche gagnée.
 6. **Le temps.** Au gong, celui qui tient la Couronne gagne ; sinon, personne.
 
 ### La Couronne
@@ -64,8 +70,28 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 - Les autres coups (onde, souffle, Œil, pendule, bélier, boulet, mine) la font
   **tomber** ; même verrou de 3 s pour qui la perd. À terre, on la **ramasse en passant
   dessus** ; oubliée, elle **rentre au sommet au bout de 20 s**.
-- **Sauter sans ailes** avec la Couronne : elle **reste là où tu as quitté le sol**.
-  Tomber dans les nuages avec : elle **rentre au sommet**.
+- **Replier ses ailes** (Espace en vol) avec la Couronne et tomber comme une pierre :
+  elle **reste là où tu as quitté le sol**. Tomber dans les nuages avec : elle
+  **rentre au sommet**.
+
+### Le vol plané (refait le 28/09)
+
+- **Tout le monde a des ailes, tout le temps.** Elles **s'ouvrent seules** dès qu'on
+  tombe avec plus de 6 m de vide sous les pieds.
+- **On vole comme on regarde** : la souris vers le bas, on **pique** et on prend de la
+  vitesse (jusqu'à 150 km/h) ; vers le haut, on **remonte** en dépensant cette vitesse.
+  À plat, 13 m/s et on descend doucement. **Q/D** glissent de côté, **S** freine.
+- **Espace** en vol : replier les ailes ; encore : les rouvrir.
+- **Les ailes d'or** (au sommet, ou au départ d'une arbaleste, jusqu'à l'atterrissage ;
+  toujours avec le passif Planeur) : 25 % plus vite, on descend moins.
+- **Les courants d'air** : une colonne de vent entre l'île et chaque îlot (filets qui
+  montent, anneaux pâles). En planant dedans, **on remonte** — jusqu'à 72 m, jamais
+  jusqu'au sommet de la tour.
+- Le **porteur** vole un peu moins vite (la Couronne pèse) : on peut le rattraper.
+- **Touché en vol** (étourdi) : les ailes se ferment, on tombe, elles se rouvrent.
+- Ce qu'on sent : la caméra **penche** dans les virages, le champ de vision s'ouvre
+  avec la vitesse, le vent souffle, des filets d'air filent autour ; l'écran dit
+  « EN VOL — 90 km/h ».
 
 ### Tomber dans les nuages
 
@@ -79,12 +105,17 @@ départ**, dans une **colonne de lumière** à sa couleur, protégé 3 s.
 - **Clic gauche : POUSSER.** Le plus proche devant toi (3 m) part en arrière et en
   l'air, étourdi 0,2 s. **S'il porte la Couronne, tu la lui voles.** Recharge 0,9 s.
 - **Clic droit, R, C : tes trois capacités actives**, dans l'ordre où tu les as prises.
+  Celles qu'on **vise** (Ruée, Grappin, Crochet, Clignement, Mur, Givre, Échange,
+  Souffle) : **maintiens** la touche, un **aperçu** montre où elle ira (le point
+  d'accroche, la cible entourée, ton fantôme, le chemin, la courbe, le couloir du
+  vent) ; **relâche** pour lancer. Les autres partent dès qu'on appuie.
 - **V : le don** d'un sanctuaire (pour la manche seulement).
-- **Espace** : sauter (encore une fois en l'air avec Double saut) ; **maintenu en l'air,
-  avec des ailes : planer**.
+- **Espace** : sauter (encore une fois en l'air avec Double saut) ; en vol, replier
+  ou rouvrir les ailes.
 - **E** : prendre la Couronne sur son socle, prendre un don, **monter sur une arbaleste**.
-- **Sur une arbaleste** : la souris vise (la **trajectoire se dessine en lumière**, un
-  anneau marque l'arrivée), **clic gauche tire**, E descend.
+- **Sur une arbaleste** : la souris vise (la **trajectoire se dessine en perles de
+  lumière**), **clic gauche maintenu : on tend** (la courbe s'allonge), **relâché : on
+  est tiré**, E descend.
 - **Tab** : le score et les capacités de chacun.
 
 Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projette et
@@ -101,27 +132,27 @@ le dit avant qu'on choisisse). Les passives s'accumulent.
 
 | Capacité | Ce que ça fait | Recharge |
 |---|---|---|
-| **Ruée** | Un bond de huit mètres droit devant toi. | 6 s |
-| **Grappin** | Vise un mur, un arbre, la tour : le grappin t'y tire. | 7 s |
-| **Crochet** | Vise un joueur : il est tiré jusqu'à toi. | 10 s |
-| **Onde de choc** | Projette tout le monde autour de toi. | 8 s |
-| **Clignement** | Tu disparais et réapparais dix mètres plus loin. | 5 s |
-| **Bond** | Un saut immense, droit vers le ciel. | 8 s |
-| **Mur** | Un mur de pierre surgit devant toi pendant huit secondes. | 12 s |
-| **Nuée** | Un nuage de fumée : les Yeux et les autres ne voient plus rien. | 14 s |
-| **Mine** | Pose une mine : qui marche dessus s'envole et lâche la Couronne. | 9 s |
-| **Givre** | Lance une boule de givre : ceux qu'elle touche sont ralentis. | 8 s |
-| **Voile** | Tu deviens invisible pendant six secondes. | 16 s |
-| **Échange** | Vise un joueur : vous échangez vos places. | 14 s |
+| **Ruée** | Douze mètres d'un trait : qui est sur ta route est bousculé. | 6 s |
+| **Grappin** | Vise un mur, un rebord, la tour (48 m) : le grappin t'y tire. | 7 s |
+| **Crochet** | Vise un joueur, jusqu'à 32 m : il est tiré jusqu'à toi. | 10 s |
+| **Onde de choc** | Une explosion : tout le monde à neuf mètres s'envole. | 8 s |
+| **Clignement** | Tu disparais et réapparais quinze mètres plus loin. | 5 s |
+| **Bond** | Un saut immense ; le souffle du départ repousse ceux qui sont tout près. | 8 s |
+| **Mur** | Un mur de 10 m sur 4,5 m surgit devant toi ; qui est dessus s'envole. | 12 s |
+| **Nuée** | Un nuage de fumée de 16 m : les Yeux et les autres ne voient plus rien. | 14 s |
+| **Mine** | Pose une mine : elle envoie en l'air tous ceux qui passent à 4 m. | 9 s |
+| **Givre** | Une boule de givre (26 m) : l'éclat bouscule et ralentit, 6,5 m autour. | 8 s |
+| **Voile** | Tu deviens invisible pendant sept secondes. | 16 s |
+| **Échange** | Vise un joueur, jusqu'à 45 m : vous échangez vos places. | 14 s |
 | **Rappel** | Tu reviens là où tu étais il y a quatre secondes. | 10 s |
-| **Souffle** | Une rafale repousse tout ce qui est devant toi. | 7 s |
+| **Souffle** | **Une vague de vent qui traverse toute l'île** (150 m, 60 m/s, de 3 à 18 m de large) et emporte tout le monde, même en vol. | 9 s |
 
 ### Passives (toujours là)
 
 | Capacité | Ce que ça fait |
 |---|---|
 | **Double saut** | Appuie encore sur Espace en l'air : un second saut. |
-| **Planeur** | Tu as des ailes partout, pas seulement depuis le sommet. |
+| **Planeur** | Des ailes d'or pour toujours : tu voles plus vite et plus loin. |
 | **Coureur** | Tu vas quinze pour cent plus vite. |
 | **Porteur** | Avec la Couronne, tu n'es plus ralenti et tu peux pousser. |
 | **Poigne** | Ta poussée envoie deux fois plus loin. |
@@ -140,8 +171,8 @@ le dit avant qu'on choisisse). Les passives s'accumulent.
 Un cercle de pierres levées, un cristal qui flotte à la couleur de son don. **E
 maintenu 1 s** : ce don (une capacité active au hasard) devient la tienne **pour la
 manche**, sur **V**. Un seul don à la fois ; un sanctuaire ne sert qu'une fois. Il y en
-a quatre sur l'île, hors des murs, et un sur chaque îlot flottant sauf celui du
-Monument (la récompense de ceux qui y vont en planant ou par l'arbaleste).
+a quatre sur l'île, hors des murs, et un sur chaque îlot flottant sans Monument (la
+récompense de ceux qui y vont en planant ou par l'arbaleste).
 
 ---
 
@@ -149,14 +180,23 @@ Monument (la récompense de ceux qui y vont en planant ou par l'arbaleste).
 
 - **Une île flottante** d'environ 200 m au-dessus d'une **mer de nuages** ; herbe dorée
   dessus, roche qui s'effile vers le bas. Un ciel de fin de journée, un soleil bas.
-- **Six îlots flottants** autour, à 150-175 m du centre, entre 6 et 30 m de haut. Le
-  **Monument** se pose sur l'un d'eux (un autre à chaque manche) ; les autres portent
-  un **sanctuaire**.
+- **Six îlots flottants** autour, à 150-175 m du centre, entre 6 et 30 m de haut.
+  **Trois Monuments** s'y posent (d'autres à chaque manche) : un arc de pierre, deux
+  braseros bleus, six pierres levées, un **cercle lumineux** qui bat quand quelqu'un
+  porte la Couronne. Les autres îlots portent un **sanctuaire**. Chaque îlot a son
+  **arbaleste**, tournée vers la tour, pour revenir.
+- **Six courants d'air**, un entre l'île et chaque îlot.
 - **La citadelle** au centre : enceinte de 100 m, murs de 18 m, quatre tours d'angle,
   **quatre portes ouvertes**, quatre escaliers vers les remparts.
-- **Huit arbalestes géantes** : quatre dans la cour (elles visent la tour), quatre
-  dehors sur l'herbe (elles visent les îlots). Elles tirent toujours à 50 m/s : on règle
-  la distance avec l'angle — le milieu de la tour, ou un îlot.
+- **Quatorze arbalestes géantes** (refaites le 28/09) : quatre dans la cour (elles
+  visent la tour), quatre dehors sur l'herbe (elles visent les îlots), une par îlot.
+  Un socle de pierre à merlons, une tourelle tournante cerclée de bronze, un treuil à
+  deux roues, un fanion ; un arc dont les **bras plient** quand on tend, une **corde**
+  qui recule, un **carreau de cinq mètres** sur lequel on s'assoit. On règle l'angle à
+  la souris et la **tension** au clic (de 28 à 56 m/s). L'anneau d'arrivée est **vert**
+  sur la terre ferme, **bleu** sur un Monument ; pas d'anneau : la ligne file dans le
+  vide, tu planeras. On part avec des **ailes d'or**. Les bots, eux, montent sur leur
+  **carreau qui vole** dans le ciel.
 
 ## La tour de la Couronne
 
@@ -179,16 +219,18 @@ Monument (la récompense de ceux qui y vont en planant ou par l'arbaleste).
 
 ### Les Yeux (pas de PNJ humains)
 
-**Quatorze Yeux** : une sphère de pierre qui flotte, un iris qui luit, deux anneaux qui
-tournent. Huit sur les tours et les portes de la citadelle, six autour de la tour (un
-par tour de rampe).
+**Quatorze Yeux** (redessinés le 28/09) : un **cœur de lumière** pris dans **huit
+pétales de pierre** — un diaphragme qui s'ouvre quand il te voit, grand ouvert quand il
+charge —, une **pupille de chat** qui s'arrondit, trois **éclats de rune** qui tournent
+autour, deux anneaux. Huit sur les tours et les portes de la citadelle, six autour de
+la tour (un par tour de rampe).
 
 | Couleur | Ce qu'il fait |
 |---|---|
 | **Bleu** | il balaie la cour de son regard (un cône de lumière) |
 | **Orange** | il t'a aperçu : il te fixe |
-| **Rouge** | il **charge** 1,1 s : un trait rouge vous relie. La dernière demi-seconde, il ne te suit plus — bouge ! |
-| **Blanc** | il tire : projeté, étourdi 0,7 s, et **tu lâches la Couronne** |
+| **Rouge** | il **charge** 1,1 s : un trait rouge vous relie et une **cible rouge se resserre à tes pieds**. La dernière demi-seconde, il ne te suit plus — bouge ! |
+| **Blanc** | il tire : un rayon blanc cerclé de rouge, une **explosion** là où il frappe ; projeté, étourdi 0,7 s, et **tu lâches la Couronne** |
 
 Ils ne regardent que la citadelle, la tour — et le porteur de la Couronne. Ils
 ignorent qui est protégé. La Nuée les aveugle, le Voile te cache, l'Ombre les ralentit.
@@ -197,16 +239,20 @@ ignorent qui est protégé. La Nuée les aveugle, le Voile te cache, l'Ombre les
 
 ## Ce qu'on voit
 
-- **Pas de boussole, pas de carte, pas de marqueur** : la tour, la colonne bleue du
-  Monument, la colonne dorée de la Couronne, les fanions des zones de départ.
+- **Pas de boussole, pas de carte, pas de marqueur** : la tour, les colonnes bleues des
+  Monuments, la colonne dorée de la Couronne, les courants d'air, les fanions des zones
+  de départ.
 - **Les joueurs se voient** : écharpe, lanterne et halo à leur couleur ; leurs **ailes
-  dans le dos** quand ils en ont (grandes ouvertes quand ils planent) ; une **bulle**
-  quand ils sont protégés.
+  dans le dos** (repliées au sol, grandes ouvertes en vol, liseré d'or pour les ailes
+  d'or) ; une **bulle** quand ils sont protégés.
 - **Les effets** : chaque capacité a sa signature (onde qui gonfle, anneaux, gerbes,
   éclairs, traînées), les coups ont leur impact, le respawn sa colonne de lumière.
 - **L'écran, sans une seule icône** : le chrono, une phrase qui dit où est la Couronne
-  (« … en plein vol », « … sur la rampe »), le score, tes capacités, ton état (AILES,
-  EN VOL, PROTÉGÉ), le fil des événements, des astuces au bon moment.
+  (« … en plein vol », « … sur la rampe »), le score, **tes capacités en cartes** en bas
+  au centre (la touche, le nom, un liseré à sa couleur ; en recharge un rideau sombre
+  qui remonte et les secondes ; prête, elle luit ; tenue pour viser, elle se soulève),
+  ton état (AILES D'OR, EN VOL — 90 km/h, COURANT D'AIR, PROTÉGÉ), le fil des
+  événements, des astuces au bon moment.
 
 ## Les autres joueurs (des bots, en attendant le jeu en ligne)
 
@@ -214,8 +260,10 @@ Ils jouent **avec tes règles, par les mêmes méthodes** (`World/Rival.cs`) et 
 presque aussi vite que toi (9 / 10,2 / 10,7 m/s selon leur niveau, toi 10,8). Ils
 montent la rampe (sautent les trous, prennent les courants, **changent de côté devant
 un boulet**), prennent les **arbalestes** (ils calculent l'angle), sautent du sommet et
-**planent** jusqu'au Monument, **chassent** le porteur (en vol aussi) et l'un d'eux va
-**l'attendre au Monument**. Ils se servent de toutes leurs capacités.
+**planent** jusqu'au Monument le plus commode (près d'eux, que personne ne garde), vont
+chercher un **courant d'air** quand ils sont trop bas, **chassent** le porteur (en vol
+aussi) et l'un d'eux va **l'attendre au Monument** le plus proche de lui. Ils se
+servent de toutes leurs capacités (le Souffle, jusqu'à 90 m).
 
 ## Retiré
 

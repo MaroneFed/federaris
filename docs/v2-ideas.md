@@ -176,8 +176,12 @@ emplacements de construction.
 
 ### Le 27/09 au soir (l'île flottante)
 
-- Des **courants d'air** entre les îlots pour enchaîner les vols.
-- Une arbaleste **à charger** (plus on maintient, plus elle tire fort).
 - Des îlots qui **bougent** lentement (le Monument dérive pendant la manche).
 - Remplacer les primitives (tour, arbalestes, planeurs) par des modèles Kenney/Synty.
-- Un son de vent continu qui monte avec la vitesse en vol plané.
+
+## Plusieurs cartes (28/09, Martin : « après il faudra faire plusieurs maps, mais pour l'instant on fait à fond cette map-là »)
+
+- D'autres îles, d'autres tours : même boucle (Couronne au sommet, vol, Monuments), autre
+  relief. À faire **après** avoir poussé l'île flottante à fond. Le code est prêt à en
+  accueillir : `Ground`, `Tower`, `Castle` se construisent depuis une graine et des
+  constantes — une carte = un autre jeu de constantes et de placements.
