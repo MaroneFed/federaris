@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · v7 · l'aura · 28/09` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · v8 · quatre rampes · 29/09` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -77,13 +77,11 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 | **Maj** | Courir |
 | **Espace** | Sauter ; en vol : replier ou rouvrir les ailes |
 | **Voler** | Tombe dans le vide : **les ailes s'ouvrent seules**. Souris en bas : piquer (vite) ; en haut : remonter. Q/D : glisser, S : freiner |
-| **Clic gauche** | Ta 1re capacité (celles qu'on vise : **maintiens** pour voir l'aperçu, **relâche** pour lancer) |
-| **E** | Ta 2e capacité |
-| **R** | Ta 3e capacité |
-| **V** | Le don d'un sanctuaire (pour la manche) |
+| **Clic gauche** | **TA capacité** (une seule, nouvelle à chaque manche ; celles qu'on vise : **maintiens** pour voir l'aperçu, **relâche** pour lancer) |
 | **Clic droit** | **Pousser** — pousser le porteur, c'est lui **voler la Couronne** ; **en l'air, sur le porteur : le piqué d'aigle** |
-| **F** | Prendre la Couronne sur son socle, prendre un don, **monter sur une arbaleste** (et en descendre) |
-| **Sur une arbaleste** | Souris : viser · **clic gauche maintenu : tendre**, relâché : tirer |
+| **E** | **Interagir** : prendre la Couronne, un don ; **monter sur une arbaleste** (et en descendre) |
+| **Sur l'arbaleste de ta plateforme** | Clic gauche : elle te pose devant ta porte |
+| **Sur une autre arbaleste** | Souris : viser · **clic gauche maintenu : tendre**, relâché : tirer |
 | **F1** ou **H** | Le panneau des touches |
 | **Tab** | Le score et les capacités de chacun |
 | **Échap** | Pause |
@@ -93,22 +91,20 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 
 > **« Un match de 30 minutes contre des bots est-il haletant du début à la fin ? »**
 
-1. Avant la manche 1, choisis **une passive**, puis **une active** (elle ira sur le clic
-   gauche). Regarde les cartes se retourner.
-2. **3, 2, 1, PARTEZ !** Tu es sur **ta plateforme** flottante, un panneau te rappelle
-   les touches. **F** : monte sur **ton arbaleste**, vise la citadelle, **maintiens le
-   clic gauche**, relâche — ou saute et plane jusqu'à l'île.
-3. Essaie de voler au-dessus des remparts : **le sceau te renvoie**. Entre par une
-   **porte**, au bout de son couloir piégé (chicanes, moulinets, herses, marteaux).
-4. Monte la **rampe** (100 m, six tours de couleur) : saute les trous et les
-   **balayeurs**, prends les **courants**, esquive pendules, béliers, herses, boulets et
-   le feu des **gargouilles**, pousse les autres dans le vide (clic droit).
-5. Au sommet : la **Couronne** (F maintenu) — **moment d'aura**, et du **phonk** tant
-   que tu la portes. Saute : **tes ailes s'ouvrent toutes seules**. Vole jusqu'à **l'un
-   des trois Monuments** (les colonnes bleues). Entre dans son cercle.
-6. Quelqu'un d'autre l'a et il vole ? Vise-le en l'air et **clic droit : le piqué
-   d'aigle**. Au sol : pousse-le.
-7. Joue une deuxième manche : **les obstacles ont changé de place**.
+0. **Réglages ▸ Pseudo** : tape ton pseudo.
+1. Avant chaque manche, choisis **une passive**, puis **ton clic gauche**. Elles
+   changent à chaque manche.
+2. **3, 2, 1, PARTEZ !** Tu es sur **ta plateforme**, en face d'une porte. **E** : monte
+   sur **ton arbaleste**, **clic gauche** : elle te pose sur le parvis devant ta porte.
+3. Passe le **couloir piégé** et le **pont-levis**. Tu voles vers les remparts ? **Le
+   sceau te renvoie.**
+4. Monte **la rampe en face de ta porte** (il y en a quatre, une par porte) : saute les
+   trous et les **balayeurs**, esquive pendules, béliers, herses, boulets — et le feu
+   des **gargouilles**, qui explose et te fait redescendre. Les bots te poussent.
+5. Au sommet : la **Couronne** (E maintenu). Saute : **tes ailes s'ouvrent toutes
+   seules**. Vole jusqu'à **l'un des trois Monuments**. Entre dans son cercle.
+6. **Gagne la manche** : la caméra te filme, **ton pseudo en or**, la musique d'aura.
+7. Joue plusieurs manches : **les obstacles changent et deviennent plus nombreux**.
 
 **Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et
 à quel moment tu as eu envie de lâcher.
