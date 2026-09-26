@@ -84,6 +84,38 @@ namespace Fief
 
         public bool Free { get { return rider == null && Time.time >= readyAt; } }
 
+        // --- les arbalestes des plateformes (29/09) : elles ne visent pas, elles posent.
+        bool hasFixed;
+        Vector3 fixedTarget;
+
+        /// <summary>Cette arbaleste pose toujours son cavalier en "at" (une cloche douce, sans viser).</summary>
+        public void SetFixedTarget(Vector3 at)
+        {
+            hasFixed = true;
+            fixedTarget = at;
+            Vector3 v = FixedVelocity;
+            Vector3 flat = new Vector3(v.x, 0f, v.z);
+            yaw = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+            pitch = Mathf.Atan2(v.y, flat.magnitude) * Mathf.Rad2Deg;
+            Pose();
+        }
+
+        public bool HasFixedTarget { get { return hasFixed; } }
+
+        /// <summary>La vitesse qui pose sur la cible fixe : on monte de 12 m, on retombe dessus.</summary>
+        public Vector3 FixedVelocity { get { return Lob(Launcher, fixedTarget, 12f); } }
+
+        /// <summary>Une cloche de "from" a "to" qui monte de "apex" metres au-dessus du plus haut des deux.</summary>
+        public static Vector3 Lob(Vector3 from, Vector3 to, float apex)
+        {
+            float top = Mathf.Max(from.y, to.y) + apex;
+            float vy = Mathf.Sqrt(2f * Gravity * (top - from.y));
+            float tUp = vy / Gravity;
+            float tDown = Mathf.Sqrt(2f * (top - to.y) / Gravity);
+            Vector3 flat = new Vector3(to.x - from.x, 0f, to.z - from.z);
+            return flat / (tUp + tDown) + Vector3.up * vy;
+        }
+
         // ================================================================== construction
 
         public static Ballista Build(Transform parent, Vector3 at, float facing)
@@ -324,7 +356,11 @@ namespace Fief
                 if (Game.Player == null) { rider = null; return false; }
                 Game.Player.BeginScripted();
                 PlayerOn = this;
-                if (Game.Hud != null) Game.Hud.Tip("arbaleste", "Vise à la souris. MAINTIENS le clic gauche pour tendre (la courbe s'allonge), RELÂCHE pour tirer (E : descendre). Anneau vert : terre ferme ; bleu : un Monument !");
+                if (Game.Hud != null)
+                {
+                    if (hasFixed) Game.Hud.Tip("arbaleste-plateforme", "CLIC GAUCHE : elle te pose devant ta porte. (E : descendre.)");
+                    else Game.Hud.Tip("arbaleste", "Vise à la souris. MAINTIENS le clic gauche pour tendre (la courbe s'allonge), RELÂCHE pour tirer (E : descendre). Anneau vert : terre ferme ; bleu : un Monument !");
+                }
             }
             else
             {
@@ -442,6 +478,22 @@ namespace Fief
                 }
                 bool locked = Game.Player != null && Game.Player.InputLocked;
                 bool ready = !locked && Time.time - mountedAt > 0.3f;
+                if (hasFixed)
+                {
+                    // L'arbaleste de ta plateforme : pas de visee, un clic et elle te pose devant ta porte.
+                    Vector3 fv = FixedVelocity;
+                    Vector3 fflat = new Vector3(fv.x, 0f, fv.z);
+                    yaw = Mathf.Atan2(fflat.x, fflat.z) * Mathf.Rad2Deg;
+                    pitch = Mathf.Atan2(fv.y, fflat.magnitude) * Mathf.Rad2Deg;
+                    if (ready && FiefInput.ShootPressed && !charging) { charging = true; charge = 0f; Sfx.Build(); }
+                    if (charging) charge = Mathf.MoveTowards(charge, 1f, dt / 0.35f);
+                    Pose();
+                    if (Game.Player != null) Game.Player.ScriptedMove(seat.position);
+                    DrawArc(Launcher, fv, 1f);
+                    if (charging && charge >= 1f) { Fire(fv); return; }
+                    if (ready && (FiefInput.InteractPressed || FiefInput.JumpPressed)) { Dismount(); return; }
+                    return;
+                }
                 if (ready && FiefInput.ShootPressed && !charging) { charging = true; charge = 0f; Sfx.Build(); }
                 if (charging)
                 {

@@ -374,9 +374,19 @@ namespace Fief
         void LeaveThePad(Goal was)
         {
             Vector3 me = transform.position;
-            Vector3 gate = Castle.EntryFrom(me)[0];
-            gate = Ground.Place(gate.x, gate.z, 0f);
-            if (TryBallistaTo(gate, 12f, Goal.Raid, was)) return;
+            Vector3 gate = Spawns.LandingOf(seeker.Index);
+            // Son arbaleste : elle le pose sur le parvis devant sa porte.
+            Ballista own = Spawns.BallistaOf(seeker.Index);
+            if (own != null && own.Free && own.HasFixedTarget)
+            {
+                ballista = own;
+                ballistaShot = own.FixedVelocity;
+                ballistaChosen = Time.time;
+                goal = Goal.Ballista;
+                target = own.transform.position;
+                if (was != Goal.Ballista || path.Count == 0) { path.Clear(); path.Add(target); }
+                return;
+            }
             goal = Goal.Raid;
             target = gate;
             Leap(gate);
@@ -924,7 +934,7 @@ namespace Fief
                 airTop = Mathf.Max(airTop, transform.position.y);
                 fallSpeed -= 22f * dt;
                 // LE VOL PLANE (28/09) : comme toi, ses ailes s'ouvrent seules au-dessus du vide.
-                if (!gliding && seeker.CanGlide && fallSpeed < -6f && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
+                if (!gliding && seeker.CanGlide && fallSpeed < -6f && (!ballistic || launchAge > 3.6f) && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
                 {
                     gliding = true;
                     airspeed = Wings.OpeningSpeed(Flat(flight) + Vector3.up * fallSpeed);

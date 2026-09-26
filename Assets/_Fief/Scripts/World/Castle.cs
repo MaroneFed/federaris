@@ -205,7 +205,7 @@ namespace Fief
             Crenellate(t, c4, c1, height, 1.2f, seed + 3);
         }
 
-        /// <summary>Les quatre portes : deux tours de garde, un arc sombre, deux braseros.</summary>
+        /// <summary>Les quatre portes, au milieu de chaque muraille : deux tours de garde, la herse relevee, un pont-levis, un arc d'or, une banniere.</summary>
         static void BuildGates(Transform t)
         {
             Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
@@ -222,8 +222,47 @@ namespace Fief
                 for (float s = -GateWidth * 0.5f + 0.5f; s < GateWidth * 0.5f; s += 0.8f)
                     Proto.Cube(t, gate + side * s + Vector3.up * (GateHeight - 0.7f), new Vector3(0.14f, 1.4f, 0.14f), IronDark, "Herse levée");
                 Proto.EndVisualOnly();
-                Torch(t, gate + d * 5f + side * (GateWidth * 0.5f + 1.2f), 3.4f);
-                Torch(t, gate + d * 5f - side * (GateWidth * 0.5f + 1.2f), 3.4f);
+                // LE PONT-LEVIS (29/09 : "quatre portes au milieu de chaque muraille" -- qu'on
+                // les voie) : un tablier de planches cerclees de fer, abaisse, tenu par deux
+                // chaines ; l'arc cercle d'or ; une grande banniere au-dessus.
+                Quaternion face = Quaternion.LookRotation(d, Vector3.up);
+                GameObject deck = Proto.Cube(t, gate + d * 4.6f + Vector3.up * 0.12f, new Vector3(GateWidth - 0.4f, 0.24f, 6.2f), Timber, "Pont-levis");
+                deck.transform.rotation = face;
+                Proto.BeginVisualOnly();
+                for (int k = 0; k < 7; k++)
+                {
+                    GameObject plank = Proto.Cube(t, gate + d * (1.8f + k * 0.9f) + Vector3.up * 0.25f, new Vector3(GateWidth - 0.5f, 0.04f, 0.08f), new Color(0.15f, 0.11f, 0.08f), "Joint");
+                    plank.transform.rotation = face;
+                }
+                for (int k = -1; k <= 1; k += 2)
+                {
+                    GameObject band = Proto.Cube(t, gate + d * 4.6f + side * k * (GateWidth * 0.5f - 0.6f) + Vector3.up * 0.26f, new Vector3(0.25f, 0.05f, 6.2f), IronDark, "Ferrure");
+                    band.transform.rotation = face;
+                    // La chaine : du bout du tablier jusqu'au haut de l'arc.
+                    Vector3 low = gate + d * 7.4f + side * k * (GateWidth * 0.5f - 0.4f) + Vector3.up * 0.3f;
+                    Vector3 high = gate + d * 1.6f + side * k * (GateWidth * 0.5f + 0.3f) + Vector3.up * (GateHeight + 0.5f);
+                    GameObject chain = Proto.Cube(t, (low + high) * 0.5f, new Vector3(0.12f, 0.12f, (high - low).magnitude), IronDark, "Chaîne");
+                    chain.transform.rotation = Quaternion.LookRotation(high - low, Vector3.up);
+                    // Le montant d'or de l'arc.
+                    GameObject gilt = Proto.Cube(t, gate + d * 1.65f + side * k * (GateWidth * 0.5f + 0.1f) + Vector3.up * (GateHeight * 0.5f), new Vector3(0.3f, GateHeight, 0.08f), Color.white, "Arc d'or");
+                    gilt.transform.rotation = face;
+                    gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.35f), 1.6f);
+                }
+                GameObject lintel = Proto.Cube(t, gate + d * 1.65f + Vector3.up * (GateHeight + 0.15f), new Vector3(GateWidth + 0.5f, 0.3f, 0.08f), Color.white, "Arc d'or");
+                lintel.transform.rotation = face;
+                lintel.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.35f), 1.8f);
+                // La grande banniere, au-dessus de l'arc.
+                GameObject cloth = Proto.Cube(t, gate + d * 1.75f + Vector3.up * (GateHeight + 4.2f), new Vector3(4.2f, 6f, 0.08f), new Color(0.55f, 0.1f, 0.12f), "Bannière");
+                cloth.transform.rotation = face;
+                GameObject stripe = Proto.Cube(t, gate + d * 1.8f + Vector3.up * (GateHeight + 4.2f), new Vector3(0.7f, 5.2f, 0.04f), Color.white, "Blason");
+                stripe.transform.rotation = face;
+                stripe.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.8f, 0.4f), 1.4f);
+                GameObject cross = Proto.Cube(t, gate + d * 1.8f + Vector3.up * (GateHeight + 5.2f), new Vector3(3f, 0.6f, 0.04f), Color.white, "Blason");
+                cross.transform.rotation = face;
+                cross.GetComponent<Renderer>().sharedMaterial = stripe.GetComponent<Renderer>().sharedMaterial;
+                Proto.EndVisualOnly();
+                Torch(t, gate + d * 8f + side * (GateWidth * 0.5f + 1.2f), 3.4f);
+                Torch(t, gate + d * 8f - side * (GateWidth * 0.5f + 1.2f), 3.4f);
                 Torch(t, gate - d * 5f + side * (GateWidth * 0.5f + 1.2f), 3.4f);
                 Torch(t, gate - d * 5f - side * (GateWidth * 0.5f + 1.2f), 3.4f);
             }

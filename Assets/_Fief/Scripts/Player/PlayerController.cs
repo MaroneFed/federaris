@@ -254,6 +254,7 @@ namespace Fief
                 // (Tire par une arbaleste : seulement au-dessus du grand vide, pour
                 // retomber la ou la ligne l'avait dit.)
                 else if (!Gliding && !folded && me != null && me.CanGlide && verticalVelocity < -6f
+                         && (!ballistic || launchAge > 3.6f)
                          && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
                     OpenWings(me);
                 // Etourdi en plein vol : les ailes se ferment (on tombe), elles se rouvriront.

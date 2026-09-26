@@ -252,11 +252,12 @@ namespace Fief
             if (Ballista.PlayerOn != null)
             {
                 Ballista b = Ballista.PlayerOn;
+                if (b.HasFixedTarget) mine = "CLIC GAUCHE : elle te pose devant ta porte   ·   E : descendre";
                 string where = b.Landing == Ballista.LandingKind.Ward ? "sur le SCEAU de la citadelle : il te renverra"
                              : b.Landing == Ballista.LandingKind.Monument ? "sur un MONUMENT !"
                              : b.Landing == Ballista.LandingKind.Ground ? "sur la terre ferme"
                              : "dans le vide : tu planeras";
-                mine = b.Charging
+                if (!b.HasFixedTarget) mine = b.Charging
                     ? "TENSION " + Mathf.RoundToInt(b.Tension * 100f) + " %   ·   relâche pour tirer   ·   arrivée " + where
                     : "Maintiens le clic gauche pour tendre   ·   E : descendre   ·   arrivée " + where;
             }

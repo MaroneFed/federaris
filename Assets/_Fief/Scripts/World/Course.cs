@@ -7,8 +7,8 @@ namespace Fief
     /// LE PARCOURS JUSQU'AU CHATEAU (28/09 -- Martin : "que la route pour aller jusqu'au
     /// chateau soit plus compliquee", "vraiment plus d'obstacles, que ce soit aleatoire").
     ///
-    /// Devant chacune des quatre portes, un COULOIR de quarante metres, borde de murets
-    /// qu'on ne saute pas : c'est le seul chemin vers la porte. Dedans, cinq STATIONS
+    /// Devant chacune des quatre portes, un COULOIR de trente metres, borde de murets
+    /// qu'on ne saute pas : c'est le seul chemin vers la porte. Dedans, quatre STATIONS
     /// tirees au hasard a chaque manche, parmi :
     ///   - une CHICANE : un mur en travers, avec un passage d'un cote ou de l'autre ;
     ///   - un MOULINET : une barre qui tourne a hauteur de genou (on saute) ;
@@ -21,10 +21,10 @@ namespace Fief
     public static class Course
     {
         /// <summary>La longueur des couloirs, depuis le pied du rempart.</summary>
-        public const float Length = 40f;
+        public const float Length = 30f;
         /// <summary>La demi-largeur interieure d'un couloir.</summary>
         public const float HalfWidth = 9f;
-        const int Stations = 5;
+        const int Stations = 4;
 
         static readonly Vector3[] Axes = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
         // Pour chaque porte : ou passer, de l'entree du couloir jusqu'a la porte.
@@ -35,7 +35,7 @@ namespace Fief
         static readonly Color Rune = new Color(1f, 0.55f, 0.25f);
 
         /// <summary>Le point, pour la porte "gate", a "d" metres du rempart et "lateral" metres de l'axe.</summary>
-        static Vector3 At(int gate, float d, float lateral)
+        public static Vector3 At(int gate, float d, float lateral)
         {
             Vector3 axis = Axes[gate];
             Vector3 side = new Vector3(axis.z, 0f, -axis.x);
@@ -91,7 +91,7 @@ namespace Fief
                 int lastChicane = 0;
                 for (int k = 0; k < Stations; k++)
                 {
-                    float d = Length - 5f - k * 6.5f;
+                    float d = Length - 4f - k * 5.5f;
                     int kind = rng.Next(4);
                     // Jamais deux chicanes de suite du meme cote : on zigzague.
                     if (kind == 0)
@@ -106,11 +106,11 @@ namespace Fief
                     Vector3 c = At(g, d, 0f);
                     if (kind == 1)
                     {
-                        Sweeper.Build(t, c, Axes[g], HalfWidth - 0.4f, 1.3f + (float)rng.NextDouble() * 0.6f, (float)rng.NextDouble() * 6f, false);
+                        Sweeper.Build(t, c, Axes[g], HalfWidth - 0.4f, (1.3f + (float)rng.NextDouble() * 0.6f) * Tower.Hardness, (float)rng.NextDouble() * 6f, false);
                         // (Les bots contournent son pied.)
                         Openings[g].Add(At(g, d, (rng.NextDouble() < 0.5 ? -1f : 1f) * 3.5f));
                     }
-                    else if (kind == 2) SpikeTrap.Build(t, c, Axes[g], HalfWidth * 2f, 4f, 2.6f + (float)rng.NextDouble(), (float)rng.NextDouble() * 3f);
+                    else if (kind == 2) SpikeTrap.Build(t, c, Axes[g], HalfWidth * 2f, 4f, (2.6f + (float)rng.NextDouble()) / Tower.Hardness, (float)rng.NextDouble() * 3f);
                     else Maul.Build(t, c, Axes[g], (float)rng.NextDouble() * 6f);
                     lastChicane = 0;
                 }
@@ -136,6 +136,12 @@ namespace Fief
         }
 
         /// <summary>La porte dont le couloir sert a qui vient de "from" (0 a 3).</summary>
+        /// <summary>Le parvis devant le couloir de la porte "gate" (la ou les arbalestes des plateformes posent).</summary>
+        public static Vector3 Plaza(int gate, float lateral) { return At(gate, Length + 5f, lateral) + Vector3.up * 0.05f; }
+
+        /// <summary>La direction (depuis le centre) de la porte "gate".</summary>
+        public static Vector3 Axis(int gate) { return Axes[gate]; }
+
         public static int GateFor(Vector3 from)
         {
             int best = 0;
@@ -442,7 +448,7 @@ namespace Fief
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            arm.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * Speed + phase) * Swing);
+            arm.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * Speed * Tower.Hardness + phase) * Swing);
             Vector3 head = Head;
             Vector3 velocity = (head - lastHead) / dt;
             lastHead = head;

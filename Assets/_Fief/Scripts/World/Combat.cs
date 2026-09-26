@@ -289,11 +289,12 @@ namespace Fief
     /// arbalete dans son truc, on fonce dans le chateau, on monte").
     ///
     /// Chaque joueur a SA plateforme : un petit rocher volant, a 42 m de haut, a
-    /// 116 m du centre -- TOUTES A LA MEME DISTANCE de la tour, a egale distance les
-    /// unes des autres. Un disque a sa couleur, un fanion, une colonne de lumiere, et
-    /// SON ARBALESTE, tournee vers la citadelle. Au PARTEZ : on se fait tirer (ou on
-    /// saute et on plane) jusqu'a l'ile, on passe le parcours, on entre par une porte,
-    /// on monte. On ne vole pas dans la citadelle : le SCEAU renvoie (voir Ward).
+    /// 116 m du centre, en face d'une des quatre portes (deux plateformes par porte,
+    /// de part et d'autre de son axe) : TOUT LE MONDE est a la meme distance de sa porte
+    /// et de la tour. Un disque a sa couleur, un fanion, une colonne de lumiere, et SON
+    /// ARBALESTE : un clic, et elle te pose en cloche sur le PARVIS devant ta porte
+    /// (29/09 : "sur la terre ferme devant le chateau, pas deja sur les trucs"). Puis
+    /// le couloir, la porte, la rampe en face. Le SCEAU empeche d'entrer en volant.
     ///
     /// C'est aussi la qu'on REAPPARAIT quand on tombe dans les nuages (voir Respawn).
     /// </summary>
@@ -301,6 +302,7 @@ namespace Fief
     {
         static readonly Dictionary<int, Vector3> Points = new Dictionary<int, Vector3>();
         static readonly Dictionary<int, Ballista> Ballistas = new Dictionary<int, Ballista>();
+        static readonly Dictionary<int, Vector3> Landings = new Dictionary<int, Vector3>();
         /// <summary>La distance de chaque plateforme au centre, sa hauteur, son rayon.</summary>
         public const float Distance = 116f;
         public const float Altitude = 42f;
@@ -310,16 +312,21 @@ namespace Fief
         {
             Points.Clear();
             Ballistas.Clear();
+            Landings.Clear();
             System.Random rng = new System.Random(seed ^ 0x51a);
-            // Une rotation au hasard a chaque manche ; puis toutes a egale distance.
-            float turn = (float)rng.NextDouble() * 360f;
-            int shift = rng.Next(Mathf.Max(1, players));
-            int n = Mathf.Max(1, players);
+            // (29/09) DEUX PLATEFORMES PAR PORTE, placees pareil de chaque cote de son axe :
+            // tout le monde est a la meme distance de sa porte, et de la tour. Qui a quelle
+            // porte change a chaque manche.
+            int shift = rng.Next(4);
             for (int i = 0; i < players; i++)
             {
-                int place = (i + shift) % n;
-                float a = (turn + place * 360f / n) * Mathf.Deg2Rad;
+                int gate = (i + shift) % 4;
+                int pair = i / 4;                                    // 0 : premier de sa porte, 1 : second
+                float side = players <= 4 ? 0f : (pair == 0 ? -1f : 1f);
+                Vector3 axis = Course.Axis(gate);
+                float a = Mathf.Atan2(axis.z, axis.x) + side * 17f * Mathf.Deg2Rad;
                 Points[i] = new Vector3(Mathf.Cos(a) * Distance, Altitude, Mathf.Sin(a) * Distance);
+                Landings[i] = Course.Plaza(gate, side * 3.5f);
             }
         }
 
@@ -344,6 +351,13 @@ namespace Fief
         {
             Vector3 p = PadOf(slot);
             return Mathf.Atan2(-p.x, -p.z) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>Ou l'arbaleste de la plateforme de "slot" le pose : le parvis devant sa porte.</summary>
+        public static Vector3 LandingOf(int slot)
+        {
+            Vector3 p;
+            return Landings.TryGetValue(slot, out p) ? p : Course.Plaza(0, 0f);
         }
 
         /// <summary>L'arbaleste de la plateforme de "slot" (null s'il n'y en a pas).</summary>
@@ -384,6 +398,8 @@ namespace Fief
                 // SON arbaleste, au bord, tournee vers la citadelle.
                 Vector3 inward = new Vector3(-at.x, 0f, -at.z).normalized;
                 Ballista b = Ballista.Build(root.transform, at + inward * 2.6f, YawOf(i));
+                // Elle ne vise pas : elle te pose en cloche sur le parvis, devant ta porte (29/09).
+                b.SetFixedTarget(LandingOf(i));
                 Ballistas[i] = b;
             }
         }
