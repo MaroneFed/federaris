@@ -7,7 +7,7 @@ namespace Fief
     /// rien en main", "trouve une liste de plein de capacites"). On en choisit une avant
     /// la premiere manche, puis une entre chaque manche ; on les garde tout le match.
     ///
-    ///   ACTIVES   une touche chacune (clic droit, R, C), et un temps de recharge.
+    ///   ACTIVES   une touche chacune (clic gauche, E, R -- 28/09), et un temps de recharge.
     ///             Trois au plus : la quatrieme remplace la plus ancienne.
     ///   PASSIVES  toujours la, sans touche.
     ///
@@ -32,7 +32,10 @@ namespace Fief
         public const int MaxActives = 3;
 
         /// <summary>Les touches des capacites actives, dans l'ordre ou on les a prises. "V" : le don d'un sanctuaire.</summary>
-        public static readonly string[] Keys = { "Clic droit", "R", "C" };
+        public static string[] Keys { get { return new[] { Settings.PushOnLeft ? "Clic droit" : "Clic gauche", "E", "R" }; } }
+        /// <summary>La touche pour pousser (clic droit par defaut ; voir Settings.PushOnLeft).</summary>
+        public static string PushKey { get { return Settings.PushOnLeft ? "Clic gauche" : "Clic droit"; } }
+        public const string UseKey = "F";
         public const string GiftKey = "V";
 
         public static bool IsActive(Ability a) { return a < Ability.DoubleSaut; }

@@ -213,6 +213,14 @@ namespace Fief
             public static readonly List<int> PickedBy = new List<int>();
             public static readonly List<Ability> Picked = new List<Ability>();
             public static int Turn { get; private set; }
+            /// <summary>
+            /// Avant la manche 1, DEUX tours de table (28/09 -- Martin : "la premiere
+            /// carte, que ce soit une passive") : 0 = une PASSIVE chacun, 1 = une ACTIVE
+            /// chacun (elle ira sur le clic gauche). Ensuite, un seul tour, tout melange.
+            /// </summary>
+            public static int Stage { get; private set; }
+            /// <summary>Vrai s'il reste le second tour de table avant la manche 1.</summary>
+            public static bool SecondStageNext { get { return Played == 0 && Stage == 0; } }
 
             public static bool Done { get { return Turn >= Order.Count; } }
             public static int Current { get { return Done ? -1 : Order[Turn]; } }
@@ -228,12 +236,17 @@ namespace Fief
 
             /// <summary>
             /// Etaler les cartes. Avant la premiere manche aussi : on commence le match
-            /// avec une capacite en main, jamais les mains vides. A la premiere, une
-            /// ACTIVE au moins sur la table pour chacun (sinon on ne ferait rien).
+            /// avec une passive ET une active, jamais les mains vides.
             /// </summary>
-            public static void Prepare()
+            public static void Prepare() { Build(0); }
+
+            /// <summary>Le second tour de table avant la manche 1 : les actives.</summary>
+            public static void PrepareSecondStage() { Build(1); }
+
+            static void Build(int stage)
             {
                 Clear();
+                Stage = stage;
                 System.Random rng = new System.Random(RoundSeed);
                 List<Ability> pool = new List<Ability>();
                 for (int i = 0; i < AbilityInfo.Count; i++) pool.Add((Ability)i);
@@ -243,11 +256,11 @@ namespace Fief
                 bool first = Played == 0;
                 for (int i = 0; i < cards; i++)
                 {
-                    // Au premier choix, que des actives : tout le monde a quelque chose a essayer.
+                    // Avant la manche 1 : d'abord que des passives, puis que des actives.
                     List<Ability> from = pool;
                     if (first)
                     {
-                        from = pool.FindAll(AbilityInfo.IsActive);
+                        from = stage == 0 ? pool.FindAll(a => !AbilityInfo.IsActive(a)) : pool.FindAll(AbilityInfo.IsActive);
                         if (from.Count == 0) from = pool;
                     }
                     Ability pick = from[rng.Next(from.Count)];

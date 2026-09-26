@@ -7,14 +7,15 @@ namespace Fief
     /// CE QU'ON FAIT, LES MAINS VIDES (27/09 -- Martin : "pas d'epee, juste des
     /// capacites, on tiendra jamais rien en main").
     ///
-    ///   clic gauche   POUSSER : le premier devant soi part en arriere et en l'air ;
+    ///   clic droit    POUSSER : le premier devant soi part en arriere et en l'air ;
     ///                 s'il porte la Couronne, il la lache ;
-    ///   clic droit    ta premiere capacite active ;
+    ///   clic gauche   ta premiere capacite active (28/09 : les touches inversables
+    ///                 dans les reglages, "Pousser sur") ;
     ///                 (28/09 : celles qu'on VISE -- ruee, grappin, crochet, clignement,
     ///                 mur, givre, echange, souffle -- se lancent au RELACHEMENT : tant
     ///                 qu'on tient la touche, un apercu montre ou elles iront.)
-    ///   R             la deuxieme ;
-    ///   C             la troisieme ;
+    ///   E             la deuxieme ;
+    ///   R             la troisieme ;
     ///   V             le DON d'un sanctuaire (pour la manche) ;
     ///
     /// Les capacites elles-memes sont dans World/AbilityCaster.cs : les bots passent
@@ -41,7 +42,7 @@ namespace Fief
             player = GetComponent<PlayerController>();
         }
 
-        /// <summary>Les capacites actives du joueur, dans l'ordre des touches (0 : clic droit, 1 : R, 2 : C).</summary>
+        /// <summary>Les capacites actives du joueur, dans l'ordre des touches (0 : clic gauche, 1 : E, 2 : R).</summary>
         public static List<Ability> Actives(Seeker s)
         {
             return s != null ? s.Slot.Actives : new List<Ability>();

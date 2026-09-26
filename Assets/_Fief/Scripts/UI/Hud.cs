@@ -178,12 +178,12 @@ namespace Fief
             if (me == null || me.Body == null) return;
             Vector3 p = me.Body.position;
             if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
-            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré — vers la tour, un îlot, un Monument.");
+            else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : F pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
-            else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : clic gauche.");
+            else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : " + AbilityInfo.PushKey.ToLowerInvariant() + ".");
             else if (Eye.ChargingAt(me)) Tip("oeil", "Un Œil devient rouge quand il vise : fais un pas de côté au dernier moment.");
-            else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (clic gauche) pour la lui VOLER.");
+            else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (" + AbilityInfo.PushKey.ToLowerInvariant() + ") pour la lui VOLER.");
             else if (me.HasGift) Tip("don", "Ton don est sur la touche V, pour cette manche.");
         }
 
@@ -253,7 +253,7 @@ namespace Fief
                              : "dans le vide : tu planeras";
                 mine = b.Charging
                     ? "TENSION " + Mathf.RoundToInt(b.Tension * 100f) + " %   ·   relâche pour tirer   ·   arrivée " + where
-                    : "Maintiens le clic gauche pour tendre   ·   E : descendre   ·   arrivée " + where;
+                    : "Maintiens le clic gauche pour tendre   ·   F : descendre   ·   arrivée " + where;
             }
             else if (me.CarriesCrown && Monument.All.Count > 0)
                 mine = Monument.All.Count + " Monuments : choisis le tien   ·   le plus proche à " + Mathf.RoundToInt(Monument.NearestDistance(me.Body.position)) + " m"
@@ -470,7 +470,7 @@ namespace Fief
             float d = UiStyle.S(foe ? 6 : 3);
             Color c = foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : new Color(1f, 1f, 1f, 0.7f);
             UiStyle.Fill(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), c);
-            if (foe && Stats.Shoves < 3) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), "clic gauche  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
+            if (foe && Stats.Shoves < 3) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), AbilityInfo.PushKey.ToLowerInvariant() + "  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
 
             // La recharge de la poussee : un trait fin sous le point.
             if (me != null && Time.time < me.ShoveReadyAt)
@@ -500,14 +500,14 @@ namespace Fief
             Text(new Rect(0f, y, Screen.width, UiStyle.S(22)), text, UiStyle.Centered, new Color(0.95f, 0.88f, 0.7f, 0.9f));
         }
 
-        /// <summary>"E  Prendre le don : Grappin", et le trait qui se remplit pendant le maintien.</summary>
+        /// <summary>"F  Prendre le don : Grappin", et le trait qui se remplit pendant le maintien.</summary>
         void DrawPrompt()
         {
             if (interactor == null) return;
             IInteractable target = interactor.Current;
             if (target == null || !target.CanInteract) return;
             float y = Screen.height * 0.5f + UiStyle.S(86);
-            Text(new Rect(0f, y, Screen.width, UiStyle.S(24)), "E    " + target.Prompt, UiStyle.Centered, new Color(1f, 0.9f, 0.68f));
+            Text(new Rect(0f, y, Screen.width, UiStyle.S(24)), AbilityInfo.UseKey + "    " + target.Prompt, UiStyle.Centered, new Color(1f, 0.9f, 0.68f));
             if (target.HoldDuration > 0f && interactor.HoldProgress01 > 0f)
             {
                 float w = UiStyle.S(160);

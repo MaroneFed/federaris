@@ -4,7 +4,7 @@ namespace Fief
 {
     /// <summary>
     /// LES REGLAGES DU JOUEUR (27/09) : sensibilite de la souris, volume, champ de
-    /// vision, plein ecran. Rien a voir avec la partie : ce sont les preferences de
+    /// vision, plein ecran, et la touche pour pousser. Rien a voir avec la partie : ce sont les preferences de
     /// celui qui tient la souris.
     ///
     /// Concept Unity : PlayerPrefs est un petit carnet cle -> valeur qu'Unity garde
@@ -18,6 +18,12 @@ namespace Fief
         public static float Fov = 78f;           // 65 a 100 degres
         public static float TextSize = 1f;       // 0,8 a 1,5 : la taille de tout le texte a l'ecran
         public static bool Fullscreen = true;
+        /// <summary>
+        /// Pousser sur le clic gauche (et ta premiere capacite sur le clic droit). Par
+        /// defaut non (28/09 -- Martin : "une active sur le clic gauche") : clic gauche
+        /// = capacite, clic droit = pousser.
+        /// </summary>
+        public static bool PushOnLeft;
 
         static bool loaded;
 
@@ -30,6 +36,7 @@ namespace Fief
             Fov = PlayerPrefs.GetFloat("fief.fov", 78f);
             TextSize = PlayerPrefs.GetFloat("fief.texte", 1f);
             Fullscreen = PlayerPrefs.GetInt("fief.pleinecran", Screen.fullScreen ? 1 : 0) == 1;
+            PushOnLeft = PlayerPrefs.GetInt("fief.pousserGauche", 0) == 1;
         }
 
         public static void Save()
@@ -39,6 +46,7 @@ namespace Fief
             PlayerPrefs.SetFloat("fief.fov", Fov);
             PlayerPrefs.SetFloat("fief.texte", TextSize);
             PlayerPrefs.SetInt("fief.pleinecran", Fullscreen ? 1 : 0);
+            PlayerPrefs.SetInt("fief.pousserGauche", PushOnLeft ? 1 : 0);
             PlayerPrefs.Save();
         }
 
@@ -61,6 +69,7 @@ namespace Fief
             else if (row == 2) Fov = Mathf.Clamp(Fov + step * 5f, 65f, 100f);
             else if (row == 3) TextSize = Mathf.Clamp(Mathf.Round((TextSize + step * 0.1f) * 10f) / 10f, 0.8f, 1.5f);
             else if (row == 4) Fullscreen = !Fullscreen;
+            else if (row == 5) PushOnLeft = !PushOnLeft;
             Apply();
             Save();
         }
@@ -72,9 +81,10 @@ namespace Fief
             if (row == 1) return Mathf.RoundToInt(Volume * 100f) + " %";
             if (row == 2) return Mathf.RoundToInt(Fov) + "°";
             if (row == 3) return Mathf.RoundToInt(TextSize * 100f) + " %";
-            return Fullscreen ? "oui" : "non";
+            if (row == 4) return Fullscreen ? "oui" : "non";
+            return PushOnLeft ? "clic gauche" : "clic droit";
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Pousser sur" };
     }
 }

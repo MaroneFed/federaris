@@ -81,8 +81,9 @@ namespace Fief
             }
         }
 
-        public static bool InteractHeld { get { return KeyHeld(KeyCode.E); } }
-        public static bool InteractPressed { get { return KeyPressed(KeyCode.E); } }
+        /// <summary>F (28/09 : E sert maintenant a une capacite) : prendre la Couronne, un don, monter sur une arbaleste.</summary>
+        public static bool InteractHeld { get { return KeyHeld(KeyCode.F); } }
+        public static bool InteractPressed { get { return KeyPressed(KeyCode.F); } }
         public static bool JumpPressed { get { return KeyPressed(KeyCode.Space); } }
         public static bool CancelPressed { get { return KeyPressed(KeyCode.Escape); } }
         public static bool HelpPressed { get { return KeyPressed(KeyCode.F1); } }
@@ -90,8 +91,8 @@ namespace Fief
         public static bool SprintHeld { get { return KeyHeld(KeyCode.LeftShift); } }
 
         public static bool JumpHeld { get { return KeyHeld(KeyCode.Space); } }
-        /// <summary>F : grimper dans un arbre, ou en redescendre.</summary>
-        public static bool ClimbPressed { get { return KeyPressed(KeyCode.F); } }
+        /// <summary>F1 ou H : le panneau des touches.</summary>
+        public static bool KeysPressed { get { return KeyPressed(KeyCode.F1) || KeyPressed(KeyCode.H); } }
         /// <summary>Tab maintenu : le score du match.</summary>
         public static bool ScoresHeld { get { return KeyHeld(KeyCode.Tab); } }
 
@@ -102,73 +103,66 @@ namespace Fief
         public static bool RightPressed { get { return KeyPressed(KeyCode.RightArrow) || KeyPressed(KeyCode.D); } }
         public static bool ConfirmPressed { get { return KeyPressed(KeyCode.Return) || KeyPressed(KeyCode.KeypadEnter); } }
 
-        /// <summary>Clic gauche, a l'instant : POUSSER.</summary>
-        public static bool PushPressed
+        // ------------------------------------------------------------------ la souris
+        // (28/09 -- Martin : "une active sur le clic gauche, une sur E, mais pas sur C".)
+        // Par defaut : clic GAUCHE = ta premiere capacite, clic DROIT = pousser. Le
+        // reglage "Pousser sur" (Core/Settings.cs) les inverse.
+
+        static bool MouseDown(int button)
         {
-            get
-            {
 #if ENABLE_INPUT_SYSTEM
-                Mouse m = Mouse.current;
-                return m != null && m.leftButton.wasPressedThisFrame;
+            Mouse m = Mouse.current;
+            if (m == null) return false;
+            return button == 0 ? m.leftButton.wasPressedThisFrame : m.rightButton.wasPressedThisFrame;
 #else
-                return Input.GetMouseButtonDown(0);
+            return Input.GetMouseButtonDown(button);
 #endif
-            }
         }
 
-        /// <summary>Clic gauche maintenu (tendre l'arbaleste).</summary>
-        public static bool PushHeld
+        static bool MouseHeld(int button)
         {
-            get
-            {
 #if ENABLE_INPUT_SYSTEM
-                Mouse m = Mouse.current;
-                return m != null && m.leftButton.isPressed;
+            Mouse m = Mouse.current;
+            if (m == null) return false;
+            return button == 0 ? m.leftButton.isPressed : m.rightButton.isPressed;
 #else
-                return Input.GetMouseButton(0);
+            return Input.GetMouseButton(button);
 #endif
-            }
         }
 
-        /// <summary>
-        /// Une capacite, touche MAINTENUE (on vise : l'apercu s'affiche). Memes numeros
-        /// que CastPressed.
-        /// </summary>
-        public static bool CastHeld(int slot)
-        {
-            switch (slot)
-            {
-                case 0:
-#if ENABLE_INPUT_SYSTEM
-                    Mouse m = Mouse.current;
-                    return m != null && m.rightButton.isPressed;
-#else
-                    return Input.GetMouseButton(1);
-#endif
-                case 1: return KeyHeld(KeyCode.R);
-                case 2: return KeyHeld(KeyCode.C);
-                default: return KeyHeld(KeyCode.V);
-            }
-        }
+        static int PushButton { get { return Settings.PushOnLeft ? 0 : 1; } }
+
+        /// <summary>POUSSER, a l'instant (clic droit par defaut).</summary>
+        public static bool PushPressed { get { return MouseDown(PushButton); } }
+
+        /// <summary>Clic gauche, a l'instant et maintenu : tendre l'arbaleste (toujours le clic gauche).</summary>
+        public static bool ShootPressed { get { return MouseDown(0); } }
+        public static bool ShootHeld { get { return MouseHeld(0); } }
 
         /// <summary>
-        /// Les capacites actives : 0 = clic droit, 1 = R, 2 = C, 3 = V (le don d'un
-        /// sanctuaire). Voir AbilityInfo.Keys.
+        /// Les capacites actives : 0 = clic gauche (ou droit, selon le reglage), 1 = E,
+        /// 2 = R, 3 = V (le don d'un sanctuaire). Voir AbilityInfo.Keys.
         /// </summary>
         public static bool CastPressed(int slot)
         {
             switch (slot)
             {
-                case 0:
-#if ENABLE_INPUT_SYSTEM
-                    Mouse m = Mouse.current;
-                    return m != null && m.rightButton.wasPressedThisFrame;
-#else
-                    return Input.GetMouseButtonDown(1);
-#endif
-                case 1: return KeyPressed(KeyCode.R);
-                case 2: return KeyPressed(KeyCode.C);
+                case 0: return MouseDown(1 - PushButton);
+                case 1: return KeyPressed(KeyCode.E);
+                case 2: return KeyPressed(KeyCode.R);
                 default: return KeyPressed(KeyCode.V);
+            }
+        }
+
+        /// <summary>Une capacite, touche MAINTENUE (on vise : l'apercu s'affiche). Memes numeros que CastPressed.</summary>
+        public static bool CastHeld(int slot)
+        {
+            switch (slot)
+            {
+                case 0: return MouseHeld(1 - PushButton);
+                case 1: return KeyHeld(KeyCode.E);
+                case 2: return KeyHeld(KeyCode.R);
+                default: return KeyHeld(KeyCode.V);
             }
         }
 
@@ -204,6 +198,7 @@ namespace Fief
                 case KeyCode.Escape: return k.escapeKey;
                 case KeyCode.F1: return k.f1Key;
                 case KeyCode.F3: return k.f3Key;
+                case KeyCode.H: return k.hKey;
                 case KeyCode.LeftShift: return k.leftShiftKey;
                 case KeyCode.F: return k.fKey;
                 case KeyCode.R: return k.rKey;

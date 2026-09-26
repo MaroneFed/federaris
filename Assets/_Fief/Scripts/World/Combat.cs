@@ -5,7 +5,7 @@ namespace Fief
 {
     /// <summary>
     /// LE CONTACT (27/09 : plus d'epee, plus de vie). Tout ce qui touche un joueur le
-    /// PROJETTE : la poussee (clic gauche), l'onde de choc, le souffle, le rayon d'un
+    /// PROJETTE : la poussee (clic droit), l'onde de choc, le souffle, le rayon d'un
     /// Oeil, une mine, un pendule de la tour. On ne meurt pas -- on perd sa place, et
     /// la Couronne si on la portait. C'est Smash dans une foret noire.
     ///
@@ -18,7 +18,7 @@ namespace Fief
         public const float ShoveForce = 14f;
 
         /// <summary>
-        /// POUSSER (clic gauche) : le premier joueur devant soi, a 3 m, part en arriere
+        /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
         /// et en l'air. Le porteur de la Couronne la lache. Vrai si on a touche quelqu'un.
         /// </summary>
         public static bool Shove(Seeker by, Vector3 forward)

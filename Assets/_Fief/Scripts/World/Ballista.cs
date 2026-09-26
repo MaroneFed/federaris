@@ -7,7 +7,7 @@ namespace Fief
     /// L'ARBALESTE GEANTE (27/09 -- Martin : "une enorme arbalete, tu te mets dessus et
     /// BAM tu tires a fond" ; refaite le 28/09 : "des meilleures arbaletes").
     ///
-    /// On monte dessus (E) : on s'assoit sur le CARREAU, un trait de cinq metres. On
+    /// On monte dessus (F) : on s'assoit sur le CARREAU, un trait de cinq metres. On
     /// VISE a la souris : la trajectoire se dessine en perles de lumiere et un anneau
     /// marque l'arrivee -- VERT sur la terre ferme, BLEU sur un Monument ; si la ligne
     /// file dans le vide, pas d'anneau : tu planeras.
@@ -326,7 +326,7 @@ namespace Fief
                 if (Game.Player == null) { rider = null; return false; }
                 Game.Player.BeginScripted();
                 PlayerOn = this;
-                if (Game.Hud != null) Game.Hud.Tip("arbaleste", "Vise à la souris. MAINTIENS le clic gauche pour tendre (la courbe s'allonge), RELÂCHE pour tirer. Anneau vert : terre ferme ; bleu : un Monument !");
+                if (Game.Hud != null) Game.Hud.Tip("arbaleste", "Vise à la souris. MAINTIENS le clic gauche pour tendre (la courbe s'allonge), RELÂCHE pour tirer (F : descendre). Anneau vert : terre ferme ; bleu : un Monument !");
             }
             else
             {
@@ -444,7 +444,7 @@ namespace Fief
                 }
                 bool locked = Game.Player != null && Game.Player.InputLocked;
                 bool ready = !locked && Time.time - mountedAt > 0.3f;
-                if (ready && FiefInput.PushPressed && !charging) { charging = true; charge = 0f; Sfx.Build(); }
+                if (ready && FiefInput.ShootPressed && !charging) { charging = true; charge = 0f; Sfx.Build(); }
                 if (charging)
                 {
                     float before = charge;
@@ -455,7 +455,7 @@ namespace Fief
                 if (Game.Player != null) Game.Player.ScriptedMove(seat.position);
                 Vector3 v = Aim(charging ? charge : 1f);
                 DrawArc(Launcher, v, charging ? 1f : 0.45f);
-                if (ready && charging && !FiefInput.PushHeld) { Fire(v); return; }
+                if (ready && charging && !FiefInput.ShootHeld) { Fire(v); return; }
                 if (ready && (FiefInput.InteractPressed || FiefInput.JumpPressed)) { Dismount(); return; }
             }
             else

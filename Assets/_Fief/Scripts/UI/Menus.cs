@@ -326,7 +326,7 @@ namespace Fief
 
         /// <summary>
         /// COMMENCER : le match est cree, et avant la premiere manche, chacun CHOISIT
-        /// SA PREMIERE CAPACITE (que des actives sur la table). On ne part jamais les
+        /// SA PASSIVE, puis SON ATTAQUE (deux tours de table). On ne part jamais les
         /// mains vides : c'etait la raison n°1 de s'ennuyer.
         /// </summary>
         void StartMatch()
@@ -451,6 +451,16 @@ namespace Fief
         void FinishDraft()
         {
             if (leaving) return;
+            // Avant la manche 1 : apres la passive, le tour des actives.
+            if (Match.Draft.SecondStageNext)
+            {
+                Match.Draft.PrepareSecondStage();
+                botPickTimer = 0.9f;
+                selected = 0;
+                Sfx.Pop();
+                Go(State.Draft);
+                return;
+            }
             Sfx.Pop();
             Match.Launch();
             NextRound();
@@ -850,7 +860,7 @@ namespace Fief
                 float c = Mathf.Clamp01((t - 1.8f) / 0.5f) * a;
                 Centered(y + UiStyle.S(38), UiStyle.S(30), "Plane jusqu'à l'un des trois Monuments, sur les îlots : les colonnes bleues.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
                 float d = Mathf.Clamp01((t - 2.8f) / 0.5f) * a;
-                Centered(y + UiStyle.S(76), UiStyle.S(30), "Clic gauche pousse. Pousser le porteur, c'est lui voler la Couronne.", UiStyle.Head, new Color(0.95f, 0.7f, 0.6f, d));
+                Centered(y + UiStyle.S(76), UiStyle.S(30), AbilityInfo.PushKey + " pousse. Pousser le porteur, c'est lui voler la Couronne.", UiStyle.Head, new Color(0.95f, 0.7f, 0.6f, d));
                 y += UiStyle.S(130);
             }
             else
@@ -979,10 +989,12 @@ namespace Fief
             GUI.color = was;
 
             float y = Screen.height * 0.08f;
-            string title = Match.Played == 0 ? "CHOISIS TA PREMIÈRE CAPACITÉ" : "UNE CAPACITÉ DE PLUS";
+            string title = Match.Played > 0 ? "UNE CAPACITÉ DE PLUS"
+                         : Match.Draft.Stage == 0 ? "CHOISIS TA PASSIVE" : "CHOISIS TON ATTAQUE";
             Headline(y, 42, UiStyle.Spaced(title), Palette.Gold);
             y += UiStyle.S(64);
-            string sub = Match.Played == 0 ? "Avant la manche 1 · chacun son tour"
+            string sub = Match.Played == 0 && Match.Draft.Stage == 0 ? "Avant la manche 1 · une passive (toujours là), puis une active"
+                       : Match.Played == 0 ? "Elle ira sur " + AbilityInfo.Keys[0].ToLowerInvariant() + " · chacun son tour"
                        : Match.LastWinner >= 0 ? Match.Slots[Match.LastWinner].Name + " a gagné la manche : il choisit en dernier"
                        : "Personne n'a gagné la manche · le moins de victoires choisit d'abord";
             Centered(y, UiStyle.S(24), sub, UiStyle.Label, new Color(0.9f, 0.85f, 0.75f, 0.8f));
@@ -1278,23 +1290,24 @@ namespace Fief
 
         // ------------------------------------------------------------------ les commandes
 
-        public static readonly string[,] Controls =
+        public static string[,] Controls { get { return new string[,]
         {
             { "ZQSD / WASD", "Se déplacer" },
             { "Souris", "Regarder" },
             { "Maj", "Courir" },
             { "Espace", "Sauter ; en l'air : replier ou rouvrir les ailes" },
             { "Voler", "Tombe dans le vide : tes ailes s'ouvrent seules. Souris en bas : piquer, en haut : remonter" },
-            { "Clic gauche", "Pousser — pousser le porteur, c'est lui voler la Couronne" },
-            { "Clic droit", "Ta première capacité (maintiens pour viser, relâche pour lancer)" },
-            { "R", "Ta deuxième capacité" },
-            { "C", "Ta troisième capacité" },
+            { AbilityInfo.Keys[0], "Ta première capacité (maintiens pour viser, relâche pour lancer)" },
+            { AbilityInfo.PushKey, "Pousser — pousser le porteur, c'est lui voler la Couronne ; en vol : le piqué" },
+            { "E", "Ta deuxième capacité" },
+            { "R", "Ta troisième capacité" },
             { "V", "Le don d'un sanctuaire (pour la manche)" },
-            { "E", "Prendre un don ; monter sur une arbaleste" },
-            { "Sur l'arbaleste", "Souris : viser  ·  clic gauche maintenu : tendre, relâché : tirer  ·  E : descendre" },
+            { "F", "Prendre la Couronne, un don ; monter sur une arbaleste" },
+            { "Sur l'arbaleste", "Souris : viser  ·  clic gauche maintenu : tendre, relâché : tirer  ·  F : descendre" },
+            { "F1 ou H", "Les touches, à tout moment" },
             { "Tab", "Le score et les capacités de chacun" },
             { "Échap", "Pause" }
-        };
+        }; } }
 
         void DrawControls()
         {
