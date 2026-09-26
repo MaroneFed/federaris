@@ -123,6 +123,7 @@ namespace Fief
             GameObject folk = new GameObject("HABITANTS");
             folk.transform.SetParent(worldRoot, false);
             Eye.PlaceAll(folk.transform);
+            Ballista.PlaceAll(folk.transform);
         }
 
         /// <summary>

@@ -46,6 +46,8 @@ namespace Fief
             FoeInReach = false;
             Seeker me = Game.Me;
             if (me == null || player == null || player.InputLocked) return;
+            // Sur une arbaleste : le clic gauche tire (voir Ballista), il ne pousse pas.
+            if (Ballista.PlayerOn != null) return;
             Transform eye = player.cameraTransform;
             if (eye == null) return;
 

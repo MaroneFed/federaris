@@ -7,24 +7,20 @@ namespace Fief
     /// UN BOT : un autre joueur, qui joue avec TES regles -- et qui, en Phase 3, cedera
     /// sa place a un vrai joueur en ligne (voir docs/RESEAU.md). On ne lui parle pas.
     ///
-    /// Ce qu'il fait, comme toi :
+    /// Ce qu'il fait, comme toi (27/09 : sur l'ile flottante) :
     ///   - au debut, il passe par un SANCTUAIRE proche s'il n'a pas de don ;
-    ///   - puis il MONTE LA TOUR : une porte de la citadelle, le pied de la rampe, la
-    ///     spirale (il saute les trous), la Couronne ;
-    ///   - s'il la tient, il redescend la rampe et file au MONUMENT ;
-    ///   - si un autre la tient, il le CHASSE : il le pousse, le crochete, le gele ;
-    ///   - si elle roule par terre, il se jette dessus ;
-    ///   - il se sert de TOUTES ses capacites, par le meme code que toi
-    ///     (AbilityCaster.Cast) : ruee pour rattraper, onde quand on l'entoure, voile
-    ///     quand un Oeil le vise, mur et mine pour couvrir sa fuite...
+    ///   - il MONTE LA TOUR : la rampe, les courants, les trous a sauter -- ou il saute
+    ///     sur une ARBALESTE qui l'envoie haut sur la rampe ;
+    ///   - au sommet il prend la Couronne et des AILES, et il se JETTE dans le vide pour
+    ///     PLANER jusqu'a l'ilot du Monument ; ou, depuis le sol, il se fait tirer
+    ///     jusqu'a l'ilot par une arbaleste ;
+    ///   - si un autre la tient, il le CHASSE (et le pousse : c'est ainsi qu'on la
+    ///     VOLE) ; l'un d'eux va l'attendre au Monument ;
+    ///   - il esquive les boulets de la rampe, il se sert de toutes ses capacites
+    ///     (AbilityCaster.Cast, exactement comme toi).
     ///
-    /// COMMENT IL PENSE. Toutes les 0,5 s il choisit un BUT, du plus urgent au moins
-    /// urgent, et un CHEMIN de points (une porte, la rampe). Chaque image, il marche
-    /// vers le prochain point.
-    ///
-    /// COMMENT IL MARCHE. Pres de toi (moins de 70 m) il a un vrai corps
-    /// (CharacterController) : il bute, saute les trous, tombe si on le pousse. Loin de
-    /// toi, personne ne le voit : il glisse le long du chemin, pour presque rien.
+    /// COMMENT IL PENSE. Toutes les 0,3 a 0,5 s il choisit un BUT et un CHEMIN de
+    /// points. Chaque image, il marche vers le prochain point -- ou il vole.
     /// </summary>
     public class Rival : MonoBehaviour, IMover
     {
@@ -41,12 +37,12 @@ namespace Fief
             }
         }
 
-        enum Goal { Shrine, Raid, Grab, Deliver, Hunt, Fight, Guard, Roam }
+        enum Goal { Shrine, Raid, Grab, Deliver, Hunt, Fight, Guard, Ballista, Roam }
 
         [System.NonSerialized] public Seeker seeker;
 
         // --- caractere
-        float boldness;         // envie d'aller vite a la tour (0-1)
+        float boldness;         // envie d'aller vite, de prendre des risques (0-1)
         float temper;           // envie de se battre (0-1)
         float scoutUntil;
 
@@ -64,6 +60,12 @@ namespace Fief
         System.Random rng;
         readonly List<Vector3> path = new List<Vector3>();
 
+        // --- l'arbaleste visee
+        Ballista ballista;
+        Vector3 ballistaShot;
+        float ballistaChosen;
+        bool mounted;
+
         // --- corps
         CharacterController body;
         float fallSpeed;
@@ -78,23 +80,31 @@ namespace Fief
         float detourSign = 1f;
         bool airJumped;
         bool gliding;
+        bool ballistic;
+        Vector3 flight;
+        float launchAge;
+        bool leaping;
+        float leapStart;
+        float launchedUntil;
         Vector3 lastGround;
         float airTop;
         Transform figure;
         CharacterRig rig;
         Vector3 lastPosition;
         Light lantern;
+        WingsOnBack wings;
         readonly Vector3[] trail = new Vector3[50];
         int trailAt;
         float trailTimer;
 
-        // 27/09 : ils couraient a 7,6 m/s, toi a 10,8. Tu les semais TOUJOURS avec la
-        // Couronne, et tu les rattrapais toujours sans : la course-poursuite n'existait
-        // pas. Ils courent maintenant presque aussi vite que toi -- selon leur niveau.
+        // 27/09 : presque aussi vite que toi (10,8 m/s en courant) -- selon leur niveau.
         const float WalkSpeed = 6.2f;
         static float RunSpeed { get { return Match.BotLevel == 0 ? 9f : Match.BotLevel == 1 ? 10.2f : 10.7f; } }
         /// <summary>Le temps entre deux capacites, selon le niveau.</summary>
         static float Reflex { get { return Match.BotLevel == 0 ? 1.4f : Match.BotLevel == 1 ? 0.45f : 0.25f; } }
+
+        /// <summary>Vrai pendant qu'il plane (le HUD, ses ailes s'en servent).</summary>
+        public bool Gliding { get { return gliding; } }
 
         // ================================================================== construction
 
@@ -121,7 +131,7 @@ namespace Fief
             r.rng = new System.Random(seed);
             r.boldness = 0.3f + (float)r.rng.NextDouble() * 0.7f;
             r.temper = 0.3f + (float)r.rng.NextDouble() * 0.7f;
-            r.scoutUntil = Mathf.Lerp(45f, 10f, r.boldness);
+            r.scoutUntil = Mathf.Lerp(25f, 6f, r.boldness);
             r.lastPosition = spawn;
             r.lastGround = spawn;
             for (int i = 0; i < r.trail.Length; i++) r.trail[i] = spawn;
@@ -132,6 +142,7 @@ namespace Fief
             r.rig = rig;
             r.figure = rig.transform;
             r.lantern = PlayerLook.Dress(rig, root.transform, colour);
+            r.wings = WingsOnBack.Attach(root.transform, seeker);
 
             All.Add(r);
             return r;
@@ -160,9 +171,6 @@ namespace Fief
             dashTime = 0f;
             pullTime = 0f;
         }
-        float launchedUntil;
-        /// <summary>Vrai quand il a DECIDE de sauter dans le vide (pour planer ou apres un tir d'arbaleste).</summary>
-        bool Leaping { get { return false; } }
 
         public void Dash(Vector3 direction, float speed, float seconds)
         {
@@ -176,6 +184,22 @@ namespace Fief
             pullPoint = point;
             pullSpeed = speed;
             pullTime = 1.4f;
+        }
+
+        /// <summary>Tire par une arbaleste : il suit sa courbe jusqu'a toucher quelque chose.</summary>
+        public void Launch(Vector3 velocity)
+        {
+            ballistic = true;
+            launchAge = 0f;
+            flight = new Vector3(velocity.x, 0f, velocity.z);
+            fallSpeed = velocity.y;
+            knock = Vector3.zero;
+            dashTime = 0f;
+            pullTime = 0f;
+            airTop = transform.position.y;
+            leaping = true;
+            leapStart = Time.time;
+            path.Clear();
         }
 
         public void Blink(Vector3 position) { Teleport(position); }
@@ -193,13 +217,35 @@ namespace Fief
             body.enabled = false;
             transform.position = position;
             lastPosition = position;
-            body.enabled = was;
+            body.enabled = was && !mounted;
             knock = Vector3.zero;
             dashTime = 0f;
             pullTime = 0f;
             fallSpeed = 0f;
+            ballistic = false;
+            gliding = false;
+            leaping = false;
             airTop = position.y;
             path.Clear();
+            think = 0f;
+        }
+
+        /// <summary>L'arbaleste le prend en charge : il ne marche plus, elle le place.</summary>
+        public void OnMounted()
+        {
+            mounted = true;
+            body.enabled = false;
+            path.Clear();
+        }
+
+        /// <summary>Il quitte l'arbaleste (en "at"), en tirant ou non.</summary>
+        public void Dismounted(Vector3 at)
+        {
+            mounted = false;
+            ballista = null;
+            transform.position = at;
+            lastPosition = at;
+            body.enabled = true;
             think = 0f;
         }
 
@@ -214,6 +260,7 @@ namespace Fief
             if (preyTimer > 0f) preyTimer -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
             if (castTimer > 0f) castTimer -= dt;
+            if (mounted) { Animate(dt); return; }
 
             think -= dt;
             if (think <= 0f) { think = Match.BotLevel == 2 ? 0.3f : 0.5f; Think(season); }
@@ -224,54 +271,167 @@ namespace Fief
             Animate(dt);
         }
 
+        bool Airborne { get { return ballistic || gliding || !body.isGrounded && airTop - transform.position.y > 1.5f; } }
+
         /// <summary>Choisir un but, du plus urgent au moins urgent.</summary>
         void Think(Season season)
         {
             Goal was = goal;
             Vector3 me = transform.position;
+            // En vol, on ne change pas d'avis : on vise ou l'on va.
+            if (ballistic || gliding) return;
+            // En route vers une arbaleste : on y va (sauf si elle est prise, ou si c'est long).
+            if (goal == Goal.Ballista && ballista != null && ballista.Free && Time.time - ballistaChosen < 10f && !(seeker.CarriesCrown && Tower.On(me))) return;
 
-            if (seeker.CarriesCrown && Monument.Instance != null) { SetGoal(Goal.Deliver, Monument.Instance.transform.position, was); return; }
-            if (Crown.Where == Crown.State.Dropped && (Crown.Position - me).magnitude < 160f) { SetGoal(Goal.Grab, Crown.Position, was); return; }
+            if (seeker.CarriesCrown && Monument.Instance != null) { PlanDeliver(was); return; }
+
+            if (Crown.Where == Crown.State.Dropped)
+            {
+                Vector3 c = Crown.Position;
+                if ((c - me).magnitude < 170f && ReachTo(c, Goal.Grab, was)) return;
+            }
 
             Seeker holder = Crown.Holder;
             if (holder != null && holder != seeker && holder.Body != null)
             {
                 prey = holder;
                 preyTimer = 5f;
-                // L'un d'eux (le plus pres du Monument) va l'y attendre, au lieu de
-                // courir derriere avec les autres : on coupe la route du porteur.
-                if (Guardian() == this && Monument.Instance != null)
+                if (Monument.Instance != null)
                 {
                     Vector3 m = Monument.Instance.transform.position;
-                    Vector3 toward = Flat(holder.Body.position - m);
-                    if (toward.magnitude > 35f)
+                    Vector3 hp = holder.Body.position;
+                    bool holderAway = !OnFoot(hp);      // il vole, ou il est sur un ilot
+                    // L'un d'eux (le plus pres du Monument) va l'y attendre, par l'arbaleste
+                    // ou en planant ; les autres le chassent.
+                    if (holderAway || Guardian() == this && Flat(hp - m).magnitude > 35f)
                     {
-                        SetGoal(Goal.Guard, m + toward.normalized * 6f, was);
-                        return;
+                        if (ReachTo(m + Flat(me - m).normalized * 5f, Goal.Guard, was)) return;
                     }
                 }
-                SetGoal(Goal.Hunt, holder.Body.position, was);
+                if (OnFoot(holder.Body.position)) { SetGoal(Goal.Hunt, holder.Body.position, was); return; }
+                // Il vole et on ne peut pas le suivre : on monte chercher des ailes.
+                SetGoal(Goal.Raid, Tower.CrownSpot, was);
                 return;
             }
-            if (prey != null && preyTimer > 0f && prey.Body != null && !prey.Hidden && seeker.CanShove && (prey.Body.position - me).magnitude < 25f)
+            if (prey != null && preyTimer > 0f && prey.Body != null && !prey.Hidden && seeker.CanShove && (prey.Body.position - me).magnitude < 25f && OnFoot(prey.Body.position))
             {
                 SetGoal(Goal.Fight, prey.Body.position, was);
                 return;
             }
             prey = null;
 
-            // Le debut : un sanctuaire proche, s'il n'a pas de don.
+            // Le debut : un sanctuaire proche (sur l'ile), s'il n'a pas de don.
             if (season.Elapsed < scoutUntil && !seeker.HasGift)
             {
-                if (shrine == null || shrine.Spent) shrine = NearestShrine(90f);
-                if (shrine != null) { SetGoal(Goal.Shrine, shrine.transform.position, was); return; }
+                if (shrine == null || shrine.Spent) shrine = NearestShrine(60f);
+                if (shrine != null && OnFoot(shrine.transform.position)) { SetGoal(Goal.Shrine, shrine.transform.position, was); return; }
             }
 
-            if (Crown.Where == Crown.State.OnPedestal) { SetGoal(Goal.Raid, Tower.CrownSpot, was); return; }
+            if (Crown.Where == Crown.State.OnPedestal)
+            {
+                // Un raccourci : une arbaleste qui l'envoie haut sur la rampe (pas les bots faciles).
+                if (goal != Goal.Raid || path.Count > 20)
+                {
+                    if (!Tower.On(me) && Match.BotLevel > 0 && rng.NextDouble() < 0.35 + boldness * 0.4 && TryBallistaToRamp(was)) return;
+                }
+                SetGoal(Goal.Raid, Tower.CrownSpot, was);
+                return;
+            }
 
-            Vector3 camp = Monument.Instance != null ? Monument.Instance.transform.position : Vector3.zero;
+            Vector3 foot = Tower.Foot;
             float t = Time.time * 0.1f + seeker.Index;
-            SetGoal(Goal.Roam, camp + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 10f, was);
+            SetGoal(Goal.Roam, foot + new Vector3(Mathf.Sin(t), 0f, Mathf.Cos(t)) * 12f, was);
+        }
+
+        /// <summary>
+        /// PORTER LA COURONNE AU MONUMENT (il est sur un ilot) : sur son ilot, il marche
+        /// dans le cercle ; au sommet (des ailes), il saute et plane ; au sol, une
+        /// arbaleste l'y envoie -- sinon il monte a la tour prendre des ailes.
+        /// </summary>
+        void PlanDeliver(Goal was)
+        {
+            Vector3 me = transform.position;
+            Vector3 m = Monument.Instance.transform.position;
+            if (IsletAt(me) == Monument.Islet && Monument.Islet >= 0) { SetGoal(Goal.Deliver, m, was); return; }
+            if (seeker.CanGlide && (Tower.Summit(me) || Tower.On(me) && me.y > m.y + 25f))
+            {
+                goal = Goal.Deliver;
+                target = m;
+                Leap(m);
+                return;
+            }
+            if (Ground.OnIsland(me.x, me.z) && !Tower.On(me) && TryBallistaTo(m, Monument.Instance == null ? 8f : 6f, Goal.Deliver, was)) return;
+            // Sinon : au sommet, chercher des ailes.
+            SetGoal(Goal.Deliver, Tower.CrownSpot, was);
+            PlanPath(Tower.CrownSpot);
+        }
+
+        /// <summary>
+        /// Aller jusqu'a "to" : a pied s'il est sur l'ile ou la tour, en planant si on a
+        /// des ailes et qu'on est haut, par l'arbaleste sinon. Faux si impossible.
+        /// </summary>
+        bool ReachTo(Vector3 to, Goal g, Goal was)
+        {
+            Vector3 me = transform.position;
+            if (OnFoot(to) && OnFoot(me)) { SetGoal(g, to, was); return true; }
+            if (IsletAt(me) >= 0 && IsletAt(me) == IsletAt(to)) { SetGoal(g, to, was); return true; }
+            if (seeker.CanGlide && Tower.On(me) && me.y > to.y + 20f)
+            {
+                goal = g;
+                target = to;
+                Leap(to);
+                return true;
+            }
+            if (Ground.OnIsland(me.x, me.z) && !Tower.On(me) && TryBallistaTo(to, 7f, g, was)) return true;
+            return false;
+        }
+
+        /// <summary>Viser "to" avec l'arbaleste libre la plus proche (a 70 m). Vrai si un tir y mene.</summary>
+        bool TryBallistaTo(Vector3 to, float tolerance, Goal after, Goal was)
+        {
+            if (Match.BotLevel == 0 && after != Goal.Deliver) return false;
+            Ballista b = Ballista.NearestFree(transform.position, 70f);
+            if (b == null) return false;
+            Vector3 aim = to + Vector3.up * 1f;
+            Vector3 v;
+            if (!Ballista.Solve(b.Seat, aim, true, out v) || !b.Lands(v, to, tolerance))
+            {
+                if (!Ballista.Solve(b.Seat, aim, false, out v) || !b.Lands(v, to, tolerance)) return false;
+            }
+            ballista = b;
+            ballistaShot = v;
+            ballistaChosen = Time.time;
+            goal = Goal.Ballista;
+            target = b.transform.position;
+            if (was != Goal.Ballista || path.Count == 0) PlanPath(target);
+            return true;
+        }
+
+        /// <summary>Un raccourci vers la rampe : un point du tour le plus haut qu'une arbaleste proche atteint.</summary>
+        bool TryBallistaToRamp(Goal was)
+        {
+            Ballista b = Ballista.NearestFree(transform.position, 45f);
+            if (b == null) return false;
+            // Les points de la rampe du cote de l'arbaleste, du plus haut au plus bas.
+            Vector3 s = b.Seat;
+            float side = Mathf.Repeat((Mathf.Atan2(s.z, s.x) + Mathf.PI * 0.5f) / (Mathf.PI * 2f), 1f);
+            for (int turn = 3; turn >= 1; turn--)
+            {
+                float u = (turn + side) / Tower.Turns;
+                Vector3 spot = Tower.RampPoint(u, 0.8f) + Vector3.up * 0.2f;
+                Vector3 v;
+                if (Ballista.Solve(s, spot + Vector3.up, true, out v) && b.Lands(v, spot, 3f))
+                {
+                    ballista = b;
+                    ballistaShot = v;
+                    ballistaChosen = Time.time;
+                    goal = Goal.Ballista;
+                    target = b.transform.position;
+                    if (was != Goal.Ballista || path.Count == 0) PlanPath(target);
+                    return true;
+                }
+            }
+            return false;
         }
 
         void SetGoal(Goal g, Vector3 at, Goal was)
@@ -314,16 +474,36 @@ namespace Fief
             return best;
         }
 
+        // ================================================================== ou l'on est
+
+        /// <summary>Vrai si ce point est accessible a pied depuis l'ile : l'ile elle-meme ou la tour.</summary>
+        static bool OnFoot(Vector3 p)
+        {
+            return Tower.On(p) || Ground.OnIsland(p.x, p.z) && p.y > -2f && p.y < 30f;
+        }
+
+        /// <summary>L'ilot sur lequel se trouve ce point (-1 : aucun).</summary>
+        static int IsletAt(Vector3 p)
+        {
+            for (int i = 0; i < Ground.IsletCount; i++)
+            {
+                Ground.Islet it = Ground.GetIslet(i);
+                if (Flat(p - it.Top).magnitude <= it.Radius + 1.5f && Mathf.Abs(p.y - it.Top.y) < 4f) return i;
+            }
+            return -1;
+        }
+
         // ================================================================== les chemins
 
         /// <summary>
         /// Le chemin vers "to" : redescendre la rampe s'il est sur la tour (et que "to"
         /// n'y est pas), sortir ou entrer par la porte la plus proche, puis monter la
-        /// rampe jusqu'a la hauteur voulue.
+        /// rampe jusqu'a la hauteur voulue (par les courants s'il sait).
         /// </summary>
         void PlanPath(Vector3 to)
         {
             path.Clear();
+            leaping = false;
             Vector3 from = transform.position;
             bool fromTower = Tower.On(from), toTower = Tower.On(to);
             if (fromTower && toTower)
@@ -349,6 +529,35 @@ namespace Fief
                 path.Add(Tower.Foot);
                 path.AddRange(Climb(0f, Tower.Progress(to)));
             }
+        }
+
+        /// <summary>
+        /// Se jeter dans le vide vers "toward" (il a des ailes) : au bord du sommet ou de
+        /// la rampe, puis un pas de plus. En l'air, il plane vers sa cible.
+        /// </summary>
+        void Leap(Vector3 toward)
+        {
+            path.Clear();
+            Vector3 me = transform.position;
+            Vector3 dir = Flat(toward - me);
+            if (dir.sqrMagnitude < 0.01f) dir = transform.forward;
+            dir.Normalize();
+            if (Tower.Summit(me))
+            {
+                Vector3 edge = dir * (Tower.Radius - 0.6f);
+                edge.y = Tower.Height;
+                path.Add(edge);
+                path.Add(edge + dir * 8f);
+            }
+            else
+            {
+                Vector3 radial = Flat(me).normalized;
+                Vector3 edge = me + radial * (Tower.OuterRadius - Flat(me).magnitude + 0.6f);
+                path.Add(edge);
+                path.Add(edge + radial * 8f);
+            }
+            leaping = true;
+            leapStart = Time.time;
         }
 
         /// <summary>
@@ -385,11 +594,11 @@ namespace Fief
                 bool sameLevel = Mathf.Abs(d.y) < 2.5f;
                 // Loin de son chemin en hauteur (pousse de la rampe, lance par un courant) :
                 // il en refait un depuis la ou il est.
-                if (Mathf.Abs(d.y) > 6f && Tower.On(p) && (!body.enabled || body.isGrounded)) { PlanPath(target); if (path.Count == 0) break; p = path[0]; d = p - transform.position; sameLevel = Mathf.Abs(d.y) < 2.5f; }
+                if (!leaping && Mathf.Abs(d.y) > 6f && Tower.On(p) && body.isGrounded) { PlanPath(target); if (path.Count == 0) break; p = path[0]; d = p - transform.position; sameLevel = Mathf.Abs(d.y) < 2.5f; }
                 d.y = 0f;
                 // Un courant : il faut marcher DEDANS, pas a cote.
                 float close = Updraft.Near(p, 0.1f) != null ? 0.4f : 1.5f;
-                if (d.magnitude < close && sameLevel) { path.RemoveAt(0); continue; }
+                if (d.magnitude < close && (sameLevel || leaping)) { path.RemoveAt(0); continue; }
                 return p;
             }
             return target;
@@ -401,13 +610,17 @@ namespace Fief
         {
             if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null) target = prey.Body.position;
             if (goal == Goal.Grab) target = Crown.Position;
+            if (goal == Goal.Deliver && Monument.Instance != null && (gliding || ballistic || IsletAt(transform.position) >= 0))
+                target = Monument.Instance.transform.position;
             Vector3 step = Waypoint();
             float distance = Flat(target - transform.position).magnitude;
             float dy = Mathf.Abs(target.y - transform.position.y);
-            float reach = goal == Goal.Deliver ? 3.2f : goal == Goal.Hunt || goal == Goal.Fight ? 1.8f : 1.8f;
+            // (La Couronne sur son socle : on la prend depuis les marches, a 3 m.)
+            float reach = goal == Goal.Deliver ? 2.5f : goal == Goal.Ballista ? 1.6f
+                        : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 3f : 1.8f;
             bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
 
-            // La poussee : des qu'il est a portee de sa proie.
+            // La poussee : des qu'il est a portee de sa proie (y compris en l'air).
             if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove
                 && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.7f)
             {
@@ -429,7 +642,6 @@ namespace Fief
             switch (goal)
             {
                 case Goal.Deliver:
-                    work += dt;
                     // (Le Monument le prend tout seul des qu'il entre dans le cercle.)
                     if (Monument.Instance != null && Monument.Instance.TryDeliver(seeker)) Bark("Victoire !");
                     think = 0f;
@@ -449,6 +661,10 @@ namespace Fief
                     if (shrine != null) shrine.TryTakeFor(seeker);
                     shrine = null;
                     think = 0f;
+                    break;
+                case Goal.Ballista:
+                    if (ballista != null && ballista.MountAndAim(seeker, ballistaShot)) OnMounted();
+                    else { ballista = null; think = 0f; }
                     break;
                 default:
                     think = 0f;
@@ -489,12 +705,16 @@ namespace Fief
                 {
                     case Ability.Ruee:
                     case Ability.Clignement:
-                        // Pour rattraper, ou pour fuir -- jamais sur la rampe (le vide).
-                        go = !Tower.On(me) && body.isGrounded && (farToGo > 14f && (goal == Goal.Hunt || goal == Goal.Grab || goal == Goal.Deliver || goal == Goal.Raid));
+                    {
+                        // Pour rattraper, ou pour fuir -- jamais sur la rampe, jamais vers le bord de l'ile.
+                        Vector3 land = me + Flat(toWaypoint).normalized * 9f;
+                        go = !Tower.On(me) && body.isGrounded && Ground.OnIsland(land.x, land.z) && !gliding && !ballistic
+                             && farToGo > 14f && (goal == Goal.Hunt || goal == Goal.Grab || goal == Goal.Deliver || goal == Goal.Raid);
                         aim = Flat(toWaypoint);
                         break;
+                    }
                     case Ability.Grappin:
-                        go = prey != null && preyD > 9f && preyD < 30f && (goal == Goal.Hunt);
+                        go = prey != null && preyD > 9f && preyD < 30f && goal == Goal.Hunt;
                         aim = toPrey;
                         break;
                     case Ability.Crochet:
@@ -528,7 +748,7 @@ namespace Fief
                         go = Eye.ChargingAt(seeker) || carrying && Chasers(8f) > 0;
                         break;
                     case Ability.Mur:
-                        go = carrying && Chasers(10f) > 0 && !Tower.On(me);
+                        go = carrying && Chasers(10f) > 0 && !Tower.On(me) && body.isGrounded;
                         aim = -transform.forward;
                         break;
                     case Ability.Mine:
@@ -576,10 +796,11 @@ namespace Fief
             Bark("Tu vas le regretter !");
         }
 
-        // ================================================================== marcher
+        // ================================================================== marcher, voler
 
         void Walk(Vector3 destination, float speed, float dt)
         {
+            if (!body.enabled) body.enabled = true;
             Vector3 to = Flat(destination - transform.position);
             float d = to.magnitude;
             Vector3 dir = d > 0.05f ? to / d : transform.forward;
@@ -588,6 +809,15 @@ namespace Fief
             {
                 detourTimer -= dt;
                 dir = Quaternion.Euler(0f, 70f * detourSign, 0f) * dir;
+            }
+            // Un boulet arrive dans son couloir : il passe de l'autre cote de la rampe.
+            float boulderLane;
+            if (Tower.On(transform.position) && Match.BotLevel > 0 && BoulderChute.Threat(transform.position, 16f, out boulderLane))
+            {
+                Vector3 radial = Flat(transform.position).normalized;
+                float lane = Flat(transform.position).magnitude - Tower.Centre;
+                float want = boulderLane > 0f ? -2f : 2f;
+                dir = (dir + radial * Mathf.Clamp(want - lane, -1f, 1f) * 1.4f).normalized;
             }
             knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
             Vector3 extra = Vector3.zero;
@@ -600,54 +830,79 @@ namespace Fief
                 else { extra += p.normalized * pullSpeed; fallSpeed = Mathf.Max(fallSpeed, p.normalized.y * pullSpeed); }
             }
 
-            // (27/09 : plus de "glisse sans physique" loin de toi -- c'etait pour la grande
-            // foret. Sur l'ile, tout le monde a toujours un vrai corps.)
-            if (!body.enabled) body.enabled = true;
+            bool grounded = body.isGrounded;
+            launchAge += dt;
+            if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
+            Wings.Tick(seeker, grounded);
+            gliding = false;
+            Vector3 walk = dir * speed;
+            if (grounded)
             {
-                bool grounded = body.isGrounded;
-                gliding = false;
-                if (grounded)
+                if (airTop - transform.position.y > 4f) Land(airTop - transform.position.y);
+                airJumped = false;
+                lastGround = transform.position;
+                airTop = transform.position.y;
+                if (fallSpeed <= 0f) fallSpeed = -1f;
+                if (leaping && Time.time - leapStart > 0.6f && !Tower.Summit(transform.position))
                 {
-                    if (airTop - transform.position.y > 4f) Land(airTop - transform.position.y);
-                    airJumped = false;
-                    lastGround = transform.position;
-                    airTop = transform.position.y;
-                    if (fallSpeed <= 0f) fallSpeed = -1f;
+                    // Pose (ou bloque au bord depuis trop longtemps) : fin du saut.
+                    if (Time.time - leapStart > 4f || !Tower.On(transform.position)) { leaping = false; think = 0f; }
                 }
-                else
-                {
-                    airTop = Mathf.Max(airTop, transform.position.y);
-                    fallSpeed -= 22f * dt;
-                    if (seeker.Has(Ability.Planeur) && fallSpeed < -2.5f && (seeker.CarriesCrown || airTop - transform.position.y > 5f)) { fallSpeed = -2.5f; gliding = true; }
-                }
-                // Au bord de l'ile (pas sur la tour) : il ne saute pas dans le vide, il s'arrete.
-                bool cliff = grounded && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir) && !Leaping;
-                if (cliff) speed = 0f;
-                // Au bord d'un trou de la rampe (ou bloque) : il saute. Deux fois, s'il sait.
-                if (grounded && speed > 0f && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
-                else if (!grounded && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
-                {
-                    airJumped = true;
-                    fallSpeed = 7.3f;
-                }
-                // La Couronne glisse s'il tombe.
-                if (seeker.CarriesCrown && !grounded && !gliding && fallSpeed < -13f) Crown.Slip(seeker, lastGround);
-
-                Vector3 before = transform.position;
-                body.Move((dir * speed + extra + knock + Vector3.up * fallSpeed) * dt);
-                float moved = Flat(transform.position - before).magnitude;
-                if (speed > 0f && moved < speed * dt * 0.3f)
-                {
-                    stuck += dt;
-                    if (stuck > 0.7f) { detourTimer = 1f; detourSign = -detourSign; stuck = 0f; }
-                }
-                else stuck = 0f;
             }
-            if (speed > 0f)
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 360f * dt);
+            else
+            {
+                airTop = Mathf.Max(airTop, transform.position.y);
+                fallSpeed -= 22f * dt;
+                // Avec des ailes : il plane vers sa cible (le porteur, toujours).
+                if (seeker.CanGlide && fallSpeed < -3f && (leaping || seeker.CarriesCrown || airTop - transform.position.y > 6f))
+                {
+                    gliding = true;
+                    ballistic = false;
+                    Vector3 aimAt = goal == Goal.Hunt || goal == Goal.Guard ? (prey != null && prey.Body != null && goal == Goal.Hunt ? prey.Body.position : target) : target;
+                    Vector3 flat = Flat(aimAt - transform.position);
+                    float horizontal = Mathf.Max(1f, flat.magnitude);
+                    float drop = transform.position.y - (aimAt.y + 1.5f);
+                    // Juste ce qu'il faut de pique pour arriver a hauteur de la cible.
+                    float needSink = drop / (horizontal / Wings.SpeedFlat);
+                    float dive = Mathf.Sqrt(Mathf.Clamp01((needSink - Wings.SinkFlat) / (Wings.SinkDive - Wings.SinkFlat)));
+                    float sink, gspeed;
+                    Wings.Glide(dive, out sink, out gspeed);
+                    fallSpeed = -sink;
+                    walk = flat.normalized * gspeed;
+                    if (flat.magnitude < 1.5f) walk = Vector3.zero;
+                    dir = flat.sqrMagnitude > 0.01f ? flat.normalized : dir;
+                }
+                else if (ballistic) walk = flight;
+            }
+            if (wings != null) wings.Flying = gliding;
+
+            // Au bord de l'ile (pas sur la tour) : il ne saute pas dans le vide, il s'arrete.
+            if (grounded && !leaping && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir)) walk = Vector3.zero;
+            // Au bord d'un trou de la rampe (ou bloque) : il saute. Deux fois, s'il sait.
+            else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
+            else if (!grounded && !gliding && !ballistic && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
+            {
+                airJumped = true;
+                fallSpeed = 7.3f;
+            }
+            // La Couronne glisse s'il tombe (sans planer).
+            if (seeker.CarriesCrown && !grounded && !gliding && fallSpeed < -13f) Crown.Slip(seeker, lastGround);
+
+            Vector3 before = transform.position;
+            body.Move((walk + extra + knock + Vector3.up * fallSpeed) * dt);
+            float moved = Flat(transform.position - before).magnitude;
+            if (grounded && speed > 0f && moved < speed * dt * 0.3f)
+            {
+                stuck += dt;
+                if (stuck > 0.7f) { detourTimer = 1f; detourSign = -detourSign; stuck = 0f; }
+            }
+            else stuck = 0f;
+
+            if (walk.sqrMagnitude > 0.1f)
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Flat(walk).normalized, Vector3.up), 360f * dt);
         }
 
-        /// <summary>Vrai s'il n'y a plus de sol un metre et demi devant (le bord d'un trou de la rampe).</summary>
+        /// <summary>Vrai s'il n'y a plus de sol juste devant (le bord d'un trou, ou de l'ile).</summary>
         bool EdgeAhead(Vector3 dir)
         {
             // A 0,8 m : plus loin, il sautait trop tot et tombait dans le trou.
@@ -659,7 +914,7 @@ namespace Fief
         {
             if (fall > 8f) fellAt = Time.time;
             if (fall > 10f && Tower.On(lastGround) && !Tower.On(transform.position)) Feed.FellFromTower(seeker);
-            if (PlayerWithin(40f)) Ambiance.Burst(null, transform.position + Vector3.up * 0.1f, new Color(0.45f, 0.42f, 0.38f));
+            if (PlayerWithin(40f)) Fx.Burst(transform.position + Vector3.up * 0.1f, new Color(0.62f, 0.56f, 0.48f), 18, 3f, 0.3f, 0.8f, 0.2f, Vector3.up, 70f);
             if (fall > 4f && seeker.Has(Ability.Rebond)) Combat.Blast(transform.position, 5f, 13f, 5f, seeker);
         }
 
@@ -675,14 +930,18 @@ namespace Fief
         void Animate(float dt)
         {
             if (figure == null) return;
-            // Loin de toi, ou sous le Voile, le corps s'eteint. La lanterne et le halo
-            // restent (sauf sous le Voile) : c'est comme ca qu'on repere un joueur.
-            bool near = PlayerWithin(300f) && !seeker.Hidden;
+            // Sous le Voile, le corps s'eteint. La lanterne et le halo restent (sauf sous le
+            // Voile) : c'est comme ca qu'on repere un joueur.
+            bool near = PlayerWithin(320f) && !seeker.Hidden;
             if (figure.gameObject.activeSelf != near) figure.gameObject.SetActive(near);
             if (lantern != null) lantern.enabled = !seeker.Hidden;
             Vector3 moved = Flat(transform.position - lastPosition);
             lastPosition = transform.position;
-            if (rig != null) rig.Speed = Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
+            if (rig != null)
+            {
+                rig.Speed = gliding || mounted ? 0f : Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
+                rig.Grounded = body.enabled && body.isGrounded || mounted;
+            }
         }
 
         // ================================================================== outils

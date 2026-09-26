@@ -15,6 +15,8 @@ namespace Fief
         void Dash(Vector3 direction, float speed, float seconds);
         /// <summary>Etre tire vers un point (le grappin), a "speed" m/s.</summary>
         void PullTo(Vector3 point, float speed);
+        /// <summary>Etre lance sur une trajectoire balistique (une arbaleste geante).</summary>
+        void Launch(Vector3 velocity);
         /// <summary>Disparaitre et reapparaitre ailleurs (clignement, echange, rappel).</summary>
         void Blink(Vector3 position);
         /// <summary>Ou l'on etait il y a "seconds" secondes (le rappel).</summary>

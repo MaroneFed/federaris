@@ -100,6 +100,13 @@ namespace Fief
         /// un respawn, et une seconde et demie apres avoir vole la Couronne.
         /// </summary>
         public float GraceUntil = -1f;
+        /// <summary>
+        /// LES AILES (27/09) : prises au sommet de la tour (les planeurs), gardees jusqu'au
+        /// prochain atterrissage ailleurs. Avec elles, on plane (Espace maintenu ; le
+        /// porteur de la Couronne plane tout seul). Le Planeur (passif) les donne toujours.
+        /// </summary>
+        public bool HasWings;
+        public bool CanGlide { get { return HasWings || Has(Ability.Planeur); } }
         public bool Graced { get { return Time.time < GraceUntil; } }
         /// <summary>
         /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant

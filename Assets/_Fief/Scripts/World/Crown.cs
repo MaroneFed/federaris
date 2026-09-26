@@ -47,6 +47,10 @@ namespace Fief
         static readonly Color Gold = new Color(0.95f, 0.76f, 0.3f);
         static readonly Color Ruby = new Color(0.9f, 0.18f, 0.2f);
         static readonly Color Sapphire = new Color(0.3f, 0.45f, 1f);
+        static readonly Color Emerald = new Color(0.2f, 0.9f, 0.45f);
+
+        Transform runeRing;     // le cercle de runes du socle (il tourne)
+        Transform crystals;     // les quatre cristaux qui tournent autour de la Couronne posee
 
         // ================================================================== construction
 
@@ -59,31 +63,79 @@ namespace Fief
             Crown c = go.AddComponent<Crown>();
             Instance = c;
 
-            // Le socle (a part : la couronne, elle, peut quitter la terrasse) : une
-            // colonne de pierre noire, un bord d'or, un coussin pourpre.
+            // LE SOCLE (27/09 -- "une belle couronne, un beau truc") : trois marches de
+            // pierre noire cerclees d'or, un cercle de runes qui tourne au ras du sol,
+            // une colonne torsadee, un coussin pourpre -- et quatre cristaux qui
+            // tournent autour de la Couronne tant qu'elle est la.
             GameObject socle = new GameObject("Socle de la Couronne");
             socle.transform.SetParent(parent, false);
             socle.transform.position = pedestal;
-            Color stone = new Color(0.16f, 0.16f, 0.18f);
-            Proto.Cylinder(socle.transform, new Vector3(0f, 0.55f, 0f), new Vector3(1.1f, 0.55f, 1.1f), stone, "Socle");
+            Color stone = new Color(0.14f, 0.13f, 0.16f);
+            Color trim = new Color(0.95f, 0.74f, 0.32f);
+            float[] steps = { 2.6f, 1.9f, 1.25f };
+            for (int k = 0; k < steps.Length; k++)
+            {
+                Proto.Cylinder(socle.transform, new Vector3(0f, 0.15f + k * 0.3f, 0f), new Vector3(steps[k] * 2f, 0.15f, steps[k] * 2f), stone, "Marche");
+                Proto.BeginVisualOnly();
+                GameObject rim = Proto.Cylinder(socle.transform, new Vector3(0f, 0.31f + k * 0.3f, 0f), new Vector3(steps[k] * 2f + 0.06f, 0.025f, steps[k] * 2f + 0.06f), Color.white, "Liseré d'or");
+                rim.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(trim, 1.4f);
+                Proto.EndVisualOnly();
+            }
+            Proto.Cylinder(socle.transform, new Vector3(0f, 1.3f, 0f), new Vector3(0.9f, 0.45f, 0.9f), stone, "Colonne");
             Proto.BeginVisualOnly();
-            Proto.Cylinder(socle.transform, new Vector3(0f, 1.12f, 0f), new Vector3(1.3f, 0.04f, 1.3f), new Color(0.72f, 0.58f, 0.3f), "Bord doré");
-            Proto.Cube(socle.transform, new Vector3(0f, 1.2f, 0f), new Vector3(0.7f, 0.14f, 0.7f), new Color(0.35f, 0.06f, 0.12f), "Coussin");
+            for (int k = 0; k < 6; k++)
+            {
+                GameObject twist = Proto.Cube(socle.transform, new Vector3(0f, 1.3f, 0f), new Vector3(0.08f, 0.95f, 0.95f), Color.white, "Torsade");
+                twist.transform.localRotation = Quaternion.Euler(0f, k * 30f, 18f);
+                twist.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(trim, 1.1f);
+            }
+            Proto.Cylinder(socle.transform, new Vector3(0f, 1.78f, 0f), new Vector3(1.4f, 0.05f, 1.4f), trim, "Plateau");
+            Proto.Cube(socle.transform, new Vector3(0f, 1.9f, 0f), new Vector3(0.95f, 0.2f, 0.95f), new Color(0.42f, 0.05f, 0.14f), "Coussin");
+            for (int k = 0; k < 4; k++)
+            {
+                GameObject tassel = Proto.Cube(socle.transform, new Vector3(k < 2 ? -0.5f : 0.5f, 1.82f, k % 2 == 0 ? -0.5f : 0.5f), new Vector3(0.1f, 0.22f, 0.1f), trim, "Gland");
+                tassel.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
+            }
+            Proto.EndVisualOnly();
+            c.runeRing = new GameObject("Cercle de runes").transform;
+            c.runeRing.SetParent(socle.transform, false);
+            c.runeRing.localPosition = new Vector3(0f, 0.05f, 0f);
+            Proto.BeginVisualOnly();
+            for (int k = 0; k < 24; k++)
+            {
+                float a = k / 24f * Mathf.PI * 2f;
+                GameObject r = Proto.Cube(c.runeRing, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 3.4f, new Vector3(0.18f, 0.04f, k % 3 == 0 ? 0.9f : 0.45f), Color.white, "Rune");
+                r.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
+                r.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(trim, 2f);
+            }
+            Proto.EndVisualOnly();
+            c.crystals = new GameObject("Cristaux").transform;
+            c.crystals.SetParent(socle.transform, false);
+            c.crystals.localPosition = new Vector3(0f, 2.6f, 0f);
+            Proto.BeginVisualOnly();
+            Color[] gems = { Ruby, Sapphire, Emerald, Ruby };
+            for (int k = 0; k < 4; k++)
+            {
+                float a = k * Mathf.PI * 0.5f;
+                GameObject gem = Proto.Cube(c.crystals, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 1.4f, new Vector3(0.22f, 0.38f, 0.22f), Color.white, "Cristal");
+                gem.transform.localRotation = Quaternion.Euler(0f, 45f, 45f);
+                gem.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(gems[k], 3f);
+            }
             Proto.EndVisualOnly();
 
             BoxCollider trigger = go.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
-            trigger.center = new Vector3(0f, 1.3f, 0f);
-            trigger.size = new Vector3(1.6f, 1.2f, 1.6f);
+            trigger.center = new Vector3(0f, 2.2f, 0f);
+            trigger.size = new Vector3(2f, 1.6f, 2f);
 
             GameObject v = new GameObject("Couronne");
             v.transform.SetParent(go.transform, false);
-            v.transform.localPosition = new Vector3(0f, 1.42f, 0f);
+            v.transform.localPosition = new Vector3(0f, 2.35f, 0f);
             c.visual = v.transform;
             c.home = v.transform.position;
             c.pedestal = pedestal;
             Proto.BeginVisualOnly();
-            Model(v.transform, 1f);
+            Model(v.transform, 1.7f);
             Proto.EndVisualOnly();
             // Des paillettes d'or qui tournent autour d'elle, ou qu'elle aille.
             Ambiance.Sparkles(v.transform, Vector3.zero, Gold);
@@ -94,38 +146,86 @@ namespace Fief
             c.glow = lightGo.AddComponent<Light>();
             c.glow.type = LightType.Point;
             c.glow.color = new Color(1f, 0.8f, 0.45f);
-            c.glow.range = 8f;
+            c.glow.range = 12f;
             c.glow.intensity = 2.4f;
             c.glow.shadows = LightShadows.None;
 
-            // La colonne doree : on la voit de toute la foret.
-            c.beam = LightBeam.Build(parent, c.home, new Color(1f, 0.8f, 0.35f), 1.4f, 70f);
+            // La colonne doree : on la voit de toute l'ile.
+            c.beam = LightBeam.Build(parent, c.home, new Color(1f, 0.8f, 0.35f), 1.6f, 90f);
             if (c.beam != null) c.beam.targetAlpha = 0.45f;
             return c;
         }
 
-        /// <summary>La couronne elle-meme : un bandeau d'or a dix pans, des fleurons, des joyaux.</summary>
+        /// <summary>
+        /// LA COURONNE ELLE-MEME (27/09, refaite) : un bandeau d'or a seize pans entre
+        /// deux filets, huit fleurons -- quatre croix et quatre pointes perlees --, une
+        /// rangee de joyaux (rubis, saphirs, emeraudes) tailles en losange, un bonnet de
+        /// velours pourpre, et au sommet un globe d'or surmonte d'une croix.
+        /// </summary>
         public static void Model(Transform t, float s)
         {
-            Material gold = MaterialFactory.GetGlow(Gold, 1.6f);
-            const int n = 10;
+            Material gold = MaterialFactory.GetGlow(Gold, 1.7f);
+            Material paleGold = MaterialFactory.GetGlow(new Color(1f, 0.9f, 0.6f), 2.2f);
+            const int n = 16;
+            const float R = 0.26f;
             for (int i = 0; i < n; i++)
             {
                 float a = i / (float)n * Mathf.PI * 2f;
-                Vector3 p = new Vector3(Mathf.Cos(a) * 0.22f, 0.07f, Mathf.Sin(a) * 0.22f) * s;
-                GameObject band = Proto.Cube(t, p, new Vector3(0.15f, 0.14f, 0.035f) * s, Gold, "Bandeau");
-                band.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f);
+                Vector3 dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Quaternion face = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f);
+                GameObject band = Proto.Cube(t, dir * R * s + Vector3.up * 0.08f * s, new Vector3(0.11f, 0.14f, 0.03f) * s, Gold, "Bandeau");
+                band.transform.localRotation = face;
                 band.GetComponent<Renderer>().sharedMaterial = gold;
+                for (int k = 0; k < 2; k++)
+                {
+                    GameObject fillet = Proto.Cube(t, dir * (R + 0.012f) * s + Vector3.up * (k == 0 ? 0.015f : 0.15f) * s, new Vector3(0.115f, 0.025f, 0.035f) * s, Gold, "Filet");
+                    fillet.transform.localRotation = face;
+                    fillet.GetComponent<Renderer>().sharedMaterial = paleGold;
+                }
                 if (i % 2 == 0)
                 {
-                    GameObject point = Proto.Cone(t, p + new Vector3(0f, 0.07f, 0f) * s, 0.05f * s, 0.2f * s, Gold, "Fleuron", 4);
-                    point.GetComponent<Renderer>().sharedMaterial = gold;
-                    GameObject gem = Proto.Cube(t, p * 1.08f + new Vector3(0f, 0.06f, 0f) * s, new Vector3(0.05f, 0.05f, 0.02f) * s,
-                                                i % 4 == 0 ? Ruby : Sapphire, "Joyau");
-                    gem.transform.localRotation = band.transform.localRotation;
-                    gem.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(i % 4 == 0 ? Ruby : Sapphire, 2.4f);
+                    // Un fleuron sur deux pans : croix et pointes perlees en alternance.
+                    Vector3 root = dir * R * s + Vector3.up * 0.16f * s;
+                    if (i % 4 == 0)
+                    {
+                        GameObject stem = Proto.Cube(t, root + Vector3.up * 0.09f * s, new Vector3(0.035f, 0.18f, 0.03f) * s, Gold, "Croix");
+                        stem.transform.localRotation = face;
+                        stem.GetComponent<Renderer>().sharedMaterial = gold;
+                        GameObject bar = Proto.Cube(t, root + Vector3.up * 0.13f * s, new Vector3(0.1f, 0.035f, 0.03f) * s, Gold, "Croix");
+                        bar.transform.localRotation = face;
+                        bar.GetComponent<Renderer>().sharedMaterial = gold;
+                    }
+                    else
+                    {
+                        GameObject point = Proto.Cone(t, root, 0.045f * s, 0.2f * s, Gold, "Pointe", 4);
+                        point.GetComponent<Renderer>().sharedMaterial = gold;
+                        GameObject pearl = Proto.Sphere(t, root + Vector3.up * 0.21f * s, Vector3.one * 0.055f * s, Color.white, "Perle");
+                        pearl.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.97f, 0.9f), 2.6f);
+                    }
+                }
+                else
+                {
+                    // Entre deux fleurons, un joyau taille en losange.
+                    Color jewel = (i / 2) % 3 == 0 ? Ruby : (i / 2) % 3 == 1 ? Sapphire : Emerald;
+                    GameObject gem = Proto.Cube(t, dir * (R + 0.02f) * s + Vector3.up * 0.085f * s, new Vector3(0.055f, 0.055f, 0.025f) * s, jewel, "Joyau");
+                    gem.transform.localRotation = face * Quaternion.Euler(0f, 0f, 45f);
+                    gem.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(jewel, 2.6f);
                 }
             }
+            // Le bonnet de velours, les arceaux, le globe et sa croix.
+            Proto.Sphere(t, Vector3.up * 0.14f * s, new Vector3(0.46f, 0.34f, 0.46f) * s, new Color(0.45f, 0.05f, 0.16f), "Velours");
+            for (int k = 0; k < 2; k++)
+            {
+                GameObject arch = Proto.Cube(t, Vector3.up * 0.3f * s, new Vector3(0.5f, 0.03f, 0.035f) * s, Gold, "Arceau");
+                arch.transform.localRotation = Quaternion.Euler(0f, k * 90f, 0f);
+                arch.GetComponent<Renderer>().sharedMaterial = gold;
+            }
+            GameObject orb = Proto.Sphere(t, Vector3.up * 0.36f * s, Vector3.one * 0.09f * s, Gold, "Globe");
+            orb.GetComponent<Renderer>().sharedMaterial = paleGold;
+            GameObject up = Proto.Cube(t, Vector3.up * 0.46f * s, new Vector3(0.03f, 0.12f, 0.03f) * s, Gold, "Croix du globe");
+            up.GetComponent<Renderer>().sharedMaterial = gold;
+            GameObject cross = Proto.Cube(t, Vector3.up * 0.47f * s, new Vector3(0.08f, 0.03f, 0.03f) * s, Gold, "Croix du globe");
+            cross.GetComponent<Renderer>().sharedMaterial = gold;
         }
 
         void OnDestroy()
@@ -163,6 +263,14 @@ namespace Fief
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
             if (glow != null) glow.intensity = 2.4f * (0.85f + 0.15f * Mathf.Sin(Time.time * 4f));
+            if (runeRing != null) runeRing.Rotate(0f, 12f * Time.deltaTime, 0f, Space.Self);
+            if (crystals != null)
+            {
+                bool home2 = state == State.OnPedestal;
+                if (crystals.gameObject.activeSelf != home2) crystals.gameObject.SetActive(home2);
+                crystals.Rotate(0f, -40f * Time.deltaTime, 0f, Space.Self);
+                crystals.localPosition = new Vector3(0f, 2.6f + Mathf.Sin(Time.time * 1.3f) * 0.15f, 0f);
+            }
         }
 
         float groundY;

@@ -110,6 +110,30 @@ namespace Fief
             if (orbitCamera != null) orbitCamera.Kick(12f);
         }
 
+        /// <summary>
+        /// ETRE LANCE (une arbaleste) : une vraie trajectoire balistique, qui ne
+        /// s'amortit pas comme une poussee -- on vole jusqu'a toucher quelque chose.
+        /// </summary>
+        public void Launch(Vector3 velocity)
+        {
+            ballistic = true;
+            launchAge = 0f;
+            flight = new Vector3(velocity.x, 0f, velocity.z);
+            verticalVelocity = velocity.y;
+            knock = Vector3.zero;
+            dashTime = 0f;
+            pullTime = 0f;
+            airTop = transform.position.y;
+            if (orbitCamera != null) { orbitCamera.Kick(18f); orbitCamera.Shake(0.25f); }
+        }
+
+        bool ballistic;
+        float launchAge;
+        Vector3 flight;
+
+        /// <summary>Vrai pendant un vol d'arbaleste (le HUD, les bots s'en servent).</summary>
+        public bool Flying { get { return ballistic; } }
+
         public void Blink(Vector3 position)
         {
             Teleport(position, transform.eulerAngles.y);
@@ -158,6 +182,9 @@ namespace Fief
             bool grounded = controller.isGrounded;
             if (grounded && !wasGrounded) Land(me);
             wasGrounded = grounded;
+            Wings.Tick(me, grounded);
+            launchAge += dt;
+            if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
 
             // --- le saut, le second saut, le planeur
             bool canAct = !InputLocked && factor > 0f;
@@ -182,13 +209,22 @@ namespace Fief
                     Sfx.Whoosh();
                     Ambiance.Burst(null, transform.position + Vector3.up * 0.2f, AbilityInfo.Tint(Ability.DoubleSaut));
                 }
-                else if (canAct && FiefInput.JumpHeld && me != null && me.Has(Ability.Planeur) && verticalVelocity < -2.5f)
-                {
+                // LE VOL PLANE : avec des ailes, Espace maintenu (le porteur de la
+                // Couronne plane tout seul : il ne la laisse pas tomber par megarde).
+                else if (me != null && me.CanGlide && verticalVelocity < -3f && (canAct && FiefInput.JumpHeld || me.CarriesCrown))
                     Gliding = true;
-                    verticalVelocity = -2.5f;
-                }
             }
             verticalVelocity += cfg.gravity * dt;
+            float glideSpeed = 0f;
+            if (Gliding)
+            {
+                // On regarde vers le bas : on pique (plus vite, on descend plus vite).
+                float dive = cameraTransform != null ? Mathf.Clamp01(-cameraTransform.forward.y / 0.75f) : 0f;
+                float sink;
+                Wings.Glide(dive, out sink, out glideSpeed);
+                verticalVelocity = -sink;
+                ballistic = false;
+            }
 
             // --- la Couronne glisse des mains de qui tombe (sans planer)
             if (me != null && me.CarriesCrown && !grounded && !Gliding && verticalVelocity < -13f)
@@ -222,7 +258,19 @@ namespace Fief
 
             // Pendant un gros recul, on ne contre-marche pas : le coup porte vraiment.
             float control = Mathf.Lerp(0.2f, 1f, Mathf.Clamp01(1f - knock.magnitude / 16f));
-            Vector3 motion = wish * speed * control + extra + knock + Vector3.up * verticalVelocity;
+            Vector3 walk = wish * speed * control;
+            if (Gliding)
+            {
+                // En planant, on avance toujours ; Z accelere, Q/D tournent un peu.
+                walk = forward * glideSpeed * (0.6f + 0.4f * Mathf.Max(0f, input.y)) + right * input.x * 6f;
+            }
+            else if (ballistic)
+            {
+                // Tire par une arbaleste : on suit sa courbe (a peine de controle).
+                flight *= Mathf.Exp(-0.08f * dt);
+                walk = flight + wish * 2f;
+            }
+            Vector3 motion = walk + extra + knock + Vector3.up * verticalVelocity;
             if (pullTime > 0f) motion.y = Mathf.Max(motion.y, (pullPoint - transform.position).normalized.y * pullSpeed);
             controller.Move(motion * dt);
 
@@ -293,6 +341,7 @@ namespace Fief
             knock = Vector3.zero;
             dashTime = 0f;
             pullTime = 0f;
+            ballistic = false;
             controller.enabled = false;
             transform.position = position;
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
