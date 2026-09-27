@@ -116,9 +116,9 @@ namespace Fief
             }
         }
 
-        static readonly Color Stone = new Color(0.46f, 0.43f, 0.40f);
-        static readonly Color StoneLight = new Color(0.52f, 0.49f, 0.45f);
-        static readonly Color StoneDark = new Color(0.30f, 0.28f, 0.27f);
+        static readonly Color Stone = new Color(0.80f, 0.73f, 0.62f);
+        static readonly Color StoneLight = new Color(0.86f, 0.80f, 0.69f);
+        static readonly Color StoneDark = new Color(0.55f, 0.47f, 0.40f);
         static readonly Color Gold = new Color(1f, 0.8f, 0.4f);
 
         /// <summary>Le socle de la Couronne : au centre du sommet.</summary>

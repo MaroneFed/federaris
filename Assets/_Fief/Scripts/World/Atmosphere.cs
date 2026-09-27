@@ -39,19 +39,21 @@ namespace Fief
                 if (sky.HasProperty("_SunDisk")) sky.SetFloat("_SunDisk", 2f);
                 if (sky.HasProperty("_SunSize")) sky.SetFloat("_SunSize", 0.045f);
                 if (sky.HasProperty("_SunSizeConvergence")) sky.SetFloat("_SunSizeConvergence", 3.5f);
-                if (sky.HasProperty("_AtmosphereThickness")) sky.SetFloat("_AtmosphereThickness", 1.25f);
-                if (sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint", new Color(0.52f, 0.55f, 0.66f));
-                if (sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor", new Color(0.62f, 0.52f, 0.5f));
-                if (sky.HasProperty("_Exposure")) sky.SetFloat("_Exposure", 1.25f);
+                if (sky.HasProperty("_AtmosphereThickness")) sky.SetFloat("_AtmosphereThickness", 0.95f);
+                if (sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint", new Color(0.46f, 0.58f, 0.8f));
+                if (sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor", new Color(0.93f, 0.86f, 0.86f));
+                if (sky.HasProperty("_Exposure")) sky.SetFloat("_Exposure", 1.3f);
                 RenderSettings.skybox = sky;
             }
             else RenderSettings.skybox = null;
 
             // L'ambiant : bleu du ciel en haut, or a l'horizon, rose-brun des nuages en bas.
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.46f, 0.52f, 0.66f);
-            RenderSettings.ambientEquatorColor = new Color(0.56f, 0.47f, 0.42f);
-            RenderSettings.ambientGroundColor = new Color(0.30f, 0.25f, 0.25f);
+            // (30/09 -- "plus pro") Plus clair, plus franc : un ciel bleu, un horizon peche,
+            // des nuages blancs et roses en dessous. Les ombres restent chaudes.
+            RenderSettings.ambientSkyColor = new Color(0.58f, 0.66f, 0.86f);
+            RenderSettings.ambientEquatorColor = new Color(0.74f, 0.66f, 0.62f);
+            RenderSettings.ambientGroundColor = new Color(0.44f, 0.38f, 0.40f);
             RenderSettings.reflectionIntensity = 0.9f;
 
             if (view != null)
@@ -127,7 +129,7 @@ namespace Fief
             Sun.type = LightType.Directional;
             float elevation = cfg != null ? cfg.sunElevation : 20f;
             Sun.transform.rotation = Quaternion.Euler(elevation, 35f, 0f);
-            Sun.color = new Color(1f, 0.84f, 0.64f);
+            Sun.color = new Color(1f, 0.9f, 0.74f);
             Sun.intensity = cfg != null ? cfg.sunIntensity : 1.15f;
             Sun.shadows = LightShadows.Soft;
             Sun.shadowStrength = 0.75f;

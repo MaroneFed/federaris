@@ -43,14 +43,14 @@ namespace Fief
         public float sightDistance = 320f;
 
         [Tooltip("Couleur de la brume à l'horizon : l'or du soir, comme le ciel.")]
-        public Color hazeColor = new Color(0.78f, 0.66f, 0.58f);
+        public Color hazeColor = new Color(0.93f, 0.84f, 0.80f);
 
         [Tooltip("Hauteur du soleil au-dessus de l'horizon, en degrés. Bas : lumière dorée, " +
                  "longues ombres, la tour se découpe.")]
-        public float sunElevation = 20f;
+        public float sunElevation = 27f;
 
         [Tooltip("Force du soleil.")]
-        public float sunIntensity = 1.15f;
+        public float sunIntensity = 1.3f;
 
         [Tooltip("Force de la lanterne que tu portes (discrète en plein jour).")]
         public float lampIntensity = 0.5f;

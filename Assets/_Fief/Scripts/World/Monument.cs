@@ -25,8 +25,8 @@ namespace Fief
         /// <summary>Le Monument a filmer : celui de la victoire, sinon le premier.</summary>
         public static Monument Focus { get { return Winner != null ? Winner : All.Count > 0 ? All[0] : null; } }
 
-        static readonly Color Stone = new Color(0.3f, 0.31f, 0.34f);
-        static readonly Color StoneDark = new Color(0.18f, 0.19f, 0.22f);
+        static readonly Color Stone = new Color(0.88f, 0.87f, 0.9f);   // (30/09) du marbre blanc
+        static readonly Color StoneDark = new Color(0.6f, 0.62f, 0.72f);
         public static readonly Color Blue = new Color(0.45f, 0.7f, 1f);
 
         LightBeam beam;

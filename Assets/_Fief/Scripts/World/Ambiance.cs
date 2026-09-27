@@ -62,8 +62,8 @@ namespace Fief
                 main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.8f);
                 main.startSize = new ParticleSystem.MinMaxCurve(layer == 0 ? 70f : 45f, layer == 0 ? 130f : 80f);
                 main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-                Color warm = layer == 0 ? new Color(1f, 0.86f, 0.82f, 0.55f) : new Color(1f, 0.93f, 0.86f, 0.32f);
-                main.startColor = new ParticleSystem.MinMaxGradient(warm, new Color(0.85f, 0.78f, 0.9f, warm.a));
+                Color warm = layer == 0 ? new Color(1f, 0.97f, 0.97f, 0.8f) : new Color(1f, 0.95f, 0.93f, 0.45f);
+                main.startColor = new ParticleSystem.MinMaxGradient(warm, new Color(0.96f, 0.88f, 0.96f, warm.a));
                 main.maxParticles = layer == 0 ? 220 : 120;
                 ParticleSystem.EmissionModule emission = ps.emission;
                 emission.rateOverTime = layer == 0 ? 3.6f : 1.8f;

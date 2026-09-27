@@ -30,8 +30,8 @@ namespace Fief
         // Pour chaque porte : ou passer, de l'entree du couloir jusqu'a la porte.
         static readonly List<Vector3>[] Openings = { new List<Vector3>(), new List<Vector3>(), new List<Vector3>(), new List<Vector3>() };
 
-        static readonly Color Stone = new Color(0.42f, 0.4f, 0.37f);
-        static readonly Color StoneDark = new Color(0.28f, 0.26f, 0.25f);
+        static readonly Color Stone = new Color(0.78f, 0.71f, 0.60f);
+        static readonly Color StoneDark = new Color(0.55f, 0.47f, 0.40f);
         static readonly Color Rune = new Color(1f, 0.55f, 0.25f);
 
         /// <summary>Le point, pour la porte "gate", a "d" metres du rempart et "lateral" metres de l'axe.</summary>

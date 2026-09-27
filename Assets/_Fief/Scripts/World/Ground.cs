@@ -134,12 +134,13 @@ namespace Fief
 
         static readonly Color[] Grass =
         {
-            new Color(0.34f, 0.46f, 0.21f), new Color(0.39f, 0.51f, 0.23f), new Color(0.30f, 0.42f, 0.19f),
-            new Color(0.44f, 0.49f, 0.25f), new Color(0.47f, 0.41f, 0.27f)
+            // (30/09) Une herbe franche, les tons proches : plus de damier.
+            new Color(0.40f, 0.64f, 0.26f), new Color(0.44f, 0.68f, 0.28f), new Color(0.37f, 0.61f, 0.25f),
+            new Color(0.47f, 0.67f, 0.30f), new Color(0.42f, 0.62f, 0.28f)
         };
         static readonly Color[] Rock =
         {
-            new Color(0.40f, 0.35f, 0.32f), new Color(0.33f, 0.29f, 0.27f), new Color(0.46f, 0.40f, 0.35f), new Color(0.27f, 0.24f, 0.24f)
+            new Color(0.62f, 0.50f, 0.42f), new Color(0.54f, 0.43f, 0.37f), new Color(0.68f, 0.56f, 0.46f), new Color(0.48f, 0.38f, 0.34f)
         };
 
         public static GameObject Build(Transform parent, GameConfig cfg)

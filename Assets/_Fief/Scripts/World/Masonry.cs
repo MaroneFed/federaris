@@ -88,7 +88,10 @@ namespace Fief
         {
             float max = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
             float min = Mathf.Min(c.r, Mathf.Min(c.g, c.b));
-            return max - min < 0.075f && max > 0.15f && max < 0.55f;
+            // (30/09 : la pierre est claire et chaude, creme ou sable -- plus seulement grise.)
+            bool grey = max - min < 0.075f && max > 0.15f && max < 0.55f;
+            bool sand = max - min < 0.22f && max > 0.5f && max < 0.9f;
+            return grey || sand;
         }
 
         static bool Excluded(Transform t, Transform root)
