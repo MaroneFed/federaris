@@ -473,12 +473,22 @@ namespace Fief
 
         void DrawCountdown()
         {
+            // 3, 2, 1 : un gros chiffre qui claque dans sa pastille ; puis le depart : le
+            // triangle "jouer" qui eclate en or. (30/09 : plus de "PARTEZ !" ecrit.)
+            float cx = Screen.width * 0.5f, cy = Screen.height * 0.34f;
             if (countdown > 0f)
             {
                 float frac = countdown - Mathf.Floor(countdown);
-                Headline(Screen.height * 0.34f, Mathf.Lerp(90f, 130f, frac), Mathf.CeilToInt(countdown).ToString(), new Color(1f, 0.86f, 0.55f, 0.5f + 0.5f * frac));
+                float s = UiStyle.S(130) * Mathf.Lerp(1f, 1.35f, frac * frac);
+                Icons.Pill(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s), new Color(0.22f, 0.3f, 0.72f));
+                Icons.Number(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s), Mathf.CeilToInt(countdown).ToString(), Mathf.RoundToInt(s * 0.62f), Color.white, TextAnchor.MiddleCenter);
             }
-            else if (goFlash > 0f) Headline(Screen.height * 0.34f, 96f, "PARTEZ !", new Color(1f, 0.86f, 0.55f, goFlash));
+            else if (goFlash > 0f)
+            {
+                float s = UiStyle.S(150) * (1f + (1f - goFlash) * 0.6f);
+                Icons.Pill(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s), new Color(1f, 0.78f, 0.25f), goFlash);
+                Icons.Draw(new Rect(cx - s * 0.3f, cy - s * 0.3f, s * 0.6f, s * 0.6f), "jouer", new Color(1f, 1f, 1f, goFlash));
+            }
         }
 
         /// <summary>

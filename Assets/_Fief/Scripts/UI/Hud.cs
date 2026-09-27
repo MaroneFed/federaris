@@ -34,18 +34,16 @@ namespace Fief
 
         bool showDiagnostic;
 
-        // --- le grand titre du moment (Couronne prise, don recu...)
-        string cardKicker, cardTitle, cardLine;
+        // --- le grand moment (Couronne prise, don recu...) : une icone
+        string cardIcon;
         Color cardTint;
         float cardTimer;
         const float CardDuration = 3.2f;
 
         /// <summary>Un titre au milieu du haut de l'ecran, pour les moments qui comptent.</summary>
-        public void ShowDiscovery(string kicker, string title, string line1, string line2, Color tint)
+        public void ShowSplash(string icon, Color tint)
         {
-            cardKicker = kicker;
-            cardTitle = title;
-            cardLine = line1;
+            cardIcon = icon;
             cardTint = tint;
             cardTimer = CardDuration;
         }
@@ -161,6 +159,8 @@ namespace Fief
         /// <summary>Une astuce, une seule fois par match, au moment ou elle sert.</summary>
         public void Tip(string key, string text)
         {
+            // (30/09 -- "je deteste le texte") : plus d'astuces ecrites.
+            return;
             if (tipsShown.Contains(key) || tipTimer > 1f) return;
             tipsShown.Add(key);
             tipText = text;
@@ -217,245 +217,248 @@ namespace Fief
 
         // ================================================================== le haut
 
-        /// <summary>Le chrono, la manche, et ou est la Couronne -- en toutes lettres.</summary>
+        /// <summary>
+        /// EN HAUT (30/09, sans un mot) : le chrono dans sa pastille, une pastille par
+        /// manche (a la couleur de son gagnant), et la Couronne -- ou elle est, en icones.
+        /// </summary>
         void DrawTop()
         {
             Season season = Game.Season;
             if (season == null) return;
-
             float left = season.Remaining;
-            bool late = left < 60f;
-            Color clock = late ? Color.Lerp(new Color(1f, 0.4f, 0.3f), UiStyle.Ink, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f)) : UiStyle.Ink;
-            Rect clockRect = new Rect(0f, UiStyle.S(14), Screen.width, UiStyle.S(40));
-            // Les dix dernieres secondes : le chrono grossit a chaque battement.
-            if (left <= 10f && left > 0f)
+            float cx = Screen.width * 0.5f;
+
+            // LE CHRONO : bleu roi ; les dix dernieres secondes, il rougit et bat.
+            float pw = UiStyle.S(176), ph = UiStyle.S(58);
+            Rect pill = new Rect(cx - pw * 0.5f, UiStyle.S(14), pw, ph);
+            bool late = left <= 10f && left > 0f;
+            float beat = late ? Mathf.Pow(1f - Mathf.Repeat(left, 1f), 2f) : 0f;
+            Color fill = late ? Color.Lerp(new Color(0.78f, 0.16f, 0.22f), new Color(1f, 0.42f, 0.3f), beat) : new Color(0.22f, 0.3f, 0.72f);
+            if (late) { float g = UiStyle.S(10) * beat; pill = new Rect(pill.x - g, pill.y - g * 0.4f, pill.width + g * 2f, pill.height + g * 0.8f); }
+            Icons.Pill(pill, fill);
+            float ic = pill.height * 0.7f;
+            Icons.Draw(new Rect(pill.x + pill.height * 0.2f, pill.y + (pill.height - ic) * 0.5f, ic, ic), "chrono", Color.white);
+            Icons.Number(new Rect(pill.x + ic * 0.8f, pill.y, pill.width - ic * 0.8f, pill.height), Clock(left), Mathf.RoundToInt(pill.height * 0.6f), Color.white, TextAnchor.MiddleCenter);
+
+            // LES MANCHES : une pastille chacune.
+            float y = pill.yMax + UiStyle.S(12);
+            if (Match.IsTieBreak) Icons.Draw(new Rect(cx - UiStyle.S(15), y - UiStyle.S(4), UiStyle.S(30), UiStyle.S(30)), "drapeau", new Color(1f, 0.5f, 0.35f));
+            else
             {
-                float beat = 1f - Mathf.Repeat(left, 1f);
-                GUIStyle huge = Sized(UiStyle.Title, Mathf.Lerp(1.9f, 1.4f, beat));
-                Text(new Rect(0f, UiStyle.S(10), Screen.width, UiStyle.S(64)), Mathf.CeilToInt(left).ToString(), huge, new Color(1f, 0.45f, 0.32f));
-                clockRect.y += UiStyle.S(20);
+                int n = Match.Rounds;
+                float dot = UiStyle.S(16), gap = UiStyle.S(7);
+                float x = cx - (n * dot + (n - 1) * gap) * 0.5f;
+                for (int i = 0; i < n; i++)
+                {
+                    Rect d = new Rect(x + i * (dot + gap), y, dot, dot);
+                    int won = i < Match.History.Count ? Match.History[i] : -2;
+                    bool current = i == Match.Played;
+                    if (current) { float p = UiStyle.S(3) * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f)); d = new Rect(d.x - p, d.y - p, d.width + p * 2f, d.height + p * 2f); }
+                    Color c = won >= 0 && won < Match.Slots.Count ? Match.ColourOf(won) : won == -1 ? new Color(0.55f, 0.55f, 0.62f) : current ? Wings.Gold : new Color(0.16f, 0.17f, 0.3f);
+                    Icons.Pill(d, c);
+                }
             }
-            else Text(clockRect, Clock(left), BigCentered(), clock);
+            y += UiStyle.S(30);
 
-            string round = Match.IsTieBreak ? "DÉPARTAGE" : "MANCHE " + Match.RoundNumber + " / " + Match.Rounds;
-            Text(new Rect(0f, clockRect.yMax, Screen.width, UiStyle.S(18)), UiStyle.Spaced(round), UiStyle.CenteredSmall, UiStyle.InkDim);
+            // LA COURONNE : une pastille a la couleur de qui la tient ; dedans, la Couronne et ou elle est.
+            CrownBadge(cx, y);
 
-            string line;
-            Color tint;
-            CrownLine(out line, out tint);
-            Text(new Rect(0f, clockRect.yMax + UiStyle.S(22), Screen.width, UiStyle.S(24)), line, UiStyle.Centered, tint);
-
-            // Ou j'en suis : mon tour de rampe, ou la distance du Monument si je porte.
-            Seeker me = Game.Me;
-            if (me == null || me.Body == null) return;
-            string mine = null;
+            // Sur une arbaleste : ou l'on va atterrir, en icone.
             if (Ballista.PlayerOn != null)
             {
                 Ballista b = Ballista.PlayerOn;
-                if (b.HasFixedTarget) mine = "CLIC GAUCHE : elle te pose devant ta porte   ·   E : descendre";
-                string where = b.Landing == Ballista.LandingKind.Ward ? "sur le SCEAU de la citadelle : il te renverra"
-                             : b.Landing == Ballista.LandingKind.Monument ? "sur un MONUMENT !"
-                             : b.Landing == Ballista.LandingKind.Ground ? "sur la terre ferme"
-                             : "dans le vide : tu planeras";
-                if (!b.HasFixedTarget) mine = b.Charging
-                    ? "TENSION " + Mathf.RoundToInt(b.Tension * 100f) + " %   ·   relâche pour tirer   ·   arrivée " + where
-                    : "Maintiens le clic gauche pour tendre   ·   E : descendre   ·   arrivée " + where;
+                string where = b.Landing == Ballista.LandingKind.Ward ? "croix" : b.Landing == Ballista.LandingKind.Monument ? "monument"
+                             : b.Landing == Ballista.LandingKind.Ground ? "coche" : "ailes";
+                Color wc = b.Landing == Ballista.LandingKind.Ward ? new Color(0.95f, 0.3f, 0.3f) : b.Landing == Ballista.LandingKind.Monument ? Monument.Blue
+                         : b.Landing == Ballista.LandingKind.Ground ? new Color(0.45f, 0.9f, 0.5f) : Wings.Glow;
+                float s = UiStyle.S(64);
+                Rect chip = new Rect(cx - s * 1.3f, Screen.height * 0.5f + UiStyle.S(60), s * 2.6f, s);
+                Icons.Pill(chip, new Color(0.18f, 0.2f, 0.34f, 0.92f));
+                Icons.Draw(new Rect(chip.x + s * 0.2f, chip.y + s * 0.12f, s * 0.76f, s * 0.76f), "arbaleste", Color.white);
+                Icons.Draw(new Rect(chip.x + s * 1.02f, chip.y + s * 0.2f, s * 0.6f, s * 0.6f), "retour", new Color(1f, 1f, 1f, 0.6f), false);
+                Icons.Draw(new Rect(chip.xMax - s * 0.96f, chip.y + s * 0.12f, s * 0.76f, s * 0.76f), where, wc);
+                if (b.Charging)
+                {
+                    Rect bar = new Rect(chip.x + s * 0.3f, chip.yMax + UiStyle.S(10), chip.width - s * 0.6f, UiStyle.S(12));
+                    Icons.Pill(bar, new Color(0.1f, 0.1f, 0.18f));
+                    if (b.Tension > 0.02f) Icons.Pill(new Rect(bar.x, bar.y, Mathf.Max(bar.height, bar.width * b.Tension), bar.height), Wings.Gold);
+                }
             }
-            else if (me.CarriesCrown && Monument.All.Count > 0)
-                mine = Monument.All.Count + " Monuments : choisis le tien   ·   le plus proche à " + Mathf.RoundToInt(Monument.NearestDistance(me.Body.position)) + " m"
-                     + (Tower.On(me.Body.position) ? "   ·   saute dans le vide : tu planes" : "");
-            else if (Tower.On(me.Body.position))
-                mine = Tower.Progress(me.Body.position) >= 0.999f ? "Au sommet" : "Tour " + (Mathf.FloorToInt(Tower.Progress(me.Body.position) * Tower.Turns) + 1) + " sur " + Tower.Turns;
-            if (mine != null)
-                Text(new Rect(0f, clockRect.yMax + UiStyle.S(46), Screen.width, UiStyle.S(20)), mine, UiStyle.CenteredSmall, new Color(0.9f, 0.86f, 0.76f, 0.8f));
+            DrawTowerGauge();
         }
 
-        /// <summary>Ou se trouve un joueur, en quelques mots.</summary>
-        static string Where(Seeker s)
-        {
-            if (s == null || s.Body == null) return "";
-            Vector3 p = s.Body.position;
-            if (Tower.On(p)) return Tower.Progress(p) >= 0.999f ? "au sommet de la tour" : "sur la rampe";
-            if (Spawns.OnPad(p)) return "sur sa plateforme";
-            if (Monument.NearestDistance(p) < 25f) return "près d'un Monument";
-            if (Castle.Inside(p)) return "dans la citadelle";
-            if (Ground.OnIsland(p.x, p.z) && p.y > -3f && p.y < 20f) return "sur l'île";
-            for (int i = 0; i < Ground.IsletCount; i++)
-                if (Combat.Flat(Ground.GetIslet(i).Top - p).magnitude < Ground.GetIslet(i).Radius + 2f && Mathf.Abs(p.y - Ground.GetIslet(i).Top.y) < 4f) return "sur un îlot";
-            return "en plein vol";
-        }
-
-        /// <summary>Une phrase qui dit ou est la Couronne, et quoi faire.</summary>
-        static void CrownLine(out string line, out Color tint)
+        /// <summary>Ou est la Couronne : au sommet (tour), dans des mains (la couleur du porteur), a terre (et son retour).</summary>
+        void CrownBadge(float cx, float y)
         {
             Seeker holder = Crown.Holder;
-            Seeker me = Game.Me;
             Crown.State where = Crown.Where;
+            float h = UiStyle.S(50), w = UiStyle.S(112);
+            Rect r = new Rect(cx - w * 0.5f, y, w, h);
+            Color fill;
+            string second;
+            Color secondTint = Color.white;
             if (where == Crown.State.Carried && holder != null)
             {
-                if (holder == me)
+                fill = holder.IsPlayer ? Wings.Gold : holder.Colour;
+                second = "joueur";
+                if (holder.IsPlayer)
                 {
-                    float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 5f);
-                    line = "TU PORTES LA COURONNE — plane jusqu'à un Monument (une colonne bleue), celui que tu veux";
-                    tint = new Color(1f, 0.82f * pulse + 0.1f, 0.4f);
+                    float pulse = UiStyle.S(4) * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
+                    r = new Rect(r.x - pulse, r.y - pulse * 0.5f, r.width + pulse * 2f, r.height + pulse);
                 }
-                else
-                {
-                    line = holder.Name + " porte la Couronne, " + Where(holder) + " — pousse-le";
-                    tint = holder.Colour;
-                }
-                return;
             }
-            if (where == Crown.State.Dropped)
-            {
-                line = "La Couronne est à terre — passe dessus ! (retour au sommet dans " + Mathf.CeilToInt(Crown.ReturnIn) + " s)";
-                tint = new Color(1f, 0.78f, 0.4f);
-                return;
-            }
-            line = "La Couronne est au sommet de la tour";
-            tint = new Color(0.86f, 0.8f, 0.64f, 0.75f);
+            else if (where == Crown.State.Dropped) { fill = new Color(0.95f, 0.55f, 0.2f); second = null; }
+            else if (where == Crown.State.Delivered) { fill = Monument.Blue; second = "monument"; }
+            else { fill = new Color(0.36f, 0.3f, 0.62f); second = "tour"; }
+            Icons.Pill(r, fill);
+            float ic = r.height * 0.8f;
+            Icons.Draw(new Rect(r.x + r.height * 0.18f, r.y + (r.height - ic) * 0.5f, ic, ic), "couronne", new Color(1f, 0.86f, 0.35f));
+            Rect right = new Rect(r.xMax - r.height * 0.18f - ic, r.y + (r.height - ic) * 0.5f, ic, ic);
+            if (second != null) Icons.Draw(right, second, secondTint);
+            else Icons.Number(right, Mathf.CeilToInt(Crown.ReturnIn).ToString(), Mathf.RoundToInt(r.height * 0.55f), Color.white, TextAnchor.MiddleCenter);
         }
 
-        /// <summary>En haut a droite : les manches gagnees, un chiffre par joueur.</summary>
+        /// <summary>
+        /// LA JAUGE DE LA TOUR (a gauche, quand on y est) : les six bandes de couleur, du
+        /// pied au sommet, et ta pastille a ta hauteur. La Couronne en haut.
+        /// </summary>
+        void DrawTowerGauge()
+        {
+            Seeker me = Game.Me;
+            if (me == null || me.Body == null || !Tower.On(me.Body.position)) return;
+            float x = UiStyle.S(30), w = UiStyle.S(16), h = Mathf.Min(UiStyle.S(300), Screen.height * 0.38f);
+            float top = Screen.height * 0.5f - h * 0.5f;
+            Icons.Pill(new Rect(x - UiStyle.S(4), top - UiStyle.S(4), w + UiStyle.S(8), h + UiStyle.S(8)), new Color(0.1f, 0.1f, 0.18f, 0.85f));
+            for (int k = 0; k < Tower.Turns; k++)
+            {
+                float seg = h / Tower.Turns;
+                Color c = Tower.ColourAt((k + 0.5f) * Tower.Height / Tower.Turns);
+                UiStyle.Fill(new Rect(x, top + h - (k + 1) * seg + 1f, w, seg - 2f), c);
+            }
+            Icons.Draw(new Rect(x + w * 0.5f - UiStyle.S(20), top - UiStyle.S(46), UiStyle.S(40), UiStyle.S(40)), "couronne", new Color(1f, 0.86f, 0.35f));
+            float p = Mathf.Clamp01(Tower.Progress(me.Body.position));
+            float my = top + h * (1f - p);
+            float s = UiStyle.S(34);
+            Rect mark = new Rect(x + w * 0.5f - s * 0.5f, my - s * 0.5f, s, s);
+            Icons.Pill(mark, Wings.Gold);
+            Icons.Draw(new Rect(mark.x + s * 0.14f, mark.y + s * 0.14f, s * 0.72f, s * 0.72f), "joueur", Color.white, false);
+        }
+
+        /// <summary>
+        /// EN HAUT A DROITE : une pastille par joueur, a sa couleur, et ses manches gagnees
+        /// (une petite Couronne et le chiffre). Toi : cerne d'or.
+        /// </summary>
         void DrawStandings()
         {
-            float w = UiStyle.S(170), row = UiStyle.S(20);
-            float x = Screen.width - w - UiStyle.S(24), y = UiStyle.S(18);
-            GUIStyle right = RightSmall();
+            float h = UiStyle.S(34), w = UiStyle.S(78);
+            float x = Screen.width - w - UiStyle.S(22), y = UiStyle.S(20);
             for (int i = 0; i < Match.Slots.Count; i++)
             {
                 PlayerSlot s = Match.Slots[i];
-                Color c = s.IsLocal ? Palette.Gold : s.Colour;
-                Text(new Rect(x, y, w - UiStyle.S(30), row), s.Name, UiStyle.Small, c);
-                Text(new Rect(x, y, w, row), s.Wins.ToString(), right, c);
-                y += row;
+                Rect r = new Rect(x, y, w, h);
+                if (s.IsLocal) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), Wings.Gold);
+                Icons.Pill(r, s.Colour);
+                Icons.Draw(new Rect(r.x + h * 0.12f, r.y + h * 0.08f, h * 0.84f, h * 0.84f), "couronne", new Color(1f, 0.86f, 0.35f));
+                Icons.Number(new Rect(r.x + h * 0.9f, r.y, r.width - h, r.height), s.Wins.ToString(), Mathf.RoundToInt(h * 0.66f), Color.white, TextAnchor.MiddleCenter);
+                y += h + UiStyle.S(10);
             }
         }
 
         // ================================================================== les capacites
 
         /// <summary>
-        /// En bas au centre (28/09, redessine) : une CARTE par capacite active, puis le
-        /// don. Chaque carte : sa touche, son nom, un liseré a sa couleur ; en recharge,
-        /// un rideau sombre qui remonte et les secondes ; prete, elle luit ; tenue pour
-        /// viser, elle se souleve. Au-dessus : les passifs, puis l'etat du moment.
-        /// Pas d'icone : un nom se comprend tout de suite.
+        /// EN BAS (30/09, sans un mot) : au milieu, ton clic gauche -- un gros rond a sa
+        /// couleur, son icone, sa touche (une souris ou une lettre), sa recharge qui
+        /// descend ; a gauche, ta passive ; a droite, la poussee. Au-dessus : ton etat du
+        /// moment en petites pastilles (etourdi, gele, invisible, protege, en vol...).
         /// </summary>
         void DrawAbilities()
         {
             Seeker me = Game.Me;
             if (me == null) return;
             float now = Time.time;
+            float cx = Screen.width * 0.5f;
+            float big = UiStyle.S(96), small = UiStyle.S(66);
+            float y = Screen.height - UiStyle.S(30) - big;
 
-            // Une seule carte (29/09) : ton clic gauche -- ou le don du sanctuaire, pour la manche.
-            int count = me.HasActive ? 1 : 0;
-            float w = UiStyle.S(190), h = UiStyle.S(74);
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - UiStyle.S(26) - h;
-            if (me.HasActive) AbilityTile(new Rect(x, y, w, h), AbilityInfo.Keys[0], me.CurrentActive, me, now, me.HasGift, AbilityUser.AimingSlot == 0);
+            if (me.HasActive) AbilityTile(new Rect(cx - big * 0.5f, y, big, big), AbilityInfo.Keys[0], me.CurrentActive, me, now, me.HasGift, AbilityUser.AimingSlot == 0);
 
-            float top = count > 0 ? y - UiStyle.S(24) : Screen.height - UiStyle.S(40);
-            // Les passifs, en une ligne.
-            string passives = "";
+            // La passive, a gauche.
             List<Ability> all = me.Slot.Abilities;
             for (int i = 0; i < all.Count; i++)
             {
                 if (AbilityInfo.IsActive(all[i])) continue;
-                passives += (passives.Length > 0 ? "  ·  " : "") + AbilityInfo.Name(all[i]);
-            }
-            if (passives.Length > 0)
-            {
-                Text(new Rect(0f, top, Screen.width, UiStyle.S(18)), passives, UiStyle.CenteredSmall, UiStyle.InkDim);
-                top -= UiStyle.S(26);
+                Rect pr = new Rect(cx - big * 0.5f - UiStyle.S(26) - small, y + big - small, small, small);
+                Icons.Pill(pr, Color.Lerp(AbilityInfo.Tint(all[i]), new Color(0.2f, 0.18f, 0.36f), 0.55f));
+                Icons.Draw(new Rect(pr.x + small * 0.16f, pr.y + small * 0.16f, small * 0.68f, small * 0.68f), Icons.Of(all[i]), Color.white);
+                break;
             }
 
-            // L'etat du moment, en mots, a cote.
-            string state = null;
-            Color sc = UiStyle.Ink;
-            if (me.Stunned) { state = "ÉTOURDI"; sc = new Color(1f, 0.85f, 0.4f); }
-            else if (me.Slowed) { state = "GELÉ — " + Mathf.CeilToInt(me.SlowUntil - now) + " s"; sc = AbilityInfo.Tint(Ability.Gel); }
-            else if (me.Hidden) { state = "INVISIBLE — " + Mathf.CeilToInt(me.HiddenUntil - now) + " s"; sc = AbilityInfo.Tint(Ability.Voile); }
-            else if (me.Graced) { state = "PROTÉGÉ — " + (me.GraceUntil - now).ToString("0.0") + " s"; sc = new Color(0.85f, 0.93f, 1f); }
-            else if (Game.Player != null && Game.Player.Gliding)
+            // La poussee, a droite : la main, sa touche, sa recharge.
+            Rect sr = new Rect(cx + big * 0.5f + UiStyle.S(26), y + big - small, small, small);
+            Icons.Pill(sr, new Color(0.85f, 0.32f, 0.3f));
+            Icons.Draw(new Rect(sr.x + small * 0.16f, sr.y + small * 0.16f, small * 0.68f, small * 0.68f), "pousser", Color.white);
+            if (Time.time < me.ShoveReadyAt)
             {
-                state = "EN VOL — " + Mathf.RoundToInt(Game.Player.Airspeed * 3.6f) + " km/h" + (Thermal.LiftAt(me.Body.position) > 0.5f ? "  ·  COURANT D'AIR ↑" : "");
-                sc = me.HasWings || me.Has(Ability.Planeur) ? Wings.Gold : Wings.Glow;
+                float total = Seeker.ShoveCooldown * (me.Has(Ability.Poigne) ? 0.6f : 1f);
+                Icons.Cooldown(sr, Mathf.Clamp01((me.ShoveReadyAt - Time.time) / total));
             }
-            else if (Game.Player != null && Game.Player.Flying) { state = "TIRÉ PAR L'ARBALESTE"; sc = new Color(1f, 0.8f, 0.45f); }
-            else if (me.HasWings) { state = "AILES D'OR — saute dans le vide"; sc = Wings.Gold; }
-            if (state != null)
-                Text(new Rect(0f, top, Screen.width, UiStyle.S(22)), state, UiStyle.Centered, sc);
+            Icons.Key(new Rect(sr.xMax - small * 0.36f, sr.yMax - small * 0.36f, small * 0.5f, small * 0.5f), AbilityInfo.PushKey, 1f);
+
+            // L'etat du moment : de petites pastilles, au-dessus.
+            List<string> states = new List<string>();
+            List<Color> tints = new List<Color>();
+            if (me.Stunned) { states.Add("clignement"); tints.Add(new Color(1f, 0.85f, 0.4f)); }
+            if (me.Slowed) { states.Add("gel"); tints.Add(AbilityInfo.Tint(Ability.Gel)); }
+            if (me.Hidden) { states.Add("voile"); tints.Add(AbilityInfo.Tint(Ability.Voile)); }
+            if (me.Graced) { states.Add("bouclier"); tints.Add(new Color(0.7f, 0.85f, 1f)); }
+            if (Game.Player != null && Game.Player.Gliding && Thermal.LiftAt(me.Body.position) > 0.5f) { states.Add("courant"); tints.Add(new Color(0.75f, 0.92f, 1f)); }
+            else if (me.HasWings || me.Has(Ability.Planeur)) { states.Add("ailes"); tints.Add(Wings.Gold); }
+            if (me.CarriesCrown) { states.Add("couronne"); tints.Add(new Color(1f, 0.86f, 0.35f)); }
+            float st = UiStyle.S(42);
+            float sx = cx - (states.Count * st + (states.Count - 1) * UiStyle.S(8)) * 0.5f;
+            for (int i = 0; i < states.Count; i++)
+            {
+                Rect r = new Rect(sx + i * (st + UiStyle.S(8)), y - st - UiStyle.S(18), st, st);
+                Icons.Pill(r, new Color(0.14f, 0.15f, 0.28f, 0.9f));
+                Icons.Draw(new Rect(r.x + st * 0.14f, r.y + st * 0.14f, st * 0.72f, st * 0.72f), states[i], tints[i]);
+            }
+            // En vol : la vitesse, en chiffres, a droite des pastilles.
+            if (Game.Player != null && Game.Player.Gliding)
+                Icons.Number(new Rect(cx + UiStyle.S(140), y - st - UiStyle.S(18), UiStyle.S(160), st), Mathf.RoundToInt(Game.Player.Airspeed * 3.6f).ToString(), UiStyle.S(26), Wings.Glow, TextAnchor.MiddleLeft);
         }
 
-        /// <summary>Une carte de capacite.</summary>
+        /// <summary>Le gros rond de ta capacite active.</summary>
         void AbilityTile(Rect r, string key, Ability a, Seeker me, float now, bool gift, bool aimingThis)
         {
             bool ready = me.Ready(a, now);
             bool blocked = AbilityCaster.WhyNot(me, a) == "Mains prises";
             bool live = ready && !blocked;
             Color tint = AbilityInfo.Tint(a);
-            if (aimingThis) r.y -= UiStyle.S(10);
+            if (aimingThis) r = new Rect(r.x - UiStyle.S(6), r.y - UiStyle.S(16), r.width + UiStyle.S(12), r.height + UiStyle.S(12));
 
-            // L'ombre, le fond, le lavis de couleur en haut, le liseré.
-            UiStyle.Fill(new Rect(r.x + 3f, r.y + 4f, r.width, r.height), new Color(0f, 0f, 0f, 0.35f));
-            UiStyle.Fill(r, new Color(0.06f, 0.055f, 0.05f, 0.84f));
-            UiStyle.Fill(new Rect(r.x, r.y, r.width, r.height * 0.5f), new Color(tint.r, tint.g, tint.b, live ? 0.16f : 0.05f));
-            UiStyle.Fill(new Rect(r.x, r.y, r.width, r.height * 0.22f), new Color(tint.r, tint.g, tint.b, live ? 0.12f : 0.03f));
-            UiStyle.Fill(new Rect(r.x, r.y, r.width, UiStyle.S(3)), new Color(tint.r, tint.g, tint.b, live ? 1f : 0.35f));
-
-            // En recharge : un rideau sombre qui remonte a mesure qu'elle revient.
-            if (!ready)
-            {
-                float f = me.Ready01(a, now);
-                float cover = r.height * (1f - f);
-                UiStyle.Fill(new Rect(r.x, r.y + r.height - cover, r.width, cover), new Color(0f, 0f, 0f, 0.5f));
-                UiStyle.Fill(new Rect(r.x, r.y + r.height - cover - 1f, r.width, 2f), new Color(tint.r, tint.g, tint.b, 0.8f));
-            }
-
-            // Le contour : il luit quand elle est prete, eclate quand elle revient, brille quand on vise.
-            float glow = aimingThis ? 1f : live ? 0.3f + 0.12f * Mathf.Sin(Time.unscaledTime * 3f) : 0f;
+            // Prete : un halo a sa couleur qui respire ; revenue : un eclat.
+            float glow = aimingThis ? 1f : live ? 0.35f + 0.2f * Mathf.Sin(Time.unscaledTime * 3f) : 0f;
             float lit;
-            if (readyFlash.TryGetValue(a, out lit) && Time.unscaledTime - lit < 0.6f)
-            {
-                float k = 1f - (Time.unscaledTime - lit) / 0.6f;
-                glow = Mathf.Max(glow, k);
-                UiStyle.Fill(r, new Color(tint.r, tint.g, tint.b, 0.3f * k));
-            }
+            if (readyFlash.TryGetValue(a, out lit) && Time.unscaledTime - lit < 0.6f) glow = Mathf.Max(glow, 1f - (Time.unscaledTime - lit) / 0.6f);
             if (glow > 0.01f)
             {
-                Color e = new Color(tint.r, tint.g, tint.b, glow);
-                float t = aimingThis ? 3f : 2f;
-                UiStyle.Fill(new Rect(r.x, r.y, r.width, t), e);
-                UiStyle.Fill(new Rect(r.x, r.yMax - t, r.width, t), e);
-                UiStyle.Fill(new Rect(r.x, r.y, t, r.height), e);
-                UiStyle.Fill(new Rect(r.xMax - t, r.y, t, r.height), e);
+                float g = UiStyle.S(10) * glow;
+                Icons.Dot(new Rect(r.x - g, r.y - g, r.width + g * 2f, r.height + g * 2f), new Color(tint.r, tint.g, tint.b, 0.45f * glow));
             }
-
-            // La touche en haut a gauche, "DON" en haut a droite.
-            Text(new Rect(r.x + UiStyle.S(9), r.y + UiStyle.S(6), r.width, UiStyle.S(16)), key.ToUpperInvariant(), UiStyle.Tiny, live ? Palette.Gold : UiStyle.InkFaint);
-            if (gift) Text(new Rect(r.x, r.y + UiStyle.S(6), r.width - UiStyle.S(9), UiStyle.S(16)), "DON", RightSmall(), new Color(tint.r, tint.g, tint.b, 0.9f));
-            // Le nom, au milieu.
-            Text(new Rect(r.x, r.y + UiStyle.S(22), r.width, UiStyle.S(26)), AbilityInfo.Name(a), UiStyle.Centered, live ? UiStyle.Ink : UiStyle.InkFaint);
-
-            // En bas : l'etat.
-            string note;
-            Color nc = UiStyle.InkDim;
-            if (blocked) { note = "mains prises"; nc = new Color(1f, 0.6f, 0.4f, 0.85f); }
-            else if (!ready)
+            Icons.Pill(r, live ? Color.Lerp(tint, new Color(0.15f, 0.12f, 0.3f), 0.25f) : new Color(0.28f, 0.28f, 0.36f));
+            Icons.Draw(new Rect(r.x + r.width * 0.17f, r.y + r.height * 0.17f, r.width * 0.66f, r.height * 0.66f), Icons.Of(a), live ? Color.white : new Color(0.8f, 0.8f, 0.86f));
+            if (!ready)
             {
+                Icons.Cooldown(r, 1f - me.Ready01(a, now));
                 float rem = me.Remaining(a, now);
-                note = rem < 1f ? rem.ToString("0.0") + " s" : Mathf.CeilToInt(rem) + " s";
+                Icons.Number(r, rem < 1f ? rem.ToString("0.0") : Mathf.CeilToInt(rem).ToString(), Mathf.RoundToInt(r.height * 0.36f), Color.white, TextAnchor.MiddleCenter);
             }
-            else if (AbilityCaster.Aims(a) && viewCamera != null)
-            {
-                string at = AbilityCaster.AimedAt(me, a, viewCamera.transform.position, viewCamera.transform.forward);
-                note = at != null ? "→ " + at : "rien en vue";
-                nc = at != null ? new Color(tint.r, tint.g, tint.b, 1f) : UiStyle.InkFaint;
-            }
-            else if (aimingThis) { note = "relâche pour lancer"; nc = new Color(tint.r, tint.g, tint.b, 1f); }
-            else if (AbilityCaster.NeedsAim(a) && Stats.Casts < 8) note = "maintiens pour viser";
-            else note = "prête";
-            Text(new Rect(r.x, r.yMax - UiStyle.S(22), r.width, UiStyle.S(18)), note, UiStyle.CenteredSmall, nc);
+            if (blocked) Icons.Draw(new Rect(r.x + r.width * 0.25f, r.y + r.height * 0.25f, r.width * 0.5f, r.height * 0.5f), "croix", new Color(1f, 0.4f, 0.35f));
+            // La touche, en bas a gauche ; le don, une etoile en haut a droite.
+            float k = r.width * 0.42f;
+            Icons.Key(new Rect(r.x - k * 0.2f, r.yMax - k * 0.8f, k, k), key, 1f);
+            if (gift) Icons.Draw(new Rect(r.xMax - k * 0.7f, r.y - k * 0.2f, k * 0.8f, k * 0.8f), "don", new Color(0.7f, 0.95f, 1f));
         }
 
         // ================================================================== le centre
@@ -467,87 +470,68 @@ namespace Fief
 
             // Le point de visee : blanc, et rouge quand quelqu'un est a portee de poussee.
             bool foe = AbilityUser.FoeInReach;
-            float d = UiStyle.S(foe ? 6 : 3);
-            Color c = foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : new Color(1f, 1f, 1f, 0.7f);
-            UiStyle.Fill(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), c);
-            // Le pique d'aigle : le porteur est dans ton viseur, en l'air.
+            float d = UiStyle.S(foe ? 8 : 5);
+            Icons.Dot(new Rect(cx - d * 0.5f - 1.5f, cy - d * 0.5f - 1.5f, d + 3f, d + 3f), new Color(0f, 0f, 0f, 0.5f));
+            Icons.Dot(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : new Color(1f, 1f, 1f, 0.85f));
+            // Le pique d'aigle : le porteur est dans ton viseur, en l'air -- la cible d'or, et l'aigle.
             if (AbilityUser.DiveAt != null)
             {
-                float pulse = 0.7f + 0.3f * Mathf.Sin(Time.unscaledTime * 10f);
-                float r = UiStyle.S(16);
-                Color g = new Color(Wings.Gold.r, Wings.Gold.g, Wings.Gold.b, pulse);
-                UiStyle.Fill(new Rect(cx - r, cy - r, r * 2f, 2f), g);
-                UiStyle.Fill(new Rect(cx - r, cy + r - 2f, r * 2f, 2f), g);
-                UiStyle.Fill(new Rect(cx - r, cy - r, 2f, r * 2f), g);
-                UiStyle.Fill(new Rect(cx + r - 2f, cy - r, 2f, r * 2f), g);
-                Text(new Rect(0f, cy + UiStyle.S(22), Screen.width, UiStyle.S(24)), AbilityInfo.PushKey.ToUpperInvariant() + " : PIQUÉ D'AIGLE sur " + AbilityUser.DiveAt.Name + " !", UiStyle.Centered, g);
+                float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 10f);
+                float s = UiStyle.S(70) * (0.95f + 0.05f * pulse);
+                Icons.Draw(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s), "cible", new Color(Wings.Gold.r, Wings.Gold.g, Wings.Gold.b, pulse));
+                Icons.Draw(new Rect(cx + s * 0.5f, cy - s * 0.2f, s * 0.6f, s * 0.6f), "pique", Wings.Gold);
+                Icons.Key(new Rect(cx + s * 1.1f, cy - s * 0.1f, s * 0.46f, s * 0.46f), AbilityInfo.PushKey, pulse);
             }
-            else if (foe && Stats.Shoves < 3) Text(new Rect(0f, cy + UiStyle.S(14), Screen.width, UiStyle.S(18)), AbilityInfo.PushKey.ToLowerInvariant() + "  pousser", UiStyle.CenteredSmall, new Color(1f, 0.6f, 0.5f, 0.85f));
-
-            // La recharge de la poussee : un trait fin sous le point.
-            if (me != null && Time.time < me.ShoveReadyAt)
-            {
-                float total = Seeker.ShoveCooldown * (me.Has(Ability.Poigne) ? 0.6f : 1f);
-                float f = 1f - Mathf.Clamp01((me.ShoveReadyAt - Time.time) / total);
-                float w = UiStyle.S(24);
-                UiStyle.Fill(new Rect(cx - w * 0.5f, cy + UiStyle.S(9), w * f, 2f), new Color(1f, 1f, 1f, 0.45f));
-            }
-
-            // Le dernier refus ("Recharge", "Mains prises") : une seconde, sous le point.
+            // Refuse : une petite croix rouge sous le point.
             float since = Time.time - AbilityUser.RefusalAt;
-            if (!string.IsNullOrEmpty(AbilityUser.Refusal) && since < 1.1f)
+            if (!string.IsNullOrEmpty(AbilityUser.Refusal) && since < 0.9f)
             {
-                float a = 1f - Mathf.Clamp01((since - 0.7f) / 0.4f);
-                Text(new Rect(0f, cy + UiStyle.S(34), Screen.width, UiStyle.S(22)), AbilityUser.Refusal, UiStyle.Centered, new Color(1f, 0.55f, 0.45f, a));
+                float a = 1f - Mathf.Clamp01((since - 0.5f) / 0.4f);
+                float s = UiStyle.S(30);
+                Icons.Draw(new Rect(cx - s * 0.5f, cy + UiStyle.S(18), s, s), "croix", new Color(1f, 0.4f, 0.35f, a));
             }
-
-            if (!string.IsNullOrEmpty(AbilityUser.Hint)) KeyHint(AbilityUser.Hint, cy + UiStyle.S(58));
             DrawSacre(cy);
         }
 
         /// <summary>
-        /// LE SACRE, a l'ecran de tout le monde : une barre d'or qui se remplit en trois
-        /// secondes. Toi : "TIENS BON". Un autre : "VA LE POUSSER !".
+        /// LE SACRE, a l'ecran de tout le monde : la Couronne et une barre qui se remplit en
+        /// trois secondes, a la couleur de qui se fait sacrer. Toi : or. Un autre : sa couleur, et ca bat.
         /// </summary>
         void DrawSacre(float cy)
         {
             Seeker who = Monument.Sacring;
             if (who == null) return;
             float p = Monument.SacreProgress;
-            bool mine = who.IsPlayer;
-            float w = UiStyle.S(360), h = UiStyle.S(10);
-            float y = Screen.height * 0.24f;
-            Rect bar = new Rect((Screen.width - w) * 0.5f, y, w, h);
-            Color gold = new Color(1f, 0.8f, 0.35f);
-            Color edge = mine ? gold : new Color(1f, 0.4f, 0.3f);
-            UiStyle.Fill(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.6f));
-            UiStyle.Fill(new Rect(bar.x, bar.y, bar.width * p, bar.height), edge);
-            string line = mine ? "LE SACRE — TIENS BON DANS LE CERCLE" : who.Name.ToUpperInvariant() + " SE FAIT SACRER — VA LE POUSSER !";
-            Text(new Rect(0f, y - UiStyle.S(30), Screen.width, UiStyle.S(26)), line, BigCentered(), edge);
+            Color c = who.IsPlayer ? Wings.Gold : who.Colour;
+            float w = UiStyle.S(360), h = UiStyle.S(26);
+            float y = Screen.height * 0.25f;
+            float beat = who.IsPlayer ? 0f : UiStyle.S(4) * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 8f));
+            Rect bar = new Rect((Screen.width - w) * 0.5f - beat, y - beat * 0.5f, w + beat * 2f, h + beat);
+            Icons.Pill(bar, new Color(0.1f, 0.1f, 0.18f, 0.92f));
+            if (p > 0.02f) Icons.Pill(new Rect(bar.x, bar.y, Mathf.Max(bar.height, bar.width * p), bar.height), c);
+            float s = UiStyle.S(66);
+            Icons.Draw(new Rect(Screen.width * 0.5f - s * 0.5f, bar.y - s - UiStyle.S(4), s, s), "sacre", new Color(1f, 0.86f, 0.35f));
+            if (!who.IsPlayer) Icons.Draw(new Rect(bar.xMax + UiStyle.S(10), bar.y - UiStyle.S(10), UiStyle.S(46), UiStyle.S(46)), "pousser", c);
         }
 
-        /// <summary>"F|grimper" : la touche en or, le verbe en clair, centres.</summary>
-        static void KeyHint(string hint, float y)
-        {
-            string[] kv = hint.Split('|');
-            string text = kv.Length > 1 ? kv[0] + "   " + kv[1] : kv[0];
-            Text(new Rect(0f, y, Screen.width, UiStyle.S(22)), text, UiStyle.Centered, new Color(0.95f, 0.88f, 0.7f, 0.9f));
-        }
-
-        /// <summary>"E  Prendre le don : Grappin", et le trait qui se remplit pendant le maintien.</summary>
+        /// <summary>L'invite d'interaction : la touche E, et l'icone de ce qu'on va prendre ; le cercle qui se remplit pendant le maintien.</summary>
         void DrawPrompt()
         {
             if (interactor == null) return;
             IInteractable target = interactor.Current;
             if (target == null || !target.CanInteract) return;
-            float y = Screen.height * 0.5f + UiStyle.S(86);
-            Text(new Rect(0f, y, Screen.width, UiStyle.S(24)), AbilityInfo.UseKey + "    " + target.Prompt, UiStyle.Centered, new Color(1f, 0.9f, 0.68f));
+            string icon = target is Crown ? "couronne" : target is Ballista ? "arbaleste" : target is Shrine ? "don" : target is Monument ? "monument" : "main";
+            float s = UiStyle.S(58);
+            float cx = Screen.width * 0.5f, y = Screen.height * 0.5f + UiStyle.S(70);
+            Rect chip = new Rect(cx - s * 1.1f, y, s * 2.2f, s);
+            Icons.Pill(chip, new Color(0.18f, 0.2f, 0.34f, 0.92f));
+            Icons.Key(new Rect(chip.x + s * 0.12f, chip.y + s * 0.1f, s * 0.8f, s * 0.8f), AbilityInfo.UseKey, 1f);
+            Icons.Draw(new Rect(chip.xMax - s * 0.96f, chip.y + s * 0.1f, s * 0.8f, s * 0.8f), icon, icon == "couronne" ? new Color(1f, 0.86f, 0.35f) : Color.white);
             if (target.HoldDuration > 0f && interactor.HoldProgress01 > 0f)
             {
-                float w = UiStyle.S(160);
-                Rect bar = new Rect((Screen.width - w) * 0.5f, y + UiStyle.S(26), w, UiStyle.S(2));
-                UiStyle.Fill(bar, new Color(1f, 1f, 1f, 0.15f));
-                UiStyle.Fill(new Rect(bar.x, bar.y, bar.width * interactor.HoldProgress01, bar.height), Palette.Gold);
+                Rect bar = new Rect(chip.x + s * 0.2f, chip.yMax + UiStyle.S(8), chip.width - s * 0.4f, UiStyle.S(10));
+                Icons.Pill(bar, new Color(0.1f, 0.1f, 0.18f));
+                Icons.Pill(new Rect(bar.x, bar.y, Mathf.Max(bar.height, bar.width * interactor.HoldProgress01), bar.height), Wings.Gold);
             }
         }
 
@@ -647,8 +631,10 @@ namespace Fief
                 gy = c.y + d.y * k;
             }
             int dist = Mathf.RoundToInt((world - me.Body.position).magnitude);
-            Text(new Rect(gx - UiStyle.S(90), gy - UiStyle.S(10), UiStyle.S(180), UiStyle.S(20)), "COURONNE  " + dist + " m", UiStyle.CenteredSmall,
-                 new Color(1f, 0.82f, 0.4f, 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f)));
+            float s = UiStyle.S(40);
+            float a = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
+            Icons.Draw(new Rect(gx - s * 0.5f, gy - s * 0.5f, s, s), "couronne", new Color(1f, 0.86f, 0.35f, a));
+            Icons.Number(new Rect(gx - UiStyle.S(60), gy + s * 0.5f, UiStyle.S(120), UiStyle.S(20)), dist + "m", UiStyle.S(18), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
         }
 
         // ================================================================== les voiles
@@ -680,7 +666,8 @@ namespace Fief
                 float beat = Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.unscaledTime * 9f)), 3f);
                 Color c = new Color(0.8f, 0.05f, 0.03f, 0.25f + 0.3f * beat);
                 Edges(UiStyle.S(70), c);
-                Text(new Rect(0f, Screen.height * 0.5f - UiStyle.S(60), Screen.width, UiStyle.S(24)), "UN ŒIL TE VISE — BOUGE", UiStyle.Centered, new Color(1f, 0.4f, 0.3f, 0.6f + 0.4f * beat));
+                float s = UiStyle.S(54) * (1f + 0.12f * beat);
+                Icons.Draw(new Rect(Screen.width * 0.5f - s * 0.5f, Screen.height * 0.5f - UiStyle.S(70) - s * 0.5f, s, s), "oeil", new Color(1f, 0.35f, 0.25f, 0.7f + 0.3f * beat));
             }
             else if (Rival.HuntingPlayer && me.CarriesCrown)
             {
@@ -702,12 +689,6 @@ namespace Fief
 
         bool keysOpen;
 
-        /// <summary>
-        /// LES TOUCHES (28/09 -- Martin : "on comprend pas comment voler, toutes les
-        /// touches"). Un panneau clair en trois colonnes : BOUGER, TES POUVOIRS, VOLER.
-        /// Il s'affiche tout seul au depart de la premiere manche (pendant le 3, 2, 1 et
-        /// quelques secondes apres), et a tout moment avec F1 ou H.
-        /// </summary>
         /// <summary>0 : cache ; 1 : visible (F1 ou H).</summary>
         float KeysAlpha()
         {
@@ -717,143 +698,100 @@ namespace Fief
             return keysOpen ? 1f : 0f;
         }
 
+        /// <summary>
+        /// LES TOUCHES (F1 ou H), SANS UN MOT (30/09) : trois colonnes de pastilles --
+        /// BOUGER, TES POUVOIRS, VOLER -- chacune une touche (une souris ou une lettre) et
+        /// l'icone de ce qu'elle fait.
+        /// </summary>
         void DrawKeys()
         {
             Seeker me = Game.Me;
-            float a = KeysAlpha();
-            if (a <= 0.01f) return;
-
-            // (29/09) En BAS de l'ecran, au-dessus de ta capacite : il ne passe plus sur le
-            // "PARTEZ !", ni sur ce que tu vises au milieu.
-            float w = Mathf.Min(UiStyle.S(1020), Screen.width - UiStyle.S(60));
-            float h = UiStyle.S(250);
-            Rect panel = new Rect((Screen.width - w) * 0.5f, Screen.height - h - UiStyle.S(150), w, h);
-            UiStyle.Fill(panel, new Color(0.03f, 0.025f, 0.03f, 0.92f * a));
-            UiStyle.Fill(new Rect(panel.x, panel.y, panel.width, 2f), new Color(1f, 0.8f, 0.42f, 0.9f * a));
-            UiStyle.Fill(new Rect(panel.x, panel.yMax - 2f, panel.width, 2f), new Color(1f, 0.8f, 0.42f, 0.9f * a));
-            GUIStyle head = KeyStyle(0);
-            Text(new Rect(panel.x, panel.y + UiStyle.S(6), panel.width, UiStyle.S(30)), UiStyle.Spaced("LES TOUCHES") + (keysOpen ? "   ·   F1 ou H pour fermer" : "   ·   F1 ou H pour les revoir"), head, new Color(1f, 0.85f, 0.5f, a));
-
-            string[] keys = AbilityInfo.Keys;
-            string a0 = me.HasActive ? AbilityInfo.Name(me.CurrentActive) : "ta capacité";
-            string passive = "";
+            if (KeysAlpha() <= 0.01f || me == null) return;
+            float row = UiStyle.S(58);
+            float colW = UiStyle.S(210);
+            float w = colW * 3f + UiStyle.S(60), h = row * 5f + UiStyle.S(70);
+            Rect panel = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+            Icons.Pill(new Rect(panel.x, panel.y, panel.width, panel.height), new Color(0.13f, 0.15f, 0.3f, 0.94f));
+            string passive = null;
             for (int k = 0; k < me.Slot.Abilities.Count; k++)
-                if (!AbilityInfo.IsActive(me.Slot.Abilities[k])) passive = AbilityInfo.Name(me.Slot.Abilities[k]);
-            string[,] move =
-            {
-                { "ZQSD", "marcher" }, { "Maj", "courir" }, { "Espace", "sauter" }, { "Souris", "regarder" },
-                { "E", "arbaleste, Couronne, sanctuaire" }
-            };
-            string[,] powers =
-            {
-                { keys[0], a0 }, { AbilityInfo.PushKey, "POUSSER (vole la Couronne)" },
-                { "Passive", passive.Length > 0 ? passive : "(aucune)" }
-            };
-            string[,] fly =
-            {
-                { "Vide", "saute : les ailes s'ouvrent seules" }, { "Souris ↓", "piquer (plus vite)" }, { "Souris ↑", "remonter" },
-                { "Espace", "replier / rouvrir les ailes" }, { AbilityInfo.PushKey, "en l'air : PIQUÉ sur le porteur" }
-            };
-            float colW = (panel.width - UiStyle.S(40)) / 3f;
-            float top = panel.y + UiStyle.S(46);
-            KeyColumn(panel.x + UiStyle.S(20), top, colW, "BOUGER", move, new Color(0.75f, 0.9f, 1f), a);
-            KeyColumn(panel.x + UiStyle.S(20) + colW, top, colW, "TES POUVOIRS", powers, new Color(1f, 0.6f, 0.4f), a);
-            KeyColumn(panel.x + UiStyle.S(20) + colW * 2f, top, colW, "VOLER", fly, Wings.Gold, a);
-            GUIStyle foot = KeyStyle(1);
-            Text(new Rect(panel.x, panel.yMax - UiStyle.S(26), panel.width, UiStyle.S(20)),
-                 "Sur ton arbaleste : vise à la souris, MAINTIENS le clic gauche pour tendre, RELÂCHE pour tirer   ·   Capacités qui visent : maintiens, puis relâche",
-                 foot, new Color(0.9f, 0.86f, 0.78f, 0.9f * a));
+                if (!AbilityInfo.IsActive(me.Slot.Abilities[k])) passive = Icons.Of(me.Slot.Abilities[k]);
+            string[] moveKeys = { "Z", "Maj", "Espace", "E", "E" };
+            string[] moveIcons = { "joueur", "coureur", "haut", "couronne", "arbaleste" };
+            string[] powerKeys = { AbilityInfo.Keys[0], AbilityInfo.PushKey, AbilityInfo.PushKey, "", "Tab" };
+            string[] powerIcons = { me.HasActive ? Icons.Of(me.CurrentActive) : "cible", "pousser", "couronne", passive ?? "", "manches" };
+            string[] flyKeys = { "", "", "Espace", AbilityInfo.PushKey, "" };
+            string[] flyIcons = { "ailes", "courant", "croix", "pique", "" };
+            float x = panel.x + UiStyle.S(30), y = panel.y + UiStyle.S(34);
+            Column(x, y, colW, row, moveKeys, moveIcons, new Color(0.45f, 0.75f, 1f));
+            Column(x + colW, y, colW, row, powerKeys, powerIcons, new Color(1f, 0.55f, 0.4f));
+            Column(x + colW * 2f, y, colW, row, flyKeys, flyIcons, Wings.Gold);
         }
 
-        // Les styles du panneau : des COPIES (on ne modifie jamais un style partage).
-        readonly GUIStyle[] keyStyles = new GUIStyle[4];
-        int keyStylesSize = -1;
-        GUIStyle KeyStyle(int i)
+        void Column(float x, float y, float w, float row, string[] keys, string[] icons, Color c)
         {
-            if (keyStylesSize != UiStyle.Label.fontSize || keyStyles[i] == null)
+            for (int i = 0; i < keys.Length; i++)
             {
-                keyStylesSize = UiStyle.Label.fontSize;
-                keyStyles[0] = new GUIStyle(UiStyle.Head);
-                keyStyles[0].alignment = TextAnchor.MiddleCenter;
-                keyStyles[1] = new GUIStyle(UiStyle.Small);
-                keyStyles[1].alignment = TextAnchor.MiddleCenter;
-                keyStyles[2] = new GUIStyle(UiStyle.Label);
-                keyStyles[2].fontStyle = FontStyle.Bold;
-                keyStyles[2].alignment = TextAnchor.MiddleLeft;
-                keyStyles[3] = new GUIStyle(UiStyle.Small);
-                keyStyles[3].alignment = TextAnchor.MiddleLeft;
-            }
-            return keyStyles[i];
-        }
-
-        void KeyColumn(float x, float y, float w, string title, string[,] rows, Color c, float a)
-        {
-            GUIStyle t = KeyStyle(2);
-            Text(new Rect(x, y, w, UiStyle.S(22)), UiStyle.Spaced(title), t, new Color(c.r, c.g, c.b, a));
-            y += UiStyle.S(28);
-            GUIStyle key = KeyStyle(1);
-            GUIStyle what = KeyStyle(3);
-            float kw = UiStyle.S(84);
-            for (int i = 0; i < rows.GetLength(0); i++)
-            {
-                Rect k = new Rect(x, y, kw, UiStyle.S(24));
-                UiStyle.Fill(k, new Color(c.r * 0.25f, c.g * 0.25f, c.b * 0.25f, 0.9f * a));
-                UiStyle.Fill(new Rect(k.x, k.yMax - 2f, k.width, 2f), new Color(c.r, c.g, c.b, 0.9f * a));
-                Text(k, rows[i, 0].ToUpperInvariant(), key, new Color(1f, 0.97f, 0.9f, a));
-                Text(new Rect(x + kw + UiStyle.S(10), y, w - kw - UiStyle.S(14), UiStyle.S(24)), rows[i, 1], what, new Color(0.93f, 0.9f, 0.84f, a));
-                y += UiStyle.S(30);
+                if (icons[i].Length == 0) continue;
+                float s = row * 0.86f;
+                Rect r = new Rect(x, y + i * row, w - UiStyle.S(24), s);
+                Icons.Pill(r, new Color(c.r * 0.35f, c.g * 0.35f, c.b * 0.45f, 0.95f));
+                if (keys[i].Length > 0) Icons.Key(new Rect(r.x + s * 0.08f, r.y + s * 0.08f, s * 0.84f, s * 0.84f), keys[i], 1f);
+                else Icons.Draw(new Rect(r.x + s * 0.14f, r.y + s * 0.14f, s * 0.72f, s * 0.72f), "haut", new Color(1f, 1f, 1f, 0.35f), false);
+                Icons.Draw(new Rect(r.xMax - s * 0.96f, r.y + s * 0.08f, s * 0.84f, s * 0.84f), icons[i], i == 0 ? c : Color.white);
             }
         }
 
         // ================================================================== l'astuce
 
-        void DrawTip()
-        {
-            if (tipTimer <= 0f || string.IsNullOrEmpty(tipText) || KeysAlpha() > 0.01f) return;
-            float a = Mathf.Clamp01((TipDuration - tipTimer) / 0.3f) * Mathf.Clamp01(tipTimer / 0.6f);
-            Rect r = new Rect(Screen.width * 0.2f, Screen.height * 0.68f, Screen.width * 0.6f, UiStyle.S(50));
-            Text(r, tipText, WrappedCentered(), new Color(0.96f, 0.92f, 0.8f, a));
-        }
+        /// <summary>(30/09 -- "je deteste le texte" : plus d'astuces ecrites.)</summary>
+        void DrawTip() { }
 
         // ================================================================== le grand titre
 
+        /// <summary>
+        /// LE GRAND MOMENT, SANS UN MOT (30/09) : une grosse icone qui claque au milieu du
+        /// haut de l'ecran (la Couronne prise, un don recu), dans une pastille a sa couleur.
+        /// </summary>
         void DrawCard()
         {
-            if (cardTimer <= 0f || string.IsNullOrEmpty(cardTitle)) return;
+            if (cardTimer <= 0f || string.IsNullOrEmpty(cardIcon)) return;
             float age = CardDuration - cardTimer;
-            float alpha = Mathf.Clamp01(age / 0.25f) * Mathf.Clamp01(cardTimer / 0.6f);
-            float y = Screen.height * 0.26f - (1f - Mathf.Clamp01(age / 0.25f)) * UiStyle.S(10);
-
-            if (!string.IsNullOrEmpty(cardKicker))
-                Text(new Rect(0f, y - UiStyle.S(20), Screen.width, UiStyle.S(18)), UiStyle.Spaced(cardKicker.ToUpperInvariant()), UiStyle.CenteredSmall, new Color(0.8f, 0.75f, 0.65f, alpha));
-            GUIStyle title = BigCentered();
-            Text(new Rect(0f, y, Screen.width, UiStyle.S(44)), cardTitle, title, new Color(cardTint.r, cardTint.g, cardTint.b, alpha));
-            if (!string.IsNullOrEmpty(cardLine))
-                Text(new Rect(0f, y + UiStyle.S(46), Screen.width, UiStyle.S(22)), cardLine, UiStyle.Centered, new Color(0.95f, 0.9f, 0.8f, alpha));
+            float alpha = Mathf.Clamp01(cardTimer / 0.5f);
+            float punch = age < 0.15f ? Mathf.Lerp(1.6f, 1f, age / 0.15f) : 1f;
+            float s = UiStyle.S(120) * punch;
+            float cx = Screen.width * 0.5f, cy = Screen.height * 0.3f;
+            Icons.Pill(new Rect(cx - s * 0.62f, cy - s * 0.62f, s * 1.24f, s * 1.24f), new Color(cardTint.r * 0.7f, cardTint.g * 0.7f, cardTint.b * 0.7f, 1f), alpha);
+            Icons.Draw(new Rect(cx - s * 0.45f, cy - s * 0.45f, s * 0.9f, s * 0.9f), cardIcon, new Color(1f, 1f, 1f, alpha));
         }
 
         // ================================================================== Tab : le match
 
-        /// <summary>Tab maintenu : chacun, ses manches gagnees, ses capacites -- en toutes lettres.</summary>
+        /// <summary>Tab maintenu : chacun (sa pastille, son pseudo), ses manches gagnees, ses capacites en icones.</summary>
         void DrawScores()
         {
-            float w = Mathf.Min(UiStyle.S(720), Screen.width - UiStyle.S(40)), row = UiStyle.S(50);
-            float h = UiStyle.S(64) + row * Match.Slots.Count;
-            Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.24f, w, h);
-            UiStyle.Fill(box, UiStyle.Scrim);
-            float x = box.x + UiStyle.S(24), y = box.y + UiStyle.S(16);
-            Text(new Rect(x, y, w, UiStyle.S(24)), UiStyle.Spaced("LE MATCH") + "     " + (Match.IsTieBreak ? "départage" : "manche " + Match.RoundNumber + " sur " + Match.Rounds),
-                 UiStyle.Head, Palette.Gold);
-            y += UiStyle.S(40);
+            float row = UiStyle.S(60), w = Mathf.Min(UiStyle.S(620), Screen.width - UiStyle.S(40));
+            float h = UiStyle.S(40) + row * Match.Slots.Count;
+            Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.22f, w, h);
+            Icons.Pill(new Rect(box.x - UiStyle.S(20), box.y, box.width + UiStyle.S(40), box.height), new Color(0.13f, 0.15f, 0.3f, 0.94f));
+            float y = box.y + UiStyle.S(20);
             for (int i = 0; i < Match.Slots.Count; i++)
             {
                 PlayerSlot s = Match.Slots[i];
-                Color c = s.IsLocal ? Palette.Gold : s.Colour;
-                Text(new Rect(x, y, UiStyle.S(150), UiStyle.S(24)), s.Name, UiStyle.Label, c);
-                Text(new Rect(x + UiStyle.S(150), y, UiStyle.S(140), UiStyle.S(24)), s.Wins + (s.Wins > 1 ? " manches" : " manche"), UiStyle.Label, UiStyle.Ink);
-                string abilities = "";
-                for (int k = 0; k < s.Abilities.Count; k++) abilities += (k > 0 ? ", " : "") + AbilityInfo.Name(s.Abilities[k]);
-                Text(new Rect(x + UiStyle.S(290), y + UiStyle.S(2), w - UiStyle.S(320), UiStyle.S(40)), abilities.Length > 0 ? abilities : "aucune capacité", Wrapped(), UiStyle.InkDim);
+                float ph = row * 0.8f;
+                Rect r = new Rect(box.x, y, UiStyle.S(250), ph);
+                if (s.IsLocal) Icons.Pill(new Rect(r.x - 4f, r.y - 4f, r.width + 8f, r.height + 8f), Wings.Gold);
+                Icons.Pill(r, s.Colour);
+                Icons.Number(new Rect(r.x + ph * 0.4f, r.y, r.width - ph * 0.8f, r.height), s.Name, Mathf.RoundToInt(ph * 0.46f), Color.white, TextAnchor.MiddleLeft);
+                float cx = r.xMax + UiStyle.S(16);
+                Icons.Draw(new Rect(cx, y + ph * 0.05f, ph * 0.9f, ph * 0.9f), "couronne", new Color(1f, 0.86f, 0.35f));
+                Icons.Number(new Rect(cx + ph * 0.9f, y, ph, ph), s.Wins.ToString(), Mathf.RoundToInt(ph * 0.6f), Color.white, TextAnchor.MiddleLeft);
+                float ax = cx + ph * 2f;
+                for (int k = 0; k < s.Abilities.Count; k++)
+                {
+                    Rect ar = new Rect(ax + k * (ph + UiStyle.S(8)), y, ph, ph);
+                    Icons.Pill(ar, Color.Lerp(AbilityInfo.Tint(s.Abilities[k]), new Color(0.2f, 0.18f, 0.36f), 0.4f));
+                    Icons.Draw(new Rect(ar.x + ph * 0.16f, ar.y + ph * 0.16f, ph * 0.68f, ph * 0.68f), Icons.Of(s.Abilities[k]), Color.white);
+                }
                 y += row;
             }
         }

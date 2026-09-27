@@ -4,17 +4,21 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LE FIL DES EVENEMENTS (27/09) : ce qui vient de se passer dans la manche, en une
-    /// ligne, a gauche de l'ecran -- "Mahaut a pris la Couronne !", "Oswin est tombe de
-    /// la tour". Les phrases sont ecrites par Feed.cs. Sans ce fil, on ne sait jamais
-    /// pourquoi la Couronne a change de mains.
+    /// LE FIL DES EVENEMENTS, EN ICONES (30/09 -- "aucun texte a l'ecran") : a gauche, a
+    /// mi-hauteur, une rangee de pastilles par evenement -- qui (sa couleur), ce qu'il a
+    /// fait (une icone), a qui (sa couleur). "Rouge -> main -> Couronne -> Bleu" : Rouge a
+    /// vole la Couronne a Bleu. Feed.cs dit quoi afficher.
     /// </summary>
     public static class Toasts
     {
         class Entry
         {
-            public string text;
-            public Color color;
+            public Color who;
+            public bool hasWho;
+            public string[] icons;
+            public Color[] tints;
+            public Color whom;
+            public bool hasWhom;
             public float life;
         }
 
@@ -23,30 +27,19 @@ namespace Fief
 
         static readonly List<Entry> entries = new List<Entry>();
 
-        public static void Show(string text, Color color)
+        /// <summary>Un evenement : "who" (ou non) fait "icons" (de ces teintes) a "whom" (ou non).</summary>
+        public static void Show(bool hasWho, Color who, string[] icons, Color[] tints, bool hasWhom, Color whom)
         {
-            // Si le meme message vient de passer, on le rafraichit au lieu d'empiler.
-            for (int i = 0; i < entries.Count; i++)
-            {
-                if (entries[i].text == text)
-                {
-                    entries[i].life = Lifetime;
-                    return;
-                }
-            }
-
             Entry e = new Entry();
-            e.text = text;
-            e.color = color;
+            e.hasWho = hasWho;
+            e.who = who;
+            e.icons = icons;
+            e.tints = tints;
+            e.hasWhom = hasWhom;
+            e.whom = whom;
             e.life = Lifetime;
             entries.Add(e);
-
             while (entries.Count > MaxVisible) entries.RemoveAt(0);
-        }
-
-        public static void Show(string text)
-        {
-            Show(text, UiStyle.Ink);
         }
 
         public static void Clear()
@@ -66,28 +59,35 @@ namespace Fief
         public static void Draw()
         {
             if (entries.Count == 0) return;
-
-            // Sur le cote gauche, a mi-hauteur : hors du regard (le centre de l'ecran
-            // est a la foret), mais la ou l'oeil tombe entre deux pas. Le plus recent
-            // en bas, comme un fil de messages.
-            float width = Mathf.Min(UiStyle.S(420), Screen.width * 0.4f);
-            float height = UiStyle.S(24);
-            float x = UiStyle.S(22);
-            float y = Screen.height * 0.42f;
-
+            float h = UiStyle.S(42);
+            float x = UiStyle.S(24);
+            float y = Screen.height * 0.4f;
             for (int i = 0; i < entries.Count; i++)
             {
                 Entry e = entries[i];
-                float alpha = Mathf.Clamp01(e.life / 0.8f) * Mathf.Clamp01((Lifetime - e.life) / 0.15f + 0.2f);
-                float slide = (1f - Mathf.Clamp01((Lifetime - e.life) / 0.2f)) * UiStyle.S(-16);
-
-                Rect row = new Rect(x + slide, y + i * (height + UiStyle.S(3)), width, height);
-                UiStyle.Fill(new Rect(row.x, row.y + UiStyle.S(4), 2f, row.height - UiStyle.S(8)), new Color(e.color.r, e.color.g, e.color.b, alpha * 0.9f));
-                // Du texte avec son ombre, sans boite ; et on ne touche jamais au style partage.
-                Rect text = new Rect(row.x + UiStyle.S(10), row.y, row.width - UiStyle.S(12), row.height);
-                UiStyle.Tinted(new Rect(text.x + 1f, text.y + 1f, text.width, text.height), e.text, UiStyle.Label, new Color(0f, 0f, 0f, 0.8f * alpha));
-                UiStyle.Tinted(text, e.text, UiStyle.Label, new Color(e.color.r, e.color.g, e.color.b, alpha));
+                float alpha = Mathf.Clamp01(e.life / 0.6f);
+                float slide = (1f - Mathf.Clamp01((Lifetime - e.life) / 0.2f)) * UiStyle.S(-40);
+                float cx = x + slide;
+                float cy = y + i * (h + UiStyle.S(8));
+                int n = e.icons.Length + (e.hasWho ? 1 : 0) + (e.hasWhom ? 1 : 0);
+                Icons.Pill(new Rect(cx, cy, n * h + UiStyle.S(12), h), new Color(0.12f, 0.13f, 0.26f, 0.85f), alpha);
+                cx += UiStyle.S(6);
+                if (e.hasWho) { Player(new Rect(cx, cy + h * 0.1f, h * 0.8f, h * 0.8f), e.who, alpha); cx += h; }
+                for (int k = 0; k < e.icons.Length; k++)
+                {
+                    Color t = e.tints[k];
+                    Icons.Draw(new Rect(cx + h * 0.06f, cy + h * 0.06f, h * 0.88f, h * 0.88f), e.icons[k], new Color(t.r, t.g, t.b, alpha));
+                    cx += h;
+                }
+                if (e.hasWhom) Player(new Rect(cx, cy + h * 0.1f, h * 0.8f, h * 0.8f), e.whom, alpha);
             }
+        }
+
+        /// <summary>Un joueur : une pastille a sa couleur, une silhouette blanche.</summary>
+        static void Player(Rect r, Color c, float alpha)
+        {
+            Icons.Pill(r, c, alpha);
+            Icons.Draw(new Rect(r.x + r.width * 0.16f, r.y + r.height * 0.16f, r.width * 0.68f, r.height * 0.68f), "joueur", new Color(1f, 1f, 1f, alpha), false);
         }
     }
 }

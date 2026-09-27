@@ -105,7 +105,7 @@ namespace Fief
             if (s.IsPlayer)
             {
                 Sfx.Discovery();
-                if (Game.Hud != null) Game.Hud.ShowDiscovery("DON — touche V", AbilityInfo.Name(gift), AbilityInfo.Line(gift), "", AbilityInfo.Tint(gift));
+                if (Game.Hud != null) Game.Hud.ShowSplash(Icons.Of(gift), AbilityInfo.Tint(gift));
                 Stats.Shrines++;
             }
             return true;

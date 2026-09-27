@@ -109,6 +109,7 @@ namespace Fief
             RoundSeconds = Mathf.Max(60f, minutes * 60f);
             Played = 0;
             LastWinner = -1;
+            History.Clear();
             TieBreakers.Clear();
             Draft.Clear();
             RoundSeed = System.Environment.TickCount;
@@ -155,10 +156,14 @@ namespace Fief
         /// Fin de manche. "winner" : la place gagnante, ou -1 si personne. Une manche de
         /// departage ne compte que pour les ex aequo.
         /// </summary>
+        /// <summary>Qui a gagne chaque manche jouee (-1 : personne) -- les pastilles du HUD.</summary>
+        public static readonly List<int> History = new List<int>();
+
         public static void EndRound(int winner)
         {
             if (winner >= 0 && IsTieBreak && !TieBreakers.Contains(winner)) winner = -1;
             LastWinner = winner;
+            History.Add(winner);
             if (winner >= 0 && winner < Slots.Count) Slots[winner].Wins++;
             Played++;
             RoundSeed = RoundSeed * 31 + 7;
