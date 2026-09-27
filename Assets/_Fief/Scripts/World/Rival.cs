@@ -920,7 +920,7 @@ namespace Fief
                 float want = boulderLane > 0f ? -2f : 2f;
                 dir = (dir + radial * Mathf.Clamp(want - lane, -1f, 1f) * 1.4f).normalized;
             }
-            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-Combat.KnockDrag(seeker) * dt));
             Vector3 extra = Vector3.zero;
             if (dashTime > 0f) { dashTime -= dt; extra += dashVelocity; }
             if (pullTime > 0f)
@@ -937,6 +937,8 @@ namespace Fief
             Wings.Tick(seeker, grounded);
             if (grounded || !seeker.CanGlide) gliding = false;
             Vector3 walk = dir * speed;
+            // Ejecte : il ne remonte pas l'elan a la marche (comme toi, presque plus de controle).
+            if (seeker.Tumbling) walk *= 0.15f;
             if (grounded)
             {
                 if (airTop - transform.position.y > 4f) Land(airTop - transform.position.y);
@@ -1107,6 +1109,7 @@ namespace Fief
             {
                 rig.Speed = gliding || mounted ? 0f : Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
                 rig.Grounded = body.enabled && body.isGrounded || mounted;
+                rig.Tumbling = seeker.Tumbling;
             }
         }
 

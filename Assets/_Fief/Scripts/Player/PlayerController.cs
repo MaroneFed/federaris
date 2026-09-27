@@ -220,17 +220,25 @@ namespace Fief
             if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
 
             // --- le saut, le second saut, le vol plane
+            // (30/09 -- "le saut, il bug") Trois corrections classiques des jeux de
+            // plateforme : on COLLE a la pente quand on la descend en courant (avant, on
+            // decollait a chaque pas et le saut ne partait pas) ; un appui un poil trop
+            // tot est GARDE 0,15 s ; un appui un poil trop tard, juste apres le bord,
+            // SAUTE quand meme (le "coyote time"). Et Espace n'ouvre plus les ailes au
+            // ras de la rampe : seulement s'il y a du vide dessous.
             bool canAct = !InputLocked && factor > 0f;
+            if (canAct && FiefInput.JumpPressed) jumpPressedAt = Time.time;
             if (grounded)
             {
+                groundedAt = Time.time;
                 if (Gliding) Sfx.Thud();
                 Gliding = false;
                 folded = false;
                 airJumpUsed = false;
                 lastGround = transform.position;
                 airTop = transform.position.y;
-                if (verticalVelocity < 0f) verticalVelocity = -2f;
-                if (canAct && FiefInput.JumpPressed) verticalVelocity = cfg.jumpSpeed;
+                if (verticalVelocity < 0f) verticalVelocity = -Mathf.Max(2f, CurrentSpeed * 0.65f);
+                if (canAct && Time.time - jumpPressedAt < 0.15f) Jump(cfg);
             }
             else
             {
@@ -238,7 +246,9 @@ namespace Fief
                 // Une vraie chute : le vent siffle (une fois).
                 if (verticalVelocity < -16f && !windPlayed && !Gliding) { windPlayed = true; Sfx.Whoosh(); }
                 bool jump = canAct && FiefInput.JumpPressed;
-                if (jump && !Gliding && !airJumpUsed && me != null && me.Has(Ability.DoubleSaut))
+                bool coyote = Time.time - groundedAt < 0.14f && verticalVelocity <= 0.5f && !Gliding && !ballistic;
+                if (jump && coyote) Jump(cfg);
+                else if (jump && !Gliding && !airJumpUsed && me != null && me.Has(Ability.DoubleSaut))
                 {
                     airJumpUsed = true;
                     verticalVelocity = cfg.jumpSpeed * 1.05f;
@@ -249,7 +259,7 @@ namespace Fief
                 // Espace en vol : on replie les ailes (on tombe comme une pierre).
                 else if (jump && Gliding) { Gliding = false; folded = true; Sfx.Whoosh(); }
                 // Espace en tombant : on les rouvre (ou on les ouvre plus tot).
-                else if (jump && me != null && me.CanGlide && verticalVelocity < 2f) OpenWings(me);
+                else if (jump && me != null && me.CanGlide && verticalVelocity < 2f && Wings.VoidBelow(transform.position, 4f)) OpenWings(me);
                 // LES AILES S'OUVRENT TOUTES SEULES : on tombe, et il y a du vide dessous.
                 // (Tire par une arbaleste : seulement au-dessus du grand vide, pour
                 // retomber la ou la ligne l'avait dit.)
@@ -303,10 +313,10 @@ namespace Fief
                     airTop = transform.position.y;
                 }
             }
-            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-Combat.KnockDrag(me) * dt));
 
             // Pendant un gros recul, on ne contre-marche pas : le coup porte vraiment.
-            float control = Mathf.Lerp(0.2f, 1f, Mathf.Clamp01(1f - knock.magnitude / 16f));
+            float control = me != null && me.Tumbling ? 0.15f : Mathf.Lerp(0.2f, 1f, Mathf.Clamp01(1f - knock.magnitude / 16f));
             Vector3 walk = wish * speed * control;
             if (Gliding) walk = glide;
             else if (ballistic)
@@ -329,6 +339,8 @@ namespace Fief
             }
             Vector3 before = transform.position;
             controller.Move(motion * dt);
+            // La tete cogne : on redescend tout de suite (sinon on restait colle au plafond).
+            if ((controller.collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
             // Le sceau de la citadelle : on n'y entre pas par les airs.
             if ((Gliding || ballistic || diveTime > 0f) && Ward.Crossing(before, transform.position))
             {
@@ -347,6 +359,16 @@ namespace Fief
             Footsteps();
             DriveRig(cfg);
             KeepInsideMap(cfg);
+        }
+
+        float groundedAt = -9f;
+        float jumpPressedAt = -9f;
+
+        void Jump(GameConfig cfg)
+        {
+            verticalVelocity = cfg.jumpSpeed;
+            jumpPressedAt = -9f;
+            groundedAt = -9f;
         }
 
         /// <summary>OUVRIR LES AILES : on garde son elan, un claquement de toile, un anneau.</summary>
@@ -416,6 +438,7 @@ namespace Fief
             flat.y = 0f;
             rig.Speed = flat.magnitude;
             rig.Grounded = controller.isGrounded;
+            rig.Tumbling = Game.Me != null && Game.Me.Tumbling;
             rig.RunSpeed = cfg.moveSpeed * cfg.sprintMultiplier;
         }
 

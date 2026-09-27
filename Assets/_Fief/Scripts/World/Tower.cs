@@ -81,7 +81,8 @@ namespace Fief
         {
             Hardness = 1f + 0.14f * Mathf.Clamp(level, 0, 8);
             System.Random rng = new System.Random(seed * 7919 + 11);
-            int gaps = Mathf.Min(2 + level / 2, 4);
+            // (30/09 -- "les trous etaient trop compliques") : plus de trous dans la rampe.
+            int gaps = 0;
             int pendulums = Mathf.Min(2 + level / 2, 4);
             int rams = Mathf.Min(2 + level / 3, 3);
             int sweepers = Mathf.Min(2 + level / 2, 4);
@@ -388,7 +389,6 @@ namespace Fief
                     warn.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.3f, 0.2f), 2.5f);
                     warn.transform.localRotation = Quaternion.LookRotation(Tangent(ramp, u), Vector3.up);
                 }
-                Hole.Build(t, RampPoint(ramp, (at + 1) / (float)total), Tangent(ramp, (at + 1) / (float)total));
             }
             Proto.EndVisualOnly();
         }
@@ -643,44 +643,6 @@ namespace Fief
                 Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.3f));
                 Sfx.Clang();
-            }
-        }
-    }
-
-    /// <summary>
-    /// UN TROU (29/09 -- "nous faire retomber en bas de la tour") : qui passe au travers
-    /// ne retombe pas sur la rampe d'en dessous, il est jete dehors, ailes fermees,
-    /// et redescend jusqu'en bas.
-    /// </summary>
-    public class Hole : MonoBehaviour
-    {
-        Vector3 centre, along, outward;
-
-        public static void Build(Transform parent, Vector3 centre, Vector3 tangent)
-        {
-            GameObject go = new GameObject("Trou");
-            go.transform.SetParent(parent, false);
-            Hole h = go.AddComponent<Hole>();
-            h.centre = centre;
-            h.along = tangent;
-            h.outward = new Vector3(centre.x, 0f, centre.z).normalized;
-        }
-
-        void Update()
-        {
-            if (Game.Season == null || !Game.Season.Running) return;
-            for (int i = 0; i < Game.Seekers.Count; i++)
-            {
-                Seeker s = Game.Seekers[i];
-                if (s.Body == null || s.Tumbling || s.Graced) continue;
-                Vector3 d = s.Body.position - centre;
-                // Dans le trou : le long de la rampe (2 m de chaque cote), sur sa largeur, et
-                // SOUS le niveau de la rampe a cet endroit (elle monte d'un demi-metre par metre).
-                float run = Vector3.Dot(new Vector3(d.x, 0f, d.z), along);
-                if (Mathf.Abs(run) > 1.8f) continue;
-                if (Mathf.Abs(Vector3.Dot(new Vector3(d.x, 0f, d.z), outward)) > Tower.RampWidth * 0.5f + 0.3f) continue;
-                if (d.y > run * 0.5f - 0.8f || d.y < -6f) continue;
-                Combat.Hit(s, Vector3.down, 0f, false, null);
             }
         }
     }

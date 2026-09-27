@@ -43,6 +43,9 @@ namespace Fief
 
         public float Speed;
         public bool Grounded = true;
+        /// <summary>Ejecte par un obstacle : il tournoie dans les airs, bras et jambes ecartes.</summary>
+        public bool Tumbling;
+        float tumbleAngle;
         public float RunSpeed = 11f;
 
         /// <summary>La tete (le casque) : on y noue l'echarpe.</summary>
@@ -250,6 +253,23 @@ namespace Fief
             // --- la cape : elle flotte en arriere avec la vitesse, ondule, se souleve en l'air
             float flutter = Mathf.Sin(Time.time * 7f + cycle) * (3f + 6f * effort);
             cape.localRotation = Quaternion.Euler(-(Mathf.Lerp(4f, 48f, effort) + air * 30f) + flutter, 0f, 0f);
+
+            // --- ejecte : il fait des saltos en arriere, bras et jambes en etoile
+            if (Tumbling && !Grounded)
+            {
+                tumbleAngle += 560f * dt;
+                Vector3 centre = new Vector3(0f, 0.95f, 0f);
+                Quaternion roll = Quaternion.Euler(-tumbleAngle, 0f, 0f);
+                pivot.localRotation = roll;
+                pivot.localPosition = centre - roll * centre;
+                float flail = Mathf.Sin(Time.time * 18f) * 20f;
+                armL.localRotation = Quaternion.Euler(flail, 0f, -120f);
+                armR.localRotation = Quaternion.Euler(-flail, 0f, 120f);
+                legL.localRotation = Quaternion.Euler(-flail, 0f, -35f);
+                legR.localRotation = Quaternion.Euler(flail, 0f, 35f);
+                cape.localRotation = Quaternion.Euler(-70f + flail, 0f, 0f);
+            }
+            else tumbleAngle = 0f;
         }
 
         /// <summary>
