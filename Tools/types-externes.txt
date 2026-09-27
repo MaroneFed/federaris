@@ -145,3 +145,10 @@ JsonUtility
 LineRenderer
 TrailRenderer
 LineTextureMode
+ReflectionProbe
+ReflectionProbeMode
+ReflectionProbeRefreshMode
+ReflectionProbeTimeSlicingMode
+AnisotropicFiltering
+ShadowResolution
+ShadowProjection

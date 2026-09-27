@@ -189,6 +189,7 @@ namespace Fief
             // La colonne bleue : on la voit de partout.
             m.beam = LightBeam.Build(parent, at, Blue, 2.2f, 90f);
             if (m.beam != null) m.beam.targetAlpha = 0.55f;
+            MaterialFactory.Polish(go.transform, 0.45f);
             return m;
         }
 

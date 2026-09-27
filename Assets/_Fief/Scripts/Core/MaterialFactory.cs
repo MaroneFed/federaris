@@ -94,8 +94,14 @@ namespace Fief
         /// </summary>
         public static Material GetShiny(Color color, float smoothness, float metallic)
         {
+            return GetShiny(color, smoothness, metallic, 0f);
+        }
+
+        /// <summary>Le meme, qui luit un peu de sa propre couleur ("glow" : 0 = pas du tout) -- l'or de la Couronne.</summary>
+        public static Material GetShiny(Color color, float smoothness, float metallic, float glow)
+        {
             color = Palette.QuantizeFine(color, 40);
-            string key = ColorUtility.ToHtmlStringRGB(color) + "_" + smoothness.ToString("0.00") + "_" + metallic.ToString("0.00");
+            string key = ColorUtility.ToHtmlStringRGB(color) + "_" + smoothness.ToString("0.00") + "_" + metallic.ToString("0.00") + "_" + glow.ToString("0.00");
             Material mat;
             if (Shinies.TryGetValue(key, out mat) && mat != null) return mat;
             mat = new Material(LitShader);
@@ -105,9 +111,35 @@ namespace Fief
             if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", smoothness);
             if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
             if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
+            if (glow > 0f && mat.HasProperty("_EmissionColor"))
+            {
+                mat.SetColor("_EmissionColor", new Color(color.r * glow, color.g * glow, color.b * glow, 1f));
+                mat.EnableKeyword("_EMISSION");
+                mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            }
             mat.enableInstancing = true;
             Shinies[key] = mat;
             return mat;
+        }
+
+        /// <summary>
+        /// POLIR un objet deja construit (30/09) : ses materiaux mats deviennent satines --
+        /// le fer et les teintes sombres, metalliques. Les lueurs ne bougent pas. On s'en
+        /// sert pour les obstacles, les gargouilles, les Monuments : ils accrochent la
+        /// lumiere du soir, on les detache du decor.
+        /// </summary>
+        public static void Polish(Transform root, float smoothness)
+        {
+            if (root == null) return;
+            Renderer[] all = root.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < all.Length; i++)
+            {
+                Material m = all[i].sharedMaterial;
+                if (m == null || !m.name.StartsWith("Fief_")) continue;
+                Color c = m.color;
+                float light = c.r * 0.3f + c.g * 0.59f + c.b * 0.11f;
+                all[i].sharedMaterial = GetShiny(c, smoothness, light < 0.22f ? 0.75f : 0.05f);
+            }
         }
 
         static readonly Dictionary<string, Material> Glows = new Dictionary<string, Material>();

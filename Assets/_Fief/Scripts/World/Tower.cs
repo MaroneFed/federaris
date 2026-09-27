@@ -589,13 +589,14 @@ namespace Fief
             p.arm = armGo.transform;
             for (int k = 0; k < 8; k++)
             {
-                GameObject link = Proto.Cube(p.arm, new Vector3(0f, -0.4f - k * 0.62f, 0f), new Vector3(0.14f, 0.55f, 0.14f), iron, "Maillon");
+                // (30/09) Des maillons ronds, a plat et de chant en alternance : une vraie chaine.
+                GameObject link = Proto.Capsule(p.arm, new Vector3(0f, -0.4f - k * 0.62f, 0f), new Vector3(0.22f, 0.36f, 0.09f), iron, "Maillon");
                 link.transform.localRotation = Quaternion.Euler(0f, k % 2 == 0 ? 0f : 90f, 0f);
             }
             Proto.Sphere(p.arm, new Vector3(0f, -Length, 0f), new Vector3(1.8f, 1.8f, 1.8f), new Color(0.34f, 0.32f, 0.3f), "Boule");
             for (int k = 0; k < 6; k++)
             {
-                GameObject spike = Proto.Cone(p.arm, new Vector3(0f, -Length, 0f), 0.22f, 0.7f, iron, "Pointe", 4);
+                GameObject spike = Proto.Cone(p.arm, new Vector3(0f, -Length, 0f), 0.22f, 0.7f, iron, "Pointe", 10);
                 spike.transform.localRotation = Quaternion.Euler(k < 4 ? 90f : (k == 4 ? 0f : 180f), k * 90f, 0f);
                 spike.transform.localPosition = new Vector3(0f, -Length, 0f) + spike.transform.localRotation * Vector3.up * 0.85f;
             }
@@ -606,6 +607,7 @@ namespace Fief
             // Une trainee de braise suit la boule : on voit sa course.
             Fx.KeepTrail(p.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.2f, 0.35f);
             p.lastHead = p.Head;
+            MaterialFactory.Polish(p.transform, 0.6f);
             return p;
         }
 
@@ -700,6 +702,7 @@ namespace Fief
             GameObject runeGo = Proto.Cube(r.block, new Vector3(0.17f, Size.y * 0.5f + 0.1f, 0f), new Vector3(0.05f, 0.7f, 0.7f), Color.white, "Rune");
             r.rune = runeGo.GetComponent<Renderer>();
             Proto.EndVisualOnly();
+            MaterialFactory.Polish(r.transform, 0.6f);
             r.Place(0f);
             return r;
         }
@@ -839,6 +842,7 @@ namespace Fief
                 band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.5f, 0.2f), 2.2f);
             }
             Proto.EndVisualOnly();
+            MaterialFactory.Polish(b.ball, 0.55f);
             b.Place();
             BoulderChute.Rolling.Add(b);
             Fx.Sparks(go.transform.position, new Color(1f, 0.55f, 0.25f), 30, 6f);
