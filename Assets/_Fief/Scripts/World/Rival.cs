@@ -93,6 +93,8 @@ namespace Fief
         float airTop;
         Transform figure;
         CharacterRig rig;
+        /// <summary>Son corps anime (la fete du vainqueur s'en sert).</summary>
+        public CharacterRig Rig { get { return rig; } }
         Vector3 lastPosition;
         Light lantern;
         WingsOnBack wings;
@@ -1094,8 +1096,6 @@ namespace Fief
         void Animate(float dt)
         {
             if (figure == null) return;
-            // Le porteur de la Couronne brule d'une aura d'or : on le voit de loin.
-            AuraFlames.Keep(transform, Wings.Gold, seeker.CarriesCrown && !seeker.Hidden);
             // Sous le Voile, le corps s'eteint. La lanterne et le halo restent (sauf sous le
             // Voile) : c'est comme ca qu'on repere un joueur.
             bool near = PlayerWithin(320f) && !seeker.Hidden;
@@ -1141,38 +1141,43 @@ namespace Fief
     /// </summary>
     public static class PlayerLook
     {
-        /// <summary>Habiller un corps a sa couleur. Renvoie la lumiere de sa lanterne.</summary>
+        /// <summary>
+        /// Habiller un corps a sa couleur (30/09 : le petit chevalier) : une echarpe qui
+        /// flotte sous le casque, une petite lanterne a la hanche. Renvoie sa lumiere.
+        /// </summary>
         public static Light Dress(CharacterRig rig, Transform root, Color colour)
         {
             Proto.BeginVisualOnly();
             Transform neck = rig.HeadBone;
-            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Écharpe");
-            GameObject tail = Proto.Cube(neck, new Vector3(0.08f, -0.24f, -0.17f), new Vector3(0.1f, 0.34f, 0.03f), Palette.Shade(colour, 0.85f), "Pan");
-            tail.transform.localRotation = Quaternion.Euler(-12f, 0f, 8f);
+            Material scarf = MaterialFactory.GetShiny(colour, 0.35f, 0f);
+            GameObject ring = Proto.Cylinder(neck, new Vector3(0f, -0.17f, 0f), new Vector3(0.7f, 0.05f, 0.62f), colour, "Écharpe");
+            ring.GetComponent<Renderer>().sharedMaterial = scarf;
+            GameObject tail = Proto.Capsule(neck, new Vector3(0.14f, -0.3f, -0.3f), new Vector3(0.1f, 0.16f, 0.04f), colour, "Pan");
+            tail.GetComponent<Renderer>().sharedMaterial = scarf;
+            tail.transform.localRotation = Quaternion.Euler(-35f, 0f, 12f);
 
-            Transform staff = rig.StaffBone;
-            Vector3 lamp = new Vector3(0.16f, 1.08f, 0.04f);
+            Transform hip = rig.HipBone;
+            Vector3 lamp = new Vector3(0f, -0.14f, 0f);
             Color flameColour = Color.Lerp(colour, new Color(1f, 0.8f, 0.5f), 0.35f);
-            if (staff != null)
+            Material iron = MaterialFactory.GetShiny(new Color(0.16f, 0.16f, 0.18f), 0.6f, 0.7f);
+            if (hip != null)
             {
-                Proto.Cube(staff, new Vector3(0.08f, 1.24f, 0.03f), new Vector3(0.18f, 0.03f, 0.03f), new Color(0.3f, 0.23f, 0.16f), "Potence");
-                Proto.Cube(staff, new Vector3(0.02f, 0.72f, 0f), new Vector3(0.08f, 0.14f, 0.08f), colour, "Ruban");
-                Proto.Cube(staff, lamp + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-                Proto.Cube(staff, lamp - new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-                GameObject flame = Proto.Cube(staff, lamp, new Vector3(0.09f, 0.13f, 0.09f), Color.white, "Flamme");
+                Proto.Cylinder(hip, lamp + new Vector3(0f, 0.1f, 0f), new Vector3(0.13f, 0.02f, 0.13f), Color.black, "Lanterne").GetComponent<Renderer>().sharedMaterial = iron;
+                Proto.Cylinder(hip, lamp - new Vector3(0f, 0.09f, 0f), new Vector3(0.13f, 0.02f, 0.13f), Color.black, "Lanterne").GetComponent<Renderer>().sharedMaterial = iron;
+                GameObject flame = Proto.Sphere(hip, lamp, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Flamme");
                 flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(flameColour, 2.6f);
                 flame.AddComponent<Flame>();
             }
             Proto.EndVisualOnly();
 
             GameObject lightGo = new GameObject("Lanterne");
-            lightGo.transform.SetParent(staff != null ? staff : rig.transform, false);
+            lightGo.transform.SetParent(hip != null ? hip : rig.transform, false);
             lightGo.transform.localPosition = lamp;
             Light lantern = lightGo.AddComponent<Light>();
             lantern.type = LightType.Point;
             lantern.color = flameColour;
-            lantern.intensity = 1.3f;
-            lantern.range = 10f;
+            lantern.intensity = 1.1f;
+            lantern.range = 8f;
             lantern.shadows = LightShadows.None;
             lightGo.AddComponent<LampFlicker>();
 

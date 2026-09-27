@@ -233,6 +233,11 @@ namespace Fief
 
         // ================================================================== vie
 
+        Transform showOff;
+
+        /// <summary>La manche est gagnee : la Couronne vole au-dessus de la tete du vainqueur.</summary>
+        public void ShowOff(Transform winner) { showOff = winner; }
+
         void Update()
         {
             if (visual == null) return;
@@ -244,7 +249,7 @@ namespace Fief
             }
             // Quand c'est TOI qui la portes, on ne la montre pas au-dessus de ta tete ni
             // sa colonne (la camera serait dedans) : l'ecran te le dit, et tu brilles.
-            bool mine = state == State.Carried && Holder != null && Holder.IsPlayer;
+            bool mine = showOff == null && state == State.Carried && Holder != null && Holder.IsPlayer;
             if (mine != hiddenForMe)
             {
                 hiddenForMe = mine;
@@ -259,6 +264,18 @@ namespace Fief
             if (state == State.Dropped) { Attract(); PickUpByTouch(); }
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
+            // La fete du vainqueur : elle vient flotter au-dessus de sa tete, bien visible.
+            if (showOff != null)
+            {
+                if (hiddenForMe)
+                {
+                    hiddenForMe = false;
+                    Renderer[] all = visual.GetComponentsInChildren<Renderer>(true);
+                    for (int i = 0; i < all.Length; i++) all[i].enabled = true;
+                }
+                Vector3 above = showOff.position + Vector3.up * (2.9f + Mathf.Sin(Time.time * 3f) * 0.12f);
+                visual.position = Vector3.Lerp(visual.position, above, 1f - Mathf.Exp(-5f * Time.deltaTime));
+            }
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
             if (glow != null) glow.intensity = 1.1f * (0.85f + 0.15f * Mathf.Sin(Time.time * 4f));
             if (runeRing != null) runeRing.Rotate(0f, 12f * Time.deltaTime, 0f, Space.Self);
@@ -316,9 +333,7 @@ namespace Fief
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
             if (fromPedestal) Sfx.Alarm();
-            // Prise au sommet : un moment d'aura (sinon, ramassee par terre : le titre simple).
-            if (fromPedestal) Aura.Moment(s, "LA COURONNE EST À TOI", Gold, 1f);
-            else if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "À un Monument : une colonne bleue !", "", Gold);
+            if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "À un Monument : une colonne bleue !", "", Gold);
             Feed.CrownTaken(s, fromPedestal);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;

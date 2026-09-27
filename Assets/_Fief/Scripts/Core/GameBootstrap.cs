@@ -177,11 +177,10 @@ namespace Fief
             controller.stepOffset = 0.42f;
             controller.skinWidth = 0.03f;
 
-            // Le personnage : squelette articule, anime par le code (voir CharacterRig.cs).
-            // En premiere personne on ne le voit pas -- seulement son ombre. Sa laine
-            // prend la couleur de sa place (l'or, pour toi).
-            Color wool = Color.Lerp(new Color(0.42f, 0.41f, 0.37f), mine.Colour, 0.25f);
-            CharacterRig rig = CharacterRig.Build(go.transform, wool, Palette.Shade(wool, 0.62f));
+            // Le personnage : le petit chevalier, anime par le code (voir CharacterRig.cs).
+            // En premiere personne on ne le voit pas -- seulement son ombre. On le voit
+            // quand il gagne : la camera tourne autour de lui. Il a la couleur de sa place.
+            CharacterRig rig = CharacterRig.Build(go.transform, mine.Colour, Palette.Shade(mine.Colour, 0.62f));
             Game.Rig = rig;
 
             // La camera. AudioListener dessus : c'est l'oreille du jeu.

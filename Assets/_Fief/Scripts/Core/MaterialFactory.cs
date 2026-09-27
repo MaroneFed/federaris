@@ -85,6 +85,31 @@ namespace Fief
             return mat;
         }
 
+        static readonly Dictionary<string, Material> Shinies = new Dictionary<string, Material>();
+
+        /// <summary>
+        /// UN MATERIAU LISSE (30/09 -- "lisse, lisse") : les personnages, la Couronne, le
+        /// metal. "smoothness" (0-1) : 0 mat, 1 miroir ; "metallic" (0-1) : le metal
+        /// reflete le ciel au lieu de sa couleur. Le decor, lui, reste mat (Get).
+        /// </summary>
+        public static Material GetShiny(Color color, float smoothness, float metallic)
+        {
+            color = Palette.QuantizeFine(color, 40);
+            string key = ColorUtility.ToHtmlStringRGB(color) + "_" + smoothness.ToString("0.00") + "_" + metallic.ToString("0.00");
+            Material mat;
+            if (Shinies.TryGetValue(key, out mat) && mat != null) return mat;
+            mat = new Material(LitShader);
+            mat.name = "FiefShiny_" + key;
+            mat.color = color;
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", smoothness);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
+            mat.enableInstancing = true;
+            Shinies[key] = mat;
+            return mat;
+        }
+
         static readonly Dictionary<string, Material> Glows = new Dictionary<string, Material>();
 
         /// <summary>
@@ -127,6 +152,7 @@ namespace Fief
         {
             Solids.Clear();
             Glows.Clear();
+            Shinies.Clear();
             cachedShader = null;
         }
     }

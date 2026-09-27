@@ -95,7 +95,6 @@ namespace Fief
             float dt = Time.unscaledDeltaTime;
             appear = Mathf.Min(1f, appear + dt * 0.55f);
             stateTime += dt;
-            PulseWinnerAura(dt);
             if (slowMotion > 0f)
             {
                 slowMotion -= dt;
@@ -217,20 +216,26 @@ namespace Fief
             return null;
         }
 
-        float auraPulse;
-
-        /// <summary>Pendant la fin de manche, l'aura du gagnant pulse : anneaux d'or, gerbes, colonnes.</summary>
-        void PulseWinnerAura(float dt)
+        /// <summary>
+        /// LA FETE DU VAINQUEUR (30/09 -- Martin : "quand tu gagnes la manche, une petite
+        /// animation avec toi") : il saute les bras en l'air et tourne sur lui-meme, la
+        /// Couronne vient flotter au-dessus de sa tete, des confettis a sa couleur.
+        /// </summary>
+        static void Celebrate(Seeker s)
         {
-            Transform w = WinnerBody();
-            if (w == null || Current != State.RoundOver) return;
-            auraPulse -= dt;
-            if (auraPulse > 0f) return;
-            auraPulse = 0.7f;
-            Color gold = new Color(1f, 0.8f, 0.35f);
-            Fx.Ring(w.position + Vector3.up * 0.2f, gold, 0.5f, 6f, 0.6f, 0.3f, Vector3.up);
-            Fx.Burst(w.position + Vector3.up * 1f, gold, 40, 6f, 0.2f, 1.2f, -0.3f, Vector3.up, 40f);
-            AuraFlames.Burn(w, gold, 2f);
+            if (s == null || s.Body == null) return;
+            CharacterRig rig = s.IsPlayer ? Game.Rig : null;
+            if (!s.IsPlayer)
+            {
+                Rival r = Rival.Of(s);
+                if (r != null) rig = r.Rig;
+            }
+            if (rig != null) rig.Celebrate(14f);
+            if (Crown.Instance != null) Crown.Instance.ShowOff(s.Body);
+            Vector3 at = s.Body.position + Vector3.up * 1.6f;
+            Color[] confetti = { s.Colour, new Color(1f, 0.82f, 0.36f), Color.white, Color.Lerp(s.Colour, Color.white, 0.5f) };
+            for (int i = 0; i < confetti.Length; i++)
+                Fx.Burst(at, confetti[i], 30, 7f, 0.12f, 2.2f, 0.6f, Vector3.up, 70f);
         }
 
         /// <summary>
@@ -487,19 +492,14 @@ namespace Fief
             if (Game.Season != null) { roundTime = Game.Season.Elapsed; Game.Season.Stop(); }
             byTime = endedByTime;
             endedByTime = false;
-            // LE RALENTI : une seconde et demie ou le monde retient son souffle.
-            Time.timeScale = winner >= 0 ? 0.25f : 1f;
-            slowMotion = winner >= 0 ? 1.6f : 0f;
+            // (30/09 : plus de ralenti -- la fete du vainqueur se joue a vitesse normale.)
+            Time.timeScale = 1f;
+            slowMotion = 0f;
             if (Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
             roundWinner = winner;
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
-            // Le vainqueur flambe d'aura pendant toute la fin de manche.
             for (int i = 0; i < Game.Seekers.Count; i++)
-                if (Game.Seekers[i].Index == winner && Game.Seekers[i].Body != null)
-                {
-                    AuraFlames.Burn(Game.Seekers[i].Body, Game.Seekers[i].Colour, 12f);
-                    Fx.Column(Game.Seekers[i].Body.position, Game.Seekers[i].Colour, 40f, 0.8f, 1.2f);
-                }
+                if (Game.Seekers[i].Index == winner) Celebrate(Game.Seekers[i]);
             Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();
@@ -1047,32 +1047,33 @@ namespace Fief
 
         void DrawRoundOver()
         {
-            // Le ralenti d'abord (le monde, la Couronne sur l'autel), puis le verdict.
-            float a = Mathf.Clamp01((stateTime - 1.2f) / 0.6f);
-            float y = Screen.height * 0.3f;
+            // (30/09) Le vainqueur fete au MILIEU de l'ecran : son nom en haut, le reste en
+            // bas, rien par-dessus lui.
+            float a = Mathf.Clamp01((stateTime - 0.8f) / 0.6f);
+            float y = Screen.height * 0.07f;
             PlayerSlot w = roundWinner >= 0 && roundWinner < Match.Slots.Count ? Match.Slots[roundWinner] : null;
+            // Un voile en haut et en bas seulement, pour lire les mots.
+            UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, Screen.height * 0.3f), new Color(0f, 0f, 0f, 0.55f * a));
+            UiStyle.FadeBand(new Rect(0f, Screen.height * 0.66f, Screen.width, Screen.height * 0.34f), new Color(0f, 0f, 0f, 0.6f * a));
             if (w != null)
             {
-                // SON PSEUDO, EN GRAND, EN OR : des rayons derriere, il claque et se pose.
-                CardArt.Background(new Color(1f, 0.8f, 0.35f));
-                float punch = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01((stateTime - 1.2f) / 0.2f));
+                // SON PSEUDO, EN GRAND, EN OR : il claque et se pose.
+                float punch = Mathf.Lerp(1.4f, 1f, Mathf.Clamp01((stateTime - 0.8f) / 0.2f));
                 Color gold = new Color(1f, 0.82f, 0.38f, a);
-                Headline(y - UiStyle.S(70), 96 * punch, UiStyle.Spaced(w.Name.ToUpperInvariant()), gold);
-                Headline(y + UiStyle.S(40), 34, w.IsLocal ? "TU REMPORTES LA MANCHE" : "REMPORTE LA MANCHE", new Color(1f, 0.95f, 0.85f, a));
-                float aura = Mathf.Clamp01((stateTime - 1.6f) / 0.3f);
-                Centered(y + UiStyle.S(92), UiStyle.S(30), UiStyle.Spaced("+1000 AURA"), UiStyle.Head, new Color(1f, 0.75f, 0.3f, aura * a));
-                y += UiStyle.S(70);
+                Headline(y, 88 * punch, UiStyle.Spaced(w.Name.ToUpperInvariant()), gold);
+                Headline(y + UiStyle.S(96), 30, w.IsLocal ? "TU REMPORTES LA MANCHE" : "REMPORTE LA MANCHE", new Color(1f, 0.95f, 0.85f, a));
             }
-            else Headline(y, 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
-            y += UiStyle.S(84);
-            // Comment : on doit comprendre pourquoi la manche s'arrete.
+            else Headline(y + UiStyle.S(40), 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
+
+            // En bas : comment, le score, et la suite.
+            y = Screen.height * 0.7f;
             string how = w == null ? "Le temps s'est écoulé, et personne ne tenait la Couronne."
                        : byTime ? (w.IsLocal ? "Tu tenais la Couronne quand le temps s'est écoulé." : w.Name + " tenait la Couronne quand le temps s'est écoulé.")
-                       : (w.IsLocal ? "Tu as porté la Couronne au Monument" : w.Name + " a porté la Couronne au Monument") + " en " + Hud.Clock(roundTime) + ".";
+                       : (w.IsLocal ? "Tu as posé la Couronne sur un Monument" : w.Name + " a posé la Couronne sur un Monument") + " en " + Hud.Clock(roundTime) + ".";
             Centered(y, UiStyle.S(26), how, UiStyle.Label, new Color(0.9f, 0.86f, 0.78f, a));
-            y += UiStyle.S(50);
+            y += UiStyle.S(44);
             ScoreLine(y, a);
-            y += UiStyle.S(70);
+            y += UiStyle.S(60);
 
             if (stateTime > 1.8f)
             {

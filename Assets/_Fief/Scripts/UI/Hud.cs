@@ -668,12 +668,6 @@ namespace Fief
 
             if (me.Stunned) UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.9f, 0.85f, 0.7f, 0.12f));
             if (me.Slowed) Edges(UiStyle.S(60), new Color(0.5f, 0.8f, 1f, 0.22f));
-            if (me.CarriesCrown)
-            {
-                // L'aura du porteur : les bords brulent d'or, au rythme de la musique (130 par minute).
-                float beat = Mathf.Pow(1f - Mathf.Repeat(Time.unscaledTime * 130f / 60f, 1f), 3f);
-                Edges(UiStyle.S(40 + 40 * beat), new Color(1f, 0.78f, 0.3f, 0.08f + 0.16f * beat));
-            }
         }
 
         static void Edges(float e, Color c)

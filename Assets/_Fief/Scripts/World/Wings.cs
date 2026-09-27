@@ -398,7 +398,7 @@ namespace Fief
         {
             GameObject go = new GameObject("Ailes dans le dos");
             go.transform.SetParent(body, false);
-            go.transform.localPosition = new Vector3(0f, 1.45f, -0.25f);
+            go.transform.localPosition = new Vector3(0f, 1.32f, -0.36f);
             WingsOnBack w = go.AddComponent<WingsOnBack>();
             w.seeker = s;
             w.wings = new GameObject("Ailes").transform;
