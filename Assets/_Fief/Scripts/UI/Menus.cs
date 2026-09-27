@@ -688,15 +688,30 @@ namespace Fief
             if (hover && hoverFollows) selected = index;
             bool on = selected == index;
             GUIStyle style = primary ? Style(UiStyle.Title, 34, TextAnchor.MiddleLeft) : Style(UiStyle.Head, 22, TextAnchor.MiddleLeft);
-            float indent = on ? UiStyle.S(14) : 0f;
-            Color c = on ? new Color(1f, 0.84f, 0.5f, alpha) : new Color(0.8f, 0.76f, 0.68f, alpha * 0.8f);
-            Shadow(new Rect(r.x + indent, r.y, r.width - indent, r.height), text, style, c);
+            // (30/09 -- "un meilleur menu") L'entree choisie : une bande d'or qui s'efface
+            // vers la droite, un trait d'or a gauche, le mot qui avance et s'eclaire.
+            float indent = on ? UiStyle.S(22) : UiStyle.S(8);
             if (on)
             {
-                float w = style.CalcSize(new GUIContent(text)).x;
-                UiStyle.Fill(new Rect(r.x + indent, r.yMax - UiStyle.S(6), w, 1f), new Color(1f, 0.84f, 0.5f, alpha * 0.7f));
+                float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 3f);
+                Glide(new Rect(r.x - UiStyle.S(12), r.y + 2f, r.width + UiStyle.S(60), r.height - 4f), new Color(1f, 0.78f, 0.35f, 0.24f * alpha * pulse));
+                UiStyle.Fill(new Rect(r.x - UiStyle.S(12), r.y + 4f, UiStyle.S(4), r.height - 8f), new Color(1f, 0.84f, 0.5f, alpha));
             }
+            Color c = on ? new Color(1f, 0.9f, 0.62f, alpha) : new Color(0.86f, 0.82f, 0.74f, alpha * 0.78f);
+            Shadow(new Rect(r.x + indent, r.y, r.width - indent, r.height), text, style, c);
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
+        }
+
+        /// <summary>Une bande de couleur qui s'efface de gauche a droite (en fines tranches).</summary>
+        static void Glide(Rect r, Color c)
+        {
+            const int n = 24;
+            float w = r.width / n;
+            for (int i = 0; i < n; i++)
+            {
+                float k = 1f - i / (float)n;
+                UiStyle.Fill(new Rect(r.x + i * w, r.y, w + 1f, r.height), new Color(c.r, c.g, c.b, c.a * k * k));
+            }
         }
 
         /// <summary>Un texte avec son ombre, pour qu'il se lise sur la foret.</summary>
@@ -768,12 +783,23 @@ namespace Fief
             float late = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((appear - 0.45f) / 0.55f));
             float x = Left;
             float w = Mathf.Min(UiStyle.S(640), Screen.width - x * 2f);
-            float y = Screen.height * 0.5f - UiStyle.S(200) + (1f - ease) * UiStyle.S(18);
+            float y = Screen.height * 0.5f - UiStyle.S(230) + (1f - ease) * UiStyle.S(18);
 
-            Shadow(new Rect(x, y, w, UiStyle.S(130)), UiStyle.Spaced("FIEF"), Style(UiStyle.Big, 112, TextAnchor.MiddleLeft), new Color(0.93f, 0.78f, 0.45f, ease));
-            y += UiStyle.S(122);
-            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)), UiStyle.Spaced("LA COURONNE"), Style(UiStyle.Head, 20, TextAnchor.MiddleLeft), new Color(0.95f, 0.85f, 0.6f, ease * 0.9f));
-            y += UiStyle.S(70);
+            // (30/09 -- "un meilleur menu") Un voile sombre a gauche, sur le plan de l'ile
+            // qui tourne ; le nom en or avec un halo ; un filet ; une phrase ; puis les mots.
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f * ease));
+            GUIStyle big = Style(UiStyle.Big, 120, TextAnchor.MiddleLeft);
+            float glow = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 1.4f);
+            for (int k = 1; k <= 3; k++)
+                UiStyle.Tinted(new Rect(x - k * 2f, y - k, w, UiStyle.S(140)), UiStyle.Spaced("FIEF"), big, new Color(1f, 0.7f, 0.25f, (0.12f + 0.06f * glow) * ease));
+            Shadow(new Rect(x, y, w, UiStyle.S(140)), UiStyle.Spaced("FIEF"), big, new Color(1f, 0.84f, 0.5f, ease));
+            y += UiStyle.S(128);
+            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)), UiStyle.Spaced("LA COURONNE"), Style(UiStyle.Head, 22, TextAnchor.MiddleLeft), new Color(0.98f, 0.9f, 0.7f, ease));
+            y += UiStyle.S(36);
+            Glide(new Rect(x + UiStyle.S(4), y, UiStyle.S(420), 2f), new Color(1f, 0.8f, 0.42f, 0.9f * ease));
+            y += UiStyle.S(12);
+            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(24)), "Une Couronne. Huit joueurs. Au-dessus des nuages.", Style(UiStyle.Label, 0, TextAnchor.MiddleLeft), new Color(0.9f, 0.86f, 0.78f, late * 0.9f));
+            y += UiStyle.S(60);
 
             for (int i = 0; i < TitleItems.Length; i++)
             {
@@ -797,6 +823,7 @@ namespace Fief
         /// </summary>
         void DrawLobby()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(230);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("NOUVEAU MATCH"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -896,6 +923,7 @@ namespace Fief
         /// <summary>LES REGLAGES : sensibilite, volume, champ de vision, plein ecran. Garde d'une partie a l'autre.</summary>
         void DrawSettings()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("RÉGLAGES"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -923,6 +951,7 @@ namespace Fief
         /// </summary>
         void DrawOnline()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(140);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("EN LIGNE"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -1014,6 +1043,7 @@ namespace Fief
 
         void DrawPause()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("PAUSE"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -1361,6 +1391,7 @@ namespace Fief
 
         void DrawControls()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             int count = Controls.GetLength(0);
             float y = Screen.height * 0.5f - UiStyle.S(40 + count * 15);

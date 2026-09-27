@@ -708,14 +708,13 @@ namespace Fief
         /// Il s'affiche tout seul au depart de la premiere manche (pendant le 3, 2, 1 et
         /// quelques secondes apres), et a tout moment avec F1 ou H.
         /// </summary>
-        /// <summary>0 : cache ; 1 : bien visible. Tout seul pendant le 3, 2, 1 et 9 s apres, a la premiere manche.</summary>
+        /// <summary>0 : cache ; 1 : visible (F1 ou H).</summary>
         float KeysAlpha()
         {
             Season season = Game.Season;
             if (season == null || Game.Me == null) return 0f;
-            if (keysOpen) return 1f;
-            bool counting = menus != null && menus.CountingDown;
-            return Match.Played == 0 ? (counting ? 1f : Mathf.Clamp01((9f - season.Elapsed) / 2f)) : 0f;
+            // (30/09 -- "je veux pas le truc a l'avant") : plus jamais tout seul, seulement sur F1 ou H.
+            return keysOpen ? 1f : 0f;
         }
 
         void DrawKeys()
