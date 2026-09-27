@@ -40,6 +40,99 @@ namespace Fief
             if (!EnsureMaterials()) return;
             if (player != null) BuildMotes(player);
             BuildCloudSea(worldRoot);
+            BuildWaterfalls(worldRoot);
+            BuildFloatingRocks(worldRoot);
+        }
+
+        /// <summary>
+        /// LES CASCADES (30/09 -- "des dingueries, que les streamers se disent : la c'est une
+        /// map") : quatre rivieres qui courent sur l'herbe et tombent du bord de l'ile
+        /// dans la mer de nuages, en longs voiles d'eau.
+        /// </summary>
+        static void BuildWaterfalls(Transform worldRoot)
+        {
+            GameObject holder = new GameObject("CASCADES");
+            holder.transform.SetParent(worldRoot, false);
+            Color water = new Color(0.45f, 0.72f, 0.95f);
+            Material river = MaterialFactory.GetShiny(water, 0.92f, 0.1f);
+            // Entre la tour d'angle et l'arbaleste de l'ile (les sanctuaires sont de l'autre cote).
+            float[] angles = { 52f, 142f, 232f, 322f };
+            for (int i = 0; i < angles.Length; i++)
+            {
+                float a = angles[i] * Mathf.Deg2Rad;
+                Vector3 dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                float edge = Ground.EdgeAt(a);
+                Vector3 lip = dir * (edge - 0.5f);
+                float y = Ground.Height(lip.x - dir.x * 3f, lip.z - dir.z * 3f);
+                // La riviere : une bande d'eau sur l'herbe, du bassin jusqu'au bord.
+                Proto.BeginVisualOnly();
+                Vector3 mid = dir * (edge - 8f);
+                GameObject bed = Proto.Cube(holder.transform, new Vector3(mid.x, y + 0.06f, mid.z), new Vector3(4f, 0.06f, 16f), water, "Rivière");
+                bed.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+                bed.GetComponent<Renderer>().sharedMaterial = river;
+                Vector3 pool = dir * (edge - 16f);
+                Proto.Cylinder(holder.transform, new Vector3(pool.x, y + 0.07f, pool.z), new Vector3(7f, 0.03f, 7f), water, "Source").GetComponent<Renderer>().sharedMaterial = river;
+                Proto.EndVisualOnly();
+                // Le voile d'eau qui tombe : des filets etires, bleu-blanc, qui s'effacent dans les nuages.
+                ParticleSystem ps = NewSystem("Cascade", holder.transform, new Vector3(lip.x, y + 0.1f, lip.z), blended);
+                ps.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+                ParticleSystem.MainModule main = ps.main;
+                main.duration = 5f;
+                main.loop = true;
+                main.prewarm = true;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(3.5f, 5f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3f);
+                main.startSize = new ParticleSystem.MinMaxCurve(1.2f, 2.4f);
+                main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.85f, 0.94f, 1f, 0.75f), new Color(1f, 1f, 1f, 0.9f));
+                main.gravityModifier = 0.9f;
+                main.maxParticles = 600;
+                ParticleSystem.EmissionModule emission = ps.emission;
+                emission.rateOverTime = 110f;
+                ParticleSystem.ShapeModule shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(3.6f, 0.2f, 0.4f);
+                ParticleSystemRenderer r = ps.GetComponent<ParticleSystemRenderer>();
+                r.renderMode = ParticleSystemRenderMode.Stretch;
+                r.velocityScale = 0.12f;
+                r.lengthScale = 2f;
+                FadeInOut(ps, 0.9f);
+                ps.Play();
+            }
+        }
+
+        /// <summary>
+        /// DES ROCHERS QUI FLOTTENT autour de l'ile, coiffes d'herbe, qui montent et
+        /// descendent tres lentement. Rien ne s'y pose : c'est le decor qui dit "on vole".
+        /// </summary>
+        static void BuildFloatingRocks(Transform worldRoot)
+        {
+            GameObject holder = new GameObject("ROCHERS FLOTTANTS");
+            holder.transform.SetParent(worldRoot, false);
+            System.Random rng = new System.Random(4242);
+            Material rock = MaterialFactory.GetShiny(new Color(0.62f, 0.5f, 0.42f), 0.15f, 0f);
+            Material grass = MaterialFactory.GetShiny(new Color(0.42f, 0.68f, 0.3f), 0.2f, 0f);
+            Proto.BeginVisualOnly();
+            for (int i = 0; i < 22; i++)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float r = 108f + (float)rng.NextDouble() * 60f;
+                float y = -26f + (float)rng.NextDouble() * 40f;
+                float size = 2f + (float)rng.NextDouble() * 5f;
+                GameObject go = new GameObject("Rocher");
+                go.transform.SetParent(holder.transform, false);
+                go.transform.localPosition = new Vector3(Mathf.Cos(a) * r, y, Mathf.Sin(a) * r);
+                go.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+                Proto.Sphere(go.transform, new Vector3(0f, -size * 0.35f, 0f), new Vector3(size * 1.4f, size * 1.2f, size * 1.2f), Color.white, "Pierre").GetComponent<Renderer>().sharedMaterial = rock;
+                GameObject tip = Proto.Cone(go.transform, new Vector3(0f, -size * 0.3f, 0f), size * 0.55f, size * 1.5f, Color.white, "Pointe", 7);
+                tip.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
+                tip.GetComponent<Renderer>().sharedMaterial = rock;
+                Proto.Sphere(go.transform, new Vector3(0f, size * 0.2f, 0f), new Vector3(size * 1.45f, size * 0.35f, size * 1.25f), Color.white, "Herbe").GetComponent<Renderer>().sharedMaterial = grass;
+                Bobber bob = go.AddComponent<Bobber>();
+                bob.amplitude = 0.4f + size * 0.12f;
+                bob.speed = 0.25f + (float)rng.NextDouble() * 0.25f;
+                bob.spin = (float)(rng.NextDouble() - 0.5) * 6f;
+            }
+            Proto.EndVisualOnly();
         }
 
         /// <summary>
