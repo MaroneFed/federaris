@@ -374,12 +374,26 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
   d'or) ; une **bulle** quand ils sont protégés.
 - **Les effets** : chaque capacité a sa signature (onde qui gonfle, anneaux, gerbes,
   éclairs, traînées), les coups ont leur impact, le respawn sa colonne de lumière.
-- **L'écran, sans une seule icône** : le chrono, une phrase qui dit où est la Couronne
-  (« … en plein vol », « … sur la rampe »), le score, **tes capacités en cartes** en bas
-  au centre (la touche, le nom, un liseré à sa couleur ; en recharge un rideau sombre
-  qui remonte et les secondes ; prête, elle luit ; tenue pour viser, elle se soulève),
-  ton état (AILES D'OR, EN VOL — 90 km/h, COURANT D'AIR, PROTÉGÉ), le fil des
-  événements, des astuces au bon moment.
+- **L'écran, sans texte, en icônes** (30/09 au soir : « je déteste le texte, des icônes,
+  comme Fall Guys ») :
+  - en haut : le **chrono** dans une pastille bleue (rouge et qui bat les dix dernières
+    secondes), une **pastille par manche** (à la couleur de son gagnant, la courante
+    bat), la **Couronne** dans une pastille à la couleur de qui la tient (au sommet : la
+    tour ; à terre : les secondes avant son retour) ;
+  - à droite : une pastille par joueur, à sa couleur, une petite Couronne et ses manches ;
+  - à gauche, sur la tour : la **jauge** des six bandes de couleur et ta pastille ;
+  - en bas : ta **capacité** dans un gros rond à sa couleur (son icône, sa touche — une
+    souris ou une lettre —, la recharge qui descend), ta **passive** à gauche, la
+    **poussée** à droite, ton état en petites pastilles (ailes, courant, gel, bouclier…) ;
+  - au centre : le point de visée, le **piqué** (la cible d'or), l'invite **E + icône** ;
+  - le **fil des événements** : « pastille du joueur → main → Couronne → pastille » ;
+  - le **sacre** : la Couronne et une barre à la couleur de qui se fait sacrer ;
+  - plus d'astuces écrites ; F1/H : les touches en icônes.
+- **Les menus** : gros boutons ronds avec icône, jaunes quand on les vise ; « FIEF » en
+  lettres rondes (Titan One) ; l'intro de manche montre la règle en icônes.
+- **Le château de conte** (30/09 au soir) : tours rondes à toits bleu roi, pommeaux et
+  fanions d'or, bannières rouge/bleu/or, jardins ronds dans la cour ; quatre cascades
+  tombent du bord de l'île dans les nuages ; des rochers flottent autour.
 
 ## Les autres joueurs (des bots, en attendant le jeu en ligne)
 

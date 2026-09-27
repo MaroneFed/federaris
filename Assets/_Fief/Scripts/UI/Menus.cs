@@ -94,6 +94,7 @@ namespace Fief
         {
             float dt = Time.unscaledDeltaTime;
             appear = Mathf.Min(1f, appear + dt * 0.55f);
+            Icons.WarmNext();
             stateTime += dt;
             if (slowMotion > 0f)
             {

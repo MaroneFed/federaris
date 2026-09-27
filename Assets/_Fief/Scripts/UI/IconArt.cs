@@ -428,10 +428,12 @@ namespace Fief
 
         // ================================================================== les motifs
 
+        static readonly float[] CrownBody = { -0.72f, 0.32f, -0.72f, -0.42f, -0.36f, -0.02f, 0f, -0.6f, 0.36f, -0.02f, 0.72f, -0.42f, 0.72f, 0.32f };
+
         static float Crown(float x, float y)
         {
             // Trois pointes perlees au-dessus d'un bandeau serti de trois joyaux.
-            float body = PolyN(x, y, new[] { -0.72f, 0.32f, -0.72f, -0.42f, -0.36f, -0.02f, 0f, -0.6f, 0.36f, -0.02f, 0.72f, -0.42f, 0.72f, 0.32f });
+            float body = PolyN(x, y, CrownBody);
             float band = Box(x, y - 0.44f, 0.74f, 0.17f, 0.06f);
             float balls = Min(Circle(x + 0.72f, y + 0.52f, 0.13f), Min(Circle(x, y + 0.7f, 0.15f), Circle(x - 0.72f, y + 0.52f, 0.13f)));
             float gems = Min(Circle(x + 0.38f, y - 0.44f, 0.075f), Min(Circle(x, y - 0.44f, 0.09f), Circle(x - 0.38f, y - 0.44f, 0.075f)));
@@ -513,16 +515,14 @@ namespace Fief
 
         static float Star(float x, float y, float r1, float r2, int n)
         {
-            float d = 10f;
-            float[] pts = new float[n * 4];
             for (int i = 0; i < n * 2; i++)
             {
                 float a = (float)Math.PI * 0.5f + i * (float)Math.PI / n;
                 float r = i % 2 == 0 ? r1 : r2;
-                pts[i * 2] = (float)Math.Cos(a) * r;
-                pts[i * 2 + 1] = -(float)Math.Sin(a) * r;
+                star[i * 2] = (float)Math.Cos(a) * r;
+                star[i * 2 + 1] = -(float)Math.Sin(a) * r;
             }
-            return PolyN(x, y, pts);
+            return PolyN(x, y, star, n * 2);
         }
 
         // ================================================================== les briques
@@ -547,20 +547,32 @@ namespace Fief
             return (float)Math.Sqrt(ex * ex + ey * ey) - r;
         }
 
+        // Des tableaux de travail reutilises : une icone evalue ces formes 16 000 fois, on
+        // n'alloue rien a chaque pixel (le ramasse-miettes d'Unity ferait des a-coups).
+        static readonly float[] tri = new float[6];
+        static readonly float[] quad = new float[8];
+        static readonly float[] star = new float[64];
+
         static float Poly(float x, float y, float ax, float ay, float bx, float by, float cx, float cy)
         {
-            return PolyN(x, y, new[] { ax, ay, bx, by, cx, cy });
+            tri[0] = ax; tri[1] = ay; tri[2] = bx; tri[3] = by; tri[4] = cx; tri[5] = cy;
+            return PolyN(x, y, tri, 3);
         }
 
         static float Poly4(float x, float y, float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy)
         {
-            return PolyN(x, y, new[] { ax, ay, bx, by, cx, cy, dx, dy });
+            quad[0] = ax; quad[1] = ay; quad[2] = bx; quad[3] = by; quad[4] = cx; quad[5] = cy; quad[6] = dx; quad[7] = dy;
+            return PolyN(x, y, quad, 4);
         }
 
         /// <summary>Un polygone quelconque (sommets x0,y0,x1,y1...).</summary>
         static float PolyN(float x, float y, float[] v)
         {
-            int n = v.Length / 2;
+            return PolyN(x, y, v, v.Length / 2);
+        }
+
+        static float PolyN(float x, float y, float[] v, int n)
+        {
             float d = (x - v[0]) * (x - v[0]) + (y - v[1]) * (y - v[1]);
             float s = 1f;
             for (int i = 0, j = n - 1; i < n; j = i, i++)

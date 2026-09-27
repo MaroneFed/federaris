@@ -86,6 +86,20 @@ namespace Fief
             return t;
         }
 
+        static int warmed;
+
+        /// <summary>
+        /// Preparer une icone de plus (a appeler a chaque image dans les menus) : quand la
+        /// partie commence, toutes sont pretes, pas d'a-coup a la premiere Couronne.
+        /// </summary>
+        public static void WarmNext()
+        {
+            if (warmed >= IconArt.Names.Length) return;
+            string id = IconArt.Names[warmed++];
+            Glyph(id);
+            Edge(id);
+        }
+
         // ================================================================== les pastilles
 
         static void Ensure()
