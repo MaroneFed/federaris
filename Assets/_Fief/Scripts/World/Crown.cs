@@ -121,6 +121,8 @@ namespace Fief
             }
             Proto.EndVisualOnly();
 
+            MaterialFactory.Polish(socle.transform, 0.6f);
+
             BoxCollider trigger = go.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
             trigger.center = new Vector3(0f, 2.2f, 0f);
@@ -155,75 +157,107 @@ namespace Fief
         }
 
         /// <summary>
-        /// LA COURONNE ELLE-MEME (27/09, refaite) : un bandeau d'or a seize pans entre
-        /// deux filets, huit fleurons -- quatre croix et quatre pointes perlees --, une
-        /// rangee de joyaux (rubis, saphirs, emeraudes) tailles en losange, un bonnet de
-        /// velours pourpre, et au sommet un globe d'or surmonte d'une croix.
+        /// LA COURONNE ELLE-MEME (30/09, refaite une troisieme fois -- "des meilleurs designs
+        /// de couronne"). Rien que des formes rondes et de l'or POLI qui reflete le ciel :
+        /// un bandeau lisse entre deux joncs, huit joyaux ronds, huit fleurons (des lys a
+        /// trois branches et des pointes perlees), deux arceaux perles qui se croisent au-dessus
+        /// d'un bonnet de velours, et le globe a la croix.
+        ///
+        /// Concept Unity : une courbe lisse, ici, c'est une suite de gelules (Capsule) mises
+        /// bout a bout (Segment) -- leurs bouts ronds se fondent l'un dans l'autre.
         /// </summary>
         public static void Model(Transform t, float s)
         {
-            Material gold = MaterialFactory.GetGlow(Gold, 1.7f);
-            Material paleGold = MaterialFactory.GetGlow(new Color(1f, 0.9f, 0.6f), 2.2f);
-            const int n = 16;
-            const float R = 0.26f;
-            for (int i = 0; i < n; i++)
+            Material gold = MaterialFactory.GetShiny(Gold, 0.88f, 1f, 0.45f);
+            Material pearl = MaterialFactory.GetGlow(new Color(1f, 0.96f, 0.88f), 1.8f);
+            Material velvet = MaterialFactory.GetShiny(new Color(0.5f, 0.05f, 0.14f), 0.4f, 0f);
+            const float R = 0.27f;
+
+            // Le bandeau, lisse, et ses deux joncs (bas, epais ; haut, fin).
+            Paint(Proto.Cylinder(t, Vector3.up * 0.09f * s, new Vector3(R * 2f, 0.07f, R * 2f) * s, Gold, "Bandeau"), gold);
+            Ring(t, R * 1.02f, 0.02f, 0.055f, s, gold);
+            Ring(t, R * 1.01f, 0.165f, 0.035f, s, gold);
+
+            for (int i = 0; i < 8; i++)
             {
-                float a = i / (float)n * Mathf.PI * 2f;
+                float a = i / 8f * Mathf.PI * 2f;
                 Vector3 dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                Quaternion face = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f);
-                GameObject band = Proto.Cube(t, dir * R * s + Vector3.up * 0.08f * s, new Vector3(0.11f, 0.14f, 0.03f) * s, Gold, "Bandeau");
-                band.transform.localRotation = face;
-                band.GetComponent<Renderer>().sharedMaterial = gold;
-                for (int k = 0; k < 2; k++)
-                {
-                    GameObject fillet = Proto.Cube(t, dir * (R + 0.012f) * s + Vector3.up * (k == 0 ? 0.015f : 0.15f) * s, new Vector3(0.115f, 0.025f, 0.035f) * s, Gold, "Filet");
-                    fillet.transform.localRotation = face;
-                    fillet.GetComponent<Renderer>().sharedMaterial = paleGold;
-                }
+                Vector3 side = new Vector3(-dir.z, 0f, dir.x);
+                Vector3 root = dir * R + Vector3.up * 0.165f;
                 if (i % 2 == 0)
                 {
-                    // Un fleuron sur deux pans : croix et pointes perlees en alternance.
-                    Vector3 root = dir * R * s + Vector3.up * 0.16f * s;
-                    if (i % 4 == 0)
+                    // Un lys : une branche droite perlee, deux qui s'ecartent en courbe.
+                    Segment(t, root, root + Vector3.up * 0.2f - dir * 0.01f, 0.045f, s, gold);
+                    Paint(Proto.Sphere(t, (root + Vector3.up * 0.23f) * s, Vector3.one * 0.06f * s, Color.white, "Perle"), pearl);
+                    for (int k = -1; k <= 1; k += 2)
                     {
-                        GameObject stem = Proto.Cube(t, root + Vector3.up * 0.09f * s, new Vector3(0.035f, 0.18f, 0.03f) * s, Gold, "Croix");
-                        stem.transform.localRotation = face;
-                        stem.GetComponent<Renderer>().sharedMaterial = gold;
-                        GameObject bar = Proto.Cube(t, root + Vector3.up * 0.13f * s, new Vector3(0.1f, 0.035f, 0.03f) * s, Gold, "Croix");
-                        bar.transform.localRotation = face;
-                        bar.GetComponent<Renderer>().sharedMaterial = gold;
-                    }
-                    else
-                    {
-                        GameObject point = Proto.Cone(t, root, 0.045f * s, 0.2f * s, Gold, "Pointe", 4);
-                        point.GetComponent<Renderer>().sharedMaterial = gold;
-                        GameObject pearl = Proto.Sphere(t, root + Vector3.up * 0.21f * s, Vector3.one * 0.055f * s, Color.white, "Perle");
-                        pearl.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.97f, 0.9f), 2.6f);
+                        Vector3 mid = root + side * (0.05f * k) + Vector3.up * 0.08f + dir * 0.012f;
+                        Vector3 tip = root + side * (0.07f * k) + Vector3.up * 0.15f;
+                        Segment(t, root + Vector3.up * 0.02f, mid, 0.03f, s, gold);
+                        Segment(t, mid, tip, 0.026f, s, gold);
                     }
                 }
                 else
                 {
-                    // Entre deux fleurons, un joyau taille en losange.
-                    Color jewel = (i / 2) % 3 == 0 ? Ruby : (i / 2) % 3 == 1 ? Sapphire : Emerald;
-                    GameObject gem = Proto.Cube(t, dir * (R + 0.02f) * s + Vector3.up * 0.085f * s, new Vector3(0.055f, 0.055f, 0.025f) * s, jewel, "Joyau");
-                    gem.transform.localRotation = face * Quaternion.Euler(0f, 0f, 45f);
-                    gem.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(jewel, 2.6f);
+                    Segment(t, root, root + Vector3.up * 0.11f, 0.038f, s, gold);
+                    Paint(Proto.Sphere(t, (root + Vector3.up * 0.135f) * s, Vector3.one * 0.045f * s, Color.white, "Perle"), pearl);
+                }
+                // Un joyau rond sur le bandeau, entre deux fleurons.
+                float g = a + Mathf.PI / 8f;
+                Vector3 gd = new Vector3(Mathf.Cos(g), 0f, Mathf.Sin(g));
+                Color jewel = i % 3 == 0 ? Ruby : i % 3 == 1 ? Sapphire : Emerald;
+                GameObject gem = Paint(Proto.Sphere(t, (gd * (R + 0.012f) + Vector3.up * 0.09f) * s, new Vector3(0.062f, 0.07f, 0.035f) * s, jewel, "Joyau"),
+                                       MaterialFactory.GetShiny(jewel, 0.92f, 0.2f, 1.5f));
+                gem.transform.localRotation = Quaternion.LookRotation(gd, Vector3.up);
+            }
+
+            // Le bonnet de velours, et les deux arceaux perles qui se croisent au-dessus.
+            Paint(Proto.Sphere(t, Vector3.up * 0.16f * s, new Vector3(0.5f, 0.36f, 0.5f) * s, Color.white, "Velours"), velvet);
+            for (int k = 0; k < 4; k++)
+            {
+                float a = k * Mathf.PI * 0.5f;
+                Vector3 dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Vector3 last = dir * R * 0.97f + Vector3.up * 0.17f;
+                for (int step = 1; step <= 5; step++)
+                {
+                    float th = step / 5f * Mathf.PI * 0.5f;
+                    Vector3 p = dir * R * 0.97f * Mathf.Cos(th) + Vector3.up * (0.17f + 0.24f * Mathf.Sin(th));
+                    Segment(t, last, p, 0.032f, s, gold);
+                    if (step == 2 || step == 4) Paint(Proto.Sphere(t, p * s + dir * 0.02f * s, Vector3.one * 0.03f * s, Color.white, "Perle"), pearl);
+                    last = p;
                 }
             }
-            // Le bonnet de velours, les arceaux, le globe et sa croix.
-            Proto.Sphere(t, Vector3.up * 0.14f * s, new Vector3(0.46f, 0.34f, 0.46f) * s, new Color(0.45f, 0.05f, 0.16f), "Velours");
-            for (int k = 0; k < 2; k++)
+            // Le globe, et sa croix.
+            Paint(Proto.Sphere(t, Vector3.up * 0.45f * s, Vector3.one * 0.1f * s, Gold, "Globe"), gold);
+            Segment(t, Vector3.up * 0.49f, Vector3.up * 0.61f, 0.028f, s, gold);
+            Segment(t, new Vector3(-0.045f, 0.565f, 0f), new Vector3(0.045f, 0.565f, 0f), 0.028f, s, gold);
+        }
+
+        static GameObject Paint(GameObject go, Material m)
+        {
+            go.GetComponent<Renderer>().sharedMaterial = m;
+            return go;
+        }
+
+        /// <summary>Une gelule de "a" a "b" (en unites de Couronne, mises a l'echelle "s").</summary>
+        static void Segment(Transform t, Vector3 a, Vector3 b, float thick, float s, Material m)
+        {
+            Vector3 d = b - a;
+            float len = d.magnitude;
+            if (len < 0.0001f) return;
+            GameObject g = Paint(Proto.Capsule(t, (a + b) * 0.5f * s, new Vector3(thick, (len + thick) * 0.5f, thick) * s, Color.white, "Or"), m);
+            g.transform.localRotation = Quaternion.FromToRotation(Vector3.up, d / len);
+        }
+
+        /// <summary>Un jonc : un anneau de gelules.</summary>
+        static void Ring(Transform t, float radius, float y, float thick, float s, Material m)
+        {
+            const int n = 20;
+            for (int i = 0; i < n; i++)
             {
-                GameObject arch = Proto.Cube(t, Vector3.up * 0.3f * s, new Vector3(0.5f, 0.03f, 0.035f) * s, Gold, "Arceau");
-                arch.transform.localRotation = Quaternion.Euler(0f, k * 90f, 0f);
-                arch.GetComponent<Renderer>().sharedMaterial = gold;
+                float a0 = i / (float)n * Mathf.PI * 2f, a1 = (i + 1) / (float)n * Mathf.PI * 2f;
+                Segment(t, new Vector3(Mathf.Cos(a0) * radius, y, Mathf.Sin(a0) * radius), new Vector3(Mathf.Cos(a1) * radius, y, Mathf.Sin(a1) * radius), thick, s, m);
             }
-            GameObject orb = Proto.Sphere(t, Vector3.up * 0.36f * s, Vector3.one * 0.09f * s, Gold, "Globe");
-            orb.GetComponent<Renderer>().sharedMaterial = paleGold;
-            GameObject up = Proto.Cube(t, Vector3.up * 0.46f * s, new Vector3(0.03f, 0.12f, 0.03f) * s, Gold, "Croix du globe");
-            up.GetComponent<Renderer>().sharedMaterial = gold;
-            GameObject cross = Proto.Cube(t, Vector3.up * 0.47f * s, new Vector3(0.08f, 0.03f, 0.03f) * s, Gold, "Croix du globe");
-            cross.GetComponent<Renderer>().sharedMaterial = gold;
         }
 
         void OnDestroy()
@@ -232,6 +266,11 @@ namespace Fief
         }
 
         // ================================================================== vie
+
+        Transform showOff;
+
+        /// <summary>La manche est gagnee : la Couronne vole au-dessus de la tete du vainqueur.</summary>
+        public void ShowOff(Transform winner) { showOff = winner; }
 
         void Update()
         {
@@ -244,7 +283,7 @@ namespace Fief
             }
             // Quand c'est TOI qui la portes, on ne la montre pas au-dessus de ta tete ni
             // sa colonne (la camera serait dedans) : l'ecran te le dit, et tu brilles.
-            bool mine = state == State.Carried && Holder != null && Holder.IsPlayer;
+            bool mine = showOff == null && state == State.Carried && Holder != null && Holder.IsPlayer;
             if (mine != hiddenForMe)
             {
                 hiddenForMe = mine;
@@ -259,6 +298,18 @@ namespace Fief
             if (state == State.Dropped) { Attract(); PickUpByTouch(); }
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
+            // La fete du vainqueur : elle vient flotter au-dessus de sa tete, bien visible.
+            if (showOff != null)
+            {
+                if (hiddenForMe)
+                {
+                    hiddenForMe = false;
+                    Renderer[] all = visual.GetComponentsInChildren<Renderer>(true);
+                    for (int i = 0; i < all.Length; i++) all[i].enabled = true;
+                }
+                Vector3 above = showOff.position + Vector3.up * (2.9f + Mathf.Sin(Time.time * 3f) * 0.12f);
+                visual.position = Vector3.Lerp(visual.position, above, 1f - Mathf.Exp(-5f * Time.deltaTime));
+            }
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
             if (glow != null) glow.intensity = 1.1f * (0.85f + 0.15f * Mathf.Sin(Time.time * 4f));
             if (runeRing != null) runeRing.Rotate(0f, 12f * Time.deltaTime, 0f, Space.Self);
@@ -316,9 +367,7 @@ namespace Fief
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
             if (fromPedestal) Sfx.Alarm();
-            // Prise au sommet : un moment d'aura (sinon, ramassee par terre : le titre simple).
-            if (fromPedestal) Aura.Moment(s, "LA COURONNE EST À TOI", Gold, 1f);
-            else if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "À un Monument : une colonne bleue !", "", Gold);
+            if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowDiscovery("", "LA COURONNE", "Elle est lourde : courant d'air ou arbaleste, puis 3 s dans le cercle d'un Monument.", "", Gold);
             Feed.CrownTaken(s, fromPedestal);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;

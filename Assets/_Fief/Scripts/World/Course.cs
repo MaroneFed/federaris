@@ -243,6 +243,7 @@ namespace Fief
             if (!wiper) Fx.KeepTrail(w.bar, new Vector3(0f, 0f, -reach), new Color(1f, 0.45f, 0.2f), 0.5f, 0.25f);
             w.lastTip = w.Tip;
             All.Add(w);
+            MaterialFactory.Polish(w.transform, 0.6f);
             return w;
         }
 
@@ -361,6 +362,7 @@ namespace Fief
                 }
             Proto.EndVisualOnly();
             h.spikes.localPosition = new Vector3(0f, -0.95f, 0f);
+            MaterialFactory.Polish(h.transform, 0.6f);
             return h;
         }
 
@@ -442,6 +444,7 @@ namespace Fief
             Proto.EndVisualOnly();
             Fx.KeepTrail(m.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.6f, 0.3f);
             m.lastHead = m.Head;
+            MaterialFactory.Polish(m.transform, 0.6f);
             return m;
         }
 

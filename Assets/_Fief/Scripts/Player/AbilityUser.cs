@@ -10,7 +10,7 @@ namespace Fief
     ///   clic droit    POUSSER : le premier devant soi part en arriere et en l'air ;
     ///                 s'il porte la Couronne, il la lache ;
     ///   clic gauche   ta premiere capacite active (28/09 : les touches inversables
-    ///                 dans les reglages, "Pousser sur") ;
+    ///                 dans les reglages, "Touche capacité" et "Touche pousser") ;
     ///                 (28/09 : celles qu'on VISE -- ruee, grappin, crochet, clignement,
     ///                 mur, givre, echange, souffle -- se lancent au RELACHEMENT : tant
     ///                 qu'on tient la touche, un apercu montre ou elles iront.)

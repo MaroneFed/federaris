@@ -28,6 +28,13 @@
 > Puis, toujours le 29/09, avec des captures : « quand tu vois ça c'est pas quali, au-dessus
 > du château tout est buggé » (le sommet clignotait : corrigé, voir « La tour ») et « les
 > obstacles doivent être mieux et nous faire retomber en bas de la tour ».
+> Puis le 30/09, après un test avec son frère : « il n'aime pas les graphismes », « les
+> trous étaient trop compliqués », « le saut bug », « que les obstacles te fassent
+> VRAIMENT partir de la tour », « enlève tout ce qui est aura », « une petite animation
+> avec toi quand tu gagnes », « avec les élytres c'est trop facile de gagner : rajoute
+> de la complexité », « les bots ne peuvent pas prendre la couronne », « tout doit être
+> exceptionnel, lisse », « un meilleur menu », « pas le panneau des touches au départ »,
+> « un paramètre pour changer la touche », « des meilleurs designs de couronne ».
 >
 > C'est **la référence** : quand le code et ce document ne disent pas la même chose,
 > c'est un des deux qu'il faut corriger. L'histoire des choix : `docs/100-RAISONS.md`,
@@ -65,20 +72,25 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
    42 m de haut, **en face d'une des quatre portes** (deux plateformes par porte, de
    part et d'autre de son axe) : tout le monde est **à la même distance de sa porte et
    de la tour**. Un cercle et un fanion à sa couleur, et **SON ARBALESTE**. Un panneau
-   montre **les touches**. **3, 2, 1, PARTEZ !** — trois secondes de protection.
+   **3, 2, 1, PARTEZ !** (les touches : F1 ou H) — trois secondes de protection.
 2. **L'approche.** **E** pour monter sur son arbaleste, **clic gauche** : elle te pose
    **en cloche sur le parvis devant ta porte** (jamais dans les pièges). **On n'entre
    pas dans la citadelle par les airs** : le **sceau** renvoie dehors qui essaie. On
    passe le **couloir piégé**, le **pont-levis**, la porte.
 3. **La montée.** En face de chaque porte, **sa rampe** (quatre rampes, le même chemin
    pour tous), **à pied**, en se battant. Au sommet, la Couronne sur son socle (**E
-   maintenu 1 s**) ; qui pose le pied au sommet reçoit des **ailes d'or**.
-4. **Le vol.** On saute dans le vide : **les ailes s'ouvrent toutes seules**. On va où
-   l'on regarde (voir « Le vol plané »). Destination : **un des trois Monuments**, sur
-   trois îlots flottants (leurs colonnes bleues), d'autres à chaque manche — **celui
-   qu'on veut** : le plus proche, ou celui que personne ne garde. On peut aussi s'y
-   faire **tirer par une arbaleste**.
-5. **Le Monument.** Entrer **dans son cercle lumineux** avec la Couronne : manche gagnée.
+   maintenu 1 s**) ; qui pose le pied au sommet reçoit des **ailes d'or** — mais le
+   porteur, lui, n'en a jamais.
+4. **Le vol — LA COURONNE EST LOURDE** (30/09 : « avec les élytres, c'est trop facile
+   de gagner »). On saute dans le vide : les ailes s'ouvrent seules, mais le porteur
+   plane à 11 m/s et **tombe à 8 m/s** : du sommet, **il n'atteint pas les Monuments**.
+   Il lui faut un **courant d'air** (y tourner pour remonter) ou une **arbaleste de
+   l'île**. Pendant ce temps, les autres, plus rapides (ailes d'or), lui fondent dessus.
+   Destination : **un des trois Monuments** (colonnes bleues), celui qu'on veut.
+5. **Le sacre.** Rester **3 secondes** dans le cercle du Monument avec la Couronne : un
+   disque d'or s'étend, une cloche sonne chaque seconde, une barre s'affiche à l'écran de
+   TOUT LE MONDE (« X SE FAIT SACRER — VA LE POUSSER ! »). Sorti du cercle, le sacre
+   retombe vite. Aucune touche à tenir.
 6. **Le temps.** Au gong, celui qui tient la Couronne gagne ; sinon, personne.
 
 ### La Couronne
@@ -112,9 +124,10 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 - **Les ailes d'or** (au sommet, ou au départ d'une arbaleste, jusqu'à l'atterrissage ;
   toujours avec le passif Planeur) : 25 % plus vite, on descend moins.
 - **Les courants d'air** : une colonne de vent entre l'île et chaque îlot (filets qui
-  montent, anneaux pâles). En planant dedans, **on remonte** — jusqu'à 72 m, jamais
-  jusqu'au sommet de la tour.
-- Le **porteur** vole un peu moins vite (la Couronne pèse) : on peut le rattraper.
+  montent, anneaux pâles). En planant dedans, **on remonte** (poussée 15 m/s) — jusqu'à
+  80 m, jamais jusqu'au sommet de la tour. Le porteur doit **tourner dedans**.
+- Le **porteur** : 11 m/s, chute de 8 m/s, jamais d'ailes d'or, la vitesse d'un piqué
+  se perd vite. Il remonte dans un courant, pas ailleurs.
 - **Touché en vol** (étourdi) : les ailes se ferment, on tombe, elles se rouvrent.
 - Ce qu'on sent : la caméra **penche** dans les virages, le champ de vision s'ouvre
   avec la vitesse, le vent souffle, des filets d'air filent autour ; l'écran dit
@@ -140,8 +153,9 @@ plateforme de départ**, dans une **colonne de lumière** à sa couleur, protég
 | **F1 ou H** | le panneau des touches, à tout moment |
 | **Tab** | le score et les capacités de chacun |
 
-Plus de R, de C ni de V (« pas d'autres conneries »). Le réglage **« Pousser sur »**
-inverse les deux clics. Les capacités qu'on **vise** : **maintiens** le clic, un
+Plus de R, de C ni de V (« pas d'autres conneries »). **Réglages ▸ Touche capacité** et
+**Touche pousser** (30/09) : au choix parmi les trois clics, F, R, X et V (jamais la
+même pour les deux). Les capacités qu'on **vise** : **maintiens** le clic, un
 **aperçu** montre où elle ira ; **relâche** pour lancer.
 
 Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projette et
@@ -259,15 +273,16 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   violet : bannières, liseré du bord, filets d'or) : on lit sa hauteur d'un regard.
 - **Les obstacles, TIRÉS AU HASARD à chaque manche**, **le même nombre sur chaque
   rampe**, et **de plus en plus nombreux et rapides à chaque manche** (manche 1 : 2
-  trous, 2 pendules, 2 béliers, 2 balayeurs, 1 herse par rampe ; jusqu'à 4, 4, 3, 4, 3).
+  pendules, 2 béliers, 2 balayeurs, 1 herse par rampe ; jusqu'à 4, 3, 4, 3). **Plus de
+  trous** (30/09 : « trop compliqués »).
   Tous annoncés avant de frapper (des **bandes ambre peintes sur la rampe** là où
   frappent pendules et béliers), tous laissent une **traînée de braise**, et
-  **UN OBSTACLE TE RENVOIE EN BAS DE LA TOUR** (29/09) : touché sur la rampe par un
-  obstacle, une gargouille ou en tombant dans un trou, tu es **jeté hors de la rampe,
-  ailes fermées jusqu'au sol** (`Seeker.Tumble`) — tu retombes dans la cour et tu
-  remontes. Les coups des joueurs, eux, ne font que projeter :
-  - des **trous** à sauter en courant (une barre rouge au bord) : dedans, on ne
-    retombe plus sur la rampe d'en dessous, on redescend **tout en bas** ;
+  **UN OBSTACLE T'ÉJECTE DE LA TOUR** (29-30/09 : « qu'ils te fassent VRAIMENT
+  partir ») : touché sur la rampe par un obstacle ou une gargouille, tu pars **en
+  cloche** — 22 m/s vers l'extérieur, 11 vers le haut, l'élan ne retombe presque pas —
+  en faisant des **saltos**, ailes fermées jusqu'au sol (`Seeker.Tumble`) : tu
+  t'écrases dans la cour et tu remontes. Jamais au-delà de la muraille. Les coups des
+  joueurs, eux, ne font que projeter :
   - des **pendules** à pointes qui balaient la rampe du mur vers le vide ;
   - des **béliers** qui jaillissent du mur (leur rune **rougit** avant) ;
   - des **balayeurs** : une barre cloutée à hauteur de genou, contre le fût, qui balaie
@@ -276,11 +291,18 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   - des **boulets** qui dévalent une rampe depuis le sommet, d'un côté ou de l'autre ;
   - les **gargouilles** (ci-dessous) ;
   - **plus de courants** sur la rampe (« ça c'est n'importe quoi »).
+- **Le saut** (30/09 : « le saut bug ») : on colle à la pente en la descendant, un appui
+  un poil trop tôt est gardé 0,15 s, un appui juste après le bord saute quand même
+  (« coyote time »), Espace n'ouvre les ailes que s'il y a du vide dessous.
 - **Au sommet** : la Couronne sur un socle à trois marches cerclées d'or, un cercle de
   runes qui tourne, quatre cristaux qui gravitent ; quatre braseros. (Les huit
   planeurs sur chevalets sont partis le 29/09 : les ailes s'ouvrent seules.)
   **Pas deux surfaces au même niveau** : le dernier filet d'or de la tour tombait pile
   sur le sol du sommet et clignotait en traits blancs (le *z-fighting*).
+  **Les marches du socle** avaient un collider en **boule** de 2,6 m (le cylindre
+  d'Unity reçoit une capsule, et une capsule plus large que haute devient une sphère) :
+  les bots ne pouvaient pas approcher de la Couronne. `Proto.Cylinder` pose maintenant
+  un collider à la vraie forme (30/09).
 
 ### Les gargouilles (pas de PNJ humains)
 
@@ -302,28 +324,35 @@ tourne** ; elles ne quittent jamais leur perchoir.
 Elles ne regardent que la citadelle, la tour — et le porteur de la Couronne. Elles
 ignorent qui est protégé. La Nuée les aveugle, le Voile te cache, l'Ombre les ralentit.
 
-## L'AURA
+## La victoire (plus d'aura)
 
-« Un jeu plein d'aura » : quand tu fais quelque chose de fort — **prendre la Couronne
-au sommet**, la **voler**, un **piqué d'aigle**, **éjecter** quelqu'un dans les nuages
-(moins de 6 s après l'avoir frappé), un **doublé** ou un **triplé** à l'Onde ou au
-Souffle — c'est un **MOMENT D'AURA** : le temps **ralentit** trois quarts de seconde, un
-**gros titre** claque (« COURONNE VOLÉE », « +1000 AURA »), un **coup de phonk**, des
-**flammes d'aura** montent autour de toi, les bords de l'écran brûlent à ta couleur.
-Les bots ont leurs flammes aussi.
+Le 30/09, Martin : « enlève tout ce qui est aura, je déteste ça ». Plus de moments
+d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du porteur.
 
-- Le **porteur** de la Couronne brûle d'une **aura d'or** qu'on voit de loin ; si c'est
-  toi, les bords de l'écran battent au rythme de la musique, qui passe en **PHONK**.
-- **LA VICTOIRE** (29/09 : « on te voit TOI, avec ton pseudo ») : la caméra quitte tes
-  yeux et **tourne autour du gagnant**, en contre-plongée, pendant que son aura pulse
-  (anneaux d'or, gerbes, flammes) ; son **PSEUDO en grand, en lettres d'or**, sur des
-  rayons de lumière, puis « REMPORTE LA MANCHE » et « +1000 AURA ».
-- La musique d'aura est **fabriquée par le code** façon **« montagem » orchestral**
-  (29/09, référence de Martin : « Montagem Orquestra – Isagi ») : cordes piquées,
-  cuivres, chœur, basse 808, rythme de funk brésilien, 130 BPM. Le vrai morceau n'est
-  pas à nous (Steam le refuserait) ; un fichier dont le nom contient « phonk », « aura »
-  ou « funk » dans `Assets/_Fief/Resources/Music` remplace la musique fabriquée — pour
-  tester chez toi, n'importe quoi ; pour Steam, un morceau libre de droits.
+- **LA VICTOIRE** (29/09 : « on te voit TOI, avec ton pseudo » ; 30/09 : « une petite
+  animation avec toi ») : la caméra quitte tes yeux et **tourne autour du gagnant** ; son
+  **PSEUDO en grand, en lettres d'or** en haut de l'écran, le score en bas — rien
+  par-dessus lui. Et **il fête** : il saute les bras en l'air, fait un tour sur lui-même
+  tous les quatre sauts, s'écrase à chaque réception ; **la Couronne vient flotter
+  au-dessus de sa tête** ; des **confettis** à sa couleur.
+
+## Le personnage et les graphismes (30/09 : « lisse, lisse »)
+
+- **Le petit chevalier** (toi et les bots) : un corps en **haricot** satiné à sa couleur
+  (façon Fall Guys), un **casque d'acier poli** avec sa fente et deux yeux qui luisent,
+  un **cimier** à sa couleur, des épaulières, une ceinture à boucle d'or, une **cape**.
+  Il se dandine, s'écrase à l'atterrissage, s'étire en l'air, **fait des saltos** quand
+  un obstacle l'éjecte. En première personne, on ne voit toujours que son ombre.
+- **L'image lissée** : anticrénelage x8, filtrage anisotrope, ombres très fines en
+  quatre cascades, synchro verticale, et une **sonde de reflets** qui photographie
+  l'île et le ciel : l'or et l'acier reflètent le soir.
+- **La Couronne** refaite : or poli, bandeau lisse entre deux joncs, lys à trois
+  branches et pointes perlées, joyaux ronds, deux arceaux perlés, velours, globe.
+- **L'arbaleste** refaite en formes rondes (poutres, bagues de bronze, roues cerclées,
+  braseros), les **obstacles**, les gargouilles et les Monuments en matières satinées
+  ou métal. Le décor (pierre, herbe) reste mat : c'est lui qui fait ressortir le reste.
+- **Le menu** : un voile doré à gauche sur le plan de l'île qui tourne, « FIEF » avec
+  un halo, l'entrée choisie sur une bande d'or.
 
 ## Les pseudos
 
@@ -358,10 +387,11 @@ Ils jouent **avec tes règles, par les mêmes méthodes** (`World/Rival.cs`) et 
 presque aussi vite que toi (9 / 10,2 / 10,7 m/s selon leur niveau, toi 10,8). Ils
 quittent leur plateforme par **leur arbaleste** (visée devant une porte) ou en planant,
 passent le **couloir** de la porte (ses chicanes, en contournant les moulinets), montent
-la rampe de leur porte (sautent les trous, **les balayeurs et les moulinets**,
+la rampe de leur porte (sautent **les balayeurs et les moulinets**,
 **changent de côté devant un boulet**), prennent les **arbalestes**, sautent du sommet et
 **planent** jusqu'au Monument le plus commode (près d'eux, que personne ne garde), vont
-chercher un **courant d'air** quand ils sont trop bas, **chassent** le porteur (en vol
+chercher un **courant d'air** quand ils sont trop bas — avec la Couronne, ils sautent
+vers le courant d'air du Monument et y tournent pour remonter (30/09), **chassent** le porteur (en vol
 aussi, avec le **piqué d'aigle**) et l'un d'eux va **l'attendre au Monument** le plus
 proche de lui. **Ils se battent en montant** (29/09 : « faut qu'il y ait du combat ») :
 qui passe à portée dans la citadelle ou sur la rampe se fait pousser — toi d'abord. Ils se servent de toutes leurs capacités (le Souffle, jusqu'à 90 m).
@@ -380,6 +410,9 @@ qui passe à portée dans la citadelle ou sur la rampe se fait pousser — toi d
 - Le 29/09 : la rampe unique (remplacée par quatre), les courants de la rampe, les
   touches R et V, les capacités qui s'accumulent (une passive + un clic gauche, neufs à
   chaque manche), la touche F (E interagit), les mots à côté des noms.
+- Le 30/09 : **l'aura** (moments, ralenti, phonk, flammes), **les trous** de la rampe,
+  le panneau des touches automatique, le mendiant en poncho (remplacé par le petit
+  chevalier).
 
 ## Phases
 

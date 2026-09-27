@@ -52,7 +52,7 @@ namespace Fief
             RenderSettings.ambientSkyColor = new Color(0.46f, 0.52f, 0.66f);
             RenderSettings.ambientEquatorColor = new Color(0.56f, 0.47f, 0.42f);
             RenderSettings.ambientGroundColor = new Color(0.30f, 0.25f, 0.25f);
-            RenderSettings.reflectionIntensity = 0.3f;
+            RenderSettings.reflectionIntensity = 0.9f;
 
             if (view != null)
             {
@@ -64,6 +64,57 @@ namespace Fief
 
             ApplySun(cfg);
             ApplyLamp(cfg, player);
+            Smooth(view);
+            CaptureReflections();
+        }
+
+        /// <summary>
+        /// LISSE (30/09 -- Martin et son frere : "lisse, lisse"). Ce qui fait qu'une image
+        /// 3D a l'air propre :
+        ///   - l'ANTICRENELAGE (MSAA x8) : sans lui, chaque bord d'objet est un escalier de
+        ///     pixels qui scintille quand on bouge ;
+        ///   - le FILTRAGE ANISOTROPE : le sol vu de biais reste net au loin ;
+        ///   - des OMBRES fines (tres haute resolution, 4 cascades : nettes de pres, presentes
+        ///     de loin) ;
+        ///   - la SYNCHRO VERTICALE : une image par rafraichissement de l'ecran, pas de
+        ///     dechirure horizontale quand on tourne la tete.
+        /// Concept Unity : QualitySettings, ce sont les reglages de Edit > Project Settings >
+        /// Quality ; on les force ici par le code pour qu'ils soient les memes chez tout le monde.
+        /// </summary>
+        static void Smooth(Camera view)
+        {
+            QualitySettings.antiAliasing = 8;
+            QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
+            QualitySettings.shadowResolution = ShadowResolution.VeryHigh;
+            QualitySettings.shadowCascades = 4;
+            QualitySettings.shadowProjection = ShadowProjection.StableFit;
+            QualitySettings.softParticles = true;
+            QualitySettings.vSyncCount = 1;
+            if (view != null) { view.allowMSAA = true; view.allowHDR = true; }
+        }
+
+        /// <summary>
+        /// LES REFLETS : une sonde de reflexion photographie une fois le ciel et l'ile ; l'or
+        /// poli de la Couronne, l'acier des casques les refletent. Sans elle, le metal
+        /// parait noir.
+        /// Concept Unity : un ReflectionProbe est un appareil photo a 360 degres ; les
+        /// materiaux lisses a proximite y lisent ce qui les entoure.
+        /// </summary>
+        static void CaptureReflections()
+        {
+            GameObject go = GameObject.Find("REFLETS");
+            if (go == null) go = new GameObject("REFLETS");
+            go.transform.position = new Vector3(0f, 60f, 0f);
+            ReflectionProbe probe = go.GetComponent<ReflectionProbe>();
+            if (probe == null) probe = go.AddComponent<ReflectionProbe>();
+            probe.mode = ReflectionProbeMode.Realtime;
+            probe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            probe.size = new Vector3(2400f, 1200f, 2400f);
+            probe.resolution = 128;
+            probe.hdr = true;
+            probe.intensity = 1f;
+            probe.RenderProbe();
         }
 
         static void ApplySun(GameConfig cfg)

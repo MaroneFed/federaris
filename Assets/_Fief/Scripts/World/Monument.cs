@@ -32,6 +32,10 @@ namespace Fief
         LightBeam beam;
         Transform circle;
         Renderer circleGlow;
+        Transform fill;                 // le disque d'or qui s'etend pendant le sacre
+        float sacre;                    // secondes passees dans le cercle, Couronne en main
+        Seeker sacreBy;
+        float lastTick;
         readonly List<Transform> stones = new List<Transform>();
 
         /// <summary>L'ilot de ce Monument (voir Ground.GetIslet).</summary>
@@ -161,6 +165,9 @@ namespace Fief
             m.circleGlow.sharedMaterial = MaterialFactory.GetGlow(Blue, 1.2f);
             m.circle = ring.transform;
             Proto.Cylinder(t, new Vector3(0f, 0.13f, 0f), new Vector3(DeliverRadius * 2f - 0.5f, 0.02f, DeliverRadius * 2f - 0.5f), StoneDark, "Coeur du cercle");
+            GameObject fillGo = Proto.Cylinder(t, new Vector3(0f, 0.17f, 0f), new Vector3(0.01f, 0.015f, 0.01f), Color.white, "Sacre");
+            fillGo.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.8f, 0.35f), 1.6f);
+            m.fill = fillGo.transform;
             // Six pierres levees tout autour, avec une rune bleue chacune.
             for (int k = 0; k < 6; k++)
             {
@@ -182,6 +189,7 @@ namespace Fief
             // La colonne bleue : on la voit de partout.
             m.beam = LightBeam.Build(parent, at, Blue, 2.2f, 90f);
             if (m.beam != null) m.beam.targetAlpha = 0.55f;
+            MaterialFactory.Polish(go.transform, 0.45f);
             return m;
         }
 
@@ -189,11 +197,26 @@ namespace Fief
         {
             All.Remove(this);
             if (Winner == this) Winner = null;
+            if (sacringAt == this) { sacringAt = null; Sacring = null; SacreProgress = 0f; }
             if (All.Count == 0) chosen.Clear();
         }
 
-        /// <summary>Le porteur entre dans ce cercle : la manche est gagnee, sans touche a tenir.</summary>
+        /// <summary>Le cercle ou l'on se fait sacrer.</summary>
         public const float DeliverRadius = 3.6f;
+
+        /// <summary>
+        /// LE SACRE (30/09 -- "trop facile de gagner : tu voles et c'est gagne") : il faut
+        /// RESTER trois secondes dans le cercle avec la Couronne. Un disque d'or s'etend,
+        /// une cloche sonne chaque seconde, tout le monde le voit a l'ecran -- et a trois
+        /// secondes pour venir le pousser. Sorti du cercle, le sacre retombe vite.
+        /// (Toujours aucune touche a tenir : il suffit d'etre dedans.)
+        /// </summary>
+        public const float SacreSeconds = 3f;
+
+        /// <summary>Qui est en train de se faire sacrer (null : personne), et ou il en est (0-1).</summary>
+        public static Seeker Sacring { get; private set; }
+        public static float SacreProgress { get; private set; }
+        static Monument sacringAt;
 
         /// <summary>
         /// Quand quelqu'un porte la Couronne, la colonne s'embrase : le Monument l'appelle.
@@ -204,8 +227,28 @@ namespace Fief
         {
             if (Game.Season == null || !Game.Season.Running) return;
             Seeker holder = Crown.Holder;
-            if (holder != null && holder.Body != null && Within(holder.Body.position, DeliverRadius)
-                && Mathf.Abs(holder.Body.position.y - transform.position.y) < 4f) TryDeliver(holder);
+            float dt = Time.deltaTime;
+            bool inside = holder != null && holder.Body != null && Within(holder.Body.position, DeliverRadius)
+                && Mathf.Abs(holder.Body.position.y - transform.position.y) < 4f;
+            if (inside)
+            {
+                if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; Sfx.Alarm(); }
+                sacre += dt;
+                if (Mathf.Floor(sacre) > lastTick) { lastTick = Mathf.Floor(sacre); Sfx.Bell(); Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, new Color(1f, 0.8f, 0.35f)); }
+                if (sacre >= SacreSeconds) TryDeliver(holder);
+            }
+            else
+            {
+                sacre = Mathf.MoveTowards(sacre, 0f, dt * 2f);
+                if (sacre <= 0f) { sacreBy = null; lastTick = 0f; }
+            }
+            if (sacreBy != null && sacre > 0f) { Sacring = sacreBy; SacreProgress = Mathf.Clamp01(sacre / SacreSeconds); sacringAt = this; }
+            else if (sacringAt == this) { Sacring = null; SacreProgress = 0f; sacringAt = null; }
+            if (fill != null)
+            {
+                float f = Mathf.Clamp01(sacre / SacreSeconds) * (DeliverRadius * 2f - 0.6f);
+                fill.localScale = new Vector3(Mathf.Max(0.01f, f), 0.015f, Mathf.Max(0.01f, f));
+            }
             bool called = Crown.Holder != null;
             // Le cercle bat quand quelqu'un porte la Couronne ; plus vite s'il approche.
             if (circle != null)
@@ -242,6 +285,7 @@ namespace Fief
         public bool TryDeliver(Seeker s)
         {
             if (s == null || !s.CarriesCrown || !Within(s.Body.position, 4.5f)) return false;
+            if (sacreBy != s || sacre < SacreSeconds) return false;
             if (Game.Season == null || !Game.Season.Running) return false;
             if (Match.IsTieBreak && !Match.TieBreakers.Contains(s.Index)) return false;
             Winner = this;
@@ -251,6 +295,8 @@ namespace Fief
             Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, Blue);
             Ambiance.Burst(null, transform.position + Vector3.up * 3f, new Color(1f, 0.8f, 0.35f));
             if (beam != null) { beam.targetAlpha = 1f; beam.fadeSpeed = 4f; }
+            Sacring = null;
+            SacreProgress = 0f;
             if (Game.Menus != null) Game.Menus.EndRound(s.Index);
             return true;
         }

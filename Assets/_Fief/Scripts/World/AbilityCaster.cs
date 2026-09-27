@@ -204,7 +204,6 @@ namespace Fief
                     // L'ONDE DE CHOC : une sphere qui gonfle, trois anneaux au sol, la poussiere
                     // qui part en couronne, un eclair qui illumine tout autour.
                     int blasted = Combat.Blast(pos, OndeRadius, 24f, 10f, s);
-                    if (blasted >= 2) Aura.Moment(s, blasted >= 3 ? "TRIPLÉ !" : "DOUBLÉ !", tint, 0.8f + 0.2f * blasted);
                     Fx.Shock(chest, tint, OndeRadius, 0.5f);
                     Fx.Shock(chest, Color.white, OndeRadius * 0.5f, 0.3f);
                     Fx.GroundRing(pos, tint, OndeRadius + 1f, 0.5f);
@@ -450,7 +449,6 @@ namespace Fief
                 if (Mathf.Abs(Vector3.Dot(rel, side)) > width * 0.5f) continue;
                 if (rel.y < -3.5f || rel.y > Height) continue;
                 struck.Add(s);
-                if (struck.Count == 2 || struck.Count == 3) Aura.Moment(by, struck.Count == 3 ? "TRIPLÉ !" : "DOUBLÉ !", tint, 0.8f + 0.2f * struck.Count);
                 Vector3 push = new Vector3(dir.x, 0f, dir.z).normalized;
                 Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, by);
                 Fx.Impact(s.Body.position + Vector3.up * 1.1f, tint, 1.2f);

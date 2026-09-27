@@ -25,8 +25,12 @@ namespace Fief
     /// depart d'une arbaleste, on prend des ailes d'or jusqu'a son prochain atterrissage
     /// : elles vont plus vite et descendent moins. Le Planeur (passif) les donne toujours.
     ///
-    /// Le porteur de la Couronne vole un peu moins vite (elle pese) : on peut le
-    /// rattraper en l'air.
+    /// LA COURONNE EST LOURDE (30/09 -- Martin : "avec les elytres, c'est trop facile
+    /// de gagner : tu voles et c'est gagne, il faut de la complexite") : son porteur
+    /// n'a jamais d'ailes d'or, vole plus lentement (11 m/s) et tombe VITE (8 m/s) :
+    /// du sommet, il ne va PAS jusqu'aux Monuments. Il lui faut un COURANT D'AIR (tourner
+    /// dedans pour remonter) ou une ARBALESTE de l'ile. Pendant ce temps, les autres, plus
+    /// rapides, lui fondent dessus (le pique d'aigle).
     ///
     /// Les reglages du vol sont ici, pour toi comme pour les bots (Fly).
     /// </summary>
@@ -43,6 +47,17 @@ namespace Fief
         /// <summary>Les ailes s'ouvrent seules s'il y a plus de tant de metres de vide sous les pieds.</summary>
         public const float OpenAbove = 6f;
         const float Pull = 17f;         // ce que la pente donne (ou reprend) chaque seconde
+        /// <summary>Le porteur de la Couronne : sa croisiere, et sa chute (elle pese).</summary>
+        public const float HeavyCruise = 11f;
+        public const float HeavySink = 8f;
+
+        /// <summary>Combien on descend par metre parcouru, a plat (les bots s'en servent pour viser).</summary>
+        public static float Descent(Seeker s)
+        {
+            if (s != null && s.CarriesCrown) return HeavySink / HeavyCruise;
+            if (s != null && (s.HasWings || s.Has(Ability.Planeur))) return 0.15f;
+            return 0.22f;
+        }
 
         static readonly Color Cloth = new Color(0.93f, 0.88f, 0.76f);
         static readonly Color Wood = new Color(0.36f, 0.26f, 0.17f);
@@ -99,11 +114,11 @@ namespace Fief
         /// </summary>
         public static Vector3 Fly(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
         {
-            bool gold = s != null && (s.HasWings || s.Has(Ability.Planeur));
             bool heavy = s != null && s.CarriesCrown;
-            float cruise = Cruise * (gold ? 1.25f : 1f) * (heavy ? 0.88f : 1f);
-            float top = MaxSpeed * (gold ? 1.12f : 1f) * (heavy ? 0.9f : 1f);
-            float sink = Sink * (gold ? 0.75f : 1f);
+            bool gold = !heavy && s != null && (s.HasWings || s.Has(Ability.Planeur));
+            float cruise = heavy ? HeavyCruise : Cruise * (gold ? 1.25f : 1f);
+            float top = MaxSpeed * (gold ? 1.12f : heavy ? 0.8f : 1f);
+            float sink = heavy ? HeavySink : Sink * (gold ? 0.75f : 1f);
 
             if (look.sqrMagnitude < 0.001f) look = Vector3.forward;
             look.Normalize();
@@ -116,7 +131,8 @@ namespace Fief
             // Piquer donne de la vitesse, remonter en reprend.
             airspeed += -slope * Pull * dt;
             // L'air ramene doucement vers la croisiere (plus fort quand on va trop vite).
-            float drag = airspeed > cruise ? 0.22f : 0.6f;
+            // (Lourd : la vitesse d'un pique se perd vite, pas de planee sans fin.)
+            float drag = heavy || airspeed <= cruise ? 0.6f : 0.22f;
             airspeed = Mathf.MoveTowards(airspeed, cruise, Mathf.Abs(airspeed - cruise) * drag * dt + (brake ? 14f * dt : 0f));
             if (brake) airspeed = Mathf.MoveTowards(airspeed, MinSpeed, 10f * dt);
             airspeed = Mathf.Clamp(airspeed, MinSpeed * 0.8f, top);
@@ -124,7 +140,7 @@ namespace Fief
             float cos = Mathf.Sqrt(1f - slope * slope);
             Vector3 v = flat * airspeed * cos + Vector3.up * airspeed * slope;
             // Plus on va lentement, plus on s'enfonce (le decrochage).
-            float stall = Mathf.Clamp(cruise / Mathf.Max(airspeed, 1f), 0.6f, 2.2f);
+            float stall = Mathf.Clamp(cruise / Mathf.Max(airspeed, 1f), heavy ? 1f : 0.6f, 2.2f);
             v.y -= sink * stall;
             // Glisser de cote.
             Vector3 right = new Vector3(flat.z, 0f, -flat.x);
@@ -144,24 +160,25 @@ namespace Fief
         /// Pour un bot : ou regarder pour aller en planant de "from" jusqu'a "to" (juste
         /// ce qu'il faut de pique pour arriver a sa hauteur).
         /// </summary>
-        public static Vector3 LookFor(Vector3 from, Vector3 to)
+        public static Vector3 LookFor(Vector3 from, Vector3 to, Seeker s)
         {
+            float descent = Descent(s);
             Vector3 flat = new Vector3(to.x - from.x, 0f, to.z - from.z);
             float horizontal = Mathf.Max(1f, flat.magnitude);
             float drop = from.y - (to.y + 2f);
             float slope = drop / horizontal;
-            // A plat, on descend deja d'environ 0,2 m par metre : au-dela, on pique.
-            float y = Mathf.Clamp(-(slope - 0.2f) * 1.2f, -0.85f, 0.15f);
+            // A plat, on descend deja de "descent" metre par metre : au-dela, on pique.
+            float y = Mathf.Clamp(-(slope - descent) * 1.2f, -0.85f, 0.15f);
             if (horizontal < 6f) y = -0.7f;
             Vector3 f = flat.normalized;
             return new Vector3(f.x, y, f.z);
         }
 
         /// <summary>Un bot peut-il rejoindre "to" en planant depuis "from" (sans courant d'air) ?</summary>
-        public static bool CanReach(Vector3 from, Vector3 to)
+        public static bool CanReach(Vector3 from, Vector3 to, Seeker s)
         {
             float horizontal = new Vector2(to.x - from.x, to.z - from.z).magnitude;
-            return from.y - to.y > horizontal * 0.2f + 4f;
+            return from.y - to.y > horizontal * Descent(s) + 4f;
         }
 
         // ================================================================== les chevalets
@@ -238,10 +255,11 @@ namespace Fief
         public static readonly List<Thermal> All = new List<Thermal>();
 
         public const float Radius = 11f;
-        public const float Lift = 11f;
+        /// <summary>(30/09 : 11 -> 15, pour que le porteur de la Couronne, lourd, y remonte.)</summary>
+        public const float Lift = 15f;
         const float Bottom = -45f;
         // (Jamais aussi haut que le sommet de la tour : on ne vole pas la Couronne par les airs.)
-        const float Top = 72f;
+        const float Top = 80f;
         static readonly Color Air = new Color(0.8f, 0.93f, 1f);
 
         readonly List<Transform> rings = new List<Transform>();
@@ -398,7 +416,7 @@ namespace Fief
         {
             GameObject go = new GameObject("Ailes dans le dos");
             go.transform.SetParent(body, false);
-            go.transform.localPosition = new Vector3(0f, 1.45f, -0.25f);
+            go.transform.localPosition = new Vector3(0f, 1.32f, -0.36f);
             WingsOnBack w = go.AddComponent<WingsOnBack>();
             w.seeker = s;
             w.wings = new GameObject("Ailes").transform;

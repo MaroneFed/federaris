@@ -93,6 +93,8 @@ namespace Fief
         float airTop;
         Transform figure;
         CharacterRig rig;
+        /// <summary>Son corps anime (la fete du vainqueur s'en sert).</summary>
+        public CharacterRig Rig { get { return rig; } }
         Vector3 lastPosition;
         Light lantern;
         WingsOnBack wings;
@@ -407,12 +409,19 @@ namespace Fief
             if (aimMonument == null) return;
             Vector3 m = aimMonument.transform.position;
             if (IsletAt(me) == aimMonument.Islet) { SetGoal(Goal.Deliver, m, was); return; }
+            // (30/09 : la Couronne est lourde.) Il ne saute que s'il atteint le Monument en
+            // planant -- ou, a defaut, le courant d'air sur le chemin, pour y remonter.
             if (seeker.CanGlide && (Tower.Summit(me) || Tower.On(me) && me.y > m.y + 25f))
             {
-                goal = Goal.Deliver;
-                target = m;
-                Leap(m);
-                return;
+                Thermal lift = Thermal.Nearest(m);
+                bool direct = Wings.CanReach(me, m, seeker);
+                if (direct || lift != null && Wings.CanReach(me, lift.transform.position + Vector3.up * 6f, seeker))
+                {
+                    goal = Goal.Deliver;
+                    target = m;
+                    Leap(direct || lift == null ? m : lift.transform.position);
+                    return;
+                }
             }
             if ((Ground.OnIsland(me.x, me.z) || IsletAt(me) >= 0) && !Tower.On(me))
             {
@@ -918,7 +927,7 @@ namespace Fief
                 float want = boulderLane > 0f ? -2f : 2f;
                 dir = (dir + radial * Mathf.Clamp(want - lane, -1f, 1f) * 1.4f).normalized;
             }
-            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-4.5f * dt));
+            knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-Combat.KnockDrag(seeker) * dt));
             Vector3 extra = Vector3.zero;
             if (dashTime > 0f) { dashTime -= dt; extra += dashVelocity; }
             if (pullTime > 0f)
@@ -935,6 +944,8 @@ namespace Fief
             Wings.Tick(seeker, grounded);
             if (grounded || !seeker.CanGlide) gliding = false;
             Vector3 walk = dir * speed;
+            // Ejecte : il ne remonte pas l'elan a la marche (comme toi, presque plus de controle).
+            if (seeker.Tumbling) walk *= 0.15f;
             if (grounded)
             {
                 if (airTop - transform.position.y > 4f) Land(airTop - transform.position.y);
@@ -962,9 +973,9 @@ namespace Fief
                 {
                     ballistic = false;
                     Vector3 aimAt = goal == Goal.Hunt && prey != null && prey.Body != null ? prey.Body.position : target;
-                    Vector3 look = Wings.LookFor(transform.position, aimAt);
+                    Vector3 look = Wings.LookFor(transform.position, aimAt, seeker);
                     // Trop bas pour y arriver : il va chercher un courant d'air et tourne dedans.
-                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard) && !Wings.CanReach(transform.position, aimAt))
+                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard) && !Wings.CanReach(transform.position, aimAt, seeker))
                     {
                         Thermal t = Thermal.Nearest(transform.position);
                         if (t != null)
@@ -988,12 +999,18 @@ namespace Fief
             }
             if (wings != null) wings.Flying = gliding;
 
-            // Au bord de l'ile (pas sur la tour) : il ne saute pas dans le vide, il s'arrete.
+            // Au bord de l'ile : il ne saute pas dans le vide, il s'arrete. Au bord de la
+            // rampe (30/09 : plus de trous a sauter) : il se rabat vers le fut, sans sauter.
             if (grounded && !leaping && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir)) walk = Vector3.zero;
+            else if (grounded && !leaping && speed > 0f && Tower.On(transform.position) && EdgeAhead(dir))
+            {
+                Vector3 inward = -Flat(transform.position).normalized;
+                walk = (Flat(walk).normalized + inward * 1.2f).normalized * speed;
+            }
             // Une barre (moulinet, balayeur) arrive : il saute par-dessus.
             else if (grounded && speed > 0f && Sweeper.Threat(transform.position + dir * 1.2f)) fallSpeed = 7.5f;
-            // Au bord d'un trou de la rampe (ou bloque) : il saute. Deux fois, s'il sait.
-            else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
+            // Bloque : il saute. Deux fois, s'il sait.
+            else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || !Tower.On(transform.position) && EdgeAhead(dir))) fallSpeed = 7f;
             else if (!grounded && !gliding && !ballistic && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
             {
                 airJumped = true;
@@ -1094,8 +1111,6 @@ namespace Fief
         void Animate(float dt)
         {
             if (figure == null) return;
-            // Le porteur de la Couronne brule d'une aura d'or : on le voit de loin.
-            AuraFlames.Keep(transform, Wings.Gold, seeker.CarriesCrown && !seeker.Hidden);
             // Sous le Voile, le corps s'eteint. La lanterne et le halo restent (sauf sous le
             // Voile) : c'est comme ca qu'on repere un joueur.
             bool near = PlayerWithin(320f) && !seeker.Hidden;
@@ -1107,6 +1122,7 @@ namespace Fief
             {
                 rig.Speed = gliding || mounted ? 0f : Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
                 rig.Grounded = body.enabled && body.isGrounded || mounted;
+                rig.Tumbling = seeker.Tumbling;
             }
         }
 
@@ -1141,38 +1157,43 @@ namespace Fief
     /// </summary>
     public static class PlayerLook
     {
-        /// <summary>Habiller un corps a sa couleur. Renvoie la lumiere de sa lanterne.</summary>
+        /// <summary>
+        /// Habiller un corps a sa couleur (30/09 : le petit chevalier) : une echarpe qui
+        /// flotte sous le casque, une petite lanterne a la hanche. Renvoie sa lumiere.
+        /// </summary>
         public static Light Dress(CharacterRig rig, Transform root, Color colour)
         {
             Proto.BeginVisualOnly();
             Transform neck = rig.HeadBone;
-            Proto.Cube(neck, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.09f, 0.32f), colour, "Écharpe");
-            GameObject tail = Proto.Cube(neck, new Vector3(0.08f, -0.24f, -0.17f), new Vector3(0.1f, 0.34f, 0.03f), Palette.Shade(colour, 0.85f), "Pan");
-            tail.transform.localRotation = Quaternion.Euler(-12f, 0f, 8f);
+            Material scarf = MaterialFactory.GetShiny(colour, 0.35f, 0f);
+            GameObject ring = Proto.Cylinder(neck, new Vector3(0f, -0.17f, 0f), new Vector3(0.7f, 0.05f, 0.62f), colour, "Écharpe");
+            ring.GetComponent<Renderer>().sharedMaterial = scarf;
+            GameObject tail = Proto.Capsule(neck, new Vector3(0.14f, -0.3f, -0.3f), new Vector3(0.1f, 0.16f, 0.04f), colour, "Pan");
+            tail.GetComponent<Renderer>().sharedMaterial = scarf;
+            tail.transform.localRotation = Quaternion.Euler(-35f, 0f, 12f);
 
-            Transform staff = rig.StaffBone;
-            Vector3 lamp = new Vector3(0.16f, 1.08f, 0.04f);
+            Transform hip = rig.HipBone;
+            Vector3 lamp = new Vector3(0f, -0.14f, 0f);
             Color flameColour = Color.Lerp(colour, new Color(1f, 0.8f, 0.5f), 0.35f);
-            if (staff != null)
+            Material iron = MaterialFactory.GetShiny(new Color(0.16f, 0.16f, 0.18f), 0.6f, 0.7f);
+            if (hip != null)
             {
-                Proto.Cube(staff, new Vector3(0.08f, 1.24f, 0.03f), new Vector3(0.18f, 0.03f, 0.03f), new Color(0.3f, 0.23f, 0.16f), "Potence");
-                Proto.Cube(staff, new Vector3(0.02f, 0.72f, 0f), new Vector3(0.08f, 0.14f, 0.08f), colour, "Ruban");
-                Proto.Cube(staff, lamp + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-                Proto.Cube(staff, lamp - new Vector3(0f, 0.09f, 0f), new Vector3(0.14f, 0.03f, 0.14f), new Color(0.15f, 0.15f, 0.16f), "Lanterne");
-                GameObject flame = Proto.Cube(staff, lamp, new Vector3(0.09f, 0.13f, 0.09f), Color.white, "Flamme");
+                Proto.Cylinder(hip, lamp + new Vector3(0f, 0.1f, 0f), new Vector3(0.13f, 0.02f, 0.13f), Color.black, "Lanterne").GetComponent<Renderer>().sharedMaterial = iron;
+                Proto.Cylinder(hip, lamp - new Vector3(0f, 0.09f, 0f), new Vector3(0.13f, 0.02f, 0.13f), Color.black, "Lanterne").GetComponent<Renderer>().sharedMaterial = iron;
+                GameObject flame = Proto.Sphere(hip, lamp, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Flamme");
                 flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(flameColour, 2.6f);
                 flame.AddComponent<Flame>();
             }
             Proto.EndVisualOnly();
 
             GameObject lightGo = new GameObject("Lanterne");
-            lightGo.transform.SetParent(staff != null ? staff : rig.transform, false);
+            lightGo.transform.SetParent(hip != null ? hip : rig.transform, false);
             lightGo.transform.localPosition = lamp;
             Light lantern = lightGo.AddComponent<Light>();
             lantern.type = LightType.Point;
             lantern.color = flameColour;
-            lantern.intensity = 1.3f;
-            lantern.range = 10f;
+            lantern.intensity = 1.1f;
+            lantern.range = 8f;
             lantern.shadows = LightShadows.None;
             lightGo.AddComponent<LampFlicker>();
 

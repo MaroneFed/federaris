@@ -334,7 +334,7 @@ namespace Fief
                 Emit(card.center + new Vector2(Random.Range(-card.width, card.width), Random.Range(-card.height, card.height)) * 0.4f,
                      new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * sp, Random.Range(0.5f, 1.2f), Color.Lerp(tint, Color.white, Random.value * 0.6f));
             }
-            if (mine) Sfx.PlayClip(Phonk.Sting(), 0.7f);
+            if (mine) Sfx.Pop();
         }
 
         static void Emit(Vector2 at, Vector2 velocity, float life, Color c)

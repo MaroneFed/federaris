@@ -109,14 +109,14 @@ namespace Fief
         // ------------------------------------------------------------------ la souris
         // (28/09 -- Martin : "une active sur le clic gauche, une sur E, mais pas sur C".)
         // Par defaut : clic GAUCHE = ta premiere capacite, clic DROIT = pousser. Le
-        // reglage "Pousser sur" (Core/Settings.cs) les inverse.
+        // Reglages "Touche capacite" et "Touche pousser" (Core/Settings.cs) : au choix.
 
         static bool MouseDown(int button)
         {
 #if ENABLE_INPUT_SYSTEM
             Mouse m = Mouse.current;
             if (m == null) return false;
-            return button == 0 ? m.leftButton.wasPressedThisFrame : m.rightButton.wasPressedThisFrame;
+            return button == 0 ? m.leftButton.wasPressedThisFrame : button == 1 ? m.rightButton.wasPressedThisFrame : m.middleButton.wasPressedThisFrame;
 #else
             return Input.GetMouseButtonDown(button);
 #endif
@@ -127,16 +127,24 @@ namespace Fief
 #if ENABLE_INPUT_SYSTEM
             Mouse m = Mouse.current;
             if (m == null) return false;
-            return button == 0 ? m.leftButton.isPressed : m.rightButton.isPressed;
+            return button == 0 ? m.leftButton.isPressed : button == 1 ? m.rightButton.isPressed : m.middleButton.isPressed;
 #else
             return Input.GetMouseButton(button);
 #endif
         }
 
-        static int PushButton { get { return Settings.PushOnLeft ? 0 : 1; } }
+        /// <summary>
+        /// LES TOUCHES QU'ON PEUT CHOISIR (30/09) pour la capacite et la poussee : les trois
+        /// clics, et quatre lettres qui ne genent ni ZQSD ni WASD (meme place en AZERTY).
+        /// </summary>
+        public static readonly string[] BindNames = { "Clic gauche", "Clic droit", "Clic molette", "F", "R", "X", "V" };
+        static readonly KeyCode[] BindKeys = { KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.F, KeyCode.R, KeyCode.X, KeyCode.V };
 
-        /// <summary>POUSSER, a l'instant (clic droit par defaut).</summary>
-        public static bool PushPressed { get { return MouseDown(PushButton); } }
+        static bool BindDown(int b) { return b <= 2 ? MouseDown(b) : KeyPressed(BindKeys[b]); }
+        static bool BindHeld(int b) { return b <= 2 ? MouseHeld(b) : KeyHeld(BindKeys[b]); }
+
+        /// <summary>POUSSER, a l'instant (clic droit par defaut ; voir Reglages).</summary>
+        public static bool PushPressed { get { return BindDown(Settings.PushBind); } }
 
         /// <summary>Clic gauche, a l'instant et maintenu : tendre l'arbaleste (toujours le clic gauche).</summary>
         public static bool ShootPressed { get { return MouseDown(0); } }
@@ -150,7 +158,7 @@ namespace Fief
         {
             switch (slot)
             {
-                case 0: return MouseDown(1 - PushButton);
+                case 0: return BindDown(Settings.ActiveBind);
                 default: return false;
             }
         }
@@ -160,7 +168,7 @@ namespace Fief
         {
             switch (slot)
             {
-                case 0: return MouseHeld(1 - PushButton);
+                case 0: return BindHeld(Settings.ActiveBind);
                 default: return false;
             }
         }
@@ -203,6 +211,7 @@ namespace Fief
                 case KeyCode.R: return k.rKey;
                 case KeyCode.C: return k.cKey;
                 case KeyCode.V: return k.vKey;
+                case KeyCode.X: return k.xKey;
                 case KeyCode.W: return k.wKey;
                 case KeyCode.A: return k.aKey;
                 case KeyCode.S: return k.sKey;

@@ -209,6 +209,7 @@ namespace Fief
             e.reticle.endColor = new Color(1f, 0.4f, 0.2f, 0.9f);
 
             All.Add(e);
+            MaterialFactory.Polish(e.transform, 0.4f);
             return e;
         }
 

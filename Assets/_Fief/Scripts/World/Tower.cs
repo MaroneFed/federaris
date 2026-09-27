@@ -81,7 +81,8 @@ namespace Fief
         {
             Hardness = 1f + 0.14f * Mathf.Clamp(level, 0, 8);
             System.Random rng = new System.Random(seed * 7919 + 11);
-            int gaps = Mathf.Min(2 + level / 2, 4);
+            // (30/09 -- "les trous etaient trop compliques") : plus de trous dans la rampe.
+            int gaps = 0;
             int pendulums = Mathf.Min(2 + level / 2, 4);
             int rams = Mathf.Min(2 + level / 3, 3);
             int sweepers = Mathf.Min(2 + level / 2, 4);
@@ -388,7 +389,6 @@ namespace Fief
                     warn.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.3f, 0.2f), 2.5f);
                     warn.transform.localRotation = Quaternion.LookRotation(Tangent(ramp, u), Vector3.up);
                 }
-                Hole.Build(t, RampPoint(ramp, (at + 1) / (float)total), Tangent(ramp, (at + 1) / (float)total));
             }
             Proto.EndVisualOnly();
         }
@@ -589,13 +589,14 @@ namespace Fief
             p.arm = armGo.transform;
             for (int k = 0; k < 8; k++)
             {
-                GameObject link = Proto.Cube(p.arm, new Vector3(0f, -0.4f - k * 0.62f, 0f), new Vector3(0.14f, 0.55f, 0.14f), iron, "Maillon");
+                // (30/09) Des maillons ronds, a plat et de chant en alternance : une vraie chaine.
+                GameObject link = Proto.Capsule(p.arm, new Vector3(0f, -0.4f - k * 0.62f, 0f), new Vector3(0.22f, 0.36f, 0.09f), iron, "Maillon");
                 link.transform.localRotation = Quaternion.Euler(0f, k % 2 == 0 ? 0f : 90f, 0f);
             }
             Proto.Sphere(p.arm, new Vector3(0f, -Length, 0f), new Vector3(1.8f, 1.8f, 1.8f), new Color(0.34f, 0.32f, 0.3f), "Boule");
             for (int k = 0; k < 6; k++)
             {
-                GameObject spike = Proto.Cone(p.arm, new Vector3(0f, -Length, 0f), 0.22f, 0.7f, iron, "Pointe", 4);
+                GameObject spike = Proto.Cone(p.arm, new Vector3(0f, -Length, 0f), 0.22f, 0.7f, iron, "Pointe", 10);
                 spike.transform.localRotation = Quaternion.Euler(k < 4 ? 90f : (k == 4 ? 0f : 180f), k * 90f, 0f);
                 spike.transform.localPosition = new Vector3(0f, -Length, 0f) + spike.transform.localRotation * Vector3.up * 0.85f;
             }
@@ -606,6 +607,7 @@ namespace Fief
             // Une trainee de braise suit la boule : on voit sa course.
             Fx.KeepTrail(p.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.2f, 0.35f);
             p.lastHead = p.Head;
+            MaterialFactory.Polish(p.transform, 0.6f);
             return p;
         }
 
@@ -643,44 +645,6 @@ namespace Fief
                 Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.3f));
                 Sfx.Clang();
-            }
-        }
-    }
-
-    /// <summary>
-    /// UN TROU (29/09 -- "nous faire retomber en bas de la tour") : qui passe au travers
-    /// ne retombe pas sur la rampe d'en dessous, il est jete dehors, ailes fermees,
-    /// et redescend jusqu'en bas.
-    /// </summary>
-    public class Hole : MonoBehaviour
-    {
-        Vector3 centre, along, outward;
-
-        public static void Build(Transform parent, Vector3 centre, Vector3 tangent)
-        {
-            GameObject go = new GameObject("Trou");
-            go.transform.SetParent(parent, false);
-            Hole h = go.AddComponent<Hole>();
-            h.centre = centre;
-            h.along = tangent;
-            h.outward = new Vector3(centre.x, 0f, centre.z).normalized;
-        }
-
-        void Update()
-        {
-            if (Game.Season == null || !Game.Season.Running) return;
-            for (int i = 0; i < Game.Seekers.Count; i++)
-            {
-                Seeker s = Game.Seekers[i];
-                if (s.Body == null || s.Tumbling || s.Graced) continue;
-                Vector3 d = s.Body.position - centre;
-                // Dans le trou : le long de la rampe (2 m de chaque cote), sur sa largeur, et
-                // SOUS le niveau de la rampe a cet endroit (elle monte d'un demi-metre par metre).
-                float run = Vector3.Dot(new Vector3(d.x, 0f, d.z), along);
-                if (Mathf.Abs(run) > 1.8f) continue;
-                if (Mathf.Abs(Vector3.Dot(new Vector3(d.x, 0f, d.z), outward)) > Tower.RampWidth * 0.5f + 0.3f) continue;
-                if (d.y > run * 0.5f - 0.8f || d.y < -6f) continue;
-                Combat.Hit(s, Vector3.down, 0f, false, null);
             }
         }
     }
@@ -738,6 +702,7 @@ namespace Fief
             GameObject runeGo = Proto.Cube(r.block, new Vector3(0.17f, Size.y * 0.5f + 0.1f, 0f), new Vector3(0.05f, 0.7f, 0.7f), Color.white, "Rune");
             r.rune = runeGo.GetComponent<Renderer>();
             Proto.EndVisualOnly();
+            MaterialFactory.Polish(r.transform, 0.6f);
             r.Place(0f);
             return r;
         }
@@ -877,6 +842,7 @@ namespace Fief
                 band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.5f, 0.2f), 2.2f);
             }
             Proto.EndVisualOnly();
+            MaterialFactory.Polish(b.ball, 0.55f);
             b.Place();
             BoulderChute.Rolling.Add(b);
             Fx.Sparks(go.transform.position, new Color(1f, 0.55f, 0.25f), 30, 6f);

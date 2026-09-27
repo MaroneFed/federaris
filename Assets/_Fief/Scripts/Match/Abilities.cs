@@ -33,9 +33,9 @@ namespace Fief
         public const int MaxActives = 1;
 
         /// <summary>Les touches des capacites actives, dans l'ordre ou on les a prises. "V" : le don d'un sanctuaire.</summary>
-        public static string[] Keys { get { return new[] { Settings.PushOnLeft ? "Clic droit" : "Clic gauche" }; } }
-        /// <summary>La touche pour pousser (clic droit par defaut ; voir Settings.PushOnLeft).</summary>
-        public static string PushKey { get { return Settings.PushOnLeft ? "Clic gauche" : "Clic droit"; } }
+        public static string[] Keys { get { return new[] { FiefInput.BindNames[Settings.ActiveBind] }; } }
+        /// <summary>La touche pour pousser (clic droit par defaut ; voir Settings.PushBind).</summary>
+        public static string PushKey { get { return FiefInput.BindNames[Settings.PushBind]; } }
         public const string UseKey = "E";
         public const string GiftKey = "V";
 

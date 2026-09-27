@@ -4,7 +4,7 @@ namespace Fief
 {
     /// <summary>
     /// LES REGLAGES DU JOUEUR (27/09) : sensibilite de la souris, volume, champ de
-    /// vision, plein ecran, et la touche pour pousser. Rien a voir avec la partie : ce sont les preferences de
+    /// vision, plein ecran, et les touches de la capacite et de la poussee. Rien a voir avec la partie : ce sont les preferences de
     /// celui qui tient la souris.
     ///
     /// Concept Unity : PlayerPrefs est un petit carnet cle -> valeur qu'Unity garde
@@ -19,11 +19,13 @@ namespace Fief
         public static float TextSize = 1f;       // 0,8 a 1,5 : la taille de tout le texte a l'ecran
         public static bool Fullscreen = true;
         /// <summary>
-        /// Pousser sur le clic gauche (et ta premiere capacite sur le clic droit). Par
-        /// defaut non (28/09 -- Martin : "une active sur le clic gauche") : clic gauche
-        /// = capacite, clic droit = pousser.
+        /// LES TOUCHES A SOI (30/09 -- Martin : "un parametre qui permet de changer cette
+        /// touche-la"). Ta capacite active et la poussee se mettent ou l'on veut, parmi
+        /// FiefInput.BindNames (les trois clics, F, R, X, V). Par defaut : capacite au clic
+        /// gauche, pousser au clic droit. Jamais les deux sur la meme touche.
         /// </summary>
-        public static bool PushOnLeft;
+        public static int ActiveBind = 0;
+        public static int PushBind = 1;
         /// <summary>TON PSEUDO (29/09 : "il faut mettre le pseudo, les persos c'est quasi tous les memes").</summary>
         public static string Pseudo = "Joueur";
         public const int PseudoLength = 16;
@@ -53,7 +55,10 @@ namespace Fief
             Fov = PlayerPrefs.GetFloat("fief.fov", 78f);
             TextSize = PlayerPrefs.GetFloat("fief.texte", 1f);
             Fullscreen = PlayerPrefs.GetInt("fief.pleinecran", Screen.fullScreen ? 1 : 0) == 1;
-            PushOnLeft = PlayerPrefs.GetInt("fief.pousserGauche", 0) == 1;
+            bool oldLeft = PlayerPrefs.GetInt("fief.pousserGauche", 0) == 1;
+            ActiveBind = Mathf.Clamp(PlayerPrefs.GetInt("fief.toucheCapacite", oldLeft ? 1 : 0), 0, FiefInput.BindNames.Length - 1);
+            PushBind = Mathf.Clamp(PlayerPrefs.GetInt("fief.touchePousser", oldLeft ? 0 : 1), 0, FiefInput.BindNames.Length - 1);
+            if (PushBind == ActiveBind) { ActiveBind = 0; PushBind = 1; }
             Pseudo = PlayerPrefs.GetString("fief.pseudo", "Joueur");
         }
 
@@ -64,7 +69,8 @@ namespace Fief
             PlayerPrefs.SetFloat("fief.fov", Fov);
             PlayerPrefs.SetFloat("fief.texte", TextSize);
             PlayerPrefs.SetInt("fief.pleinecran", Fullscreen ? 1 : 0);
-            PlayerPrefs.SetInt("fief.pousserGauche", PushOnLeft ? 1 : 0);
+            PlayerPrefs.SetInt("fief.toucheCapacite", ActiveBind);
+            PlayerPrefs.SetInt("fief.touchePousser", PushBind);
             PlayerPrefs.SetString("fief.pseudo", Pseudo);
             PlayerPrefs.Save();
         }
@@ -88,7 +94,8 @@ namespace Fief
             else if (row == 2) Fov = Mathf.Clamp(Fov + step * 5f, 65f, 100f);
             else if (row == 3) TextSize = Mathf.Clamp(Mathf.Round((TextSize + step * 0.1f) * 10f) / 10f, 0.8f, 1.5f);
             else if (row == 4) Fullscreen = !Fullscreen;
-            else if (row == 5) PushOnLeft = !PushOnLeft;
+            else if (row == 5) ActiveBind = NextBind(ActiveBind, step, PushBind);
+            else if (row == 6) PushBind = NextBind(PushBind, step, ActiveBind);
             Apply();
             Save();
         }
@@ -101,9 +108,23 @@ namespace Fief
             if (row == 2) return Mathf.RoundToInt(Fov) + "°";
             if (row == 3) return Mathf.RoundToInt(TextSize * 100f) + " %";
             if (row == 4) return Fullscreen ? "oui" : "non";
-            return PushOnLeft ? "clic gauche" : "clic droit";
+            if (row == 5) return FiefInput.BindNames[ActiveBind];
+            return FiefInput.BindNames[PushBind];
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Pousser sur" };
+        /// <summary>La touche suivante (ou precedente) de la liste, en sautant celle deja prise par l'autre.</summary>
+        static int NextBind(int from, int step, int taken)
+        {
+            int n = FiefInput.BindNames.Length;
+            int to = from;
+            for (int i = 0; i < n; i++)
+            {
+                to = (to + (step < 0 ? -1 : 1) + n) % n;
+                if (to != taken) return to;
+            }
+            return from;
+        }
+
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser" };
     }
 }

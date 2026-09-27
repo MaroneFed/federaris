@@ -41,7 +41,6 @@ namespace Fief
             // POUSSER LE PORTEUR, C'EST LUI VOLER LA COURONNE (27/09 -- Martin : "il se la
             // reprend en une demi-seconde"). Elle passe directement dans tes mains.
             bool stole = best.CarriesCrown && !best.Graced && Crown.TrySteal(by, best);
-            if (stole) Aura.Moment(by, "COURONNE VOLÉE", Wings.Gold, 1f);
             // Un court etourdissement : on ne contre-marche pas une poussee (c'est ce
             // qui la rendait molle -- on reculait de deux metres en appuyant sur Z).
             Hit(best, push * force + Vector3.up * 7f, 0.25f, !stole, by);
@@ -118,7 +117,6 @@ namespace Fief
             Vector3 dir = Flat(target.Body.position - by.Body.position);
             dir = dir.sqrMagnitude > 0.01f ? dir.normalized : by.Body.forward;
             bool stole = target.CarriesCrown && !target.Graced && Crown.TrySteal(by, target);
-            if (stole) Aura.Moment(by, "PIQUÉ D'AIGLE", Wings.Gold, 1.3f);
             Hit(target, dir * 24f + Vector3.up * 6f, 0.3f, !stole, by);
             Fx.Impact(target.Body.position + Vector3.up * 1.1f, Wings.Gold, stole ? 1.8f : 1f);
             Fx.Shock(target.Body.position + Vector3.up * 1.1f, Wings.Gold, 3f, 0.3f);
@@ -188,21 +186,31 @@ namespace Fief
         }
 
         /// <summary>
-        /// LA CHUTE : la poussee d'un obstacle, redressee pour sortir de la rampe (au moins
-        /// 24 m/s vers l'exterieur de la tour, ca fait ~5 m avant que le frottement ne la
-        /// mange : juste de quoi passer le bord), et les ailes fermees jusqu'au sol.
+        /// L'EJECTION (30/09 -- "quand ils touchent, qu'ils te fassent VRAIMENT partir de la
+        /// tour") : la poussee d'un obstacle devient un vol plein vers l'exterieur -- 22 m/s
+        /// dehors, 11 vers le haut, un peu de cote -- et pendant la chute, l'elan ne
+        /// retombe presque pas (Seeker.Tumbling) : on part en cloche d'une vingtaine de
+        /// metres, en tournoyant, et on s'ecrase dans la cour. Jamais au-dela de la muraille.
+        /// Les ailes restent fermees jusqu'au sol.
         /// </summary>
         static Vector3 Tumble(Seeker victim, Vector3 velocity)
         {
             Vector3 p = victim.Body.position;
             Vector3 outward = new Vector3(p.x, 0f, p.z);
             outward = outward.sqrMagnitude > 0.01f ? outward.normalized : Vector3.forward;
-            float along = Vector3.Dot(new Vector3(velocity.x, 0f, velocity.z), outward);
-            if (along < 24f) velocity += outward * (24f - along);
-            if (velocity.y > 0.5f) velocity.y = Mathf.Clamp(velocity.y, 5f, 9f);
-            victim.Tumble(6f);
+            Vector3 flat = new Vector3(velocity.x, 0f, velocity.z);
+            Vector3 side = Vector3.ClampMagnitude(flat - outward * Vector3.Dot(flat, outward), 8f);
+            velocity = outward * 22f + side + Vector3.up * (velocity.y < 0f ? 2f : 11f);
+            victim.Tumble(7f);
+            Sfx.Whoosh();
             return velocity;
         }
+
+        /// <summary>
+        /// Le frottement de l'elan (par seconde) : fort d'habitude (on s'arrete en un
+        /// quart de seconde), presque nul pendant une ejection (on vole loin).
+        /// </summary>
+        public static float KnockDrag(Seeker s) { return s != null && s.Tumbling ? 0.95f : 4.5f; }
 
         /// <summary>Projeter un joueur (sans autre effet).</summary>
         public static void Knockback(Seeker s, Vector3 velocity)
@@ -445,9 +453,6 @@ namespace Fief
         {
             if (s == null || s.Body == null) return;
             if (s.CarriesCrown) Crown.BackToTop();
-            // Pousse dans le vide il y a moins de six secondes : l'aura est pour qui l'a ejecte.
-            if (s.LastHitBy != null && Time.time - s.LastHurt < 6f)
-                Aura.Moment(s.LastHitBy, "ÉJECTÉ : " + s.Name.ToUpperInvariant(), s.LastHitBy.Colour, 0.8f);
             s.LastHitBy = null;
             Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;
             float yaw = Spawns.YawOf(s.Index);

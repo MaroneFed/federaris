@@ -180,11 +180,11 @@ namespace Fief
             // Le panneau des touches est la : une chose a la fois a l'ecran.
             if (KeysAlpha() > 0.01f) return;
             Vector3 p = me.Body.position;
-            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
+            if (me.CarriesCrown) Tip("porte", "La Couronne est LOURDE : tu planes mal. Tourne dans un courant d'air (colonne blanche) pour remonter, ou prends une arbaleste sur l'île. Au Monument (colonne bleue), reste 3 s dans le cercle.");
             else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. E : monte sur TON arbaleste, clic gauche : elle te pose devant le château. Puis passe la porte et monte la tour.");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
-            else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("trou", "Les trous se sautent en courant : Maj + Espace. Attention aux pendules.");
+            else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("obstacle", "Un obstacle qui te touche t'éjecte de la tour : regarde les bandes ambre au sol, et passe entre deux coups.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : " + AbilityInfo.PushKey.ToLowerInvariant() + ".");
             else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (" + AbilityInfo.PushKey.ToLowerInvariant() + ") pour la lui VOLER.");
             else if (me.HasGift) Tip("don", "Le don du sanctuaire remplace ton clic gauche, pour cette manche.");
@@ -502,6 +502,28 @@ namespace Fief
             }
 
             if (!string.IsNullOrEmpty(AbilityUser.Hint)) KeyHint(AbilityUser.Hint, cy + UiStyle.S(58));
+            DrawSacre(cy);
+        }
+
+        /// <summary>
+        /// LE SACRE, a l'ecran de tout le monde : une barre d'or qui se remplit en trois
+        /// secondes. Toi : "TIENS BON". Un autre : "VA LE POUSSER !".
+        /// </summary>
+        void DrawSacre(float cy)
+        {
+            Seeker who = Monument.Sacring;
+            if (who == null) return;
+            float p = Monument.SacreProgress;
+            bool mine = who.IsPlayer;
+            float w = UiStyle.S(360), h = UiStyle.S(10);
+            float y = Screen.height * 0.24f;
+            Rect bar = new Rect((Screen.width - w) * 0.5f, y, w, h);
+            Color gold = new Color(1f, 0.8f, 0.35f);
+            Color edge = mine ? gold : new Color(1f, 0.4f, 0.3f);
+            UiStyle.Fill(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.6f));
+            UiStyle.Fill(new Rect(bar.x, bar.y, bar.width * p, bar.height), edge);
+            string line = mine ? "LE SACRE — TIENS BON DANS LE CERCLE" : who.Name.ToUpperInvariant() + " SE FAIT SACRER — VA LE POUSSER !";
+            Text(new Rect(0f, y - UiStyle.S(30), Screen.width, UiStyle.S(26)), line, BigCentered(), edge);
         }
 
         /// <summary>"F|grimper" : la touche en or, le verbe en clair, centres.</summary>
@@ -668,12 +690,6 @@ namespace Fief
 
             if (me.Stunned) UiStyle.Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.9f, 0.85f, 0.7f, 0.12f));
             if (me.Slowed) Edges(UiStyle.S(60), new Color(0.5f, 0.8f, 1f, 0.22f));
-            if (me.CarriesCrown)
-            {
-                // L'aura du porteur : les bords brulent d'or, au rythme de la musique (130 par minute).
-                float beat = Mathf.Pow(1f - Mathf.Repeat(Time.unscaledTime * 130f / 60f, 1f), 3f);
-                Edges(UiStyle.S(40 + 40 * beat), new Color(1f, 0.78f, 0.3f, 0.08f + 0.16f * beat));
-            }
         }
 
         static void Edges(float e, Color c)
@@ -692,14 +708,13 @@ namespace Fief
         /// Il s'affiche tout seul au depart de la premiere manche (pendant le 3, 2, 1 et
         /// quelques secondes apres), et a tout moment avec F1 ou H.
         /// </summary>
-        /// <summary>0 : cache ; 1 : bien visible. Tout seul pendant le 3, 2, 1 et 9 s apres, a la premiere manche.</summary>
+        /// <summary>0 : cache ; 1 : visible (F1 ou H).</summary>
         float KeysAlpha()
         {
             Season season = Game.Season;
             if (season == null || Game.Me == null) return 0f;
-            if (keysOpen) return 1f;
-            bool counting = menus != null && menus.CountingDown;
-            return Match.Played == 0 ? (counting ? 1f : Mathf.Clamp01((9f - season.Elapsed) / 2f)) : 0f;
+            // (30/09 -- "je veux pas le truc a l'avant") : plus jamais tout seul, seulement sur F1 ou H.
+            return keysOpen ? 1f : 0f;
         }
 
         void DrawKeys()

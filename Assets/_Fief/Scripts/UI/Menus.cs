@@ -95,7 +95,6 @@ namespace Fief
             float dt = Time.unscaledDeltaTime;
             appear = Mathf.Min(1f, appear + dt * 0.55f);
             stateTime += dt;
-            PulseWinnerAura(dt);
             if (slowMotion > 0f)
             {
                 slowMotion -= dt;
@@ -217,20 +216,26 @@ namespace Fief
             return null;
         }
 
-        float auraPulse;
-
-        /// <summary>Pendant la fin de manche, l'aura du gagnant pulse : anneaux d'or, gerbes, colonnes.</summary>
-        void PulseWinnerAura(float dt)
+        /// <summary>
+        /// LA FETE DU VAINQUEUR (30/09 -- Martin : "quand tu gagnes la manche, une petite
+        /// animation avec toi") : il saute les bras en l'air et tourne sur lui-meme, la
+        /// Couronne vient flotter au-dessus de sa tete, des confettis a sa couleur.
+        /// </summary>
+        static void Celebrate(Seeker s)
         {
-            Transform w = WinnerBody();
-            if (w == null || Current != State.RoundOver) return;
-            auraPulse -= dt;
-            if (auraPulse > 0f) return;
-            auraPulse = 0.7f;
-            Color gold = new Color(1f, 0.8f, 0.35f);
-            Fx.Ring(w.position + Vector3.up * 0.2f, gold, 0.5f, 6f, 0.6f, 0.3f, Vector3.up);
-            Fx.Burst(w.position + Vector3.up * 1f, gold, 40, 6f, 0.2f, 1.2f, -0.3f, Vector3.up, 40f);
-            AuraFlames.Burn(w, gold, 2f);
+            if (s == null || s.Body == null) return;
+            CharacterRig rig = s.IsPlayer ? Game.Rig : null;
+            if (!s.IsPlayer)
+            {
+                Rival r = Rival.Of(s);
+                if (r != null) rig = r.Rig;
+            }
+            if (rig != null) rig.Celebrate(14f);
+            if (Crown.Instance != null) Crown.Instance.ShowOff(s.Body);
+            Vector3 at = s.Body.position + Vector3.up * 1.6f;
+            Color[] confetti = { s.Colour, new Color(1f, 0.82f, 0.36f), Color.white, Color.Lerp(s.Colour, Color.white, 0.5f) };
+            for (int i = 0; i < confetti.Length; i++)
+                Fx.Burst(at, confetti[i], 30, 7f, 0.12f, 2.2f, 0.6f, Vector3.up, 70f);
         }
 
         /// <summary>
@@ -487,19 +492,14 @@ namespace Fief
             if (Game.Season != null) { roundTime = Game.Season.Elapsed; Game.Season.Stop(); }
             byTime = endedByTime;
             endedByTime = false;
-            // LE RALENTI : une seconde et demie ou le monde retient son souffle.
-            Time.timeScale = winner >= 0 ? 0.25f : 1f;
-            slowMotion = winner >= 0 ? 1.6f : 0f;
+            // (30/09 : plus de ralenti -- la fete du vainqueur se joue a vitesse normale.)
+            Time.timeScale = 1f;
+            slowMotion = 0f;
             if (Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
             roundWinner = winner;
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
-            // Le vainqueur flambe d'aura pendant toute la fin de manche.
             for (int i = 0; i < Game.Seekers.Count; i++)
-                if (Game.Seekers[i].Index == winner && Game.Seekers[i].Body != null)
-                {
-                    AuraFlames.Burn(Game.Seekers[i].Body, Game.Seekers[i].Colour, 12f);
-                    Fx.Column(Game.Seekers[i].Body.position, Game.Seekers[i].Colour, 40f, 0.8f, 1.2f);
-                }
+                if (Game.Seekers[i].Index == winner) Celebrate(Game.Seekers[i]);
             Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();
@@ -688,15 +688,30 @@ namespace Fief
             if (hover && hoverFollows) selected = index;
             bool on = selected == index;
             GUIStyle style = primary ? Style(UiStyle.Title, 34, TextAnchor.MiddleLeft) : Style(UiStyle.Head, 22, TextAnchor.MiddleLeft);
-            float indent = on ? UiStyle.S(14) : 0f;
-            Color c = on ? new Color(1f, 0.84f, 0.5f, alpha) : new Color(0.8f, 0.76f, 0.68f, alpha * 0.8f);
-            Shadow(new Rect(r.x + indent, r.y, r.width - indent, r.height), text, style, c);
+            // (30/09 -- "un meilleur menu") L'entree choisie : une bande d'or qui s'efface
+            // vers la droite, un trait d'or a gauche, le mot qui avance et s'eclaire.
+            float indent = on ? UiStyle.S(22) : UiStyle.S(8);
             if (on)
             {
-                float w = style.CalcSize(new GUIContent(text)).x;
-                UiStyle.Fill(new Rect(r.x + indent, r.yMax - UiStyle.S(6), w, 1f), new Color(1f, 0.84f, 0.5f, alpha * 0.7f));
+                float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 3f);
+                Glide(new Rect(r.x - UiStyle.S(12), r.y + 2f, r.width + UiStyle.S(60), r.height - 4f), new Color(1f, 0.78f, 0.35f, 0.24f * alpha * pulse));
+                UiStyle.Fill(new Rect(r.x - UiStyle.S(12), r.y + 4f, UiStyle.S(4), r.height - 8f), new Color(1f, 0.84f, 0.5f, alpha));
             }
+            Color c = on ? new Color(1f, 0.9f, 0.62f, alpha) : new Color(0.86f, 0.82f, 0.74f, alpha * 0.78f);
+            Shadow(new Rect(r.x + indent, r.y, r.width - indent, r.height), text, style, c);
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
+        }
+
+        /// <summary>Une bande de couleur qui s'efface de gauche a droite (en fines tranches).</summary>
+        static void Glide(Rect r, Color c)
+        {
+            const int n = 24;
+            float w = r.width / n;
+            for (int i = 0; i < n; i++)
+            {
+                float k = 1f - i / (float)n;
+                UiStyle.Fill(new Rect(r.x + i * w, r.y, w + 1f, r.height), new Color(c.r, c.g, c.b, c.a * k * k));
+            }
         }
 
         /// <summary>Un texte avec son ombre, pour qu'il se lise sur la foret.</summary>
@@ -768,12 +783,23 @@ namespace Fief
             float late = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((appear - 0.45f) / 0.55f));
             float x = Left;
             float w = Mathf.Min(UiStyle.S(640), Screen.width - x * 2f);
-            float y = Screen.height * 0.5f - UiStyle.S(200) + (1f - ease) * UiStyle.S(18);
+            float y = Screen.height * 0.5f - UiStyle.S(230) + (1f - ease) * UiStyle.S(18);
 
-            Shadow(new Rect(x, y, w, UiStyle.S(130)), UiStyle.Spaced("FIEF"), Style(UiStyle.Big, 112, TextAnchor.MiddleLeft), new Color(0.93f, 0.78f, 0.45f, ease));
-            y += UiStyle.S(122);
-            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)), UiStyle.Spaced("LA COURONNE"), Style(UiStyle.Head, 20, TextAnchor.MiddleLeft), new Color(0.95f, 0.85f, 0.6f, ease * 0.9f));
-            y += UiStyle.S(70);
+            // (30/09 -- "un meilleur menu") Un voile sombre a gauche, sur le plan de l'ile
+            // qui tourne ; le nom en or avec un halo ; un filet ; une phrase ; puis les mots.
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f * ease));
+            GUIStyle big = Style(UiStyle.Big, 120, TextAnchor.MiddleLeft);
+            float glow = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 1.4f);
+            for (int k = 1; k <= 3; k++)
+                UiStyle.Tinted(new Rect(x - k * 2f, y - k, w, UiStyle.S(140)), UiStyle.Spaced("FIEF"), big, new Color(1f, 0.7f, 0.25f, (0.12f + 0.06f * glow) * ease));
+            Shadow(new Rect(x, y, w, UiStyle.S(140)), UiStyle.Spaced("FIEF"), big, new Color(1f, 0.84f, 0.5f, ease));
+            y += UiStyle.S(128);
+            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)), UiStyle.Spaced("LA COURONNE"), Style(UiStyle.Head, 22, TextAnchor.MiddleLeft), new Color(0.98f, 0.9f, 0.7f, ease));
+            y += UiStyle.S(36);
+            Glide(new Rect(x + UiStyle.S(4), y, UiStyle.S(420), 2f), new Color(1f, 0.8f, 0.42f, 0.9f * ease));
+            y += UiStyle.S(12);
+            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(24)), "Une Couronne. Huit joueurs. Au-dessus des nuages.", Style(UiStyle.Label, 0, TextAnchor.MiddleLeft), new Color(0.9f, 0.86f, 0.78f, late * 0.9f));
+            y += UiStyle.S(60);
 
             for (int i = 0; i < TitleItems.Length; i++)
             {
@@ -797,6 +823,7 @@ namespace Fief
         /// </summary>
         void DrawLobby()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(230);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("NOUVEAU MATCH"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -896,6 +923,7 @@ namespace Fief
         /// <summary>LES REGLAGES : sensibilite, volume, champ de vision, plein ecran. Garde d'une partie a l'autre.</summary>
         void DrawSettings()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("RÉGLAGES"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -923,6 +951,7 @@ namespace Fief
         /// </summary>
         void DrawOnline()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(140);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("EN LIGNE"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -1014,6 +1043,7 @@ namespace Fief
 
         void DrawPause()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
             Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("PAUSE"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
@@ -1047,32 +1077,33 @@ namespace Fief
 
         void DrawRoundOver()
         {
-            // Le ralenti d'abord (le monde, la Couronne sur l'autel), puis le verdict.
-            float a = Mathf.Clamp01((stateTime - 1.2f) / 0.6f);
-            float y = Screen.height * 0.3f;
+            // (30/09) Le vainqueur fete au MILIEU de l'ecran : son nom en haut, le reste en
+            // bas, rien par-dessus lui.
+            float a = Mathf.Clamp01((stateTime - 0.8f) / 0.6f);
+            float y = Screen.height * 0.07f;
             PlayerSlot w = roundWinner >= 0 && roundWinner < Match.Slots.Count ? Match.Slots[roundWinner] : null;
+            // Un voile en haut et en bas seulement, pour lire les mots.
+            UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, Screen.height * 0.3f), new Color(0f, 0f, 0f, 0.55f * a));
+            UiStyle.FadeBand(new Rect(0f, Screen.height * 0.66f, Screen.width, Screen.height * 0.34f), new Color(0f, 0f, 0f, 0.6f * a));
             if (w != null)
             {
-                // SON PSEUDO, EN GRAND, EN OR : des rayons derriere, il claque et se pose.
-                CardArt.Background(new Color(1f, 0.8f, 0.35f));
-                float punch = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01((stateTime - 1.2f) / 0.2f));
+                // SON PSEUDO, EN GRAND, EN OR : il claque et se pose.
+                float punch = Mathf.Lerp(1.4f, 1f, Mathf.Clamp01((stateTime - 0.8f) / 0.2f));
                 Color gold = new Color(1f, 0.82f, 0.38f, a);
-                Headline(y - UiStyle.S(70), 96 * punch, UiStyle.Spaced(w.Name.ToUpperInvariant()), gold);
-                Headline(y + UiStyle.S(40), 34, w.IsLocal ? "TU REMPORTES LA MANCHE" : "REMPORTE LA MANCHE", new Color(1f, 0.95f, 0.85f, a));
-                float aura = Mathf.Clamp01((stateTime - 1.6f) / 0.3f);
-                Centered(y + UiStyle.S(92), UiStyle.S(30), UiStyle.Spaced("+1000 AURA"), UiStyle.Head, new Color(1f, 0.75f, 0.3f, aura * a));
-                y += UiStyle.S(70);
+                Headline(y, 88 * punch, UiStyle.Spaced(w.Name.ToUpperInvariant()), gold);
+                Headline(y + UiStyle.S(96), 30, w.IsLocal ? "TU REMPORTES LA MANCHE" : "REMPORTE LA MANCHE", new Color(1f, 0.95f, 0.85f, a));
             }
-            else Headline(y, 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
-            y += UiStyle.S(84);
-            // Comment : on doit comprendre pourquoi la manche s'arrete.
+            else Headline(y + UiStyle.S(40), 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
+
+            // En bas : comment, le score, et la suite.
+            y = Screen.height * 0.7f;
             string how = w == null ? "Le temps s'est écoulé, et personne ne tenait la Couronne."
                        : byTime ? (w.IsLocal ? "Tu tenais la Couronne quand le temps s'est écoulé." : w.Name + " tenait la Couronne quand le temps s'est écoulé.")
-                       : (w.IsLocal ? "Tu as porté la Couronne au Monument" : w.Name + " a porté la Couronne au Monument") + " en " + Hud.Clock(roundTime) + ".";
+                       : (w.IsLocal ? "Tu as posé la Couronne sur un Monument" : w.Name + " a posé la Couronne sur un Monument") + " en " + Hud.Clock(roundTime) + ".";
             Centered(y, UiStyle.S(26), how, UiStyle.Label, new Color(0.9f, 0.86f, 0.78f, a));
-            y += UiStyle.S(50);
+            y += UiStyle.S(44);
             ScoreLine(y, a);
-            y += UiStyle.S(70);
+            y += UiStyle.S(60);
 
             if (stateTime > 1.8f)
             {
@@ -1360,6 +1391,7 @@ namespace Fief
 
         void DrawControls()
         {
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             int count = Controls.GetLength(0);
             float y = Screen.height * 0.5f - UiStyle.S(40 + count * 15);
