@@ -154,9 +154,26 @@ namespace Fief
             return Make(PrimitiveType.Sphere, parent, pos, scale, color, name);
         }
 
+        /// <summary>
+        /// Un cylindre. ATTENTION (30/09, le bug des bots qui ne prenaient pas la
+        /// Couronne) : le cylindre d'Unity recoit un CapsuleCollider, et une capsule plus
+        /// large que haute devient une BOULE. Une marche de 5 m de large et 30 cm de haut
+        /// avait donc un collider spherique de 2,6 m de rayon : une bulle invisible sur le
+        /// socle, qui tenait tout le monde a distance. On le remplace par un collider qui
+        /// a la vraie forme du cylindre (MeshCollider convexe).
+        /// </summary>
         public static GameObject Cylinder(Transform parent, Vector3 pos, Vector3 scale, Color color, string name = "Cylinder")
         {
-            return Make(PrimitiveType.Cylinder, parent, pos, scale, color, name);
+            GameObject go = Make(PrimitiveType.Cylinder, parent, pos, scale, color, name);
+            CapsuleCollider capsule = go.GetComponent<CapsuleCollider>();
+            if (capsule != null)
+            {
+                Object.DestroyImmediate(capsule);
+                MeshCollider exact = go.AddComponent<MeshCollider>();
+                exact.sharedMesh = SharedMesh(PrimitiveType.Cylinder);
+                exact.convex = true;
+            }
+            return go;
         }
 
         /// <summary>

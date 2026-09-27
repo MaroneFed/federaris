@@ -180,7 +180,7 @@ namespace Fief
             // Le panneau des touches est la : une chose a la fois a l'ecran.
             if (KeysAlpha() > 0.01f) return;
             Vector3 p = me.Body.position;
-            if (me.CarriesCrown) Tip("porte", "Tu brilles : tout le monde te voit. Plane jusqu'à un des trois Monuments (les colonnes bleues), celui que tu veux — pousser le porteur, c'est lui voler la Couronne !");
+            if (me.CarriesCrown) Tip("porte", "La Couronne est LOURDE : tu planes mal. Tourne dans un courant d'air (colonne blanche) pour remonter, ou prends une arbaleste sur l'île. Au Monument (colonne bleue), reste 3 s dans le cercle.");
             else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. E : monte sur TON arbaleste, clic gauche : elle te pose devant le château. Puis passe la porte et monte la tour.");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
             else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
@@ -502,6 +502,28 @@ namespace Fief
             }
 
             if (!string.IsNullOrEmpty(AbilityUser.Hint)) KeyHint(AbilityUser.Hint, cy + UiStyle.S(58));
+            DrawSacre(cy);
+        }
+
+        /// <summary>
+        /// LE SACRE, a l'ecran de tout le monde : une barre d'or qui se remplit en trois
+        /// secondes. Toi : "TIENS BON". Un autre : "VA LE POUSSER !".
+        /// </summary>
+        void DrawSacre(float cy)
+        {
+            Seeker who = Monument.Sacring;
+            if (who == null) return;
+            float p = Monument.SacreProgress;
+            bool mine = who.IsPlayer;
+            float w = UiStyle.S(360), h = UiStyle.S(10);
+            float y = Screen.height * 0.24f;
+            Rect bar = new Rect((Screen.width - w) * 0.5f, y, w, h);
+            Color gold = new Color(1f, 0.8f, 0.35f);
+            Color edge = mine ? gold : new Color(1f, 0.4f, 0.3f);
+            UiStyle.Fill(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.6f));
+            UiStyle.Fill(new Rect(bar.x, bar.y, bar.width * p, bar.height), edge);
+            string line = mine ? "LE SACRE — TIENS BON DANS LE CERCLE" : who.Name.ToUpperInvariant() + " SE FAIT SACRER — VA LE POUSSER !";
+            Text(new Rect(0f, y - UiStyle.S(30), Screen.width, UiStyle.S(26)), line, BigCentered(), edge);
         }
 
         /// <summary>"F|grimper" : la touche en or, le verbe en clair, centres.</summary>

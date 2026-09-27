@@ -409,12 +409,19 @@ namespace Fief
             if (aimMonument == null) return;
             Vector3 m = aimMonument.transform.position;
             if (IsletAt(me) == aimMonument.Islet) { SetGoal(Goal.Deliver, m, was); return; }
+            // (30/09 : la Couronne est lourde.) Il ne saute que s'il atteint le Monument en
+            // planant -- ou, a defaut, le courant d'air sur le chemin, pour y remonter.
             if (seeker.CanGlide && (Tower.Summit(me) || Tower.On(me) && me.y > m.y + 25f))
             {
-                goal = Goal.Deliver;
-                target = m;
-                Leap(m);
-                return;
+                Thermal lift = Thermal.Nearest(m);
+                bool direct = Wings.CanReach(me, m, seeker);
+                if (direct || lift != null && Wings.CanReach(me, lift.transform.position + Vector3.up * 6f, seeker))
+                {
+                    goal = Goal.Deliver;
+                    target = m;
+                    Leap(direct || lift == null ? m : lift.transform.position);
+                    return;
+                }
             }
             if ((Ground.OnIsland(me.x, me.z) || IsletAt(me) >= 0) && !Tower.On(me))
             {
@@ -966,9 +973,9 @@ namespace Fief
                 {
                     ballistic = false;
                     Vector3 aimAt = goal == Goal.Hunt && prey != null && prey.Body != null ? prey.Body.position : target;
-                    Vector3 look = Wings.LookFor(transform.position, aimAt);
+                    Vector3 look = Wings.LookFor(transform.position, aimAt, seeker);
                     // Trop bas pour y arriver : il va chercher un courant d'air et tourne dedans.
-                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard) && !Wings.CanReach(transform.position, aimAt))
+                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard) && !Wings.CanReach(transform.position, aimAt, seeker))
                     {
                         Thermal t = Thermal.Nearest(transform.position);
                         if (t != null)
@@ -992,12 +999,18 @@ namespace Fief
             }
             if (wings != null) wings.Flying = gliding;
 
-            // Au bord de l'ile (pas sur la tour) : il ne saute pas dans le vide, il s'arrete.
+            // Au bord de l'ile : il ne saute pas dans le vide, il s'arrete. Au bord de la
+            // rampe (30/09 : plus de trous a sauter) : il se rabat vers le fut, sans sauter.
             if (grounded && !leaping && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir)) walk = Vector3.zero;
+            else if (grounded && !leaping && speed > 0f && Tower.On(transform.position) && EdgeAhead(dir))
+            {
+                Vector3 inward = -Flat(transform.position).normalized;
+                walk = (Flat(walk).normalized + inward * 1.2f).normalized * speed;
+            }
             // Une barre (moulinet, balayeur) arrive : il saute par-dessus.
             else if (grounded && speed > 0f && Sweeper.Threat(transform.position + dir * 1.2f)) fallSpeed = 7.5f;
-            // Au bord d'un trou de la rampe (ou bloque) : il saute. Deux fois, s'il sait.
-            else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || EdgeAhead(dir))) fallSpeed = 7f;
+            // Bloque : il saute. Deux fois, s'il sait.
+            else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || !Tower.On(transform.position) && EdgeAhead(dir))) fallSpeed = 7f;
             else if (!grounded && !gliding && !ballistic && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
             {
                 airJumped = true;
