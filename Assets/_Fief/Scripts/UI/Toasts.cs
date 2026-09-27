@@ -60,8 +60,9 @@ namespace Fief
         {
             if (entries.Count == 0) return;
             float h = UiStyle.S(42);
-            float x = UiStyle.S(24);
-            float y = Screen.height * 0.4f;
+            // (A droite de la jauge de la tour, qui est collee au bord gauche.)
+            float x = UiStyle.S(84);
+            float y = Screen.height * 0.36f;
             for (int i = 0; i < entries.Count; i++)
             {
                 Entry e = entries[i];

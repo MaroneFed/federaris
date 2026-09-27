@@ -697,19 +697,67 @@ namespace Fief
             bool hover = r.Contains(Event.current.mousePosition);
             if (hover && hoverFollows) selected = index;
             bool on = selected == index;
-            GUIStyle style = primary ? Style(UiStyle.Title, 34, TextAnchor.MiddleLeft) : Style(UiStyle.Head, 22, TextAnchor.MiddleLeft);
-            // (30/09 -- "un meilleur menu") L'entree choisie : une bande d'or qui s'efface
-            // vers la droite, un trait d'or a gauche, le mot qui avance et s'eclaire.
-            float indent = on ? UiStyle.S(22) : UiStyle.S(8);
-            if (on)
+            // (30/09 -- "plus pro, comme Fall Guys") UN GROS BOUTON ROND : bleu, jaune quand
+            // on le vise (il se souleve), une icone a gauche, le mot cerne de sombre.
+            float lift = on ? UiStyle.S(4) : 0f;
+            Rect b = new Rect(r.x, r.y + UiStyle.S(3) - lift, r.width, r.height - UiStyle.S(6));
+            Color fill = on ? new Color(1f, 0.78f, 0.18f) : primary ? new Color(0.34f, 0.4f, 0.95f) : new Color(0.2f, 0.25f, 0.56f);
+            Icons.Pill(b, fill, alpha);
+            string icon = IconFor(text);
+            float ic = b.height * 0.7f;
+            float tx = b.x + b.height * 0.32f;
+            Color ink = new Color(0.12f, 0.09f, 0.28f, alpha);
+            if (icon != null)
             {
-                float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 3f);
-                Glide(new Rect(r.x - UiStyle.S(12), r.y + 2f, r.width + UiStyle.S(60), r.height - 4f), new Color(1f, 0.78f, 0.35f, 0.24f * alpha * pulse));
-                UiStyle.Fill(new Rect(r.x - UiStyle.S(12), r.y + 4f, UiStyle.S(4), r.height - 8f), new Color(1f, 0.84f, 0.5f, alpha));
+                Icons.Draw(new Rect(tx, b.y + (b.height - ic) * 0.5f, ic, ic), icon, on ? ink : new Color(1f, 1f, 1f, alpha), !on);
+                tx += ic + UiStyle.S(12);
             }
-            Color c = on ? new Color(1f, 0.9f, 0.62f, alpha) : new Color(0.86f, 0.82f, 0.74f, alpha * 0.78f);
-            Shadow(new Rect(r.x + indent, r.y, r.width - indent, r.height), text, style, c);
+            int size = Mathf.RoundToInt(b.height * (primary ? 0.5f : 0.46f));
+            Rect tr = new Rect(tx, b.y, b.xMax - tx - b.height * 0.3f, b.height);
+            if (on) UiStyle.Tinted(tr, text, ButtonText(size), ink);
+            else Icons.Number(tr, text, size, new Color(1f, 1f, 1f, alpha), TextAnchor.MiddleLeft);
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
+        }
+
+        static readonly Dictionary<int, GUIStyle> buttonTexts = new Dictionary<int, GUIStyle>();
+        static GUIStyle ButtonText(int size)
+        {
+            GUIStyle st;
+            if (buttonTexts.TryGetValue(size, out st)) return st;
+            st = new GUIStyle(UiStyle.Title);
+            st.fontSize = size;
+            st.alignment = TextAnchor.MiddleLeft;
+            st.wordWrap = false;
+            st.clipping = TextClipping.Overflow;
+            buttonTexts[size] = st;
+            return st;
+        }
+
+        /// <summary>L'icone de chaque entree de menu (par son mot).</summary>
+        static string IconFor(string text)
+        {
+            if (text.StartsWith("Jouer") || text.StartsWith("Commencer") || text.StartsWith("Reprendre") || text.StartsWith("Nouveau")) return "jouer";
+            if (text.StartsWith("En ligne")) return "en-ligne";
+            if (text.StartsWith("Réglages")) return "reglages";
+            if (text.StartsWith("Commandes")) return "commandes";
+            if (text.StartsWith("Quitter")) return "quitter";
+            if (text.StartsWith("Abandonner")) return "drapeau";
+            if (text.StartsWith("Retour")) return "retour";
+            if (text.StartsWith("Le podium")) return "couronne";
+            if (text.StartsWith("Choisir") || text.StartsWith("Prendre")) return "don";
+            if (text.StartsWith("Joueurs")) return "joueur";
+            if (text.StartsWith("Bots")) return "bot";
+            if (text.StartsWith("Manches")) return "manches";
+            if (text.StartsWith("Durée")) return "duree";
+            if (text.StartsWith("Sensibilité")) return "souris-g";
+            if (text.StartsWith("Volume")) return "volume";
+            if (text.StartsWith("Champ")) return "vue";
+            if (text.StartsWith("Taille")) return "texte";
+            if (text.StartsWith("Plein")) return "ecran";
+            if (text.StartsWith("Touche capacité")) return "cible";
+            if (text.StartsWith("Touche pousser")) return "pousser";
+            if (text.StartsWith("Pseudo")) return "pseudo";
+            return null;
         }
 
         /// <summary>
@@ -753,8 +801,8 @@ namespace Fief
         /// <summary>Un grand titre, centre, de la taille voulue.</summary>
         static void Headline(float y, float size, string text, Color c)
         {
-            GUIStyle s = Style(UiStyle.Big, size, TextAnchor.MiddleCenter);
-            Shadow(new Rect(0f, y, Screen.width, UiStyle.S(size * 1.3f)), text, s, c);
+            // (30/09) Les grands titres : gros, ronds, cernes de sombre (facon Fall Guys).
+            Icons.Number(new Rect(0f, y, Screen.width, UiStyle.S(size * 1.3f)), text, UiStyle.S(size), c, TextAnchor.MiddleCenter);
         }
 
         /// <summary>
@@ -794,7 +842,8 @@ namespace Fief
         /// <summary>En bas de l'ecran, ce que font les touches, en petit.</summary>
         static void Footer(string text)
         {
-            Shadow(new Rect(0f, Screen.height - UiStyle.S(44), Screen.width, UiStyle.S(20)), text, Style(UiStyle.Small, 0, TextAnchor.MiddleCenter), UiStyle.InkFaint);
+            // (30/09 -- "je deteste le texte") : plus de ligne d'aide en bas des menus.
+            return;
         }
 
         float Left { get { return Mathf.Max(UiStyle.S(40), Screen.width * 0.09f); } }
@@ -812,25 +861,24 @@ namespace Fief
             // (30/09 -- "un meilleur menu") Un voile sombre a gauche, sur le plan de l'ile
             // qui tourne ; le nom en or avec un halo ; un filet ; une phrase ; puis les mots.
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f * ease));
-            GUIStyle big = Style(UiStyle.Big, 120, TextAnchor.MiddleLeft);
+            // (30/09 -- "plus pro, comme Fall Guys") La Couronne, "FIEF" en lettres rondes
+            // cernees, un ruban bleu, puis les gros boutons.
             float glow = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 1.4f);
-            for (int k = 1; k <= 3; k++)
-                UiStyle.Tinted(new Rect(x - k * 2f, y - k, w, UiStyle.S(140)), UiStyle.Spaced("FIEF"), big, new Color(1f, 0.7f, 0.25f, (0.12f + 0.06f * glow) * ease));
-            Shadow(new Rect(x, y, w, UiStyle.S(140)), UiStyle.Spaced("FIEF"), big, new Color(1f, 0.84f, 0.5f, ease));
-            y += UiStyle.S(128);
-            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(30)), UiStyle.Spaced("LA COURONNE"), Style(UiStyle.Head, 22, TextAnchor.MiddleLeft), new Color(0.98f, 0.9f, 0.7f, ease));
-            y += UiStyle.S(36);
-            Glide(new Rect(x + UiStyle.S(4), y, UiStyle.S(420), 2f), new Color(1f, 0.8f, 0.42f, 0.9f * ease));
-            y += UiStyle.S(12);
-            Shadow(new Rect(x + UiStyle.S(4), y, w, UiStyle.S(24)), "Une Couronne. Huit joueurs. Au-dessus des nuages.", Style(UiStyle.Label, 0, TextAnchor.MiddleLeft), new Color(0.9f, 0.86f, 0.78f, late * 0.9f));
-            y += UiStyle.S(60);
+            float cs = UiStyle.S(92) * (1f + 0.04f * glow);
+            Icons.Draw(new Rect(x + UiStyle.S(8), y - UiStyle.S(70), cs, cs), "couronne", new Color(1f, 0.86f, 0.35f, ease));
+            Icons.Number(new Rect(x, y, w, UiStyle.S(150)), "FIEF", UiStyle.S(140), new Color(1f, 0.84f, 0.3f, ease), TextAnchor.MiddleLeft);
+            y += UiStyle.S(150);
+            Rect ribbon = new Rect(x + UiStyle.S(8), y, UiStyle.S(280), UiStyle.S(46));
+            Icons.Pill(ribbon, new Color(0.3f, 0.36f, 0.9f), ease);
+            Icons.Number(ribbon, "LA COURONNE", UiStyle.S(26), new Color(1f, 1f, 1f, ease), TextAnchor.MiddleCenter);
+            y += UiStyle.S(84);
 
             for (int i = 0; i < TitleItems.Length; i++)
             {
                 bool primary = i == 0;
-                float h = UiStyle.S(primary ? 50 : 38);
-                if (Entry(new Rect(x, y, UiStyle.S(420), h), TitleItems[i], i, primary, late) && late > 0.9f) Activate(i);
-                y += h + UiStyle.S(4);
+                float h = UiStyle.S(primary ? 70 : 56);
+                if (Entry(new Rect(x, y, UiStyle.S(primary ? 440 : 400), h), TitleItems[i], i, primary, late) && late > 0.9f) Activate(i);
+                y += h + UiStyle.S(10);
             }
 
             Footer("↑ ↓  choisir     Entrée  valider");
@@ -850,7 +898,7 @@ namespace Fief
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(230);
-            Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("NOUVEAU MATCH"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
+            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "NOUVEAU MATCH", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(80);
 
             string[] labels = { "Joueurs", "Bots", "Manches", "Durée max" };
@@ -859,7 +907,7 @@ namespace Fief
             {
                 int row = i;
                 ValueRow(x, y, labels[i], values[i], i, step => Adjust(row, step));
-                y += UiStyle.S(48);
+                y += UiStyle.S(58);
 
                 // Sous "Joueurs" : qui joue, a sa couleur.
                 if (i == 0)
@@ -899,18 +947,22 @@ namespace Fief
         /// <summary>Une ligne a regler : "Joueurs   ‹ 4 ›". Les fleches se cliquent ; au clavier, gauche/droite.</summary>
         void ValueRow(float x, float y, string label, string value, int index, System.Action<int> adjust)
         {
-            Rect row = new Rect(x, y, UiStyle.S(520), UiStyle.S(44));
+            Rect row = new Rect(x, y, UiStyle.S(300), UiStyle.S(48));
             Entry(row, label, index, false, 1f);
             bool on = selected == index;
-            GUIStyle vs = Style(UiStyle.Head, 24, TextAnchor.MiddleCenter);
-            Color vc = on ? new Color(1f, 0.84f, 0.5f) : UiStyle.Ink;
-            float vx = x + UiStyle.S(270);
-            Rect minus = new Rect(vx, y, UiStyle.S(40), row.height);
-            Rect val = new Rect(vx + UiStyle.S(40), y, UiStyle.S(130), row.height);
-            Rect plus = new Rect(vx + UiStyle.S(170), y, UiStyle.S(40), row.height);
-            Shadow(minus, "‹", vs, new Color(vc.r, vc.g, vc.b, on ? 0.9f : 0.35f));
-            Shadow(val, value, vs, vc);
-            Shadow(plus, "›", vs, new Color(vc.r, vc.g, vc.b, on ? 0.9f : 0.35f));
+            // La valeur, dans sa pastille, entre deux fleches.
+            float vx = x + UiStyle.S(316);
+            Rect minus = new Rect(vx, y + UiStyle.S(6), UiStyle.S(36), UiStyle.S(36));
+            Rect val = new Rect(vx + UiStyle.S(44), y + UiStyle.S(3), UiStyle.S(170), UiStyle.S(42));
+            Rect plus = new Rect(vx + UiStyle.S(222), y + UiStyle.S(6), UiStyle.S(36), UiStyle.S(36));
+            Icons.Pill(val, on ? new Color(0.3f, 0.34f, 0.72f) : new Color(0.14f, 0.16f, 0.36f));
+            Icons.Number(val, value, UiStyle.S(22), on ? new Color(1f, 0.86f, 0.35f) : Color.white, TextAnchor.MiddleCenter);
+            Color arrow = new Color(1f, 1f, 1f, on ? 1f : 0.45f);
+            Matrix4x4 keep = GUI.matrix;
+            GUIUtility.ScaleAroundPivot(new Vector2(-1f, 1f), minus.center);
+            Icons.Draw(minus, "jouer", arrow);
+            GUI.matrix = keep;
+            Icons.Draw(plus, "jouer", arrow);
             if (GUI.Button(minus, GUIContent.none, GUIStyle.none)) { selected = index; adjust.Invoke(-1); }
             if (GUI.Button(plus, GUIContent.none, GUIStyle.none)) { selected = index; adjust.Invoke(1); }
         }
@@ -920,7 +972,7 @@ namespace Fief
         /// <summary>La ligne du pseudo : un champ ou l'on tape (16 lettres au plus).</summary>
         void PseudoRow(float x, float y, int index)
         {
-            Rect row = new Rect(x, y, UiStyle.S(520), UiStyle.S(44));
+            Rect row = new Rect(x, y, UiStyle.S(300), UiStyle.S(48));
             Entry(row, "Pseudo", index, false, 1f);
             bool on = selected == index;
             if (pseudoStyle == null || pseudoStyle.fontSize != UiStyle.S(24))
@@ -931,15 +983,14 @@ namespace Fief
                 pseudoStyle.normal.textColor = new Color(1f, 0.84f, 0.5f);
                 pseudoStyle.focused.textColor = new Color(1f, 0.9f, 0.6f);
             }
-            Rect field = new Rect(x + UiStyle.S(270), y + UiStyle.S(4), UiStyle.S(210), row.height - UiStyle.S(8));
-            UiStyle.Fill(field, new Color(0f, 0f, 0f, on ? 0.55f : 0.3f));
-            UiStyle.Fill(new Rect(field.x, field.yMax - 2f, field.width, 2f), new Color(1f, 0.8f, 0.42f, on ? 1f : 0.4f));
+            Rect field = new Rect(x + UiStyle.S(316), y + UiStyle.S(3), UiStyle.S(258), UiStyle.S(42));
+            Icons.Pill(field, on ? new Color(0.3f, 0.34f, 0.72f) : new Color(0.14f, 0.16f, 0.36f));
             GUI.SetNextControlName("pseudo");
             string typed = GUI.TextField(field, Settings.Pseudo, Settings.PseudoLength, pseudoStyle);
             if (typed != Settings.Pseudo) Settings.SetPseudo(typed);
             if (on && GUI.GetNameOfFocusedControl() != "pseudo") GUI.FocusControl("pseudo");
             else if (!on && GUI.GetNameOfFocusedControl() == "pseudo") GUI.FocusControl(null);
-            if (GUI.Button(new Rect(x, y, UiStyle.S(260), row.height), GUIContent.none, GUIStyle.none)) selected = index;
+            if (GUI.Button(new Rect(x, y, UiStyle.S(300), row.height), GUIContent.none, GUIStyle.none)) selected = index;
         }
 
         // ------------------------------------------------------------------ les reglages
@@ -950,17 +1001,17 @@ namespace Fief
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
-            Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("RÉGLAGES"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
+            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "RÉGLAGES", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(80);
             for (int i = 0; i < Settings.Labels.Length; i++)
             {
                 int row = i;
                 ValueRow(x, y, Settings.Labels[i], Settings.Value(i), i, step => { Settings.Step(row, step); Sfx.Pop(); });
-                y += UiStyle.S(48);
+                y += UiStyle.S(56);
             }
             // LE PSEUDO : on le tape. Il s'affiche au-dessus de ta tete et quand tu gagnes.
             PseudoRow(x, y, Settings.Labels.Length);
-            y += UiStyle.S(48);
+            y += UiStyle.S(56);
             y += UiStyle.S(24);
             if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", Settings.Labels.Length + 1, false, 1f)) { showSettings = false; selected = 0; }
             Footer(selected == Settings.Labels.Length ? "Tape ton pseudo     ↑ ↓  choisir     Entrée  valider" : "↑ ↓  choisir     ← →  régler     Échap  retour");
@@ -978,7 +1029,7 @@ namespace Fief
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(140);
-            Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("EN LIGNE"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
+            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "EN LIGNE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(70);
             GUIStyle line = Style(UiStyle.Head, 20, TextAnchor.MiddleLeft);
             Shadow(new Rect(x, y, UiStyle.S(700), UiStyle.S(30)), "Pas encore. Quatre joueurs par Steam, bientôt.", line, UiStyle.Ink);
@@ -1005,7 +1056,7 @@ namespace Fief
             float a = Mathf.Clamp01(t / 0.5f) * Mathf.Clamp01((BriefingLength - t) / 0.5f);
             float y = Screen.height * 0.3f;
 
-            string head = Match.IsTieBreak ? UiStyle.Spaced("DÉPARTAGE") : UiStyle.Spaced("MANCHE " + Match.RoundNumber);
+            string head = Match.IsTieBreak ? "DÉPARTAGE" : "MANCHE " + Match.RoundNumber;
             Headline(y, 64, head, new Color(0.93f, 0.78f, 0.45f, a));
             y += UiStyle.S(100);
 
@@ -1018,13 +1069,32 @@ namespace Fief
             }
             else if (Match.Played == 0)
             {
-                float b = Mathf.Clamp01((t - 0.8f) / 0.5f) * a;
-                Centered(y, UiStyle.S(30), "Tire-toi de ta plateforme, passe une porte, monte la tour : la Couronne est au sommet.", UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, b));
-                float c = Mathf.Clamp01((t - 1.8f) / 0.5f) * a;
-                Centered(y + UiStyle.S(38), UiStyle.S(30), "Plane jusqu'à l'un des trois Monuments, sur les îlots : les colonnes bleues.", UiStyle.Head, new Color(0.6f, 0.8f, 1f, c));
-                float d = Mathf.Clamp01((t - 2.8f) / 0.5f) * a;
-                Centered(y + UiStyle.S(76), UiStyle.S(30), AbilityInfo.PushKey + " pousse. Pousser le porteur, c'est lui voler la Couronne.", UiStyle.Head, new Color(0.95f, 0.7f, 0.6f, d));
-                y += UiStyle.S(130);
+                // (30/09 -- "aucun texte") LA REGLE EN ICONES, qui arrivent une a une :
+                // la tour -> la Couronne -> les ailes -> le courant d'air -> le Monument (3 s),
+                // et en dessous : la main + la Couronne (pousser le porteur, c'est la lui voler).
+                string[] steps = { "tour", "couronne", "ailes", "courant", "sacre" };
+                Color[] tints = { Color.white, new Color(1f, 0.86f, 0.35f), Wings.Glow, new Color(0.75f, 0.92f, 1f), Monument.Blue };
+                float s = UiStyle.S(92), gap = UiStyle.S(56);
+                float x = (Screen.width - (steps.Length * s + (steps.Length - 1) * gap)) * 0.5f;
+                for (int i = 0; i < steps.Length; i++)
+                {
+                    float k = Mathf.Clamp01((t - 0.6f - i * 0.45f) / 0.35f) * a;
+                    float pop = 1f + 0.25f * Mathf.Sin(Mathf.Clamp01((t - 0.6f - i * 0.45f) / 0.35f) * Mathf.PI);
+                    Rect r = new Rect(x + i * (s + gap), y, s, s);
+                    Rect rr = new Rect(r.center.x - s * pop * 0.5f, r.center.y - s * pop * 0.5f, s * pop, s * pop);
+                    Icons.Pill(rr, new Color(0.22f, 0.26f, 0.56f), k);
+                    Icons.Draw(new Rect(rr.x + rr.width * 0.15f, rr.y + rr.height * 0.15f, rr.width * 0.7f, rr.height * 0.7f), steps[i], new Color(tints[i].r, tints[i].g, tints[i].b, k));
+                    if (i < steps.Length - 1) Icons.Draw(new Rect(r.xMax + gap * 0.15f, r.y + s * 0.32f, gap * 0.7f, s * 0.36f), "jouer", new Color(1f, 1f, 1f, 0.6f * k), false);
+                }
+                y += s + UiStyle.S(30);
+                float d = Mathf.Clamp01((t - 3.2f) / 0.4f) * a;
+                float cx = Screen.width * 0.5f;
+                Rect chip = new Rect(cx - s * 1.6f, y, s * 3.2f, s * 0.9f);
+                Icons.Pill(chip, new Color(0.62f, 0.2f, 0.25f), d);
+                Icons.Key(new Rect(chip.x + s * 0.12f, chip.y + s * 0.08f, s * 0.74f, s * 0.74f), AbilityInfo.PushKey, d);
+                Icons.Draw(new Rect(chip.x + s * 1.0f, chip.y + s * 0.08f, s * 0.74f, s * 0.74f), "pousser", new Color(1f, 1f, 1f, d));
+                Icons.Draw(new Rect(chip.x + s * 1.9f, chip.y + s * 0.08f, s * 0.74f, s * 0.74f), "couronne", new Color(1f, 0.86f, 0.35f, d));
+                y += s + UiStyle.S(20);
             }
             else
             {
@@ -1032,20 +1102,23 @@ namespace Fief
                 y += UiStyle.S(60);
             }
 
-            // Tes capacites, avec leurs touches : on ne les cherche jamais.
+            // Ta capacite : son rond, son icone, sa touche.
             PlayerSlot me = Match.Local;
             if (me != null)
             {
                 List<Ability> actives = me.Actives;
-                float e = Mathf.Clamp01((t - (Match.Played == 0 ? 3.4f : 0.6f)) / 0.5f) * a;
+                float e = Mathf.Clamp01((t - (Match.Played == 0 ? 3.6f : 0.6f)) / 0.5f) * a;
+                float s = UiStyle.S(84);
+                float cx = Screen.width * 0.5f;
                 for (int i = 0; i < actives.Count; i++)
                 {
-                    Centered(y, UiStyle.S(26), AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)].ToUpperInvariant() + "   " + AbilityInfo.Name(actives[i]) + " — " + AbilityInfo.Line(actives[i]),
-                             UiStyle.Label, new Color(0.95f, 0.88f, 0.7f, e));
-                    y += UiStyle.S(28);
+                    Rect r = new Rect(cx - s * 0.5f, y, s, s);
+                    Icons.Pill(r, AbilityInfo.Tint(actives[i]), e);
+                    Icons.Draw(new Rect(r.x + s * 0.17f, r.y + s * 0.17f, s * 0.66f, s * 0.66f), Icons.Of(actives[i]), new Color(1f, 1f, 1f, e));
+                    Icons.Key(new Rect(r.x - s * 0.2f, r.yMax - s * 0.46f, s * 0.5f, s * 0.5f), AbilityInfo.Keys[0], e);
+                    y += s + UiStyle.S(10);
                 }
             }
-
             Footer("Échap  passer");
         }
 
@@ -1070,7 +1143,7 @@ namespace Fief
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
-            Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("PAUSE"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
+            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "PAUSE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(52);
             Season s = Game.Season;
             if (s != null)
@@ -1300,7 +1373,7 @@ namespace Fief
                 int lost = Match.Draft.WouldReplace(me, p);
                 if (lost >= 0) replaces = "remplace " + AbilityInfo.Name((Ability)lost);
             }
-            CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), ribbon, AbilityInfo.Line(p), foot, replaces, owned, on, lift, enter);
+            CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), ribbon, AbilityInfo.Line(p), foot, replaces, owned, on, lift, enter, Icons.Of(p));
         }
 
         static Texture2D gradTex, glowTex;
@@ -1419,7 +1492,7 @@ namespace Fief
             float x = Left;
             int count = Controls.GetLength(0);
             float y = Screen.height * 0.5f - UiStyle.S(40 + count * 15);
-            Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(50)), UiStyle.Spaced("COMMANDES"), Style(UiStyle.Title, 34, TextAnchor.MiddleLeft), Palette.Gold);
+            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "COMMANDES", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(66);
             GUIStyle key = Style(UiStyle.Label, 0, TextAnchor.MiddleLeft);
             for (int i = 0; i < count; i++)

@@ -170,6 +170,12 @@ namespace Fief
         /// </summary>
         public static void Draw(Rect card, Color tint, string name, string ribbon, string line, string foot, string replaces, bool owned, bool on, float lift, float enter)
         {
+            Draw(card, tint, name, ribbon, line, foot, replaces, owned, on, lift, enter, null);
+        }
+
+        /// <summary>La meme, avec la grosse icone de la capacite au milieu (30/09 : "des icones").</summary>
+        public static void Draw(Rect card, Color tint, string name, string ribbon, string line, string foot, string replaces, bool owned, bool on, float lift, float enter, string icon)
+        {
             Ensure();
             float time = Time.unscaledTime;
             // Le retournement : la carte s'amincit jusqu'a la tranche, puis revient de face.
@@ -264,8 +270,18 @@ namespace Fief
             GUI.matrix = dm;
             y += UiStyle.S(18);
 
-            // Ce qu'elle fait.
-            GUIStyle ls = new GUIStyle(UiStyle.Label);
+            // LA GROSSE ICONE, dans un rond a sa couleur.
+            if (icon != null)
+            {
+                float s = Mathf.Min(w * 0.62f, UiStyle.S(120));
+                Rect ir = new Rect(cx - s * 0.5f, y + UiStyle.S(6), s, s);
+                Icons.Pill(ir, new Color(tint.r * 0.8f, tint.g * 0.8f, tint.b * 0.8f, fade));
+                Icons.Draw(new Rect(ir.x + s * 0.15f, ir.y + s * 0.15f, s * 0.7f, s * 0.7f), icon, new Color(1f, 1f, 1f, fade));
+                y += s + UiStyle.S(18);
+            }
+
+            // Ce qu'elle fait (en petit).
+            GUIStyle ls = new GUIStyle(UiStyle.Small);
             ls.wordWrap = true;
             ls.alignment = TextAnchor.UpperCenter;
             UiStyle.Tinted(new Rect(x + 1f, y + 1f, w, card.yMax - y - UiStyle.S(70)), line, ls, new Color(0f, 0f, 0f, 0.6f * fade));
