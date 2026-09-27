@@ -204,6 +204,13 @@ namespace Fief
         /// <summary>La longueur d'une rampe, en metres (pour les boulets).</summary>
         public static float RampLength { get { return RampTurns * Mathf.Sqrt(Mathf.Pow(2f * Mathf.PI * Centre, 2f) + Mathf.Pow(Height / RampTurns, 2f)); } }
 
+        /// <summary>La direction de la rampe EN PENTE (qui monte) : pour poser a plat dessus ce qui doit l'etre.</summary>
+        public static Vector3 Slope(int ramp, float u)
+        {
+            Vector3 d = RampPoint(ramp, u + 0.002f) - RampPoint(ramp, u - 0.002f);
+            return d.normalized;
+        }
+
         public static Vector3 Tangent(int ramp, float u)
         {
             Vector3 a = RampPoint(ramp, u - 0.002f), b = RampPoint(ramp, u + 0.002f);
@@ -313,7 +320,7 @@ namespace Fief
                 for (int i = 0; i < Spikes[r].Count; i++)
                 {
                     float u = Spikes[r][i];
-                    SpikeTrap.Build(t, RampPoint(r, u), Tangent(r, u), RampWidth - 0.4f, 2.6f, 3.2f / h, r * 0.7f + i);
+                    SpikeTrap.Build(t, RampPoint(r, u), Slope(r, u), RampWidth - 0.4f, 2.6f, 3.2f / h, r * 0.7f + i);
                 }
             }
             BoulderChute.Build(t);

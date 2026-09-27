@@ -333,13 +333,19 @@ namespace Fief
         int shown = -1;
         bool fired;
         const float Warn = 0.75f;
+        // Des pointes de 55 cm, rentrees de 60 : completement dans la dalle (60 cm d'epaisseur).
+        const float Tall = 0.55f;
+        const float Hidden = -0.6f;
 
         public static SpikeTrap Build(Transform parent, Vector3 centre, Vector3 along, float width, float depth, float period, float phase)
         {
             GameObject go = new GameObject("HERSE");
             go.transform.SetParent(parent, false);
             go.transform.position = centre;
-            go.transform.rotation = Quaternion.LookRotation(new Vector3(along.x, 0f, along.z).normalized, Vector3.up);
+            // (30/09 -- "les piquots bug") Posee A PLAT SUR LA PENTE : avant, une herse
+            // horizontale sur la rampe (qui monte de 26 degres) avait la moitie de ses
+            // pointes rentrees qui depassaient de la dalle, en rangee.
+            go.transform.rotation = Quaternion.LookRotation(along.normalized, Vector3.up);
             SpikeTrap h = go.AddComponent<SpikeTrap>();
             h.width = width;
             h.depth = depth;
@@ -358,10 +364,10 @@ namespace Fief
                 for (int z = 0; z < rows; z++)
                 {
                     Vector3 at = new Vector3(-width * 0.5f + (x + 0.5f) * width / cols, 0f, -depth * 0.5f + (z + 0.5f) * depth / rows);
-                    Proto.Cone(h.spikes, at, 0.16f, 0.9f, iron, "Pointe", 4);
+                    Proto.Cone(h.spikes, at, 0.14f, Tall, iron, "Pointe", 10);
                 }
             Proto.EndVisualOnly();
-            h.spikes.localPosition = new Vector3(0f, -0.95f, 0f);
+            h.spikes.localPosition = new Vector3(0f, Hidden, 0f);
             MaterialFactory.Polish(h.transform, 0.6f);
             return h;
         }
@@ -371,7 +377,10 @@ namespace Fief
             float t = Mathf.Repeat(Time.time + phase, period);
             // 0 -> period-Warn : cache ; puis l'alerte ; puis les pointes (0,6 s).
             float up = t < 0.12f ? t / 0.12f : t < 0.6f ? 1f : t < 0.9f ? 1f - (t - 0.6f) / 0.3f : 0f;
-            spikes.localPosition = new Vector3(0f, Mathf.Lerp(-0.95f, 0.05f, up), 0f);
+            spikes.localPosition = new Vector3(0f, Mathf.Lerp(Hidden, 0.05f, up), 0f);
+            // Rentrees : on ne les dessine pas du tout (rien ne depasse, jamais).
+            bool show = up > 0.01f;
+            if (spikes.gameObject.activeSelf != show) spikes.gameObject.SetActive(show);
             int mood = t > period - Warn ? 2 : up > 0.5f ? 1 : 0;
             if (mood != shown)
             {

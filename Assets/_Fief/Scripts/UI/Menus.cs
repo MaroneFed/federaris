@@ -702,17 +702,31 @@ namespace Fief
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
         }
 
-        /// <summary>Une bande de couleur qui s'efface de gauche a droite (en fines tranches).</summary>
+        /// <summary>
+        /// Une bande de couleur qui s'efface de gauche a droite. (30/09 : dessinee en 24
+        /// tranches, leurs bords se chevauchaient d'un pixel et faisaient des RAIES
+        /// verticales sur tout l'ecran-titre ; maintenant une seule texture en degrade.)
+        /// </summary>
         static void Glide(Rect r, Color c)
         {
-            const int n = 24;
-            float w = r.width / n;
-            for (int i = 0; i < n; i++)
+            if (fadeRight == null)
             {
-                float k = 1f - i / (float)n;
-                UiStyle.Fill(new Rect(r.x + i * w, r.y, w + 1f, r.height), new Color(c.r, c.g, c.b, c.a * k * k));
+                fadeRight = new Texture2D(256, 1, TextureFormat.RGBA32, false);
+                fadeRight.wrapMode = TextureWrapMode.Clamp;
+                fadeRight.hideFlags = HideFlags.HideAndDontSave;
+                for (int x = 0; x < 256; x++)
+                {
+                    float k = 1f - x / 255f;
+                    fadeRight.SetPixel(x, 0, new Color(1f, 1f, 1f, k * k * (3f - 2f * k)));
+                }
+                fadeRight.Apply();
             }
+            Color was = GUI.color;
+            GUI.color = c;
+            GUI.DrawTexture(r, fadeRight, ScaleMode.StretchToFill, true);
+            GUI.color = was;
         }
+        static Texture2D fadeRight;
 
         /// <summary>Un texte avec son ombre, pour qu'il se lise sur la foret.</summary>
         static void Shadow(Rect r, string text, GUIStyle style, Color c)

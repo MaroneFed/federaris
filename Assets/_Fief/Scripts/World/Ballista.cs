@@ -87,6 +87,10 @@ namespace Fief
         // --- les arbalestes des plateformes (29/09) : elles ne visent pas, elles posent.
         bool hasFixed;
         Vector3 fixedTarget;
+        Vector3 fixedSide;
+        float fixedYaw;
+        const float FixedSwing = 28f;     // de combien elle tourne de chaque cote (degres)
+        const float FixedSpread = 8f;     // et de combien l'arrivee glisse sur le parvis (metres)
 
         /// <summary>Cette arbaleste pose toujours son cavalier en "at" (une cloche douce, sans viser).</summary>
         public void SetFixedTarget(Vector3 at)
@@ -96,6 +100,9 @@ namespace Fief
             Vector3 v = FixedVelocity;
             Vector3 flat = new Vector3(v.x, 0f, v.z);
             yaw = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+            fixedYaw = yaw;
+            Vector3 dir = flat.sqrMagnitude > 0.001f ? flat.normalized : Vector3.forward;
+            fixedSide = new Vector3(dir.z, 0f, -dir.x);
             pitch = Mathf.Atan2(v.y, flat.magnitude) * Mathf.Rad2Deg;
             Pose();
         }
@@ -228,9 +235,17 @@ namespace Fief
             BoltModel(b.bolt);
             Proto.EndVisualOnly();
 
+            // LE POSTE DU TIREUR (30/09 -- "les arbaletes buggent") : on se tient DERRIERE
+            // l'arbaleste, sur une estrade de la tourelle, les yeux juste au-dessus du fut.
+            // Avant, on etait assis SUR le fut : il se levait avec la visee et la camera
+            // entrait dedans.
             b.seat = new GameObject("Siège").transform;
-            b.seat.SetParent(p, false);
-            b.seat.localPosition = new Vector3(0f, 0.5f, -0.6f);
+            b.seat.SetParent(y, false);
+            b.seat.localPosition = new Vector3(0f, 1.0f, -3.0f);
+            Proto.BeginVisualOnly();
+            Proto.Cube(y, new Vector3(0f, 0.5f, -3.0f), new Vector3(1.3f, 1.0f, 1.1f), WoodDark, "Estrade").GetComponent<Renderer>().sharedMaterial = WoodDarkMat;
+            Proto.Cube(y, new Vector3(0f, 1.02f, -3.0f), new Vector3(1.36f, 0.06f, 1.16f), Bronze, "Bord de l'estrade").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+            Proto.EndVisualOnly();
 
             // La corde.
             GameObject cordGo = new GameObject("Corde");
@@ -527,8 +542,11 @@ namespace Fief
                 bool ready = !locked && Time.time - mountedAt > 0.3f;
                 if (hasFixed)
                 {
-                    // L'arbaleste de ta plateforme : pas de visee, un clic et elle te pose devant ta porte.
-                    Vector3 fv = FixedVelocity;
+                    // L'arbaleste de ta plateforme (30/09 : "elle ne tourne pas") : elle SUIT ta
+                    // souris, de 28 degres de chaque cote, et l'arrivee glisse d'autant sur le
+                    // parvis -- toujours devant ta porte, jamais dans les pieges. Un clic : partie.
+                    float swing = cam != null ? Mathf.Clamp(Mathf.DeltaAngle(fixedYaw, cam.yaw), -FixedSwing, FixedSwing) : 0f;
+                    Vector3 fv = Lob(Launcher, fixedTarget + fixedSide * (swing / FixedSwing * FixedSpread), 12f);
                     Vector3 fflat = new Vector3(fv.x, 0f, fv.z);
                     yaw = Mathf.Atan2(fflat.x, fflat.z) * Mathf.Rad2Deg;
                     pitch = Mathf.Atan2(fv.y, fflat.magnitude) * Mathf.Rad2Deg;
