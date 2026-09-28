@@ -116,7 +116,8 @@ namespace Fief
         public Transform Anchor { get { return transform; } }
         public bool CanInteract { get { return !spent && Game.Me != null && !Game.Me.Stunned; } }
         public string Prompt { get { return "Prendre le don : " + AbilityInfo.Name(gift); } }
-        public float HoldDuration { get { return 1f; } }
+        /// <summary>(01/10 -- "il faut juste appuyer sur E" : plus de maintien, nulle part.)</summary>
+        public float HoldDuration { get { return 0f; } }
         public void Interact() { if (!TryTakeFor(Game.Me)) Sfx.Deny(); }
 
         // ================================================================== la manche

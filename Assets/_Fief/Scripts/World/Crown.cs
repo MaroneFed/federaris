@@ -5,8 +5,8 @@ namespace Fief
     /// <summary>
     /// LA COURONNE : l'enjeu de la manche. Il n'y en a qu'une.
     ///
-    /// Elle attend sur son socle, au sommet de la tour. Qui la prend (E maintenu une
-    /// seconde) la porte au-dessus de sa tete : une COLONNE DOREE monte au-dessus de
+    /// Elle attend sur son socle, au sommet de la tour. Qui la prend (en montant sur le
+    /// socle, ou d'un appui sur E) la porte au-dessus de sa tete : une COLONNE DOREE monte au-dessus de
     /// lui, tout le monde sait ou il est. Il va moins vite et ne pousse plus. Si on le
     /// POUSSE, elle roule par terre ; s'il SAUTE de haut, elle reste la ou il a quitte
     /// le sol. A terre, il suffit de lui PASSER DESSUS pour la ramasser (27/09 : on ne
@@ -295,7 +295,9 @@ namespace Fief
             if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.FallLine))
                 ReturnHome();
             // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
-            if (state == State.Dropped) { Attract(); PickUpByTouch(); }
+            if (state == State.Dropped) Attract();
+            // (01/10) Sur son socle comme a terre : on la prend EN PASSANT DESSUS.
+            if (state == State.Dropped || state == State.OnPedestal) PickUpByTouch();
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
             // La fete du vainqueur : elle vient flotter au-dessus de sa tete, bien visible.
@@ -467,18 +469,42 @@ namespace Fief
             groundY = visual.position.y;
         }
 
-        /// <summary>A terre, la Couronne se ramasse en passant dessus.</summary>
+        /// <summary>
+        /// ON LA PREND EN PASSANT DESSUS (01/10 -- Martin : "quand on passe sur la couronne,
+        /// ca nous la recupere") : a terre, en la touchant ; sur son socle, en montant sur
+        /// les marches jusqu'a la colonne. Pas de touche a chercher en pleine bagarre.
+        /// </summary>
         void PickUpByTouch()
         {
-            if (state != State.Dropped || Game.Season == null || !Game.Season.Running) return;
+            if (Game.Season == null || !Game.Season.Running) return;
+            bool onPedestal = state == State.OnPedestal;
+            if (!onPedestal && state != State.Dropped) return;
+            Seeker best = null;
+            float bestD = float.MaxValue;
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
                 if (s.Body == null || s.Stunned || Time.time < s.CrownLockUntil) continue;
-                if ((s.Body.position + Vector3.up * 0.9f - visual.position).magnitude > 1.7f) continue;
-                if (TryTakeFor(s)) return;
+                float d;
+                if (onPedestal)
+                {
+                    Vector3 p = s.Body.position;
+                    d = new Vector2(p.x - pedestal.x, p.z - pedestal.z).magnitude;
+                    if (d > TouchPedestal || p.y < pedestal.y - 0.5f || p.y > pedestal.y + 4f) continue;
+                }
+                else
+                {
+                    d = (s.Body.position + Vector3.up * 0.9f - visual.position).magnitude;
+                    if (d > TouchGround) continue;
+                }
+                if (d < bestD) { bestD = d; best = s; }
             }
+            if (best != null) TryTakeFor(best);
         }
+
+        /// <summary>A quelle distance on ramasse la Couronne en passant : a terre, et sur son socle (du centre).</summary>
+        public const float TouchGround = 1.9f;
+        public const float TouchPedestal = 2.1f;
 
         /// <summary>Qui vient de perdre (ou de se faire voler) la Couronne ne peut pas la reprendre avant...</summary>
         public const float LockSeconds = 3f;
@@ -522,7 +548,8 @@ namespace Fief
         public Transform Anchor { get { return visual != null ? visual : transform; } }
         public bool CanInteract { get { return state != State.Carried && state != State.Delivered && Game.Season != null && Game.Season.Running && Game.Me != null && !Game.Me.Stunned; } }
         public string Prompt { get { return state == State.OnPedestal ? "Prendre la Couronne" : "Ramasser la Couronne"; } }
-        public float HoldDuration { get { return state == State.OnPedestal ? 1f : 0.2f; } }
+        /// <summary>(01/10 -- "il ne faut pas appuyer longtemps, juste appuyer sur E") : un simple appui.</summary>
+        public float HoldDuration { get { return 0f; } }
 
         public void Interact()
         {

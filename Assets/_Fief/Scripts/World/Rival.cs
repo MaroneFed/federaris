@@ -703,9 +703,9 @@ namespace Fief
             Vector3 step = Waypoint();
             float distance = Flat(target - transform.position).magnitude;
             float dy = Mathf.Abs(target.y - transform.position.y);
-            // (La Couronne sur son socle : on la prend depuis les marches, a 3 m.)
+            // (La Couronne sur son socle : il monte sur les marches -- elle se prend en passant.)
             float reach = goal == Goal.Deliver ? 2.5f : goal == Goal.Ballista ? 1.6f
-                        : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 3f : 1.8f;
+                        : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 1.6f : 1.8f;
             bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
 
             // La poussee : des qu'il est a portee de sa proie (y compris en l'air).
@@ -755,15 +755,13 @@ namespace Fief
                     break;
                 case Goal.Raid:
                 case Goal.Grab:
-                    work += dt;
-                    if (work < (Crown.Where == Crown.State.OnPedestal ? 1f : 0.2f)) break;
-                    work = 0f;
+                    // (01/10 : un simple appui, comme toi.)
                     if (Crown.Instance != null && Crown.Instance.TryTakeFor(seeker)) Bark("À moi !");
                     think = 0f;
                     break;
                 case Goal.Shrine:
                     work += dt;
-                    if (work < 1f) break;
+                    if (work < 0.25f) break;
                     work = 0f;
                     if (shrine != null) shrine.TryTakeFor(seeker);
                     shrine = null;
@@ -1122,7 +1120,7 @@ namespace Fief
             {
                 rig.Speed = gliding || mounted ? 0f : Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
                 rig.Grounded = body.enabled && body.isGrounded || mounted;
-                rig.Tumbling = seeker.Tumbling;
+                rig.Tumbling = seeker.Tumbling || seeker.Launched;
             }
         }
 

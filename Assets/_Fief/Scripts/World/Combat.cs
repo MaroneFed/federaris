@@ -14,8 +14,10 @@ namespace Fief
     /// </summary>
     public static class Combat
     {
-        public const float ShoveReach = 3f;
-        public const float ShoveForce = 20f;
+        public const float ShoveReach = 3.2f;
+        /// <summary>(01/10 -- "quand ca pousse, que ca pousse bien" : 20 -> 26, et l'elan ne se freine plus en l'air.)</summary>
+        public const float ShoveForce = 26f;
+        public const float ShoveLift = 10f;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -43,9 +45,13 @@ namespace Fief
             bool stole = best.CarriesCrown && !best.Graced && Crown.TrySteal(by, best);
             // Un court etourdissement : on ne contre-marche pas une poussee (c'est ce
             // qui la rendait molle -- on reculait de deux metres en appuyant sur Z).
-            Hit(best, push * force + Vector3.up * 7f, 0.25f, !stole, by);
-            Fx.Impact(best.Body.position + Vector3.up * 1.1f, by.Colour, stole ? 1.4f : 0.7f);
-            if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.05f); }
+            // PROJETE : il part en cloche d'une quinzaine de metres (Seeker.Launch). Le voleur,
+            // lui, garde sa victime pres de lui : elle ne vole qu'a moitie.
+            if (!best.Graced) best.Launch(stole ? 0.6f : 1.4f);
+            Hit(best, push * force * (stole ? 0.7f : 1f) + Vector3.up * ShoveLift, 0.3f, !stole, by);
+            Fx.Impact(best.Body.position + Vector3.up * 1.1f, by.Colour, stole ? 1.4f : 1f);
+            Fx.Shock(best.Body.position + Vector3.up * 1.1f, by.Colour, 2.6f, 0.25f);
+            if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.07f); }
             return true;
         }
 
@@ -210,7 +216,7 @@ namespace Fief
         /// Le frottement de l'elan (par seconde) : fort d'habitude (on s'arrete en un
         /// quart de seconde), presque nul pendant une ejection (on vole loin).
         /// </summary>
-        public static float KnockDrag(Seeker s) { return s != null && s.Tumbling ? 0.95f : 4.5f; }
+        public static float KnockDrag(Seeker s) { return s != null && (s.Tumbling || s.Launched) ? 0.95f : 4.5f; }
 
         /// <summary>Projeter un joueur (sans autre effet).</summary>
         public static void Knockback(Seeker s, Vector3 velocity)

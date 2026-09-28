@@ -99,7 +99,6 @@ namespace Fief
             if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.4f);
             if (hurtFlash > 0f) hurtFlash = Mathf.Max(0f, hurtFlash - Time.unscaledDeltaTime * 2f);
             if (hitSideTimer > 0f) hitSideTimer -= Time.unscaledDeltaTime;
-            if (tipTimer > 0f) tipTimer -= Time.unscaledDeltaTime;
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
             if (FiefInput.KeysPressed && !Hidden) keysOpen = !keysOpen;
             if (Game.Season != null && Game.Season.Running && !Hidden)
@@ -152,19 +151,14 @@ namespace Fief
         /// <summary>Les astuces deja montrees pendant ce match (une seule fois chacune).</summary>
         static readonly HashSet<string> tipsShown = new HashSet<string>();
         static int tipsMatch = -1;
-        string tipText;
-        float tipTimer;
-        const float TipDuration = 5.5f;
 
         /// <summary>Une astuce, une seule fois par match, au moment ou elle sert.</summary>
         public void Tip(string key, string text)
         {
-            // (30/09 -- "je deteste le texte") : plus d'astuces ecrites.
-            return;
-            if (tipsShown.Contains(key) || tipTimer > 1f) return;
+            // (30/09 -- "je deteste le texte") : plus d'astuces ecrites. On retient
+            // seulement qu'elle aurait servi (le jour ou on en fera des icones).
+            if (tipsShown.Contains(key)) return;
             tipsShown.Add(key);
-            tipText = text;
-            tipTimer = TipDuration;
         }
 
         /// <summary>
@@ -548,14 +542,6 @@ namespace Fief
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
             if (cam == null || Game.PlayerTransform == null) return;
             Vector3 me = cam.transform.position;
-            if (nameStyle == null || nameBase != UiStyle.Label.fontSize)
-            {
-                nameBase = UiStyle.Label.fontSize;
-                nameStyle = new GUIStyle(UiStyle.Label);
-                nameStyle.alignment = TextAnchor.MiddleCenter;
-                nameStyle.fontStyle = FontStyle.Bold;
-                nameStyle.wordWrap = false;
-            }
             // (29/09) Du plus proche au plus loin, et un nom ne se pose jamais sur un autre :
             // on le monte d'un cran, et s'il n'y a pas la place, on ne l'ecrit pas.
             nameOrder.Clear();
@@ -580,9 +566,10 @@ namespace Fief
                 Vector3 sp = cam.WorldToScreenPoint(head);
                 if (sp.z <= 0f) continue;
                 float a = Mathf.Clamp01((170f - d) / 40f);
-                nameStyle.fontSize = Mathf.RoundToInt(Mathf.Lerp(UiStyle.S(22), UiStyle.S(13), Mathf.Clamp01(d / 90f)));
+                // (01/10) Plus que quelques tailles, en lettres rondes cernees : nettes et lisibles.
+                int fs = Mathf.RoundToInt(Mathf.Lerp(UiStyle.S(24), UiStyle.S(14), Mathf.Clamp01(d / 90f)) / 2f) * 2;
                 Color c = s.CarriesCrown ? new Color(1f, 0.82f, 0.35f) : Color.Lerp(s.Colour, Color.white, 0.25f);
-                Vector2 size = nameStyle.CalcSize(new GUIContent(s.Name));
+                Vector2 size = new Vector2(Icons.Width(s.Name, fs) + 8f, fs * 1.4f);
                 Rect r = new Rect(sp.x - size.x * 0.5f, Screen.height - sp.y - size.y * 0.5f, size.x, size.y);
                 bool free = false;
                 for (int tries = 0; tries < 3 && !free; tries++)
@@ -593,18 +580,12 @@ namespace Fief
                 }
                 if (!free) continue;
                 namePlaced.Add(r);
-                GUI.color = new Color(0f, 0f, 0f, 0.75f * a);
-                GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), s.Name, nameStyle);
-                GUI.color = new Color(c.r, c.g, c.b, a);
-                GUI.Label(r, s.Name, nameStyle);
-                GUI.color = Color.white;
+                Icons.Text(r, s.Name, fs, new Color(c.r, c.g, c.b, a), TextAnchor.MiddleCenter, true);
             }
         }
         readonly List<int> nameOrder = new List<int>();
         readonly List<float> nameDist = new List<float>();
         readonly List<Rect> namePlaced = new List<Rect>();
-        GUIStyle nameStyle;
-        int nameBase = -1;
 
         /// <summary>
         /// LE FLAIR (passif) : la Couronne est ecrite a sa place a l'ecran, avec sa

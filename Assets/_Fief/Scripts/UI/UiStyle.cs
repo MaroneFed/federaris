@@ -476,6 +476,7 @@ namespace Fief
 
         public static void Shadowed(Rect rect, string text, GUIStyle style)
         {
+            rect = Icons.Snap(rect);
             Color original = style.normal.textColor;
             style.normal.textColor = new Color(0f, 0f, 0f, 0.75f);
             GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
@@ -486,6 +487,8 @@ namespace Fief
         /// <summary>Texte affiche avec une couleur donnee, sans casser le style partage.</summary>
         public static void Tinted(Rect rect, string text, GUIStyle style, Color color)
         {
+            // Sur des pixels entiers : un texte pose entre deux pixels est flou.
+            rect = Icons.Snap(rect);
             Color original = style.normal.textColor;
             style.normal.textColor = color;
             GUI.Label(rect, text, style);

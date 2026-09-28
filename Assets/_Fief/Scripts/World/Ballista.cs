@@ -87,10 +87,14 @@ namespace Fief
         // --- les arbalestes des plateformes (29/09) : elles ne visent pas, elles posent.
         bool hasFixed;
         Vector3 fixedTarget;
-        Vector3 fixedSide;
         float fixedYaw;
-        const float FixedSwing = 28f;     // de combien elle tourne de chaque cote (degres)
-        const float FixedSpread = 8f;     // et de combien l'arrivee glisse sur le parvis (metres)
+        /// <summary>
+        /// De combien elle tourne de chaque cote (degres). (01/10 -- "elle ne tourne meme pas
+        /// au debut" : avant, la souris la faisait tourner de 7 degres a peine, et pas du
+        /// tout si l'on regardait ailleurs en montant dessus.) Maintenant la tourelle suit
+        /// la souris, et l'arrivee suit la tourelle.
+        /// </summary>
+        const float FixedSwing = 22f;
 
         /// <summary>Cette arbaleste pose toujours son cavalier en "at" (une cloche douce, sans viser).</summary>
         public void SetFixedTarget(Vector3 at)
@@ -101,13 +105,29 @@ namespace Fief
             Vector3 flat = new Vector3(v.x, 0f, v.z);
             yaw = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
             fixedYaw = yaw;
-            Vector3 dir = flat.sqrMagnitude > 0.001f ? flat.normalized : Vector3.forward;
-            fixedSide = new Vector3(dir.z, 0f, -dir.x);
             pitch = Mathf.Atan2(v.y, flat.magnitude) * Mathf.Rad2Deg;
             Pose();
         }
 
         public bool HasFixedTarget { get { return hasFixed; } }
+
+        /// <summary>
+        /// L'arrivee quand la tourelle a tourne de "swing" degres : le parvis, tourne autour
+        /// de l'arbaleste (a la meme distance). Si ce point sort de l'ile, on revient vers
+        /// le parvis jusqu'a retrouver la terre ferme.
+        /// </summary>
+        Vector3 SwungTarget(float swing)
+        {
+            Vector3 from = new Vector3(Launcher.x, 0f, Launcher.z);
+            Vector3 to = new Vector3(fixedTarget.x, 0f, fixedTarget.z) - from;
+            for (int k = 0; k < 6; k++)
+            {
+                Vector3 p = from + Quaternion.Euler(0f, swing, 0f) * to;
+                if (Ground.OnIsland(p.x, p.z) && !Castle.Inside(p)) return Ground.Place(p.x, p.z, 0.05f);
+                swing *= 0.6f;
+            }
+            return fixedTarget;
+        }
 
         /// <summary>La vitesse qui pose sur la cible fixe : on monte de 12 m, on retombe dessus.</summary>
         public Vector3 FixedVelocity { get { return Lob(Launcher, fixedTarget, 12f); } }
@@ -418,6 +438,14 @@ namespace Fief
                 if (Game.Player == null) { rider = null; return false; }
                 Game.Player.BeginScripted();
                 PlayerOn = this;
+                // On se retrouve face a ce qu'elle vise (on regardait peut-etre ailleurs en
+                // montant) : le moindre mouvement de souris la fait tourner.
+                OrbitCamera view = Game.Hud != null ? Game.Hud.orbitCamera : null;
+                if (view != null)
+                {
+                    view.yaw = hasFixed ? fixedYaw : yaw;
+                    view.pitch = hasFixed ? -8f : Mathf.Clamp(12f - pitch, -60f, 8f);
+                }
                 if (Game.Hud != null)
                 {
                     if (hasFixed) Game.Hud.Tip("arbaleste-plateforme", "CLIC GAUCHE : elle te pose devant ta porte. (E : descendre.)");
@@ -542,11 +570,18 @@ namespace Fief
                 bool ready = !locked && Time.time - mountedAt > 0.3f;
                 if (hasFixed)
                 {
-                    // L'arbaleste de ta plateforme (30/09 : "elle ne tourne pas") : elle SUIT ta
-                    // souris, de 28 degres de chaque cote, et l'arrivee glisse d'autant sur le
-                    // parvis -- toujours devant ta porte, jamais dans les pieges. Un clic : partie.
-                    float swing = cam != null ? Mathf.Clamp(Mathf.DeltaAngle(fixedYaw, cam.yaw), -FixedSwing, FixedSwing) : 0f;
-                    Vector3 fv = Lob(Launcher, fixedTarget + fixedSide * (swing / FixedSwing * FixedSpread), 12f);
+                    // L'arbaleste de ta plateforme : elle SUIT ta souris, de 22 degres de chaque
+                    // cote, et l'arrivee tourne avec elle devant la citadelle -- jamais dans le
+                    // couloir, jamais hors de l'ile. Un clic : partie.
+                    float swing = 0f;
+                    if (cam != null)
+                    {
+                        // La vue reste dans l'angle de la tourelle : des qu'on bouge la souris, elle tourne.
+                        float off = Mathf.Clamp(Mathf.DeltaAngle(fixedYaw, cam.yaw), -FixedSwing - 6f, FixedSwing + 6f);
+                        cam.yaw = fixedYaw + off;
+                        swing = Mathf.Clamp(off, -FixedSwing, FixedSwing);
+                    }
+                    Vector3 fv = Lob(Launcher, SwungTarget(swing), 12f);
                     Vector3 fflat = new Vector3(fv.x, 0f, fv.z);
                     yaw = Mathf.Atan2(fflat.x, fflat.z) * Mathf.Rad2Deg;
                     pitch = Mathf.Atan2(fv.y, fflat.magnitude) * Mathf.Rad2Deg;

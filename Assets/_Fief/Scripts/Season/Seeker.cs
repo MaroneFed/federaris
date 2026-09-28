@@ -131,7 +131,20 @@ namespace Fief
         public bool Tumbling { get { return Time.time < TumbleUntil; } }
         public void Tumble(float seconds) { TumbleAt = Time.time; TumbleUntil = Mathf.Max(TumbleUntil, Time.time + seconds); }
         /// <summary>Pose au sol : la chute est finie (pas dans la demi-seconde du coup, on est encore sur la rampe).</summary>
-        public void Landed() { if (Tumbling && Time.time - TumbleAt > 0.5f) TumbleUntil = -1f; }
+        public void Landed()
+        {
+            if (Tumbling && Time.time - TumbleAt > 0.5f) TumbleUntil = -1f;
+            if (Launched && Time.time - LaunchAt > 0.3f) LaunchUntil = -1f;
+        }
+        /// <summary>
+        /// PROJETE (01/10 -- Martin : "quand ca pousse, que ca pousse bien, pas un tout petit
+        /// peu") : apres une poussee, l'elan ne se freine presque plus tant qu'on est en l'air
+        /// -- on part en cloche d'une quinzaine de metres. Les ailes, elles, restent libres.
+        /// </summary>
+        public float LaunchUntil = -1f;
+        public float LaunchAt = -99f;
+        public bool Launched { get { return Time.time < LaunchUntil; } }
+        public void Launch(float seconds) { LaunchAt = Time.time; LaunchUntil = Mathf.Max(LaunchUntil, Time.time + seconds); }
         /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
         public bool CanGlide { get { return !Stunned && !Tumbling; } }
         public bool Graced { get { return Time.time < GraceUntil; } }

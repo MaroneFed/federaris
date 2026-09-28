@@ -8,9 +8,10 @@ namespace Fief
     /// TOUS LES ECRANS HORS DU JEU (refaits le 27/09 -- Martin : "les trucs en dehors
     /// du jeu, style menu, c'est tout moche et bugge").
     ///
-    /// Le parti pris : DU TEXTE, RIEN QUE DU TEXTE. Pas de cadre dore, pas de pastille,
-    /// pas de pictogramme. Une colonne de mots sur la foret qui bouge derriere, comme
-    /// les menus de Journey ou d'Inside. Ce qui est choisi est en or, avec un trait.
+    /// Le parti pris (30/09 et 01/10 -- "je deteste le texte, je veux des icones, comme
+    /// Fall Guys") : DES ICONES ET DES PASTILLES. De gros boutons ronds (jaunes quand on
+    /// les vise), des pastilles a la couleur de chaque joueur, des chiffres cernes. Seuls
+    /// restent ecrits les pseudos, les mots des boutons, les noms des capacites.
     /// Tout se fait AU CLAVIER (fleches + Entree + Echap) comme a la souris.
     ///
     ///   Titre -> Salon -> CHOIX (1re capacite) -> [rechargement] -> Manche 1
@@ -106,8 +107,9 @@ namespace Fief
             if (Current == State.Playing && season != null)
             {
                 WarnOfTime(season);
-                // Le temps est ecoule : celui qui tient la Couronne gagne ; sinon personne.
-                if (season.Over) { endedByTime = true; EndRound(Crown.Holder != null ? Crown.Holder.Index : -1); }
+                // Le temps est ecoule : PERSONNE ne gagne (01/10 -- Martin : "la victoire, il ne
+                // faut pas la donner s'il a la couronne a la fin"). On gagne au Monument, point.
+                if (season.Over) EndRound(-1);
             }
             if (Current == State.Briefing && stateTime > BriefingLength && !leaving) Enter();
             if (Current == State.Draft) TickDraft(dt);
@@ -493,16 +495,14 @@ namespace Fief
         }
 
         /// <summary>
-        /// FIN DE MANCHE : "winner" a pose la Couronne au Monument (ou tenait la
-        /// Couronne quand le temps s'est ecoule ; -1 : personne). C'est ici, et nulle
-        /// part ailleurs, qu'une manche se termine -- en Phase 3, sur l'hote seulement.
+        /// FIN DE MANCHE : "winner" a sacre la Couronne sur un Monument (-1 : personne --
+        /// le temps s'est ecoule ; 01/10 : la tenir a la fin ne suffit plus). C'est ici, et
+        /// nulle part ailleurs, qu'une manche se termine -- en Phase 3, sur l'hote seulement.
         /// </summary>
         public void EndRound(int winner)
         {
             if (Current != State.Playing && Current != State.Paused) return;
             if (Game.Season != null) { roundTime = Game.Season.Elapsed; Game.Season.Stop(); }
-            byTime = endedByTime;
-            endedByTime = false;
             // (30/09 : plus de ralenti -- la fete du vainqueur se joue a vitesse normale.)
             Time.timeScale = 1f;
             slowMotion = 0f;
@@ -715,23 +715,8 @@ namespace Fief
             }
             int size = Mathf.RoundToInt(b.height * (primary ? 0.5f : 0.46f));
             Rect tr = new Rect(tx, b.y, b.xMax - tx - b.height * 0.3f, b.height);
-            if (on) UiStyle.Tinted(tr, text, ButtonText(size), ink);
-            else Icons.Number(tr, text, size, new Color(1f, 1f, 1f, alpha), TextAnchor.MiddleLeft);
+            Icons.Text(tr, text, size, on ? ink : new Color(1f, 1f, 1f, alpha), TextAnchor.MiddleLeft, !on);
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
-        }
-
-        static readonly Dictionary<int, GUIStyle> buttonTexts = new Dictionary<int, GUIStyle>();
-        static GUIStyle ButtonText(int size)
-        {
-            GUIStyle st;
-            if (buttonTexts.TryGetValue(size, out st)) return st;
-            st = new GUIStyle(UiStyle.Title);
-            st.fontSize = size;
-            st.alignment = TextAnchor.MiddleLeft;
-            st.wordWrap = false;
-            st.clipping = TextClipping.Overflow;
-            buttonTexts[size] = st;
-            return st;
         }
 
         /// <summary>L'icone de chaque entree de menu (par son mot).</summary>
@@ -787,18 +772,6 @@ namespace Fief
         }
         static Texture2D fadeRight;
 
-        /// <summary>Un texte avec son ombre, pour qu'il se lise sur la foret.</summary>
-        static void Shadow(Rect r, string text, GUIStyle style, Color c)
-        {
-            UiStyle.Tinted(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), text, style, new Color(0f, 0f, 0f, c.a * 0.7f));
-            UiStyle.Tinted(r, text, style, c);
-        }
-
-        static void Centered(float y, float h, string text, GUIStyle baseStyle, Color c)
-        {
-            Shadow(new Rect(0f, y, Screen.width, h), text, Style(baseStyle, 0, TextAnchor.MiddleCenter), c);
-        }
-
         /// <summary>Un grand titre, centre, de la taille voulue.</summary>
         static void Headline(float y, float size, string text, Color c)
         {
@@ -826,25 +799,6 @@ namespace Fief
                 styles[key] = s;
             }
             return s;
-        }
-
-        static GUIStyle wrapped;
-        static GUIStyle Wrapped()
-        {
-            if (wrapped == null || wrapped.fontSize != UiStyle.Label.fontSize)
-            {
-                wrapped = new GUIStyle(UiStyle.Label);
-                wrapped.wordWrap = true;
-                wrapped.alignment = TextAnchor.UpperLeft;
-            }
-            return wrapped;
-        }
-
-        /// <summary>En bas de l'ecran, ce que font les touches, en petit.</summary>
-        static void Footer(string text)
-        {
-            // (30/09 -- "je deteste le texte") : plus de ligne d'aide en bas des menus.
-            return;
         }
 
         float Left { get { return Mathf.Max(UiStyle.S(40), Screen.width * 0.09f); } }
@@ -882,7 +836,6 @@ namespace Fief
                 y += h + UiStyle.S(10);
             }
 
-            Footer("↑ ↓  choisir     Entrée  valider");
             // La version, en bas a droite : c'est elle qui dit quel code tourne.
             UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(30), Screen.width - UiStyle.S(24), UiStyle.S(20)), Game.Version,
                            Style(UiStyle.Tiny, 0, TextAnchor.MiddleRight), new Color(UiStyle.InkFaint.r, UiStyle.InkFaint.g, UiStyle.InkFaint.b, late));
@@ -910,39 +863,38 @@ namespace Fief
                 ValueRow(x, y, labels[i], values[i], i, step => Adjust(row, step));
                 y += UiStyle.S(58);
 
-                // Sous "Joueurs" : qui joue, a sa couleur.
+                // Sous "Joueurs" : qui joue, en pastilles a sa couleur (01/10 : plus de petites
+                // lignes grises floues -- des pastilles nettes).
                 if (i == 0)
                 {
-                    float wx = x + UiStyle.S(16);
+                    float wx = x + UiStyle.S(8);
+                    float ph = UiStyle.S(28);
+                    int fs = UiStyle.S(15);
                     for (int k = 0; k <= lobbyBots; k++)
                     {
                         string name = Match.NameOf(k);
-                        GUIStyle ns = Style(UiStyle.Small, 0, TextAnchor.MiddleLeft);
-                        float nw = ns.CalcSize(new GUIContent(name)).x;
-                        Shadow(new Rect(wx, y - UiStyle.S(8), nw + 4f, UiStyle.S(20)), name, ns, Match.ColourOf(k));
-                        wx += nw + UiStyle.S(18);
+                        float nw = Icons.Width(name, fs) + ph * 0.9f;
+                        if (wx + nw > x + UiStyle.S(640)) { wx = x + UiStyle.S(8); y += ph + UiStyle.S(8); }
+                        Rect pr = new Rect(wx, y - UiStyle.S(4), nw, ph);
+                        Icons.Pill(pr, Match.ColourOf(k));
+                        Icons.Number(pr, name, fs, Color.white, TextAnchor.MiddleCenter);
+                        wx += nw + UiStyle.S(10);
                     }
-                    y += UiStyle.S(20);
-                }
-                // Sous "Bots" : ce que ca change, en une ligne.
-                if (i == 1)
-                {
-                    string[] what = { "plus lents, sans courants ni embuscade", "aussi rapides que toi", "rapides, vifs, sans pitié" };
-                    Shadow(new Rect(x + UiStyle.S(16), y - UiStyle.S(8), UiStyle.S(500), UiStyle.S(20)), what[Match.BotLevel], Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), UiStyle.InkFaint);
-                    y += UiStyle.S(20);
+                    y += ph + UiStyle.S(10);
                 }
             }
 
-            // Une estimation, en un mot : une manche dure rarement tout son temps.
+            // La duree du match, a peu pres (une manche dure rarement tout son temps) : un chrono.
             int estimate = Mathf.RoundToInt(lobbyRounds * lobbyMinutes * 0.7f);
-            Shadow(new Rect(x + UiStyle.S(16), y, UiStyle.S(500), UiStyle.S(20)), "un match d'environ " + estimate + " min", Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), UiStyle.InkFaint);
-            y += UiStyle.S(50);
+            Rect est = new Rect(x + UiStyle.S(8), y, UiStyle.S(150), UiStyle.S(40));
+            Icons.Pill(est, new Color(0.14f, 0.16f, 0.36f));
+            Icons.Draw(new Rect(est.x + UiStyle.S(6), est.y + UiStyle.S(4), UiStyle.S(32), UiStyle.S(32)), "chrono", Color.white);
+            Icons.Number(new Rect(est.x + UiStyle.S(40), est.y, est.width - UiStyle.S(46), est.height), "~" + estimate + " min", UiStyle.S(19), Color.white, TextAnchor.MiddleCenter);
+            y += UiStyle.S(64);
 
             if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(50)), "Commencer", LobbyRows, true, 1f)) Activate(LobbyRows);
             y += UiStyle.S(56);
             if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(38)), "Retour", LobbyRows + 1, false, 1f)) Activate(LobbyRows + 1);
-
-            Footer("↑ ↓  choisir     ← →  régler     Entrée  valider     Échap  retour");
         }
 
         /// <summary>Une ligne a regler : "Joueurs   ‹ 4 ›". Les fleches se cliquent ; au clavier, gauche/droite.</summary>
@@ -1014,9 +966,7 @@ namespace Fief
             PseudoRow(x, y, Settings.Labels.Length);
             y += UiStyle.S(56);
             y += UiStyle.S(24);
-            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", Settings.Labels.Length + 1, false, 1f)) { showSettings = false; selected = 0; }
-            Footer(selected == Settings.Labels.Length ? "Tape ton pseudo     ↑ ↓  choisir     Entrée  valider" : "↑ ↓  choisir     ← →  régler     Échap  retour");
-        }
+            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", Settings.Labels.Length + 1, false, 1f)) { showSettings = false; selected = 0; }        }
 
         // ------------------------------------------------------------------ en ligne
 
@@ -1032,14 +982,16 @@ namespace Fief
             float y = Screen.height * 0.5f - UiStyle.S(140);
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "EN LIGNE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(70);
-            GUIStyle line = Style(UiStyle.Head, 20, TextAnchor.MiddleLeft);
-            Shadow(new Rect(x, y, UiStyle.S(700), UiStyle.S(30)), "Pas encore. Quatre joueurs par Steam, bientôt.", line, UiStyle.Ink);
-            y += UiStyle.S(34);
-            Shadow(new Rect(x, y, UiStyle.S(700), UiStyle.S(30)), "Les bots jouent déjà avec les mêmes règles que toi.", line, UiStyle.InkDim);
-            y += UiStyle.S(70);
-            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(40)), "Retour", 0, false, 1f)) Activate(0);
-            Footer("Entrée ou Échap  retour");
-        }
+            // Pas encore branche : l'icone "en ligne" barree, et "BIENTOT". Les bots, eux, jouent deja.
+            float s = UiStyle.S(84);
+            Rect r = new Rect(x, y, s * 2.4f, s);
+            Icons.Pill(r, new Color(0.14f, 0.16f, 0.36f));
+            Icons.Draw(new Rect(r.x + s * 0.12f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), "en-ligne", Color.white);
+            Icons.Draw(new Rect(r.x + s * 0.55f, r.y + s * 0.45f, s * 0.46f, s * 0.46f), "chrono", Wings.Gold);
+            Icons.Draw(new Rect(r.xMax - s * 0.95f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), "bot", new Color(0.6f, 0.9f, 1f));
+            Icons.Number(new Rect(r.xMax + UiStyle.S(20), r.y, UiStyle.S(400), s), "BIENTÔT", UiStyle.S(40), Wings.Gold, TextAnchor.MiddleLeft);
+            y += s + UiStyle.S(50);
+            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(40)), "Retour", 0, false, 1f)) Activate(0);        }
 
         // ------------------------------------------------------------------ l'intro de manche
 
@@ -1063,10 +1015,22 @@ namespace Fief
 
             if (Match.IsTieBreak)
             {
-                string who = "";
-                for (int i = 0; i < Match.TieBreakers.Count; i++) who += (i > 0 ? "  ·  " : "") + Match.Slots[Match.TieBreakers[i]].Name;
-                Centered(y, UiStyle.S(30), "Seuls comptent : " + who, UiStyle.Head, new Color(0.95f, 0.9f, 0.8f, a));
-                y += UiStyle.S(60);
+                // Qui peut gagner le departage : leurs pastilles, cote a cote.
+                float ph = UiStyle.S(44), gap = UiStyle.S(14);
+                int fs = UiStyle.S(20);
+                float total = 0f;
+                for (int i = 0; i < Match.TieBreakers.Count; i++) total += Icons.Width(Match.Slots[Match.TieBreakers[i]].Name, fs) + ph + (i > 0 ? gap : 0f);
+                float px = (Screen.width - total) * 0.5f;
+                for (int i = 0; i < Match.TieBreakers.Count; i++)
+                {
+                    PlayerSlot p = Match.Slots[Match.TieBreakers[i]];
+                    float w = Icons.Width(p.Name, fs) + ph;
+                    Rect r = new Rect(px, y, w, ph);
+                    Icons.Pill(r, p.Colour, a);
+                    Icons.Number(r, p.Name, fs, new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+                    px += w + gap;
+                }
+                y += ph + UiStyle.S(30);
             }
             else if (Match.Played == 0)
             {
@@ -1119,21 +1083,31 @@ namespace Fief
                     Icons.Key(new Rect(r.x - s * 0.2f, r.yMax - s * 0.46f, s * 0.5f, s * 0.5f), AbilityInfo.Keys[0], e);
                     y += s + UiStyle.S(10);
                 }
-            }
-            Footer("Échap  passer");
-        }
+            }        }
 
-        /// <summary>Une ligne : chaque joueur, a sa couleur, et ses manches gagnees en chiffre.</summary>
+        /// <summary>
+        /// Le score en une ligne : une pastille par joueur, a sa couleur (toi : cerne d'or),
+        /// son pseudo, une petite Couronne et ses manches gagnees.
+        /// </summary>
         static void ScoreLine(float y, float a)
         {
-            GUIStyle s = Style(UiStyle.Head, 22, TextAnchor.MiddleCenter);
-            float cell = UiStyle.S(180);
-            float x = (Screen.width - cell * Match.Slots.Count) * 0.5f;
-            for (int i = 0; i < Match.Slots.Count; i++)
+            int n = Match.Slots.Count;
+            float h = UiStyle.S(40), gap = UiStyle.S(12);
+            float cell = Mathf.Min(UiStyle.S(200), (Screen.width - UiStyle.S(60) - gap * (n - 1)) / Mathf.Max(1, n));
+            float x = (Screen.width - (cell * n + gap * (n - 1))) * 0.5f;
+            for (int i = 0; i < n; i++)
             {
                 PlayerSlot p = Match.Slots[i];
-                Color c = p.IsLocal ? Palette.Gold : p.Colour;
-                Shadow(new Rect(x + i * cell, y, cell, UiStyle.S(30)), p.Name + "   " + p.Wins, s, new Color(c.r, c.g, c.b, a));
+                Rect r = new Rect(x + i * (cell + gap), y, cell, h);
+                if (p.IsLocal) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), Wings.Gold, a);
+                Icons.Pill(r, p.Colour, a);
+                int fs = Mathf.RoundToInt(h * 0.42f);
+                string name = p.Name;
+                float room = cell - h * 1.9f;
+                while (name.Length > 3 && Icons.Width(name, fs) > room) name = name.Substring(0, name.Length - 1);
+                Icons.Number(new Rect(r.x + h * 0.35f, r.y, room, h), name, fs, new Color(1f, 1f, 1f, a), TextAnchor.MiddleLeft);
+                Icons.Draw(new Rect(r.xMax - h * 1.45f, r.y + h * 0.12f, h * 0.76f, h * 0.76f), "couronne", new Color(1f, 0.86f, 0.35f, a));
+                Icons.Number(new Rect(r.xMax - h * 0.75f, r.y, h * 0.6f, h), p.Wins.ToString(), Mathf.RoundToInt(h * 0.58f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
             }
         }
 
@@ -1145,24 +1119,30 @@ namespace Fief
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(170);
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "PAUSE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
-            y += UiStyle.S(52);
+            y += UiStyle.S(66);
             Season s = Game.Season;
             if (s != null)
             {
-                string round = Match.IsTieBreak ? "Départage" : "Manche " + Match.RoundNumber + " sur " + Match.Rounds;
-                Shadow(new Rect(x, y, UiStyle.S(600), UiStyle.S(22)), round + "  ·  " + Hud.Clock(s.Remaining) + " restantes", Style(UiStyle.Small, 0, TextAnchor.MiddleLeft), UiStyle.InkDim);
+                // Ou en est le match : la manche (ou le drapeau du departage), et le temps restant.
+                float ph = UiStyle.S(40);
+                Rect mr = new Rect(x, y, UiStyle.S(130), ph);
+                Icons.Pill(mr, new Color(0.14f, 0.16f, 0.36f));
+                Icons.Draw(new Rect(mr.x + UiStyle.S(6), mr.y + UiStyle.S(4), ph - UiStyle.S(8), ph - UiStyle.S(8)), Match.IsTieBreak ? "drapeau" : "manches", Color.white);
+                if (!Match.IsTieBreak) Icons.Number(new Rect(mr.x + ph, mr.y, mr.width - ph - UiStyle.S(6), ph), Match.RoundNumber + "/" + Match.Rounds, UiStyle.S(19), Color.white, TextAnchor.MiddleCenter);
+                Rect tr = new Rect(mr.xMax + UiStyle.S(14), y, UiStyle.S(130), ph);
+                Icons.Pill(tr, new Color(0.14f, 0.16f, 0.36f));
+                Icons.Draw(new Rect(tr.x + UiStyle.S(6), tr.y + UiStyle.S(4), ph - UiStyle.S(8), ph - UiStyle.S(8)), "chrono", Color.white);
+                Icons.Number(new Rect(tr.x + ph, tr.y, tr.width - ph - UiStyle.S(6), ph), Hud.Clock(s.Remaining), UiStyle.S(19), Color.white, TextAnchor.MiddleCenter);
             }
-            y += UiStyle.S(50);
+            y += UiStyle.S(66);
             for (int i = 0; i < PauseItems.Length; i++)
             {
                 bool primary = i == 0;
                 float h = UiStyle.S(primary ? 48 : 38);
-                string label = i == 3 && confirmAbandon ? "Abandonner ? Encore une fois pour confirmer" : PauseItems[i];
+                string label = i == 3 && confirmAbandon ? "Abandonner ? Encore !" : PauseItems[i];
                 if (Entry(new Rect(x, y, UiStyle.S(620), h), label, i, primary, 1f)) Activate(i);
                 y += h + UiStyle.S(4);
-            }
-            Footer("↑ ↓  choisir     Entrée  valider     Échap  reprendre");
-        }
+            }        }
 
         // ------------------------------------------------------------------ fin de manche
 
@@ -1170,7 +1150,6 @@ namespace Fief
         /// FIN DE MANCHE : qui l'a gagnee (son nom, a sa couleur, en grand), et le
         /// score en une ligne. Puis le choix des capacites -- tout seul, ou Entree.
         /// </summary>
-        bool endedByTime, byTime;
         float roundTime;
 
         void DrawRoundOver()
@@ -1183,62 +1162,71 @@ namespace Fief
             // Un voile en haut et en bas seulement, pour lire les mots.
             UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, Screen.height * 0.3f), new Color(0f, 0f, 0f, 0.55f * a));
             UiStyle.FadeBand(new Rect(0f, Screen.height * 0.66f, Screen.width, Screen.height * 0.34f), new Color(0f, 0f, 0f, 0.6f * a));
+            float cx = Screen.width * 0.5f;
             if (w != null)
             {
-                // SON PSEUDO, EN GRAND, EN OR : il claque et se pose.
+                // SON PSEUDO, EN GRAND, EN OR : il claque et se pose. Dessous : la Couronne,
+                // le Monument et le temps qu'il a mis -- en icones.
                 float punch = Mathf.Lerp(1.4f, 1f, Mathf.Clamp01((stateTime - 0.8f) / 0.2f));
                 Color gold = new Color(1f, 0.82f, 0.38f, a);
                 Headline(y, 88 * punch, UiStyle.Spaced(w.Name.ToUpperInvariant()), gold);
-                Headline(y + UiStyle.S(96), 30, w.IsLocal ? "TU REMPORTES LA MANCHE" : "REMPORTE LA MANCHE", new Color(1f, 0.95f, 0.85f, a));
+                float s = UiStyle.S(52);
+                Rect how = new Rect(cx - s * 2.1f, y + UiStyle.S(112), s * 4.2f, s);
+                Icons.Pill(how, new Color(0.18f, 0.2f, 0.42f), a);
+                Icons.Draw(new Rect(how.x + s * 0.12f, how.y + s * 0.08f, s * 0.84f, s * 0.84f), "couronne", new Color(1f, 0.86f, 0.35f, a));
+                Icons.Draw(new Rect(how.x + s * 1.02f, how.y + s * 0.1f, s * 0.8f, s * 0.8f), "sacre", new Color(Monument.Blue.r, Monument.Blue.g, Monument.Blue.b, a));
+                Icons.Number(new Rect(how.x + s * 1.9f, how.y, how.width - s * 2f, s), Hud.Clock(roundTime), Mathf.RoundToInt(s * 0.55f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
             }
-            else Headline(y + UiStyle.S(40), 52, "PERSONNE N'A RAMENÉ LA COURONNE", new Color(0.8f, 0.76f, 0.7f, a));
+            else
+            {
+                // PERSONNE : le temps s'est ecoule (01/10 : tenir la Couronne ne suffit plus) --
+                // le chrono, et la Couronne barree.
+                float s = UiStyle.S(120);
+                Rect r = new Rect(cx - s * 1.1f, y + UiStyle.S(20), s * 2.2f, s);
+                Icons.Pill(r, new Color(0.3f, 0.3f, 0.4f), a);
+                Icons.Draw(new Rect(r.x + s * 0.12f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), "chrono", new Color(1f, 1f, 1f, a));
+                Icons.Draw(new Rect(r.xMax - s * 0.95f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), "couronne", new Color(1f, 0.86f, 0.35f, a * 0.6f));
+                Icons.Draw(new Rect(r.xMax - s * 0.8f, r.y + s * 0.25f, s * 0.5f, s * 0.5f), "croix", new Color(1f, 0.4f, 0.35f, a));
+            }
 
-            // En bas : comment, le score, et la suite.
-            y = Screen.height * 0.7f;
-            string how = w == null ? "Le temps s'est écoulé, et personne ne tenait la Couronne."
-                       : byTime ? (w.IsLocal ? "Tu tenais la Couronne quand le temps s'est écoulé." : w.Name + " tenait la Couronne quand le temps s'est écoulé.")
-                       : (w.IsLocal ? "Tu as posé la Couronne sur un Monument" : w.Name + " a posé la Couronne sur un Monument") + " en " + Hud.Clock(roundTime) + ".";
-            Centered(y, UiStyle.S(26), how, UiStyle.Label, new Color(0.9f, 0.86f, 0.78f, a));
-            y += UiStyle.S(44);
+            // En bas : le score, et la suite.
+            y = Screen.height * 0.72f;
             ScoreLine(y, a);
-            y += UiStyle.S(60);
+            y += UiStyle.S(74);
 
             if (stateTime > 1.8f)
             {
                 string label = Match.Over ? "Le podium" : "Choisir une capacité";
                 float bw = UiStyle.S(420);
                 if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, UiStyle.S(48)), label, 0, true, a)) Activate(0);
-                Footer("Entrée  continuer");
             }
         }
 
         // ------------------------------------------------------------------ le choix
 
         /// <summary>
-        /// LE CHOIX DES CAPACITES (redessine le 27/09 -- Martin : "que tous les designs,
-        /// quand tu choisis tes trucs, soient beaucoup mieux"). Des cartes hautes qui
-        /// arrivent une a une : un degrade a la couleur de la capacite, la grande
-        /// initiale en filigrane, "ACTIVE · touche R" ou "PASSIVE", une phrase qui dit
-        /// exactement ce qu'elle fait, sa recharge, et ce qu'elle remplace. Celle qu'on
-        /// vise se souleve, s'entoure d'un halo et un reflet la traverse. En haut, la
-        /// file des joueurs : qui choisit, et ce que chacun a pris.
+        /// LE CHOIX DES CAPACITES (refait le 01/10). En haut : PASSIVE ou CLIC GAUCHE, et la
+        /// file des joueurs en pastilles (qui choisit bat ; sous qui a choisi, l'icone de ce
+        /// qu'il a pris). Au milieu : les cartes (voir CardArt) -- l'icone, le nom, la phrase
+        /// qui n'est jamais coupee. En bas : tes capacites, en ronds.
         /// </summary>
         void DrawDraft()
         {
-            EnsureCardTextures();
             // Des rayons qui tournent lentement, des braises qui montent (voir CardArt).
             CardArt.Background(Match.Draft.Stage == 0 ? new Color(0.55f, 0.75f, 1f) : Palette.Gold, 0.68f);
 
-            float y = Screen.height * 0.08f;
-            string title = Match.Draft.Stage == 0 ? "CHOISIS TA PASSIVE" : "CHOISIS TON CLIC GAUCHE";
-            Headline(y, 42, UiStyle.Spaced(title), Palette.Gold);
-            y += UiStyle.S(64);
-            string sub = Match.Draft.Stage == 0 ? "Nouvelles capacités à chaque manche · une passive (toujours là), puis une active"
-                       : Match.Played == 0 ? "Elle ira sur " + AbilityInfo.Keys[0].ToLowerInvariant() + " · chacun son tour"
-                       : Match.LastWinner >= 0 ? Match.Slots[Match.LastWinner].Name + " a gagné la manche : il choisit en dernier"
-                       : "Personne n'a gagné la manche · le moins de victoires choisit d'abord";
-            Centered(y, UiStyle.S(24), sub, UiStyle.Label, new Color(0.9f, 0.85f, 0.75f, 0.8f));
-            y += UiStyle.S(44);
+            // (01/10 -- plus de phrase d'explication) : un mot, et la souris du clic gauche
+            // pour l'active. L'ordre de passage se lit dans la file des pastilles.
+            float y = Screen.height * 0.06f;
+            string title = Match.Draft.Stage == 0 ? "PASSIVE" : "CLIC GAUCHE";
+            Headline(y, 46, UiStyle.Spaced(title), Palette.Gold);
+            if (Match.Draft.Stage == 1)
+            {
+                float ks = UiStyle.S(54);
+                float tw = Icons.Width(UiStyle.Spaced(title), UiStyle.S(46));
+                Icons.Key(new Rect(Screen.width * 0.5f - tw * 0.5f - ks - UiStyle.S(14), y + UiStyle.S(4), ks, ks), AbilityInfo.Keys[0], 1f);
+            }
+            y += UiStyle.S(74);
 
             y = DrawDraftOrder(y);
             y += UiStyle.S(26);
@@ -1276,13 +1264,20 @@ namespace Fief
             if (myTurn)
             {
                 float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
-                Centered(y, UiStyle.S(30), "À TOI DE CHOISIR", UiStyle.Head, new Color(1f, 0.85f, 0.5f, pulse));
+                Headline(y, 34, "À TOI !", new Color(1f, 0.85f, 0.4f, pulse));
             }
             else if (!Match.Draft.Done)
             {
+                // Qui choisit : sa pastille, et un sablier (le chrono) qui bat.
                 PlayerSlot who = Match.Slots[Match.Draft.Current];
-                string dots = new string('.', 1 + Mathf.FloorToInt(Time.unscaledTime * 3f) % 3);
-                Centered(y, UiStyle.S(30), who.Name + " choisit" + dots, UiStyle.Head, who.Colour);
+                int fs = UiStyle.S(22);
+                float ph = UiStyle.S(46);
+                float w = Icons.Width(who.Name, fs) + ph * 1.9f;
+                Rect r = new Rect((Screen.width - w) * 0.5f, y, w, ph);
+                Icons.Pill(r, who.Colour);
+                float beat = 0.8f + 0.2f * Mathf.Sin(Time.unscaledTime * 8f);
+                Icons.Draw(new Rect(r.x + ph * 0.14f, r.y + ph * 0.12f, ph * 0.76f * beat, ph * 0.76f * beat), "chrono", Color.white);
+                Icons.Number(new Rect(r.x + ph, r.y, r.width - ph * 1.3f, ph), who.Name, fs, Color.white, TextAnchor.MiddleCenter);
             }
             else
             {
@@ -1291,26 +1286,21 @@ namespace Fief
                 if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, UiStyle.S(48)), label, 0, true, 1f)) FinishDraft();
             }
 
-            // Ce que tu as deja, en bas : on sait ce qu'on echange.
+            // Ce que tu as deja, en bas : tes ronds de capacites, comme dans le HUD.
             if (Match.Local != null && Match.Local.Abilities.Count > 0)
             {
-                string mine = "";
-                List<Ability> actives = Match.Local.Actives;
-                for (int i = 0; i < actives.Count; i++) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Keys[Mathf.Min(i, AbilityInfo.Keys.Length - 1)].ToUpperInvariant() + "  " + AbilityInfo.Name(actives[i]);
-                for (int i = 0; i < Match.Local.Abilities.Count; i++)
-                    if (!AbilityInfo.IsActive(Match.Local.Abilities[i])) mine += (mine.Length > 0 ? "     " : "") + AbilityInfo.Name(Match.Local.Abilities[i]);
-                float bw = Mathf.Min(Screen.width - UiStyle.S(80), Style(UiStyle.Label, 0, TextAnchor.MiddleCenter).CalcSize(new GUIContent("TES CAPACITÉS  ·  " + mine)).x + UiStyle.S(60));
-                Rect bar = new Rect((Screen.width - bw) * 0.5f, Screen.height - UiStyle.S(100), bw, UiStyle.S(40));
-                // Un bandeau sombre, filets d'or dessus et dessous, le titre en or : un cartouche.
-                UiStyle.Fill(bar, new Color(0.04f, 0.03f, 0.05f, 0.85f));
-                UiStyle.Fill(new Rect(bar.x, bar.y, bar.width, 1f), new Color(1f, 0.8f, 0.4f, 0.8f));
-                UiStyle.Fill(new Rect(bar.x, bar.yMax - 1f, bar.width, 1f), new Color(1f, 0.8f, 0.4f, 0.8f));
-                UiStyle.Fill(new Rect(bar.x + 4f, bar.y + 4f, bar.width - 8f, 1f), new Color(1f, 0.8f, 0.4f, 0.18f));
-                UiStyle.Fill(new Rect(bar.x + 4f, bar.yMax - 5f, bar.width - 8f, 1f), new Color(1f, 0.8f, 0.4f, 0.18f));
-                Centered(bar.y, bar.height, "TES CAPACITÉS  ·  " + mine, UiStyle.Label, new Color(0.95f, 0.92f, 0.86f, 1f));
-            }
-            Footer(Match.Draft.Done ? "Entrée  jouer" : "← →  choisir     Entrée  prendre");
-            CardArt.Sparks();
+                List<Ability> mine = Match.Local.Abilities;
+                float s = UiStyle.S(58), gap2 = UiStyle.S(14);
+                float bx = (Screen.width - (mine.Count * s + (mine.Count - 1) * gap2)) * 0.5f;
+                float by = Screen.height - UiStyle.S(24) - s;
+                for (int i = 0; i < mine.Count; i++)
+                {
+                    Rect r = new Rect(bx + i * (s + gap2), by, s, s);
+                    Icons.Pill(r, Color.Lerp(AbilityInfo.Tint(mine[i]), new Color(0.2f, 0.18f, 0.36f), 0.35f));
+                    Icons.Draw(new Rect(r.x + s * 0.16f, r.y + s * 0.16f, s * 0.68f, s * 0.68f), Icons.Of(mine[i]), Color.white);
+                    if (AbilityInfo.IsActive(mine[i])) Icons.Key(new Rect(r.x - s * 0.18f, r.yMax - s * 0.46f, s * 0.5f, s * 0.5f), AbilityInfo.Keys[0], 1f);
+                }
+            }            CardArt.Sparks();
         }
 
         float[] cardLift = new float[Match.MaxPlayers + 2];
@@ -1319,141 +1309,114 @@ namespace Fief
         /// <summary>La file des joueurs : une pastille par joueur, a sa couleur ; sous celles qui ont choisi, ce qu'elles ont pris.</summary>
         float DrawDraftOrder(float y)
         {
+            // (01/10) Des pastilles rondes a la couleur de chacun (toi : cerne d'or), celle qui
+            // choisit grossit et bat ; sous qui a choisi, l'icone de ce qu'il a pris.
             List<int> order = Match.Draft.Order;
-            GUIStyle os = Style(UiStyle.Label, 0, TextAnchor.MiddleCenter);
-            GUIStyle ps = Style(UiStyle.Small, 0, TextAnchor.MiddleCenter);
-            float chipW = Mathf.Min(UiStyle.S(150), (Screen.width - UiStyle.S(80)) / Mathf.Max(1, order.Count) - UiStyle.S(10));
-            float total = order.Count * (chipW + UiStyle.S(10));
+            float gap = UiStyle.S(12);
+            float chipW = Mathf.Min(UiStyle.S(160), (Screen.width - UiStyle.S(80)) / Mathf.Max(1, order.Count) - gap);
+            float ch = UiStyle.S(36);
+            float total = order.Count * chipW + (order.Count - 1) * gap;
             float ox = (Screen.width - total) * 0.5f;
             for (int i = 0; i < order.Count; i++)
             {
                 PlayerSlot s = Match.Slots[order[i]];
                 bool now = !Match.Draft.Done && Match.Draft.Current == order[i];
                 bool done = i < Match.Draft.Turn;
-                Color c = s.IsLocal ? Palette.Gold : s.Colour;
-                Rect chip = new Rect(ox + i * (chipW + UiStyle.S(10)), y, chipW, UiStyle.S(30));
-                float pulse = now ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f) : 0f;
-                UiStyle.Fill(chip, new Color(c.r * 0.25f, c.g * 0.25f, c.b * 0.25f, now ? 0.9f : 0.6f));
-                UiStyle.Fill(new Rect(chip.x, chip.yMax - UiStyle.S(3), chip.width, UiStyle.S(3)), new Color(c.r, c.g, c.b, now ? 0.6f + 0.4f * pulse : done ? 0.4f : 0.8f));
-                if (now) Border(chip, new Color(c.r, c.g, c.b, 0.5f + 0.5f * pulse));
-                Shadow(chip, (i + 1) + ". " + s.Name, os, new Color(1f, 1f, 1f, done ? 0.55f : 1f));
-                // Ce qu'il a pris a ce tour-ci.
+                Rect chip = new Rect(ox + i * (chipW + gap), y, chipW, ch);
+                if (now)
+                {
+                    float g = UiStyle.S(4) * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
+                    chip = new Rect(chip.x - g, chip.y - g, chip.width + g * 2f, chip.height + g * 2f);
+                }
+                if (s.IsLocal) Icons.Pill(new Rect(chip.x - UiStyle.S(4), chip.y - UiStyle.S(4), chip.width + UiStyle.S(8), chip.height + UiStyle.S(8)), Wings.Gold, done ? 0.6f : 1f);
+                Icons.Pill(chip, done ? Color.Lerp(s.Colour, new Color(0.2f, 0.2f, 0.3f), 0.5f) : s.Colour);
+                int fs = Mathf.RoundToInt(ch * 0.44f);
+                string name = s.Name;
+                while (name.Length > 3 && Icons.Width(name, fs) > chip.width - ch * 0.9f) name = name.Substring(0, name.Length - 1);
+                Icons.Number(chip, name, fs, new Color(1f, 1f, 1f, done ? 0.75f : 1f), TextAnchor.MiddleCenter);
+                // Ce qu'il a pris a ce tour-ci : l'icone, dans un petit rond a sa couleur.
                 for (int k = 0; k < Match.Draft.Picked.Count; k++)
                 {
                     if (Match.Draft.PickedBy[k] != order[i]) continue;
-                    Color t = AbilityInfo.Tint(Match.Draft.Picked[k]);
-                    Shadow(new Rect(chip.x, chip.yMax + UiStyle.S(2), chip.width, UiStyle.S(20)), AbilityInfo.Name(Match.Draft.Picked[k]), ps, t);
+                    float ps = UiStyle.S(34);
+                    Rect pr = new Rect(chip.center.x - ps * 0.5f, chip.yMax + UiStyle.S(8), ps, ps);
+                    Icons.Pill(pr, AbilityInfo.Tint(Match.Draft.Picked[k]));
+                    Icons.Draw(new Rect(pr.x + ps * 0.14f, pr.y + ps * 0.14f, ps * 0.72f, ps * 0.72f), Icons.Of(Match.Draft.Picked[k]), Color.white);
                 }
             }
-            return y + UiStyle.S(54);
-        }
-
-        static void Border(Rect r, Color c)
-        {
-            UiStyle.Fill(new Rect(r.x, r.y, r.width, 1f), c);
-            UiStyle.Fill(new Rect(r.x, r.yMax - 1f, r.width, 1f), c);
-            UiStyle.Fill(new Rect(r.x, r.y, 1f, r.height), c);
-            UiStyle.Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), c);
+            return y + UiStyle.S(86);
         }
 
         /// <summary>UNE CARTE (28/09 : dessinee par CardArt -- dos, retournement, cadre d'or, rayons, etincelles).</summary>
         void Card(Rect card, Ability p, bool owned, bool on, float lift, float enter, int me)
         {
             bool active = AbilityInfo.IsActive(p);
-            string ribbon;
-            if (active)
-            {
-                int count = Match.Local != null ? Match.Local.Actives.Count : 0;
-                ribbon = "ACTIVE  ·  " + AbilityInfo.Keys[Mathf.Min(count, AbilityInfo.MaxActives - 1)].ToUpperInvariant();
-            }
-            else ribbon = "PASSIVE  ·  TOUJOURS LÀ";
-            string foot = active ? "Recharge " + AbilityInfo.Cooldown(p).ToString("0") + " s" : "Sans touche";
             string replaces = null;
             if (!owned && Match.Local != null)
             {
                 int lost = Match.Draft.WouldReplace(me, p);
-                if (lost >= 0) replaces = "remplace " + AbilityInfo.Name((Ability)lost);
+                if (lost >= 0) replaces = AbilityInfo.Name((Ability)lost);
             }
-            CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), ribbon, AbilityInfo.Line(p), foot, replaces, owned, on, lift, enter, Icons.Of(p));
-        }
-
-        static Texture2D gradTex, glowTex;
-
-        /// <summary>Deux textures faites au lancement : un degrade (haut plein, bas vide) et un halo rond et doux.</summary>
-        static void EnsureCardTextures()
-        {
-            if (gradTex == null)
-            {
-                gradTex = new Texture2D(1, 64, TextureFormat.RGBA32, false);
-                gradTex.wrapMode = TextureWrapMode.Clamp;
-                for (int y = 0; y < 64; y++)
-                {
-                    float t = y / 63f;          // (la ligne 0 est en BAS de la texture)
-                    gradTex.SetPixel(0, y, new Color(1f, 1f, 1f, t * t));
-                }
-                gradTex.Apply();
-            }
-            if (glowTex == null)
-            {
-                const int Size = 64;
-                glowTex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
-                glowTex.wrapMode = TextureWrapMode.Clamp;
-                for (int y = 0; y < Size; y++)
-                    for (int x = 0; x < Size; x++)
-                    {
-                        float dx = (x + 0.5f) / Size * 2f - 1f, dy = (y + 0.5f) / Size * 2f - 1f;
-                        float d = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
-                        glowTex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Pow(1f - d, 2f)));
-                    }
-                glowTex.Apply();
-            }
+            CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), AbilityInfo.Line(p),
+                         active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, replaces, owned, on, lift, enter, Icons.Of(p));
         }
 
         // ------------------------------------------------------------------ fin du match
 
         void DrawEnd()
         {
+            // (01/10 -- sans phrases) Le champion : son pseudo en or et la Couronne ; le
+            // classement en pastilles ; ce que TU as fait, en icones et en chiffres.
             float a = Mathf.Clamp01(stateTime / 0.8f);
-            float y = Screen.height * 0.16f;
+            float y = Screen.height * 0.1f;
+            float cx = Screen.width * 0.5f;
             PlayerSlot champion = Match.Champion;
             if (champion != null)
             {
-                Color c = champion.IsLocal ? Palette.Gold : champion.Colour;
-                Headline(y, 64, champion.IsLocal ? "TU GAGNES LE MATCH" : champion.Name.ToUpperInvariant() + " GAGNE LE MATCH", new Color(c.r, c.g, c.b, a));
+                float cs = UiStyle.S(96) * (1f + 0.04f * Mathf.Sin(Time.unscaledTime * 2f));
+                Icons.Draw(new Rect(cx - cs * 0.5f, y - UiStyle.S(20), cs, cs), "couronne", new Color(1f, 0.86f, 0.35f, a));
+                Headline(y + UiStyle.S(78), 72, UiStyle.Spaced(champion.Name.ToUpperInvariant()), new Color(1f, 0.82f, 0.38f, a));
             }
-            else Headline(y, 56, "PAS DE VAINQUEUR", new Color(0.85f, 0.8f, 0.72f, a));
-            y += UiStyle.S(110);
+            else
+            {
+                float cs = UiStyle.S(96);
+                Icons.Draw(new Rect(cx - cs * 0.5f, y, cs, cs), "couronne", new Color(1f, 0.86f, 0.35f, a * 0.5f));
+                Icons.Draw(new Rect(cx - cs * 0.3f, y + cs * 0.2f, cs * 0.6f, cs * 0.6f), "croix", new Color(1f, 0.4f, 0.35f, a));
+            }
+            y += UiStyle.S(190);
 
-            // Le classement, en lignes.
+            // Le classement : une pastille par joueur, la premiere plus grande.
             List<PlayerSlot> order = new List<PlayerSlot>(Match.Slots);
             order.Sort((p, q) => q.Wins.CompareTo(p.Wins));
-            GUIStyle row = Style(UiStyle.Head, 22, TextAnchor.MiddleLeft);
-            GUIStyle rowRight = Style(UiStyle.Head, 22, TextAnchor.MiddleRight);
-            float w = UiStyle.S(460);
-            float x = (Screen.width - w) * 0.5f;
+            float w = UiStyle.S(420);
             for (int i = 0; i < order.Count; i++)
             {
                 PlayerSlot s = order[i];
-                Color c = s.IsLocal ? Palette.Gold : s.Colour;
-                Shadow(new Rect(x, y, w, UiStyle.S(32)), (i + 1) + ".   " + s.Name, row, new Color(c.r, c.g, c.b, a));
-                Shadow(new Rect(x, y, w, UiStyle.S(32)), s.Wins + (s.Wins > 1 ? " manches" : " manche"), rowRight, new Color(0.9f, 0.86f, 0.78f, a));
-                y += UiStyle.S(36);
+                float h = UiStyle.S(i == 0 ? 50 : 40);
+                Rect r = new Rect(cx - w * 0.5f, y, w, h);
+                if (s.IsLocal) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), Wings.Gold, a);
+                Icons.Pill(r, s.Colour, a);
+                Icons.Number(new Rect(r.x + h * 0.3f, r.y, h, h), (i + 1).ToString(), Mathf.RoundToInt(h * 0.56f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+                Icons.Number(new Rect(r.x + h * 1.4f, r.y, w - h * 3.4f, h), s.Name, Mathf.RoundToInt(h * 0.46f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleLeft);
+                Icons.Draw(new Rect(r.xMax - h * 1.8f, r.y + h * 0.12f, h * 0.76f, h * 0.76f), "couronne", new Color(1f, 0.86f, 0.35f, a));
+                Icons.Number(new Rect(r.xMax - h * 1.0f, r.y, h * 0.7f, h), s.Wins.ToString(), Mathf.RoundToInt(h * 0.56f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+                y += h + UiStyle.S(10);
             }
-            y += UiStyle.S(24);
+            y += UiStyle.S(20);
 
-            // Ce que TU as fait, en une phrase par ligne.
-            string[] lines =
+            // Ce que TU as fait : cinq pastilles, une icone et un chiffre chacune.
+            string[] icons = { "sacre", "couronne", "pousser", "cible", "don" };
+            int[] counts = { Stats.Delivered, Stats.CrownsTaken, Stats.Shoves, Stats.Casts, Stats.Shrines };
+            float ps = UiStyle.S(44), pw = UiStyle.S(104), pg = UiStyle.S(12);
+            float px = cx - (icons.Length * pw + (icons.Length - 1) * pg) * 0.5f;
+            for (int i = 0; i < icons.Length; i++)
             {
-                Stats.Delivered + " Couronne" + (Stats.Delivered > 1 ? "s" : "") + " posée" + (Stats.Delivered > 1 ? "s" : "") + " au Monument",
-                Stats.CrownsTaken + " fois la Couronne en main,  " + Stats.CrownsStolen + " arrachée" + (Stats.CrownsStolen > 1 ? "s" : "") + " à un autre",
-                Stats.Shoves + " poussées,  " + Stats.Casts + " capacités lancées,  " + Stats.Shrines + " don" + (Stats.Shrines > 1 ? "s" : "") + " pris"
-            };
-            for (int i = 0; i < lines.Length; i++)
-            {
-                Centered(y, UiStyle.S(24), lines[i], UiStyle.Label, new Color(0.8f, 0.76f, 0.68f, a));
-                y += UiStyle.S(26);
+                Rect r = new Rect(px + i * (pw + pg), y, pw, ps);
+                Icons.Pill(r, new Color(0.14f, 0.16f, 0.36f), a);
+                Icons.Draw(new Rect(r.x + ps * 0.12f, r.y + ps * 0.1f, ps * 0.8f, ps * 0.8f), icons[i], i < 2 ? new Color(1f, 0.86f, 0.35f, a) : new Color(1f, 1f, 1f, a));
+                Icons.Number(new Rect(r.x + ps, r.y, pw - ps * 1.15f, ps), counts[i].ToString(), Mathf.RoundToInt(ps * 0.5f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
             }
-            y += UiStyle.S(30);
+            y += ps + UiStyle.S(34);
 
             if (stateTime > 1.5f)
             {
@@ -1464,47 +1427,81 @@ namespace Fief
                     float h = UiStyle.S(primary ? 48 : 38);
                     if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, h), EndItems[i], i, primary, a)) Activate(i);
                     y += h + UiStyle.S(4);
-                }
-                Footer("↑ ↓  choisir     Entrée  valider");
-            }
+                }            }
         }
 
         // ------------------------------------------------------------------ les commandes
 
-        public static string[,] Controls { get { return new string[,]
-        {
-            { "ZQSD / WASD", "Se déplacer" },
-            { "Souris", "Regarder" },
-            { "Maj", "Courir" },
-            { "Espace", "Sauter ; en l'air : replier ou rouvrir les ailes" },
-            { "Voler", "Tombe dans le vide : tes ailes s'ouvrent seules. Souris en bas : piquer, en haut : remonter" },
-            { AbilityInfo.Keys[0], "TA capacité (maintiens pour viser, relâche pour lancer) ; elle change à chaque manche" },
-            { AbilityInfo.PushKey, "Pousser — pousser le porteur, c'est lui voler la Couronne ; en vol : le piqué" },
-            { "E", "Prendre la Couronne, un don (il remplace ta capacité pour la manche) ; monter sur une arbaleste" },
-            { "Sur l'arbaleste", "Clic gauche : TIRÉ devant le château  ·  E : descendre" },
-            { "F1 ou H", "Les touches, à tout moment" },
-            { "Tab", "Le score et les capacités de chacun" },
-            { "Échap", "Pause" }
-        }; } }
+        /// <summary>
+        /// LES COMMANDES, SANS UNE PHRASE (01/10 -- Martin : "comment tu veux qu'un joueur lise
+        /// tout ca ? il a la flemme"). Trois colonnes -- BOUGER, TES POUVOIRS, VOLER -- et dans
+        /// chacune, des pastilles : la touche, une fleche, ce qu'elle fait en icone. Ca se lit
+        /// en deux secondes, comme l'ecran des touches de Fall Guys.
+        /// ("#icone" a la place d'une touche : rien a appuyer, ca se fait tout seul.)
+        /// </summary>
+        static readonly string[] MoveKeys = { "ZQSD", "Maj", "Espace", "E" };
+        static readonly string[] MoveIcons = { "joueur", "coureur", "haut", "couronne" };
+        static readonly string[] MoveIcons2 = { null, null, null, "arbaleste" };
+        static readonly string[] FlyKeys = { "#vue", "Espace", "#courant", "" };
+        static readonly string[] FlyIcons = { "ailes", "ailes", "haut", "pique" };
+        static readonly string[] FlyIcons2 = { null, "croix", null, "couronne" };
 
         void DrawControls()
         {
-            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
-            float x = Left;
-            int count = Controls.GetLength(0);
-            float y = Screen.height * 0.5f - UiStyle.S(40 + count * 15);
+            Glide(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.02f, 0.015f, 0.05f, 0.82f));
+            float col = UiStyle.S(270), row = UiStyle.S(66), gap = UiStyle.S(26);
+            float total = col * 3f + gap * 2f;
+            float x = Mathf.Max(Left, (Screen.width - total) * 0.5f);
+            float y = Screen.height * 0.5f - UiStyle.S(260);
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "COMMANDES", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
-            y += UiStyle.S(66);
-            GUIStyle key = Style(UiStyle.Label, 0, TextAnchor.MiddleLeft);
-            for (int i = 0; i < count; i++)
+            y += UiStyle.S(84);
+
+            string[] powerKeys = { AbilityInfo.Keys[0], AbilityInfo.PushKey, AbilityInfo.PushKey, "Tab" };
+            string[] powerIcons = { "cible", "pousser", "pousser", "manches" };
+            string[] powerIcons2 = { null, null, "couronne", null };
+            FlyKeys[3] = AbilityInfo.PushKey;
+            ControlColumn(x, y, col, row, "joueur", new Color(0.45f, 0.72f, 1f), MoveKeys, MoveIcons, MoveIcons2);
+            ControlColumn(x + col + gap, y, col, row, "cible", new Color(1f, 0.5f, 0.42f), powerKeys, powerIcons, powerIcons2);
+            ControlColumn(x + (col + gap) * 2f, y, col, row, "ailes", Wings.Gold, FlyKeys, FlyIcons, FlyIcons2);
+            y += UiStyle.S(78) + row * 4f + UiStyle.S(10);
+
+            // En bas : la pause, et ce panneau pendant la partie.
+            float small = row * 0.86f;
+            ControlRow(new Rect(x, y, col, small), "Échap", "reglages", null, Color.white);
+            ControlRow(new Rect(x + col + gap, y, col, small), "F1", "commandes", null, Color.white);
+            y += small + UiStyle.S(30);
+            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(48)), "Retour", 0, false, 1f)) { showControls = false; selected = 0; }
+        }
+
+        /// <summary>Une colonne : son icone en tete, dans un gros rond a sa couleur, puis ses lignes.</summary>
+        static void ControlColumn(float x, float y, float w, float row, string head, Color tint, string[] keys, string[] icons, string[] icons2)
+        {
+            float hs = UiStyle.S(64);
+            Rect hr = new Rect(x + (w - hs) * 0.5f, y, hs, hs);
+            Icons.Pill(hr, new Color(tint.r * 0.55f, tint.g * 0.55f, tint.b * 0.6f));
+            Icons.Draw(new Rect(hr.x + hs * 0.14f, hr.y + hs * 0.14f, hs * 0.72f, hs * 0.72f), head, Color.white);
+            y += UiStyle.S(78);
+            for (int i = 0; i < keys.Length; i++)
+                ControlRow(new Rect(x, y + i * row, w, row - UiStyle.S(10)), keys[i], icons[i], icons2[i], tint);
+        }
+
+        /// <summary>Une ligne : la touche, une petite fleche, ce qu'elle fait (une ou deux icones).</summary>
+        static void ControlRow(Rect r, string key, string icon, string icon2, Color tint)
+        {
+            Icons.Pill(r, new Color(0.12f + tint.r * 0.12f, 0.12f + tint.g * 0.12f, 0.24f + tint.b * 0.14f, 0.96f));
+            float s = r.height;
+            Rect k = new Rect(r.x + s * 0.72f, r.y + s * 0.1f, s * 0.8f, s * 0.8f);
+            if (key.StartsWith("#")) Icons.Draw(new Rect(r.x + s * 0.5f, r.y + s * 0.12f, s * 0.76f, s * 0.76f), key.Substring(1), new Color(1f, 1f, 1f, 0.85f));
+            else if (key.Length > 0) Icons.Key(k, key, 1f);
+            Icons.Draw(new Rect(r.x + s * 1.95f, r.y + s * 0.33f, s * 0.34f, s * 0.34f), "jouer", new Color(1f, 1f, 1f, 0.5f), false);
+            Icons.Draw(new Rect(r.xMax - s * 0.98f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), icon, tint);
+            if (icon2 != null)
             {
-                Shadow(new Rect(x, y, UiStyle.S(180), UiStyle.S(26)), Controls[i, 0], key, Palette.Gold);
-                Shadow(new Rect(x + UiStyle.S(190), y, UiStyle.S(700), UiStyle.S(26)), Controls[i, 1], key, UiStyle.Ink);
-                y += UiStyle.S(28);
+                bool cross = icon2 == "croix";
+                float c2 = cross ? s * 0.46f : s * 0.66f;
+                Rect r2 = cross ? new Rect(r.xMax - s * 0.62f, r.y + s * 0.4f, c2, c2) : new Rect(r.xMax - s * 1.72f, r.y + s * 0.17f, c2, c2);
+                Icons.Draw(r2, icon2, cross ? new Color(1f, 0.4f, 0.35f) : icon2 == "couronne" ? new Color(1f, 0.86f, 0.35f) : Color.white);
             }
-            y += UiStyle.S(24);
-            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(40)), "Retour", 0, false, 1f)) { showControls = false; selected = 0; }
-            Footer("Entrée ou Échap  retour");
         }
     }
 }

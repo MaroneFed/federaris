@@ -4,29 +4,29 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LES CARTES DE CAPACITE, dessinees comme de vraies cartes (28/09 -- Martin :
-    /// "les cartes sont mal faites, c'est pas beau ; qu'il y ait plus d'effets").
+    /// LES CARTES DE CAPACITE, facon jeu de cartes moderne (refaites le 01/10 -- Martin :
+    /// "c'est moche, il y a un effet de flou bizarre, et le texte est coupe").
     ///
-    ///   - elles arrivent FACE CACHEE et se RETOURNENT une a une (un dos de velours
-    ///     sombre, un losange d'or) ;
-    ///   - la face : un fond de pierre granuleux, un lavis a la couleur de la
-    ///     capacite, un CADRE D'OR a double filet avec des coins ouvrages, un ruban
-    ///     en haut (ACTIVE · clic gauche / PASSIVE), le nom en grand, un fleuron, la
-    ///     phrase, la recharge ;
-    ///   - celle qu'on vise se souleve, grossit, s'entoure d'un halo et de RAYONS de
-    ///     lumiere qui tournent, et des etincelles montent autour ;
-    ///   - la prendre : un eclair blanc, une gerbe d'etincelles, un coup de phonk.
+    ///   - elles arrivent FACE CACHEE et se RETOURNENT une a une (un dos bleu nuit, la
+    ///     Couronne d'or) ;
+    ///   - la face : un corps arrondi a la couleur de la capacite, une FENETRE ou la grosse
+    ///     icone brille sur des rayons, le NOM sur un bandeau sombre, et la PHRASE en encre
+    ///     sombre sur un cartouche clair -- elle rapetisse s'il le faut, elle n'est JAMAIS
+    ///     coupee ; en haut, la touche et la recharge en pastilles ;
+    ///   - celle qu'on vise grandit (on redessine plus grand, on n'etire pas : c'etait ce
+    ///     zoom qui floutait tout), s'entoure d'un halo et de rayons ;
+    ///   - la prendre : un eclair, une gerbe d'etincelles.
     ///
-    /// Aucune icone : que de la matiere, de la lumiere et des mots.
+    /// Plus de grain de pierre : une petite image de bruit etiree a la taille de la carte,
+    /// c'etait l'"effet de flou bizarre".
     ///
-    /// Concept Unity : ces textures sont FABRIQUEES pixel par pixel au lancement
-    /// (Texture2D.SetPixel). Le cadre est dessine en "9 tranches" : un GUIStyle avec
-    /// une bordure (border) etire le milieu sans deformer les coins.
+    /// Concept Unity : un GUIStyle "9 tranches" (border) garde ses quatre coins a leur
+    /// taille exacte et n'etire que les bords et le milieu : un seul petit rectangle
+    /// arrondi dessine n'importe quelle carte, coins nets.
     /// </summary>
     public static class CardArt
     {
-        static Texture2D face, back, frame, rays, glow, grad;
-        static GUIStyle frameStyle;
+        static Texture2D rays, glow, grad;
 
         // --- les etincelles (des petits points de lumiere qui montent)
         static readonly List<Vector2> sparkPos = new List<Vector2>();
@@ -39,60 +39,16 @@ namespace Fief
         static float lastTick;
 
         public static readonly Color Gold = new Color(1f, 0.8f, 0.42f);
+        static readonly Color Cream = new Color(0.98f, 0.96f, 0.91f);
+        static readonly Color DarkInk = new Color(0.13f, 0.1f, 0.24f);
 
         public static void Ensure()
         {
-            if (face != null) return;
-            System.Random rng = new System.Random(77);
-            // La face : une pierre claire granuleuse, plus sombre sur les bords.
-            face = new Texture2D(128, 192, TextureFormat.RGBA32, false);
-            back = new Texture2D(128, 192, TextureFormat.RGBA32, false);
-            for (int y = 0; y < 192; y++)
-                for (int x = 0; x < 128; x++)
-                {
-                    float u = x / 127f, v = y / 191f;
-                    float vig = Mathf.Clamp01(1f - Mathf.Pow(Mathf.Max(Mathf.Abs(u - 0.5f) * 2f, Mathf.Abs(v - 0.5f) * 2f), 4f) * 0.6f);
-                    float n = 0.82f + (float)rng.NextDouble() * 0.18f;
-                    float g = n * vig;
-                    face.SetPixel(x, y, new Color(g, g, g, 1f));
-                    // Le dos : un velours sombre et un treillis de losanges.
-                    float lattice = Mathf.Abs(Mathf.Repeat((u * 128f + v * 192f) / 16f, 1f) - 0.5f) < 0.04f
-                                 || Mathf.Abs(Mathf.Repeat((u * 128f - v * 192f) / 16f, 1f) - 0.5f) < 0.04f ? 1f : 0f;
-                    float b = (0.09f + 0.03f * n) * vig;
-                    back.SetPixel(x, y, new Color(b + lattice * 0.18f, b * 0.8f + lattice * 0.13f, b * 1.1f + lattice * 0.05f, 1f));
-                }
-            face.Apply();
-            back.Apply();
-
-            // Le cadre (9 tranches) : un filet epais, un filet fin a l'interieur, des coins ouvrages.
-            const int F = 96;
-            frame = new Texture2D(F, F, TextureFormat.RGBA32, false);
-            for (int y = 0; y < F; y++)
-                for (int x = 0; x < F; x++)
-                {
-                    int dx = Mathf.Min(x, F - 1 - x), dy = Mathf.Min(y, F - 1 - y);
-                    int d = Mathf.Min(dx, dy);
-                    float a = 0f;
-                    if (d <= 2) a = 1f;                                   // filet exterieur
-                    else if (d == 6) a = 0.75f;                           // filet interieur
-                    // Les coins : un quart de cercle et un losange.
-                    if (dx < 26 && dy < 26)
-                    {
-                        float r = Mathf.Sqrt(dx * dx + dy * dy);
-                        if (Mathf.Abs(r - 18f) < 1.2f && dx > 6 && dy > 6) a = 1f;
-                        if (Mathf.Abs(dx - 11) + Mathf.Abs(dy - 11) < 4) a = 1f;
-                        if ((dx == 6 || dy == 6) && dx < 22 && dy < 22) a = 1f;
-                    }
-                    frame.SetPixel(x, y, new Color(1f, 1f, 1f, a));
-                }
-            frame.Apply();
-            frameStyle = new GUIStyle();
-            frameStyle.normal.background = frame;
-            frameStyle.border = new RectOffset(30, 30, 30, 30);
-
+            if (rays != null) return;
             // Les rayons : douze pinceaux de lumiere qui s'effacent vers l'exterieur.
             const int R = 256;
-            rays = new Texture2D(R, R, TextureFormat.RGBA32, false);
+            rays = New(R, R);
+            Color32[] px = new Color32[R * R];
             for (int y = 0; y < R; y++)
                 for (int x = 0; x < R; x++)
                 {
@@ -101,24 +57,35 @@ namespace Fief
                     float ang = Mathf.Atan2(dy, dx);
                     float beam = Mathf.Pow(Mathf.Max(0f, Mathf.Cos(ang * 6f)), 6f);
                     float a = beam * Mathf.Clamp01(1f - r) * Mathf.Clamp01(r * 4f);
-                    rays.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                    px[y * R + x] = new Color32(255, 255, 255, (byte)(255f * a));
                 }
-            rays.Apply();
+            rays.SetPixels32(px);
+            rays.Apply(false);
 
             const int G = 64;
-            glow = new Texture2D(G, G, TextureFormat.RGBA32, false);
+            glow = New(G, G);
+            px = new Color32[G * G];
             for (int y = 0; y < G; y++)
                 for (int x = 0; x < G; x++)
                 {
                     float dx = (x + 0.5f) / G * 2f - 1f, dy = (y + 0.5f) / G * 2f - 1f;
                     float d = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
-                    glow.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Pow(1f - d, 2f)));
+                    px[y * G + x] = new Color32(255, 255, 255, (byte)(255f * (1f - d) * (1f - d)));
                 }
-            glow.Apply();
-            grad = new Texture2D(1, 64, TextureFormat.RGBA32, false);
+            glow.SetPixels32(px);
+            glow.Apply(false);
+            grad = New(1, 64);
             for (int y = 0; y < 64; y++) grad.SetPixel(0, y, new Color(1f, 1f, 1f, Mathf.Pow(y / 63f, 1.6f)));
-            grad.Apply();
-            foreach (Texture2D t in new[] { face, back, frame, rays, glow, grad }) { t.wrapMode = TextureWrapMode.Clamp; t.hideFlags = HideFlags.HideAndDontSave; }
+            grad.Apply(false);
+        }
+
+        static Texture2D New(int w, int h)
+        {
+            Texture2D t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            t.wrapMode = TextureWrapMode.Clamp;
+            t.filterMode = FilterMode.Bilinear;
+            t.hideFlags = HideFlags.HideAndDontSave;
+            return t;
         }
 
         static void Tex(Rect r, Texture2D t, Color c)
@@ -128,6 +95,58 @@ namespace Fief
             GUI.DrawTexture(r, t, ScaleMode.StretchToFill, true);
             GUI.color = was;
         }
+
+        // ================================================================== le rectangle arrondi
+
+        static readonly Dictionary<int, GUIStyle> rounds = new Dictionary<int, GUIStyle>();
+
+        /// <summary>Un rectangle aux coins arrondis de "radius" pixels (9 tranches). "shade" : plus clair en haut.</summary>
+        static GUIStyle RoundStyle(int radius, bool shade)
+        {
+            radius = Mathf.Clamp(radius, 2, 64);
+            int key = radius * 2 + (shade ? 1 : 0);
+            GUIStyle s;
+            if (rounds.TryGetValue(key, out s) && s != null && s.normal.background != null) return s;
+            int w = radius * 2 + 4, h = shade ? radius * 2 + 96 : w;
+            Texture2D t = New(w, h);
+            Color32[] px = new Color32[w * h];
+            float hx = w * 0.5f - radius, hy = h * 0.5f - radius;
+            for (int j = 0; j < h; j++)
+                for (int i = 0; i < w; i++)
+                {
+                    float qx = Mathf.Abs(i + 0.5f - w * 0.5f) - hx, qy = Mathf.Abs(j + 0.5f - h * 0.5f) - hy;
+                    float ox = Mathf.Max(qx, 0f), oy = Mathf.Max(qy, 0f);
+                    float d = Mathf.Sqrt(ox * ox + oy * oy) + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
+                    // (ligne 0 = le BAS de la texture) : le haut plus clair que le bas.
+                    byte k = (byte)(255f * (shade ? Mathf.Lerp(0.72f, 1f, j / (float)(h - 1)) : 1f));
+                    px[j * w + i] = new Color32(k, k, k, (byte)(255f * Mathf.Clamp01(0.5f - d)));
+                }
+            t.SetPixels32(px);
+            t.Apply(false);
+            s = new GUIStyle();
+            s.normal.background = t;
+            s.border = new RectOffset(radius + 1, radius + 1, radius + 1, radius + 1);
+            rounds[key] = s;
+            return s;
+        }
+
+        static void Round(Rect r, Color c, int radius, bool shade)
+        {
+            if (Event.current.type != EventType.Repaint || c.a <= 0.003f) return;
+            r = Icons.Snap(r);
+            if (r.width < radius * 2 + 2 || r.height < radius * 2 + 2) radius = Mathf.Max(2, Mathf.FloorToInt(Mathf.Min(r.width, r.height) * 0.5f) - 1);
+            Color was = GUI.color;
+            GUI.color = c;
+            RoundStyle(radius, shade).Draw(r, false, false, false, false);
+            GUI.color = was;
+        }
+
+        static Rect Grow(Rect r, float by)
+        {
+            return new Rect(r.x - by, r.y - by, r.width + by * 2f, r.height + by * 2f);
+        }
+
+        // ================================================================== le fond
 
         /// <summary>Le fond de l'ecran de choix : deux gerbes de rayons qui tournent lentement, un voile, des braises.</summary>
         public static void Background(Color tint) { Background(tint, 0f); }
@@ -143,47 +162,48 @@ namespace Fief
             if (scrim > 0f)
             {
                 Rect all = new Rect(0f, 0f, Screen.width, Screen.height);
-                UiStyle.Fill(all, new Color(0.03f, 0.02f, 0.04f, scrim));
-                Tex(new Rect(0f, 0f, Screen.width, Screen.height * 0.35f), grad, new Color(0f, 0f, 0f, scrim * 0.6f));
+                UiStyle.Fill(all, new Color(0.05f, 0.05f, 0.14f, scrim));
+                Tex(new Rect(0f, 0f, Screen.width, Screen.height * 0.35f), grad, new Color(0f, 0f, 0.02f, scrim * 0.5f));
                 Matrix4x4 up = GUI.matrix;
                 Rect low = new Rect(0f, Screen.height * 0.65f, Screen.width, Screen.height * 0.35f);
                 GUIUtility.ScaleAroundPivot(new Vector2(1f, -1f), low.center);
-                Tex(low, grad, new Color(0f, 0f, 0f, scrim * 0.6f));
+                Tex(low, grad, new Color(0f, 0f, 0.02f, scrim * 0.5f));
                 GUI.matrix = up;
             }
             Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.55f);
             float size = Mathf.Max(Screen.width, Screen.height) * 1.5f;
             Matrix4x4 m = GUI.matrix;
             GUIUtility.RotateAroundPivot(time * 4f, c);
-            Tex(new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size), rays, new Color(tint.r, tint.g, tint.b, 0.07f));
+            Tex(new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size), rays, new Color(tint.r, tint.g, tint.b, 0.09f));
             GUI.matrix = m;
             GUIUtility.RotateAroundPivot(-time * 2.5f + 15f, c);
-            Tex(new Rect(c.x - size * 0.4f, c.y - size * 0.4f, size * 0.8f, size * 0.8f), rays, new Color(1f, 0.9f, 0.7f, 0.05f));
+            Tex(new Rect(c.x - size * 0.4f, c.y - size * 0.4f, size * 0.8f, size * 0.8f), rays, new Color(1f, 0.95f, 0.85f, 0.05f));
             GUI.matrix = m;
             // Des braises qui montent du bas de l'ecran.
-            if (Random.value < 0.35f) Emit(new Vector2(Random.value * Screen.width, Screen.height + 10f), new Vector2(Random.Range(-10f, 10f), Random.Range(-60f, -25f)), 4f, new Color(1f, 0.7f, 0.35f, 0.7f));
+            if (Random.value < 0.35f) Emit(new Vector2(Random.value * Screen.width, Screen.height + 10f), new Vector2(Random.Range(-10f, 10f), Random.Range(-60f, -25f)), 4f, new Color(1f, 0.8f, 0.45f, 0.7f));
         }
+
+        // ================================================================== une carte
 
         /// <summary>
         /// UNE CARTE. "enter" : 0 (face cachee, pas encore arrivee) a 1 (retournee) ;
-        /// "lift" : 0 a 1 (visee). Le reste : les mots.
+        /// "lift" : 0 a 1 (visee). "cooldown" : 0 pour une passive ; "key" : la touche de
+        /// l'active (null pour une passive).
         /// </summary>
-        public static void Draw(Rect card, Color tint, string name, string ribbon, string line, string foot, string replaces, bool owned, bool on, float lift, float enter)
-        {
-            Draw(card, tint, name, ribbon, line, foot, replaces, owned, on, lift, enter, null);
-        }
-
-        /// <summary>La meme, avec la grosse icone de la capacite au milieu (30/09 : "des icones").</summary>
-        public static void Draw(Rect card, Color tint, string name, string ribbon, string line, string foot, string replaces, bool owned, bool on, float lift, float enter, string icon)
+        public static void Draw(Rect card, Color tint, string name, string line, float cooldown, string key, string replaces,
+                                bool owned, bool on, float lift, float enter, string icon)
         {
             Ensure();
+            if (Event.current.type != EventType.Repaint) return;
             float time = Time.unscaledTime;
-            // Le retournement : la carte s'amincit jusqu'a la tranche, puis revient de face.
             float turn = Mathf.Clamp01(enter);
             float sx = Mathf.Abs(Mathf.Cos(turn * Mathf.PI));
             bool showFace = turn >= 0.5f;
-            float zoom = 1f + 0.06f * lift;
-            float fade = owned ? 0.45f : 1f;
+            float fade = owned ? 0.55f : 1f;
+            // Celle qu'on vise GRANDIT : on la redessine plus grande (net), on ne l'etire pas.
+            card = Icons.Snap(Grow(card, card.width * 0.04f * lift));
+            int radius = Mathf.Clamp(Mathf.RoundToInt(card.width * 0.08f), 6, 26);
+            int line4 = Mathf.Max(3, UiStyle.S(4));
 
             // Derriere la carte visee : des rayons qui tournent et un halo.
             if (lift > 0.01f && showFace)
@@ -195,111 +215,110 @@ namespace Fief
                 Tex(new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size), rays, new Color(tint.r, tint.g, tint.b, 0.5f * lift));
                 GUI.matrix = was;
                 float g = card.width * 0.35f;
-                Tex(new Rect(card.x - g, card.y - g, card.width + g * 2f, card.height + g * 2f), glow, new Color(tint.r, tint.g, tint.b, 0.6f * lift));
+                Tex(new Rect(card.x - g, card.y - g, card.width + g * 2f, card.height + g * 2f), glow, new Color(tint.r, tint.g, tint.b, 0.55f * lift));
                 if (Random.value < 0.5f * lift)
                     Emit(new Vector2(card.x + Random.value * card.width, card.yMax - Random.value * 20f), new Vector2(Random.Range(-15f, 15f), Random.Range(-90f, -40f)), 1.2f, Color.Lerp(tint, Color.white, 0.4f));
             }
 
+            // Le retournement : la carte s'amincit jusqu'a la tranche, puis revient de face.
+            // (Seulement pendant ce demi-temps : une carte posee n'est jamais etiree.)
             Matrix4x4 keep = GUI.matrix;
-            GUIUtility.ScaleAroundPivot(new Vector2(Mathf.Max(0.02f, sx) * zoom, zoom), card.center);
-            // L'ombre portee.
-            Tex(new Rect(card.x + 6f, card.y + 10f, card.width, card.height), glow, new Color(0f, 0f, 0f, 0.55f));
+            bool flipping = sx < 0.995f;
+            if (flipping) GUIUtility.ScaleAroundPivot(new Vector2(Mathf.Max(0.02f, sx), 1f), card.center);
+
+            // L'ombre franche, le liseré sombre.
+            Round(new Rect(card.x, card.y + UiStyle.S(9), card.width, card.height), new Color(0f, 0f, 0.05f, 0.4f), radius, false);
+            Round(Grow(card, line4), on ? new Color(1f, 0.9f, 0.45f) : Icons.Ink, radius + line4, false);
+
             if (!showFace)
             {
-                Tex(card, back, Color.white);
-                Tex(card, grad, new Color(tint.r * 0.4f, tint.g * 0.4f, tint.b * 0.4f, 0.5f));
-                FrameAt(card, Gold, 0.9f);
-                // Le losange d'or au centre du dos.
-                Vector2 c = card.center;
-                Matrix4x4 backMatrix = GUI.matrix;
-                GUIUtility.RotateAroundPivot(45f, c);
-                float d = card.width * 0.22f;
-                UiStyle.Fill(new Rect(c.x - d, c.y - d, d * 2f, d * 2f), new Color(Gold.r, Gold.g, Gold.b, 0.85f));
-                UiStyle.Fill(new Rect(c.x - d * 0.8f, c.y - d * 0.8f, d * 1.6f, d * 1.6f), new Color(0.08f, 0.06f, 0.09f, 1f));
-                UiStyle.Fill(new Rect(c.x - d * 0.35f, c.y - d * 0.35f, d * 0.7f, d * 0.7f), new Color(tint.r, tint.g, tint.b, 0.9f));
-                GUI.matrix = backMatrix;
+                // LE DOS : bleu nuit, un rond d'or, la Couronne.
+                Round(card, new Color(0.2f, 0.24f, 0.55f), radius, true);
+                Round(Grow(card, -line4 * 2f), new Color(0.13f, 0.15f, 0.38f), Mathf.Max(4, radius - line4), true);
+                float d = card.width * 0.56f;
+                Rect disc = new Rect(card.center.x - d * 0.5f, card.center.y - d * 0.5f, d, d);
+                Icons.Pill(disc, new Color(0.3f, 0.35f, 0.8f));
+                Icons.Draw(Grow(disc, -d * 0.18f), "couronne", new Color(1f, 0.84f, 0.36f));
                 GUI.matrix = keep;
                 return;
             }
 
-            // LA FACE.
-            Color stone = Color.Lerp(new Color(0.16f, 0.14f, 0.13f), tint * 0.35f, 0.35f);
-            Tex(card, face, new Color(stone.r, stone.g, stone.b, fade));
-            // Le lavis de la couleur, du haut vers le bas, et un second plus vif en haut.
-            Rect top = new Rect(card.x, card.y, card.width, card.height * 0.62f);
-            // (29/09) Le degrade est deja opaque en haut et transparent en bas (la ligne 0
-            // d'une texture est celle du BAS) : le retourner faisait une bande dure a 62 %.
-            Tex(top, grad, new Color(tint.r, tint.g, tint.b, (on ? 0.75f : 0.5f) * fade));
-            Tex(new Rect(card.x, card.y, card.width, card.height * 0.25f), glow, new Color(1f, 1f, 1f, 0.12f * fade));
+            // LE CORPS a sa couleur (plus clair en haut).
+            Color body = Color.Lerp(tint, new Color(0.1f, 0.08f, 0.2f), 0.25f);
+            Round(card, new Color(body.r, body.g, body.b, 1f), radius, true);
 
-            float pad = card.width * 0.09f;
-            float x = card.x + pad;
+            float pad = Mathf.Round(card.width * 0.07f);
             float w = card.width - pad * 2f;
-            float y = card.y + card.height * 0.07f;
 
-            // Le ruban.
-            GUIStyle rs = new GUIStyle(UiStyle.Tiny);
-            rs.alignment = TextAnchor.MiddleCenter;
-            rs.fontStyle = FontStyle.Bold;
-            float rw = Mathf.Min(w, rs.CalcSize(new GUIContent(ribbon)).x + UiStyle.S(26));
-            Rect rr = new Rect(card.center.x - rw * 0.5f, y, rw, UiStyle.S(22));
-            UiStyle.Fill(rr, new Color(0.05f, 0.04f, 0.05f, 0.85f * fade));
-            UiStyle.Fill(new Rect(rr.x, rr.y, rr.width, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.9f * fade));
-            UiStyle.Fill(new Rect(rr.x, rr.yMax - 1f, rr.width, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.9f * fade));
-            UiStyle.Tinted(rr, ribbon, rs, new Color(Gold.r, Gold.g, Gold.b, fade));
-            y += UiStyle.S(40);
-
-            // Le nom, en grand, avec une lueur de sa couleur.
-            GUIStyle ns = new GUIStyle(UiStyle.Title);
-            ns.alignment = TextAnchor.MiddleCenter;
-            ns.wordWrap = false;
-            ns.fontSize = Mathf.RoundToInt(Mathf.Min(UiStyle.S(34), card.width / Mathf.Max(5f, name.Length) * 1.7f));
-            Rect nr = new Rect(card.x, y, card.width, UiStyle.S(44));
-            UiStyle.Tinted(new Rect(nr.x + 3f, nr.y + 3f, nr.width, nr.height), name, ns, new Color(0f, 0f, 0f, 0.7f * fade));
-            UiStyle.Tinted(new Rect(nr.x - 1f, nr.y, nr.width, nr.height), name, ns, new Color(tint.r, tint.g, tint.b, 0.7f * fade));
-            UiStyle.Tinted(nr, name, ns, on ? new Color(1f, 0.95f, 0.8f, 1f) : new Color(0.97f, 0.93f, 0.86f, fade));
-            y += UiStyle.S(50);
-
-            // Le fleuron : un trait, un losange, un trait.
-            float cx = card.center.x;
-            UiStyle.Fill(new Rect(cx - w * 0.36f, y, w * 0.3f, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.8f * fade));
-            UiStyle.Fill(new Rect(cx + w * 0.06f, y, w * 0.3f, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.8f * fade));
-            Matrix4x4 dm = GUI.matrix;
-            GUIUtility.RotateAroundPivot(45f, new Vector2(cx, y));
-            UiStyle.Fill(new Rect(cx - 5f, y - 5f, 10f, 10f), new Color(tint.r, tint.g, tint.b, fade));
-            GUI.matrix = dm;
-            y += UiStyle.S(18);
-
-            // LA GROSSE ICONE, dans un rond a sa couleur.
+            // LA FENETRE : un creux sombre ou l'icone brille sur ses rayons.
+            Rect window = new Rect(card.x + pad, card.y + pad, w, Mathf.Round(card.height * 0.44f));
+            Round(window, new Color(tint.r * 0.35f, tint.g * 0.35f, tint.b * 0.45f, 1f), Mathf.Max(4, radius - 3), false);
+            GUI.BeginGroup(window);
+            {
+                Vector2 wc = new Vector2(window.width * 0.5f, window.height * 0.55f);
+                float rs = window.width * 1.6f;
+                Matrix4x4 rm = GUI.matrix;
+                GUIUtility.RotateAroundPivot(time * (on ? 30f : 8f), wc);
+                Tex(new Rect(wc.x - rs * 0.5f, wc.y - rs * 0.5f, rs, rs), rays, new Color(1f, 1f, 1f, on ? 0.3f : 0.16f));
+                GUI.matrix = rm;
+                float gs = window.height * 1.1f;
+                Tex(new Rect(wc.x - gs * 0.5f, wc.y - gs * 0.5f, gs, gs), glow, new Color(tint.r, tint.g, tint.b, 0.9f));
+            }
+            GUI.EndGroup();
             if (icon != null)
             {
-                float s = Mathf.Min(w * 0.62f, UiStyle.S(120));
-                Rect ir = new Rect(cx - s * 0.5f, y + UiStyle.S(6), s, s);
-                Icons.Pill(ir, new Color(tint.r * 0.8f, tint.g * 0.8f, tint.b * 0.8f, fade));
-                Icons.Draw(new Rect(ir.x + s * 0.15f, ir.y + s * 0.15f, s * 0.7f, s * 0.7f), icon, new Color(1f, 1f, 1f, fade));
-                y += s + UiStyle.S(18);
+                float s = Mathf.Min(window.width * 0.62f, window.height * 0.78f);
+                float bob = on ? Mathf.Sin(time * 3f) * UiStyle.S(3) : 0f;
+                Icons.Draw(new Rect(window.center.x - s * 0.5f, window.y + window.height * 0.55f - s * 0.5f + bob, s, s), icon, Color.white);
             }
 
-            // Ce qu'elle fait (en petit).
-            GUIStyle ls = new GUIStyle(UiStyle.Small);
-            ls.wordWrap = true;
-            ls.alignment = TextAnchor.UpperCenter;
-            UiStyle.Tinted(new Rect(x + 1f, y + 1f, w, card.yMax - y - UiStyle.S(70)), line, ls, new Color(0f, 0f, 0f, 0.6f * fade));
-            UiStyle.Tinted(new Rect(x, y, w, card.yMax - y - UiStyle.S(70)), line, ls, new Color(0.95f, 0.92f, 0.86f, fade));
+            // En haut de la fenetre : la touche (pour une active) et la recharge.
+            float chip = Mathf.Round(Mathf.Clamp(card.width * 0.17f, UiStyle.S(26), UiStyle.S(40)));
+            if (key != null) Icons.Key(new Rect(window.x + UiStyle.S(4), window.y + UiStyle.S(4), chip, chip), key, 1f);
+            if (cooldown > 0f)
+            {
+                string cd = cooldown.ToString("0") + "s";
+                int cs = Mathf.RoundToInt(chip * 0.5f);
+                float cw = Mathf.Max(chip, Icons.Width(cd, cs) + chip * 0.5f);
+                Rect cr = new Rect(window.xMax - cw - UiStyle.S(6), window.y + UiStyle.S(6), cw, chip * 0.8f);
+                Icons.Pill(cr, new Color(0.14f, 0.13f, 0.3f));
+                Icons.Number(cr, cd, cs, Color.white, TextAnchor.MiddleCenter);
+            }
 
-            // En bas : la recharge dans une pastille ; ce qu'elle remplace, en rouge.
-            GUIStyle fs = new GUIStyle(UiStyle.Small);
-            fs.alignment = TextAnchor.MiddleCenter;
-            float fw = fs.CalcSize(new GUIContent(foot)).x + UiStyle.S(24);
-            Rect fr = new Rect(cx - fw * 0.5f, card.yMax - UiStyle.S(replaces != null ? 70 : 44), fw, UiStyle.S(24));
-            UiStyle.Fill(fr, new Color(tint.r * 0.25f, tint.g * 0.25f, tint.b * 0.25f, 0.9f * fade));
-            UiStyle.Fill(new Rect(fr.x, fr.yMax - 2f, fr.width, 2f), new Color(tint.r, tint.g, tint.b, 0.9f * fade));
-            UiStyle.Tinted(fr, foot, fs, new Color(1f, 0.95f, 0.85f, fade));
+            // LE NOM, sur un bandeau sombre a cheval sur le bas de la fenetre.
+            float bh = Mathf.Round(Mathf.Clamp(card.height * 0.1f, UiStyle.S(30), UiStyle.S(46)));
+            Rect band = new Rect(card.x + pad * 0.5f, window.yMax - bh * 0.45f, card.width - pad, bh);
+            Icons.Pill(band, new Color(0.12f, 0.1f, 0.26f));
+            int ns = Mathf.RoundToInt(bh * 0.62f);
+            while (ns > 10 && Icons.Width(name, ns) > band.width - bh * 0.6f) ns--;
+            Icons.Number(band, name, ns, on ? new Color(1f, 0.9f, 0.45f) : Color.white, TextAnchor.MiddleCenter);
+
+            // LA PHRASE, en encre sombre sur un cartouche clair : elle rapetisse, elle n'est
+            // jamais coupee.
+            float ty = band.yMax + UiStyle.S(8);
+            Rect plate = new Rect(card.x + pad, ty, w, card.yMax - pad - ty - (replaces != null ? UiStyle.S(30) : 0f));
+            if (plate.height > 8f)
+            {
+                Round(plate, Cream, Mathf.Max(4, radius - 4), false);
+                Rect inside = new Rect(plate.x + UiStyle.S(8), plate.y + UiStyle.S(6), plate.width - UiStyle.S(16), plate.height - UiStyle.S(12));
+                GUIStyle ds = FitStyle(line, inside.width, inside.height);
+                GUIContent content = new GUIContent(line);
+                float th = ds.CalcHeight(content, inside.width);
+                Rect tr = Icons.Snap(new Rect(inside.x, inside.y + Mathf.Max(0f, (inside.height - th) * 0.5f), inside.width, Mathf.Max(th, inside.height)));
+                Color was = GUI.color;
+                GUI.color = Color.white;
+                ds.normal.textColor = DarkInk;
+                GUI.Label(tr, content, ds);
+                GUI.color = was;
+            }
+
+            // Ce qu'elle remplace : une pastille rouge, une croix, le nom.
             if (replaces != null)
             {
-                Rect rb = new Rect(card.x + 8f, card.yMax - UiStyle.S(38), card.width - 16f, UiStyle.S(28));
-                UiStyle.Fill(rb, new Color(0.55f, 0.1f, 0.08f, 0.9f));
-                UiStyle.Tinted(rb, replaces, fs, new Color(1f, 0.9f, 0.85f, 1f));
+                Rect rb = new Rect(card.x + pad, card.yMax - pad - UiStyle.S(24), w, UiStyle.S(24));
+                Icons.Pill(rb, new Color(0.8f, 0.2f, 0.18f));
+                Icons.Draw(new Rect(rb.x + UiStyle.S(4), rb.y + UiStyle.S(2), rb.height - UiStyle.S(4), rb.height - UiStyle.S(4)), "croix", Color.white);
+                Icons.Number(new Rect(rb.x + rb.height, rb.y, rb.width - rb.height * 1.3f, rb.height), replaces, Mathf.RoundToInt(rb.height * 0.56f), Color.white, TextAnchor.MiddleCenter);
             }
 
             // Le reflet qui traverse la carte visee.
@@ -309,34 +328,54 @@ namespace Fief
                 Matrix4x4 rm = GUI.matrix;
                 GUI.BeginGroup(card);
                 GUIUtility.RotateAroundPivot(18f, new Vector2(card.width * 0.5f, card.height * 0.5f));
-                Tex(new Rect(card.width * sweep - card.width * 0.15f, -card.height * 0.2f, card.width * 0.3f, card.height * 1.4f), glow, new Color(1f, 1f, 1f, 0.22f));
+                Tex(new Rect(card.width * sweep - card.width * 0.15f, -card.height * 0.2f, card.width * 0.3f, card.height * 1.4f), glow, new Color(1f, 1f, 1f, 0.18f));
                 GUI.EndGroup();
                 GUI.matrix = rm;
             }
 
-            // Le cadre d'or (plus vif quand on la vise) ; "deja a toi" : grise.
-            FrameAt(card, on ? Color.Lerp(Gold, Color.white, 0.3f) : Color.Lerp(Gold, tint, 0.35f), (on ? 1f : 0.8f) * fade);
+            // "Deja a toi" : grisee, une grosse coche.
             if (owned)
             {
-                UiStyle.Fill(card, new Color(0f, 0f, 0f, 0.35f));
-                GUIStyle os = new GUIStyle(UiStyle.Head);
-                os.alignment = TextAnchor.MiddleCenter;
-                UiStyle.Tinted(new Rect(card.x, card.center.y - UiStyle.S(20), card.width, UiStyle.S(40)), "DÉJÀ À TOI", os, new Color(1f, 1f, 1f, 0.8f));
+                Round(card, new Color(0.05f, 0.05f, 0.1f, 1f - fade), radius, false);
+                float s = card.width * 0.4f;
+                Icons.Pill(new Rect(card.center.x - s * 0.5f, card.center.y - s * 0.5f, s, s), new Color(0.3f, 0.75f, 0.35f));
+                Icons.Draw(new Rect(card.center.x - s * 0.33f, card.center.y - s * 0.33f, s * 0.66f, s * 0.66f), "coche", Color.white);
             }
             GUI.matrix = keep;
-
         }
 
-        static void FrameAt(Rect r, Color c, float alpha)
+        static readonly Dictionary<int, GUIStyle> fitStyles = new Dictionary<int, GUIStyle>();
+
+        /// <summary>La plus grande taille de la phrase qui tient dans le cartouche (de 19 a 10 points).</summary>
+        static GUIStyle FitStyle(string line, float w, float h)
         {
-            if (Event.current.type != EventType.Repaint) return;
-            Color was = GUI.color;
-            GUI.color = new Color(c.r, c.g, c.b, alpha);
-            frameStyle.Draw(r, false, false, false, false);
-            GUI.color = was;
+            GUIContent c = new GUIContent(line);
+            GUIStyle s = null;
+            for (int size = UiStyle.S(19); size >= Mathf.Max(9, UiStyle.S(10)); size--)
+            {
+                s = DescStyle(size);
+                if (s.CalcHeight(c, w) <= h) return s;
+            }
+            return s ?? DescStyle(UiStyle.S(12));
         }
 
-        /// <summary>LA CARTE PRISE : un eclair, une gerbe d'etincelles, un coup de phonk.</summary>
+        static GUIStyle DescStyle(int size)
+        {
+            GUIStyle s;
+            if (fitStyles.TryGetValue(size, out s) && s != null) return s;
+            UiStyle.Ensure();
+            s = new GUIStyle(UiStyle.Label);
+            s.fontSize = size;
+            s.wordWrap = true;
+            s.alignment = TextAnchor.UpperCenter;
+            s.clipping = TextClipping.Overflow;
+            s.padding = new RectOffset(0, 0, 0, 0);
+            s.normal.textColor = DarkInk;
+            fitStyles[size] = s;
+            return s;
+        }
+
+        /// <summary>LA CARTE PRISE : un eclair, une gerbe d'etincelles.</summary>
         public static void Taken(Rect card, Color tint, bool mine)
         {
             flashRect = card;
@@ -378,7 +417,7 @@ namespace Fief
                 Rect r = new Rect(flashRect.x, flashRect.y - rise, flashRect.width, flashRect.height);
                 float g = r.width * 0.5f;
                 Tex(new Rect(r.x - g, r.y - g, r.width + g * 2f, r.height + g * 2f), glow, new Color(flashColour.r, flashColour.g, flashColour.b, flash * 0.8f));
-                UiStyle.Fill(r, new Color(flashColour.r, flashColour.g, flashColour.b, flash * 0.7f));
+                Round(r, new Color(flashColour.r, flashColour.g, flashColour.b, flash * 0.7f), Mathf.Clamp(Mathf.RoundToInt(r.width * 0.08f), 6, 26), false);
             }
             for (int i = sparkPos.Count - 1; i >= 0; i--)
             {
