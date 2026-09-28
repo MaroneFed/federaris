@@ -37,6 +37,7 @@ namespace Fief
         float celebrateAge;
         const float BodyY = 0.62f;
         Renderer[] parts;
+        ModelCharacter model;
         bool firstPerson;
         bool viewApplied;
 
@@ -80,6 +81,7 @@ namespace Fief
         public void PlaySwing()
         {
             swingTimer = 0.36f;
+            if (model != null) model.Swing();
         }
 
         /// <summary>LA JOIE DU VAINQUEUR : il danse sur la musique (voir Party).</summary>
@@ -99,6 +101,15 @@ namespace Fief
             Proto.BeginVisualOnly();
             rig.Assemble(tunic, accent);
             Proto.EndVisualOnly();
+            // LE PERSONNAGE DE MARTIN (s'il y en a un dans Resources/Modeles) : on garde le
+            // squelette (les pivots qu'on anime : sauts, saltos, danse), on retire le haricot,
+            // et le modele prend sa place (voir ModelCharacter).
+            if (ModelCharacter.Available)
+            {
+                Renderer[] drawn = rigGo.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < drawn.Length; i++) Object.Destroy(drawn[i].gameObject);
+                rig.model = ModelCharacter.Attach(rig.pivot, tunic, 1.85f);
+            }
             return rig;
         }
 
@@ -108,77 +119,88 @@ namespace Fief
             return go;
         }
 
+        /// <summary>
+        /// LE CORPS (refait le 01/10 -- Martin : "je n'ai jamais vu des personnages aussi
+        /// horribles"). Fini le bonhomme de neige (un casque pose sur un tonneau) : UN SEUL
+        /// HARICOT a sa couleur, comme Fall Guys, et le visage DANS le haricot -- deux grands
+        /// yeux blancs a pupilles noires (avec leur reflet), des joues roses, un petit casque
+        /// d'acier qui descend sur le front, son cimier a sa couleur, une cape. Des moufles
+        /// blanches, des bottes. Tout rond, tout satine.
+        /// </summary>
         void Assemble(Color colour, Color accent)
         {
-            // Les matieres : le corps satine a sa couleur, l'acier poli, le cuir, l'or.
-            Material suit = MaterialFactory.GetShiny(colour, 0.55f, 0f);
-            Material suitDark = MaterialFactory.GetShiny(Palette.Shade(colour, 0.78f), 0.5f, 0f);
-            Material belly = MaterialFactory.GetShiny(Color.Lerp(colour, new Color(1f, 0.96f, 0.88f), 0.55f), 0.45f, 0f);
-            Material steel = MaterialFactory.GetShiny(new Color(0.78f, 0.8f, 0.84f), 0.82f, 0.85f);
-            Material leather = MaterialFactory.GetShiny(new Color(0.24f, 0.16f, 0.11f), 0.35f, 0f);
+            Material suit = MaterialFactory.GetShiny(colour, 0.6f, 0f);
+            Material suitDark = MaterialFactory.GetShiny(Palette.Shade(colour, 0.8f), 0.55f, 0f);
+            Material belly = MaterialFactory.GetShiny(Color.Lerp(colour, new Color(1f, 0.97f, 0.9f), 0.6f), 0.5f, 0f);
+            Material steel = MaterialFactory.GetShiny(new Color(0.8f, 0.82f, 0.86f), 0.85f, 0.85f);
+            Material leather = MaterialFactory.GetShiny(new Color(0.26f, 0.17f, 0.11f), 0.4f, 0f);
             Material gold = MaterialFactory.GetShiny(new Color(1f, 0.78f, 0.34f), 0.85f, 1f);
-            Material visor = MaterialFactory.GetShiny(new Color(0.05f, 0.05f, 0.07f), 0.9f, 0.2f);
-            Material capeMat = MaterialFactory.GetShiny(accent, 0.3f, 0f);
-            Material eyes = MaterialFactory.GetGlow(new Color(1f, 0.93f, 0.78f), 2.4f);
-            Material plume = MaterialFactory.GetShiny(Color.Lerp(colour, Color.white, 0.12f), 0.4f, 0f);
+            Material white = MaterialFactory.GetShiny(new Color(0.98f, 0.98f, 0.98f), 0.7f, 0f);
+            Material pupil = MaterialFactory.GetShiny(new Color(0.04f, 0.04f, 0.06f), 0.9f, 0f);
+            Material spark = MaterialFactory.GetGlow(Color.white, 2f);
+            Material blush = MaterialFactory.GetShiny(new Color(1f, 0.55f, 0.6f), 0.3f, 0f);
+            Material capeMat = MaterialFactory.GetShiny(accent, 0.35f, 0f);
+            Material plume = MaterialFactory.GetShiny(Color.Lerp(colour, Color.white, 0.15f), 0.45f, 0f);
 
             pivot = Node(transform, Vector3.zero, "Pivot");
 
             // --- les jambes : courtes et rondes, des bottes de cuir
-            legL = Node(pivot, new Vector3(-0.16f, 0.66f, 0f), "JambeG");
-            legR = Node(pivot, new Vector3(0.16f, 0.66f, 0f), "JambeD");
+            legL = Node(pivot, new Vector3(-0.18f, 0.66f, 0f), "JambeG");
+            legR = Node(pivot, new Vector3(0.18f, 0.66f, 0f), "JambeD");
             BuildLeg(legL, suitDark, leather);
             BuildLeg(legR, suitDark, leather);
 
-            // --- le corps : un haricot satine
+            // --- LE HARICOT : le corps et la tete d'un seul tenant
             body = Node(pivot, new Vector3(0f, BodyY, 0f), "Corps");
-            Paint(Proto.Capsule(body, new Vector3(0f, 0.48f, 0f), new Vector3(0.74f, 0.5f, 0.64f), colour, "Haricot"), suit);
-            Paint(Proto.Sphere(body, new Vector3(0f, 0.32f, 0.2f), new Vector3(0.5f, 0.5f, 0.3f), colour, "Plastron"), belly);
-            Paint(Proto.Cylinder(body, new Vector3(0f, 0.12f, 0f), new Vector3(0.77f, 0.035f, 0.67f), colour, "Ceinture"), leather);
-            Paint(Proto.Cube(body, new Vector3(0f, 0.12f, 0.335f), new Vector3(0.12f, 0.09f, 0.03f), colour, "Boucle"), gold);
-            hip = Node(body, new Vector3(-0.36f, 0.08f, 0.06f), "Hanche");
-            for (int side = -1; side <= 1; side += 2)
-                Paint(Proto.Sphere(body, new Vector3(side * 0.35f, 0.62f, 0f), new Vector3(0.28f, 0.18f, 0.28f), colour, "Épaulière"), steel);
+            Paint(Proto.Capsule(body, new Vector3(0f, 0.6f, 0f), new Vector3(0.88f, 0.62f, 0.8f), colour, "Haricot"), suit);
+            Paint(Proto.Sphere(body, new Vector3(0f, 0.36f, 0.24f), new Vector3(0.6f, 0.62f, 0.36f), colour, "Ventre"), belly);
+            Paint(Proto.Cylinder(body, new Vector3(0f, 0.16f, 0f), new Vector3(0.9f, 0.04f, 0.82f), colour, "Ceinture"), leather);
+            Paint(Proto.Sphere(body, new Vector3(0f, 0.16f, 0.41f), new Vector3(0.14f, 0.11f, 0.05f), colour, "Boucle"), gold);
+            hip = Node(body, new Vector3(-0.42f, 0.12f, 0.06f), "Hanche");
 
-            // --- le casque (la tete) : un dome d'acier, une fente noire, deux yeux qui luisent
-            head = Node(body, new Vector3(0f, 0.7f, 0f), "Tête");
-            Paint(Proto.Sphere(head, new Vector3(0f, 0.08f, 0f), new Vector3(0.78f, 0.52f, 0.7f), colour, "Casque"), steel);
-            GameObject slit = Paint(Proto.Capsule(head, new Vector3(0f, 0.04f, 0.33f), new Vector3(0.1f, 0.2f, 0.08f), colour, "Fente"), visor);
-            slit.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            // --- le visage, dans le haut du haricot (la "tete" est un pivot : elle hoche)
+            head = Node(body, new Vector3(0f, 0.92f, 0f), "Tête");
             for (int side = -1; side <= 1; side += 2)
             {
-                GameObject eye = Paint(Proto.Sphere(head, new Vector3(side * 0.085f, 0.045f, 0.37f), new Vector3(0.075f, 0.06f, 0.04f), colour, "Œil"), eyes);
-                eye.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+                Paint(Proto.Sphere(head, new Vector3(side * 0.14f, 0.02f, 0.36f), new Vector3(0.21f, 0.26f, 0.12f), colour, "Œil"), white);
+                Paint(Proto.Sphere(head, new Vector3(side * 0.13f, 0.0f, 0.415f), new Vector3(0.11f, 0.15f, 0.05f), colour, "Pupille"), pupil);
+                GameObject glint = Paint(Proto.Sphere(head, new Vector3(side * 0.11f + 0.02f, 0.05f, 0.44f), Vector3.one * 0.04f, colour, "Reflet"), spark);
+                glint.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+                Paint(Proto.Sphere(head, new Vector3(side * 0.28f, -0.14f, 0.3f), new Vector3(0.14f, 0.07f, 0.06f), colour, "Joue"), blush);
             }
-            Paint(Proto.Cylinder(head, new Vector3(0f, -0.13f, 0f), new Vector3(0.74f, 0.03f, 0.66f), colour, "Bord du casque"), gold);
-            // Le cimier, a sa couleur : trois boules qui filent vers l'arriere.
-            Paint(Proto.Sphere(head, new Vector3(0f, 0.37f, 0.02f), new Vector3(0.13f, 0.17f, 0.13f), colour, "Cimier"), plume);
-            Paint(Proto.Sphere(head, new Vector3(0f, 0.43f, -0.1f), new Vector3(0.12f, 0.15f, 0.16f), colour, "Cimier"), plume);
-            Paint(Proto.Sphere(head, new Vector3(0f, 0.42f, -0.23f), new Vector3(0.1f, 0.11f, 0.16f), colour, "Cimier"), plume);
+            // Le petit casque d'acier qui descend sur le front, un rivet d'or, le cimier.
+            Paint(Proto.Sphere(head, new Vector3(0f, 0.26f, -0.02f), new Vector3(0.94f, 0.52f, 0.9f), colour, "Casque"), steel);
+            Paint(Proto.Cylinder(head, new Vector3(0f, 0.17f, -0.02f), new Vector3(0.95f, 0.035f, 0.91f), colour, "Bord du casque"), gold);
+            Paint(Proto.Sphere(head, new Vector3(0f, 0.3f, 0.44f), Vector3.one * 0.08f, colour, "Rivet"), gold);
+            Paint(Proto.Sphere(head, new Vector3(0f, 0.55f, 0.02f), new Vector3(0.14f, 0.19f, 0.14f), colour, "Cimier"), plume);
+            Paint(Proto.Sphere(head, new Vector3(0f, 0.6f, -0.12f), new Vector3(0.13f, 0.16f, 0.17f), colour, "Cimier"), plume);
+            Paint(Proto.Sphere(head, new Vector3(0f, 0.57f, -0.26f), new Vector3(0.11f, 0.12f, 0.17f), colour, "Cimier"), plume);
 
-            // --- les bras : ronds, des gants de cuir
-            armL = Node(body, new Vector3(-0.42f, 0.52f, 0f), "BrasG");
-            armR = Node(body, new Vector3(0.42f, 0.52f, 0f), "BrasD");
-            BuildArm(armL, suitDark, leather);
-            handR = BuildArm(armR, suitDark, leather);
+            // --- les bras : ronds, des moufles blanches
+            armL = Node(body, new Vector3(-0.46f, 0.62f, 0f), "BrasG");
+            armR = Node(body, new Vector3(0.46f, 0.62f, 0f), "BrasD");
+            BuildArm(armL, suit, white);
+            handR = BuildArm(armR, suit, white);
+            for (int side = -1; side <= 1; side += 2)
+                Paint(Proto.Sphere(body, new Vector3(side * 0.4f, 0.7f, 0f), new Vector3(0.3f, 0.2f, 0.3f), colour, "Épaulière"), steel);
 
             // --- la cape, accrochee aux epaules, fermee par une broche d'or
-            cape = Node(body, new Vector3(0f, 0.64f, -0.27f), "Cape");
-            Paint(Proto.Cube(cape, new Vector3(0f, -0.33f, 0f), new Vector3(0.62f, 0.68f, 0.035f), accent, "Tissu"), capeMat);
-            Paint(Proto.Sphere(body, new Vector3(0f, 0.66f, -0.3f), new Vector3(0.1f, 0.1f, 0.06f), colour, "Broche"), gold);
+            cape = Node(body, new Vector3(0f, 0.76f, -0.43f), "Cape");
+            Paint(Proto.Sphere(cape, new Vector3(0f, -0.36f, 0f), new Vector3(0.7f, 0.78f, 0.05f), accent, "Tissu"), capeMat);
+            Paint(Proto.Sphere(body, new Vector3(0f, 0.8f, -0.42f), new Vector3(0.1f, 0.1f, 0.06f), colour, "Broche"), gold);
         }
 
         void BuildLeg(Transform pivotLeg, Material suit, Material boot)
         {
-            Paint(Proto.Capsule(pivotLeg, new Vector3(0f, -0.28f, 0f), new Vector3(0.2f, 0.22f, 0.2f), Color.white, "Jambe"), suit);
-            Paint(Proto.Sphere(pivotLeg, new Vector3(0f, -0.58f, 0.06f), new Vector3(0.22f, 0.15f, 0.32f), Color.white, "Botte"), boot);
+            Paint(Proto.Capsule(pivotLeg, new Vector3(0f, -0.28f, 0f), new Vector3(0.22f, 0.22f, 0.22f), Color.white, "Jambe"), suit);
+            Paint(Proto.Sphere(pivotLeg, new Vector3(0f, -0.58f, 0.06f), new Vector3(0.24f, 0.16f, 0.34f), Color.white, "Botte"), boot);
         }
 
         Transform BuildArm(Transform shoulder, Material suit, Material glove)
         {
-            Paint(Proto.Capsule(shoulder, new Vector3(0f, -0.2f, 0f), new Vector3(0.15f, 0.19f, 0.15f), Color.white, "Bras"), suit);
+            Paint(Proto.Capsule(shoulder, new Vector3(0f, -0.2f, 0f), new Vector3(0.16f, 0.19f, 0.16f), Color.white, "Bras"), suit);
             Transform hand = Node(shoulder, new Vector3(0f, -0.42f, 0f), "Main");
-            Paint(Proto.Sphere(hand, Vector3.zero, new Vector3(0.18f, 0.18f, 0.18f), Color.white, "Gant"), glove);
+            Paint(Proto.Sphere(hand, Vector3.zero, new Vector3(0.21f, 0.21f, 0.21f), Color.white, "Moufle"), glove);
             return hand;
         }
 
@@ -196,6 +218,12 @@ namespace Fief
         {
             float dt = Time.deltaTime;
             if (dt <= 0f || pivot == null) return;
+            if (model != null)
+            {
+                model.Speed = Speed;
+                model.Grounded = Grounded;
+                model.Dancing = celebrate > 0f;
+            }
 
             if (celebrate > 0f)
             {
@@ -290,6 +318,14 @@ namespace Fief
             celebrateAge += Time.unscaledDeltaTime;
             float music = MusicDirector.DanceBeat;
             float beat = music >= 0f ? music : celebrateAge * 2f;
+            if (model != null && model.HasDance)
+            {
+                // Le modele a sa propre danse : on le fait juste rebondir sur le temps.
+                float bob = Mathf.Pow(1f - Mathf.Repeat(beat, 1f), 3f);
+                pivot.localPosition = new Vector3(0f, 0.05f * bob, 0f);
+                pivot.localRotation = Quaternion.identity;
+                return;
+            }
             int move = Mathf.FloorToInt(beat / 8f) % 6;
             float inMove = Mathf.Repeat(beat, 8f);
             int step = Mathf.FloorToInt(inMove);

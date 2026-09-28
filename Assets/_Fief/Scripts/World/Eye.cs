@@ -86,8 +86,13 @@ namespace Fief
             Transform t = root.transform;
             float h = Castle.HalfSize;
             Vector3[] corners = { new Vector3(-h, 0f, h), new Vector3(h, 0f, h), new Vector3(h, 0f, -h), new Vector3(-h, 0f, -h) };
+            // (01/10) Sur le flanc de chaque tour d'angle, cote cour, sur une console : avant,
+            // elles etaient posees au sommet... sous le toit pointu, cachees dedans.
             for (int k = 0; k < 4; k++)
-                Build(t, corners[k] + Vector3.up * (Castle.TowerHeight + 1.2f), -corners[k], k, false);
+            {
+                Vector3 inward = -corners[k].normalized;
+                Build(t, corners[k] + inward * (Castle.TowerSize * 0.5f + 1.1f) + Vector3.up * (Castle.TowerHeight - 4.5f), inward, k, true);
+            }
             Vector3[] gates = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
             for (int k = 0; k < 4; k++)
                 Build(t, gates[k] * (h - 1f) + Vector3.up * (Castle.WallHeight + 1.2f), -gates[k], 4 + k, false);
@@ -114,70 +119,108 @@ namespace Fief
             e.sweepPhase = seed * 1.7f;
             Transform t = go.transform;
 
-            Color stone = new Color(0.45f, 0.43f, 0.4f);
-            Color dark = new Color(0.28f, 0.27f, 0.27f);
-            Color moss = new Color(0.33f, 0.38f, 0.28f);
+            // (01/10 -- "les gargouilles, elles sont moches") : refaite en formes RONDES --
+            // spheres et gelules, plus un seul cube -- dans une pierre claire polie qui accroche
+            // la lumiere : un corps de lion accroupi, des ailes de chauve-souris a trois
+            // doigts, des cornes qui s'enroulent, une queue en crochet, des griffes noires.
+            Material stone = MaterialFactory.GetShiny(new Color(0.66f, 0.63f, 0.6f), 0.28f, 0f);
+            Material shade = MaterialFactory.GetShiny(new Color(0.5f, 0.48f, 0.47f), 0.25f, 0f);
+            Material moss = MaterialFactory.GetShiny(new Color(0.46f, 0.55f, 0.4f), 0.18f, 0f);
+            Material horn = MaterialFactory.GetShiny(new Color(0.16f, 0.15f, 0.17f), 0.65f, 0.3f);
+            Material wing = MaterialFactory.GetShiny(new Color(0.55f, 0.52f, 0.52f), 0.22f, 0f);
+            Material fangs = MaterialFactory.GetShiny(new Color(0.95f, 0.92f, 0.84f), 0.6f, 0f);
             Proto.BeginVisualOnly();
-            // Le perchoir : une console de pierre (contre le fut) ou un socle (sur le rempart).
+            // Le perchoir : une console arrondie (contre le fut) ou un socle rond (sur le rempart).
             if (corbel)
             {
-                Proto.Cube(t, new Vector3(0f, -0.9f, -0.6f), new Vector3(1.8f, 0.6f, 2.6f), dark, "Console");
-                GameObject strut = Proto.Cube(t, new Vector3(0f, -1.9f, -1.2f), new Vector3(1.2f, 1.8f, 0.8f), dark, "Jambage");
-                strut.transform.localRotation = Quaternion.Euler(35f, 0f, 0f);
+                Paint(Proto.Capsule(t, new Vector3(0f, -0.95f, -0.7f), new Vector3(1.9f, 1.5f, 1.2f), Color.white, "Console"), shade).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                Paint(Proto.Sphere(t, new Vector3(0f, -1.8f, -1.3f), new Vector3(1.2f, 1.6f, 1.0f), Color.white, "Jambage"), shade);
             }
-            else Proto.Cube(t, new Vector3(0f, -0.9f, 0f), new Vector3(2f, 0.6f, 2f), dark, "Socle");
-            // Le corps accroupi : le torse penche en avant, les pattes, la queue.
-            GameObject torso = Proto.Cube(t, new Vector3(0f, 0.25f, -0.1f), new Vector3(1.3f, 1.2f, 1.7f), stone, "Torse");
-            torso.transform.localRotation = Quaternion.Euler(-25f, 0f, 0f);
-            Proto.Cube(t, new Vector3(0f, 0.55f, 0.35f), new Vector3(1.05f, 0.9f, 0.9f), moss, "Poitrail");
+            else
+            {
+                Paint(Proto.Cylinder(t, new Vector3(0f, -0.95f, 0f), new Vector3(2.1f, 0.3f, 2.1f), Color.white, "Socle"), shade);
+                Paint(Proto.Cylinder(t, new Vector3(0f, -0.66f, 0f), new Vector3(2.2f, 0.04f, 2.2f), Color.white, "Liseré"), horn);
+            }
+            // Le corps : un torse en poire penche en avant, un poitrail moussu, deux cuisses.
+            Paint(Proto.Sphere(t, new Vector3(0f, 0.3f, -0.15f), new Vector3(1.3f, 1.3f, 1.75f), Color.white, "Torse"), stone).transform.localRotation = Quaternion.Euler(-28f, 0f, 0f);
+            Paint(Proto.Sphere(t, new Vector3(0f, 0.62f, 0.32f), new Vector3(1.05f, 1.05f, 0.9f), Color.white, "Poitrail"), moss);
             for (int side = -1; side <= 1; side += 2)
             {
-                Proto.Cube(t, new Vector3(side * 0.55f, -0.35f, -0.55f), new Vector3(0.5f, 0.8f, 0.9f), stone, "Cuisse");
-                Proto.Cube(t, new Vector3(side * 0.5f, -0.45f, 0.6f), new Vector3(0.35f, 0.6f, 0.35f), stone, "Patte");
+                Paint(Proto.Sphere(t, new Vector3(side * 0.5f, -0.2f, -0.5f), new Vector3(0.72f, 0.85f, 1.05f), Color.white, "Cuisse"), stone);
+                // La patte avant : une gelule jusqu'a la main, trois griffes.
+                Seg(t, new Vector3(side * 0.42f, 0.45f, 0.42f), new Vector3(side * 0.45f, -0.5f, 0.7f), 0.3f, stone);
+                Paint(Proto.Sphere(t, new Vector3(side * 0.45f, -0.6f, 0.78f), new Vector3(0.4f, 0.22f, 0.46f), Color.white, "Main"), stone);
                 for (int c = -1; c <= 1; c++)
-                    Proto.Cone(t, new Vector3(side * 0.5f + c * 0.1f, -0.7f, 0.82f), 0.06f, 0.2f, dark, "Griffe", 4).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                // Les ailes, repliees dans le dos : elles s'ouvrent quand elle charge.
+                    Seg(t, new Vector3(side * 0.45f + c * 0.11f, -0.62f, 0.92f), new Vector3(side * 0.45f + c * 0.13f, -0.7f, 1.08f), 0.07f, horn);
+                // Le pied arriere.
+                Paint(Proto.Sphere(t, new Vector3(side * 0.6f, -0.62f, -0.2f), new Vector3(0.42f, 0.24f, 0.62f), Color.white, "Pied"), stone);
+                // L'AILE, repliee dans le dos : trois doigts d'os et des voiles entre eux. Elle
+                // s'ouvre quand elle charge (la charniere tourne, voir Animate).
                 Transform hinge = new GameObject("Aile").transform;
                 hinge.SetParent(t, false);
-                hinge.localPosition = new Vector3(side * 0.45f, 0.75f, -0.45f);
-                GameObject bone = Proto.Cube(hinge, new Vector3(side * 0.9f, 0.35f, -0.1f), new Vector3(1.9f, 0.14f, 0.16f), dark, "Os");
-                bone.transform.localRotation = Quaternion.Euler(0f, 0f, side * 20f);
-                GameObject membrane = Proto.Cube(hinge, new Vector3(side * 0.85f, -0.05f, -0.2f), new Vector3(1.7f, 0.85f, 0.06f), stone, "Membrane");
-                membrane.transform.localRotation = Quaternion.Euler(0f, 0f, side * 12f);
+                hinge.localPosition = new Vector3(side * 0.45f, 0.85f, -0.45f);
+                Vector3 elbow = new Vector3(side * 0.8f, 0.55f, -0.1f);
+                Seg(hinge, Vector3.zero, elbow, 0.16f, shade);
+                Vector3[] tips = { new Vector3(side * 2.2f, 0.9f, -0.2f), new Vector3(side * 2.0f, 0.1f, -0.25f), new Vector3(side * 1.4f, -0.55f, -0.25f) };
+                for (int k = 0; k < tips.Length; k++)
+                {
+                    Seg(hinge, elbow, tips[k], 0.09f - k * 0.015f, shade);
+                    Paint(Proto.Sphere(hinge, tips[k], Vector3.one * 0.1f, Color.white, "Ergot"), horn);
+                }
+                for (int k = 0; k < 3; k++)
+                {
+                    Vector3 a = k == 0 ? Vector3.zero : tips[k - 1];
+                    Vector3 b = tips[k];
+                    Vector3 mid = (elbow + a + b) / 3f;
+                    GameObject sail = Paint(Proto.Sphere(hinge, mid, new Vector3((b - a).magnitude * 0.9f + 0.5f, 0.9f, 0.05f), Color.white, "Voile"), wing);
+                    sail.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg + (side > 0 ? 0f : 180f));
+                }
                 e.petals.Add(hinge);
             }
-            GameObject tail = Proto.Cube(t, new Vector3(0f, -0.4f, -1.2f), new Vector3(0.22f, 0.22f, 1.2f), stone, "Queue");
-            tail.transform.localRotation = Quaternion.Euler(20f, 15f, 0f);
-            Proto.Cone(t, new Vector3(0.18f, -0.62f, -1.8f), 0.18f, 0.35f, dark, "Pointe de queue", 4).transform.localRotation = Quaternion.Euler(-100f, 0f, 0f);
+            // L'echine : quatre petites pointes noires le long du dos.
+            for (int k = 0; k < 4; k++)
+                Proto.Cone(t, new Vector3(0f, 0.95f - k * 0.18f, -0.25f - k * 0.3f), 0.09f, 0.26f, Color.white, "Pointe", 6).GetComponent<Renderer>().sharedMaterial = horn;
+            // La queue : une gelule qui s'enroule, et sa pointe en fer de fleche.
+            Vector3[] tail = { new Vector3(0f, -0.35f, -1.05f), new Vector3(0.3f, -0.55f, -1.55f), new Vector3(0.75f, -0.6f, -1.75f), new Vector3(1.05f, -0.42f, -1.6f) };
+            for (int k = 0; k < tail.Length - 1; k++) Seg(t, tail[k], tail[k + 1], 0.24f - k * 0.05f, stone);
+            GameObject barb = Paint(Proto.Sphere(t, tail[3] + new Vector3(0.1f, 0.05f, 0.05f), new Vector3(0.3f, 0.12f, 0.2f), Color.white, "Pointe de queue"), horn);
+            barb.transform.localRotation = Quaternion.Euler(0f, 30f, 45f);
 
-            // La tete (elle tourne) : un crane, un museau, des cornes, deux yeux, une gueule.
+            // LA TETE (elle tourne) : un crane rond, un museau, un front plisse, deux yeux qui
+            // luisent, des cornes qui s'enroulent vers l'arriere, une gueule qui rougeoie.
             GameObject head = new GameObject("Tête");
             head.transform.SetParent(t, false);
-            head.transform.localPosition = new Vector3(0f, 1.05f, 0.55f);
+            head.transform.localPosition = new Vector3(0f, 1.1f, 0.6f);
             e.ball = head.transform;
-            Proto.Cube(e.ball, new Vector3(0f, 0.05f, 0f), new Vector3(0.9f, 0.75f, 0.85f), stone, "Crâne");
-            Proto.Cube(e.ball, new Vector3(0f, -0.05f, 0.55f), new Vector3(0.62f, 0.4f, 0.55f), stone, "Museau");
+            Paint(Proto.Sphere(e.ball, new Vector3(0f, 0.06f, 0f), new Vector3(0.88f, 0.78f, 0.86f), Color.white, "Crâne"), stone);
+            Paint(Proto.Sphere(e.ball, new Vector3(0f, -0.06f, 0.45f), new Vector3(0.62f, 0.46f, 0.66f), Color.white, "Museau"), stone);
+            Seg(e.ball, new Vector3(-0.28f, 0.24f, 0.36f), new Vector3(0.28f, 0.24f, 0.36f), 0.14f, shade);
             for (int side = -1; side <= 1; side += 2)
             {
-                GameObject horn = Proto.Cone(e.ball, new Vector3(side * 0.32f, 0.38f, -0.1f), 0.14f, 0.7f, dark, "Corne", 5);
-                horn.transform.localRotation = Quaternion.Euler(-35f, 0f, side * -25f);
-                GameObject ear = Proto.Cone(e.ball, new Vector3(side * 0.45f, 0.2f, -0.2f), 0.1f, 0.35f, stone, "Oreille", 4);
-                ear.transform.localRotation = Quaternion.Euler(-60f, 0f, side * -70f);
-                GameObject eye = Proto.Cube(e.ball, new Vector3(side * 0.2f, 0.16f, 0.43f), new Vector3(0.18f, 0.1f, 0.05f), Color.white, "Œil");
+                // Les cornes : quatre bouts de gelule qui montent, reculent, s'enroulent.
+                Vector3[] h = { new Vector3(side * 0.26f, 0.3f, -0.02f), new Vector3(side * 0.42f, 0.6f, -0.18f), new Vector3(side * 0.5f, 0.8f, -0.45f), new Vector3(side * 0.44f, 0.86f, -0.72f), new Vector3(side * 0.36f, 0.74f, -0.86f) };
+                for (int k = 0; k < h.Length - 1; k++) Seg(e.ball, h[k], h[k + 1], 0.17f - k * 0.03f, horn);
+                GameObject ear = Paint(Proto.Sphere(e.ball, new Vector3(side * 0.44f, 0.16f, -0.12f), new Vector3(0.1f, 0.34f, 0.2f), Color.white, "Oreille"), stone);
+                ear.transform.localRotation = Quaternion.Euler(-20f, 0f, side * -55f);
+                GameObject eye = Proto.Sphere(e.ball, new Vector3(side * 0.19f, 0.15f, 0.39f), new Vector3(0.17f, 0.11f, 0.08f), Color.white, "Œil");
                 eye.transform.localRotation = Quaternion.Euler(0f, 0f, side * -15f);
                 e.eyes.Add(eye.GetComponent<Renderer>());
-                Proto.Cube(e.ball, new Vector3(side * 0.2f, 0.26f, 0.42f), new Vector3(0.26f, 0.08f, 0.1f), dark, "Sourcil").transform.localRotation = Quaternion.Euler(0f, 0f, side * 20f);
+                Paint(Proto.Sphere(e.ball, new Vector3(side * 0.09f, -0.02f, 0.78f), new Vector3(0.07f, 0.05f, 0.04f), Color.white, "Naseau"), horn);
+                // Les crocs du haut, qui depassent.
+                GameObject fang = Proto.Cone(e.ball, new Vector3(side * 0.17f, -0.2f, 0.66f), 0.045f, 0.16f, Color.white, "Croc", 6);
+                fang.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
+                fang.GetComponent<Renderer>().sharedMaterial = fangs;
             }
-            // La gueule : un fond qui rougeoie, une machoire qui s'ouvre, des crocs.
-            GameObject maw = Proto.Cube(e.ball, new Vector3(0f, -0.17f, 0.6f), new Vector3(0.45f, 0.14f, 0.42f), Color.white, "Gueule");
+            // La gueule : un fond qui rougeoie, une machoire qui s'ouvre, ses crocs.
+            GameObject maw = Proto.Sphere(e.ball, new Vector3(0f, -0.2f, 0.52f), new Vector3(0.44f, 0.16f, 0.46f), Color.white, "Gueule");
             e.iris = maw.GetComponent<Renderer>();
             GameObject j = new GameObject("Mâchoire");
             j.transform.SetParent(e.ball, false);
-            j.transform.localPosition = new Vector3(0f, -0.22f, 0.3f);
+            j.transform.localPosition = new Vector3(0f, -0.24f, 0.3f);
             e.jaw = j.transform;
-            Proto.Cube(e.jaw, new Vector3(0f, -0.06f, 0.28f), new Vector3(0.55f, 0.14f, 0.55f), stone, "Mâchoire");
+            Paint(Proto.Sphere(e.jaw, new Vector3(0f, -0.05f, 0.28f), new Vector3(0.56f, 0.18f, 0.62f), Color.white, "Mâchoire"), stone);
             for (int k = -1; k <= 1; k += 2)
-                Proto.Cone(e.jaw, new Vector3(k * 0.18f, 0.02f, 0.5f), 0.05f, 0.16f, Color.white, "Croc", 4);
+                Proto.Cone(e.jaw, new Vector3(k * 0.16f, 0.02f, 0.5f), 0.045f, 0.15f, Color.white, "Croc", 6).GetComponent<Renderer>().sharedMaterial = fangs;
             GameObject pupilGo = new GameObject("Braise");
             pupilGo.transform.SetParent(e.ball, false);
             e.pupil = pupilGo.transform;
@@ -209,7 +252,6 @@ namespace Fief
             e.reticle.endColor = new Color(1f, 0.4f, 0.2f, 0.9f);
 
             All.Add(e);
-            MaterialFactory.Polish(e.transform, 0.4f);
             return e;
         }
 
@@ -227,15 +269,20 @@ namespace Fief
             return l;
         }
 
-        /// <summary>Un anneau : seize petits blocs sur un cercle.</summary>
-        static void Ring(Transform t, float radius, Color c)
+        static GameObject Paint(GameObject go, Material m)
         {
-            for (int i = 0; i < 16; i++)
-            {
-                float a = i / 16f * Mathf.PI * 2f;
-                GameObject bit = Proto.Cube(t, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius, new Vector3(0.12f, 0.1f, radius * 0.42f), c, "Maillon");
-                bit.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f);
-            }
+            go.GetComponent<Renderer>().sharedMaterial = m;
+            return go;
+        }
+
+        /// <summary>Une gelule de "a" a "b" (un os, une corne, une patte), d'epaisseur "thick".</summary>
+        static void Seg(Transform t, Vector3 a, Vector3 b, float thick, Material m)
+        {
+            Vector3 d = b - a;
+            float len = d.magnitude;
+            if (len < 0.0001f) return;
+            GameObject g = Paint(Proto.Capsule(t, (a + b) * 0.5f, new Vector3(thick, (len + thick) * 0.5f, thick), Color.white, "Os"), m);
+            g.transform.localRotation = Quaternion.FromToRotation(Vector3.up, d / len);
         }
 
         void OnDestroy() { All.Remove(this); }

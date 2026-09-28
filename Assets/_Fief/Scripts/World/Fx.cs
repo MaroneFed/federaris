@@ -55,17 +55,24 @@ namespace Fief
             Ring(at + Vector3.up * 0.15f, c, 0.3f, to, seconds, 0.35f, Vector3.up);
         }
 
-        /// <summary>Une sphere de lumiere qui gonfle jusqu'a "radius" et s'efface.</summary>
+        static Shader onde;
+        static bool ondeLooked;
+
+        /// <summary>
+        /// Une BULLE D'ENERGIE qui gonfle jusqu'a "radius" et s'efface (01/10 : le centre
+        /// transparent, le bord qui brille -- le shader Fief/Onde ; sans lui, l'ancienne boule).
+        /// </summary>
         public static void Shock(Vector3 at, Color c, float radius, float seconds)
         {
             Material source = Ambiance.Additive;
             if (source == null) return;
+            if (!ondeLooked) { ondeLooked = true; onde = Shader.Find("Fief/Onde"); }
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = "Fx choc";
             Object.Destroy(go.GetComponent<Collider>());
             go.transform.position = at;
             Renderer rd = go.GetComponent<Renderer>();
-            Material m = new Material(source);
+            Material m = onde != null ? new Material(onde) : new Material(source);
             m.mainTexture = null;
             rd.sharedMaterial = m;
             rd.shadowCastingMode = ShadowCastingMode.Off;
@@ -138,6 +145,70 @@ namespace Fief
             shrink.enabled = true;
             shrink.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
             Ambiance.FadeInOut(ps, 1f);
+            ps.Play();
+        }
+
+        static Material confettiMat;
+
+        /// <summary>
+        /// DES CONFETTIS (01/10) : de petits carres de papier de toutes les couleurs, qui
+        /// tournoient et retombent doucement. Ils ne s'ajoutent pas a la lumiere (comme les
+        /// etincelles) : ils gardent leurs vraies couleurs, meme en plein jour.
+        /// </summary>
+        public static void Confetti(Vector3 at, Color[] colours, int count, float speed, Vector3 direction, float spread)
+        {
+            if (confettiMat == null)
+            {
+                Shader sh = Shader.Find("Legacy Shaders/Particles/Alpha Blended");
+                if (sh == null) sh = Shader.Find("Sprites/Default");
+                if (sh == null) return;
+                Texture2D square = new Texture2D(8, 8, TextureFormat.RGBA32, false);
+                Color[] px = new Color[64];
+                for (int i = 0; i < 64; i++) { int x = i % 8, y = i / 8; px[i] = new Color(1f, 1f, 1f, x == 0 || y == 0 || x == 7 || y == 7 ? 0.6f : 1f); }
+                square.SetPixels(px);
+                square.Apply(false);
+                square.wrapMode = TextureWrapMode.Clamp;
+                confettiMat = new Material(sh) { name = "Confettis", mainTexture = square };
+            }
+            ParticleSystem ps = Ambiance.NewSystem("Fx confettis", null, at, confettiMat);
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = 0.5f;
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.2f, 3.4f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.5f, speed);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.22f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            Gradient g = new Gradient();
+            g.mode = GradientMode.Fixed;
+            int n = Mathf.Clamp(colours.Length, 1, 8);
+            GradientColorKey[] keys = new GradientColorKey[n];
+            for (int i = 0; i < n; i++) keys[i] = new GradientColorKey(colours[i], (i + 1f) / n);
+            g.SetKeys(keys, new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 1f) });
+            ParticleSystem.MinMaxGradient random = new ParticleSystem.MinMaxGradient(g);
+            random.mode = ParticleSystemGradientMode.RandomColor;
+            main.startColor = random;
+            main.gravityModifier = 0.35f;
+            main.maxParticles = count + 10;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = spread;
+            shape.radius = 0.4f;
+            ps.transform.rotation = Quaternion.LookRotation(direction.sqrMagnitude > 0.01f ? direction.normalized : Vector3.up);
+            ParticleSystem.LimitVelocityOverLifetimeModule drag = ps.limitVelocityOverLifetime;
+            drag.enabled = true;
+            drag.limit = 1.2f;
+            drag.dampen = 0.08f;
+            ParticleSystem.RotationOverLifetimeModule spin = ps.rotationOverLifetime;
+            spin.enabled = true;
+            spin.z = new ParticleSystem.MinMaxCurve(-8f, 8f);
+            ParticleSystem.NoiseModule flutter = ps.noise;
+            flutter.enabled = true;
+            flutter.strength = 0.8f;
+            flutter.frequency = 0.6f;
             ps.Play();
         }
 
@@ -313,7 +384,7 @@ namespace Fief
             if (k >= 1f) { Destroy(mat); Destroy(gameObject); return; }
             float ease = 1f - (1f - k) * (1f - k);
             transform.localScale = Vector3.one * Mathf.Lerp(0.3f, radius * 2f, ease);
-            Color c = new Color(colour.r, colour.g, colour.b, 0.5f * (1f - k) * (1f - k));
+            Color c = new Color(colour.r, colour.g, colour.b, 0.8f * Mathf.Pow(1f - k, 1.5f));
             if (mat.HasProperty("_TintColor")) mat.SetColor("_TintColor", c);
             else mat.color = c;
         }
@@ -445,6 +516,11 @@ namespace Fief
             v.spot.shadows = LightShadows.None;
         }
 
+        Color[] Palette()
+        {
+            return new[] { who.Colour, new Color(1f, 0.82f, 0.36f), Color.white, new Color(0.45f, 0.8f, 1f), new Color(1f, 0.45f, 0.6f), new Color(0.55f, 1f, 0.55f) };
+        }
+
         Color Pick()
         {
             Color[] c = { who.Colour, new Color(1f, 0.82f, 0.36f), Color.white, new Color(0.45f, 0.8f, 1f), new Color(1f, 0.45f, 0.6f), new Color(0.55f, 1f, 0.55f) };
@@ -474,7 +550,7 @@ namespace Fief
             if (b == lastBeat) return;
             lastBeat = b;
             Fx.GroundRing(feet, new Color(1f, 0.82f, 0.36f), 4f, 0.5f);
-            Fx.Burst(feet + Vector3.up * 5f, Pick(), 14, 3f, 0.14f, 2f, 0.35f, Vector3.down, 60f);
+            Fx.Confetti(feet + Vector3.up * 6f, Palette(), 16, 2f, Vector3.down, 70f);
             if (b % 2 == 0)
             {
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
@@ -487,7 +563,7 @@ namespace Fief
             }
             if (b % 8 == 0)
             {
-                for (int k = 0; k < 4; k++) Fx.Burst(feet + Vector3.up * 7f, Pick(), 40, 6f, 0.16f, 2.6f, 0.5f, Vector3.up, 80f);
+                Fx.Confetti(feet + Vector3.up * 1.5f, Palette(), 140, 11f, Vector3.up, 35f);
                 Fx.Shock(feet + Vector3.up, new Color(1f, 0.82f, 0.36f), 4f, 0.4f);
             }
         }

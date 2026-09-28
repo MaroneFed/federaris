@@ -41,15 +41,19 @@ namespace Fief
         // la pierre claire et chaude, des tours RONDES coiffees de toits pointus bleu roi
         // a pointe d'or et fanion, de grandes bannieres rouges, bleues et or sur les
         // murailles, un jardin a la francaise dans la cour.
-        static readonly Color Stone = new Color(0.80f, 0.73f, 0.62f);
-        static readonly Color StoneDark = new Color(0.58f, 0.50f, 0.43f);
-        static readonly Color StoneMoss = new Color(0.72f, 0.70f, 0.56f);
-        static readonly Color Slate = new Color(0.20f, 0.32f, 0.78f);
+        // (01/10 -- "on dirait un truc fait par IA") : une palette SOBRE et tenue -- la pierre
+        // creme, un soubassement plus sombre, des toits d'ardoise bleu nuit (plus le bleu roi
+        // criard), l'or mat, et presque plus rien qui brille : c'etait l'accumulation de
+        // lueurs dorees partout qui faisait faux.
+        static readonly Color Stone = new Color(0.82f, 0.75f, 0.64f);
+        static readonly Color StoneDark = new Color(0.56f, 0.49f, 0.42f);
+        static readonly Color StoneMoss = new Color(0.74f, 0.71f, 0.58f);
+        static readonly Color Slate = new Color(0.22f, 0.29f, 0.46f);
         static readonly Color Timber = new Color(0.36f, 0.24f, 0.15f);
         static readonly Color IronDark = new Color(0.14f, 0.14f, 0.18f);
         static readonly Color Paving = new Color(0.66f, 0.61f, 0.54f);
         static readonly Color GoldTrim = new Color(1f, 0.8f, 0.32f);
-        static readonly Color[] Heraldry = { new Color(0.82f, 0.16f, 0.22f), new Color(0.2f, 0.34f, 0.82f), new Color(0.96f, 0.72f, 0.18f) };
+        static readonly Color[] Heraldry = { new Color(0.66f, 0.13f, 0.16f), new Color(0.16f, 0.25f, 0.55f), new Color(0.82f, 0.6f, 0.16f) };
 
         /// <summary>Vrai si ce point est dans l'emprise de la citadelle (plus une marge) : la foret n'y pousse pas.</summary>
         public static bool Covers(float x, float z, float margin)
@@ -121,19 +125,25 @@ namespace Fief
         /// <summary>Des creneaux sur le haut d'un mur. Quelques-uns sont tombes.</summary>
         static void Crenellate(Transform parent, Vector3 a, Vector3 b, float top, float thick, int seed)
         {
+            // (01/10) Des merlons REGULIERS (plus de trous au hasard : ca faisait abime et
+            // bacle), chacun coiffe d'un chaperon plus sombre qui deborde un peu.
             System.Random rng = new System.Random(seed);
             Vector3 dir = new Vector3(b.x - a.x, 0f, b.z - a.z);
             float length = dir.magnitude;
             if (length < 1f) return;
             dir /= length;
             Proto.BeginVisualOnly();
-            for (float s = 0.9f; s < length - 0.5f; s += 2.4f)
+            int count = Mathf.Max(1, Mathf.RoundToInt((length - 0.6f) / 2.6f));
+            float step = (length - 0.6f) / count;
+            for (int k = 0; k < count; k++)
             {
-                if (rng.NextDouble() < 0.1) continue;
-                Vector3 p = a + dir * s;
-                GameObject m = Proto.Cube(parent, new Vector3(p.x, top + 0.65f, p.z), new Vector3(thick * 0.3f, 1.3f, 1.25f),
-                                          rng.NextDouble() < 0.2 ? StoneMoss : Stone, "Merlon");
-                m.transform.localRotation = Quaternion.LookRotation(dir, Vector3.up);
+                Vector3 p = a + dir * (0.3f + step * (k + 0.5f));
+                Quaternion face = Quaternion.LookRotation(dir, Vector3.up);
+                GameObject m = Proto.Cube(parent, new Vector3(p.x, top + 0.75f, p.z), new Vector3(thick * 0.34f, 1.5f, step * 0.58f),
+                                          rng.NextDouble() < 0.12 ? StoneMoss : Stone, "Merlon");
+                m.transform.localRotation = face;
+                GameObject cap = Proto.Cube(parent, new Vector3(p.x, top + 1.56f, p.z), new Vector3(thick * 0.34f + 0.16f, 0.14f, step * 0.58f + 0.16f), StoneDark, "Chaperon");
+                cap.transform.localRotation = face;
             }
             Proto.EndVisualOnly();
         }
@@ -157,9 +167,28 @@ namespace Fief
                 Vector3 edge = outward * (WallThickness * 0.5f - 0.3f);
                 Crenellate(t, a + edge, left + edge, WallHeight, WallThickness, 11 + i);
                 Crenellate(t, right + edge, b + edge, WallHeight, WallThickness, 21 + i);
-                // Une plinthe sombre au pied : l'humidite qui remonte.
+                // Une plinthe sombre au pied (l'humidite qui remonte), un bandeau sous le
+                // chemin de ronde, un petit parapet cote cour.
                 Segment(t, a, left, y0, 1.8f, WallThickness + 0.4f, StoneDark, false, "Plinthe");
                 Segment(t, right, b, y0, 1.8f, WallThickness + 0.4f, StoneDark, false, "Plinthe");
+                Segment(t, a, left, WallHeight - 1.6f, WallHeight - 1.2f, WallThickness + 0.3f, StoneDark, false, "Bandeau");
+                Segment(t, right, b, WallHeight - 1.6f, WallHeight - 1.2f, WallThickness + 0.3f, StoneDark, false, "Bandeau");
+                Vector3 inEdge = outward * -(WallThickness * 0.5f - 0.2f);
+                Segment(t, a + inEdge, left + inEdge, WallHeight, WallHeight + 0.8f, 0.4f, Stone, false, "Parapet");
+                Segment(t, right + inEdge, b + inEdge, WallHeight, WallHeight + 0.8f, 0.4f, Stone, false, "Parapet");
+                // Des meurtrieres : de fines fentes sombres, deux rangs.
+                Proto.BeginVisualOnly();
+                for (float u = 7f; u < h * 2f - 6f; u += 6f)
+                {
+                    if (Mathf.Abs(u - h) < gap + 6f) continue;
+                    for (int row = 0; row < 2; row++)
+                    {
+                        Vector3 p = a + dir * (u + row * 3f) + outward * (WallThickness * 0.5f + 0.02f) + Vector3.up * (row == 0 ? 7f : 12.5f);
+                        GameObject slit = Proto.Cube(t, p, new Vector3(0.28f, 1.7f, 0.06f), IronDark, "Meurtrière");
+                        slit.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
+                    }
+                }
+                Proto.EndVisualOnly();
                 // Des contreforts dehors, tous les douze metres.
                 for (float u = 12f; u < h * 2f - 12f; u += 12f)
                 {
@@ -219,7 +248,7 @@ namespace Fief
                     arch.transform.localRotation = Quaternion.LookRotation(Vector3.up, outward);
                     if (rng.NextDouble() < 0.35)
                     {
-                        Material lit = MaterialFactory.GetGlow(new Color(1f, 0.74f, 0.4f), 1.5f);
+                        Material lit = MaterialFactory.GetGlow(new Color(1f, 0.74f, 0.4f), 0.55f);
                         win.GetComponent<Renderer>().sharedMaterial = lit;
                         arch.GetComponent<Renderer>().sharedMaterial = lit;
                     }
@@ -237,11 +266,16 @@ namespace Fief
             }
             if (roofed)
             {
-                // LE TOIT : un grand cone bleu roi, un liseré d'or, une pointe d'or, un fanion.
-                Proto.Cylinder(t, new Vector3(at.x, height + 0.75f, at.z), new Vector3(size + 1.9f, 0.2f, size + 1.9f), GoldTrim, "Liseré d'or").GetComponent<Renderer>().sharedMaterial = gold;
-                GameObject roof = Proto.Cone(t, new Vector3(at.x, height + 0.8f, at.z), r + 1.2f, size * 1.35f, Slate, "Toit", 24);
-                roof.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Slate, 0.55f, 0.1f);
-                float tip = height + 0.8f + size * 1.35f;
+                // LE TOIT EN CLOCHE (01/10) : une jupe evasee qui deborde du mur, puis la
+                // pointe elancee -- l'ardoise d'une tour a l'autre change un peu de ton.
+                Color slate = Color.Lerp(Slate, seed % 2 == 0 ? new Color(0.2f, 0.34f, 0.44f) : new Color(0.28f, 0.27f, 0.42f), 0.35f);
+                Material slateMat = MaterialFactory.GetShiny(slate, 0.45f, 0.05f);
+                Proto.Cylinder(t, new Vector3(at.x, height + 0.75f, at.z), new Vector3(size + 1.9f, 0.16f, size + 1.9f), StoneDark, "Corniche").GetComponent<Renderer>().sharedMaterial = dark;
+                GameObject skirt = Proto.Cone(t, new Vector3(at.x, height + 0.8f, at.z), r + 1.6f, size * 0.32f, slate, "Jupe du toit", 24);
+                skirt.GetComponent<Renderer>().sharedMaterial = slateMat;
+                GameObject roof = Proto.Cone(t, new Vector3(at.x, height + 0.8f + size * 0.12f, at.z), r + 0.75f, size * 1.3f, slate, "Toit", 24);
+                roof.GetComponent<Renderer>().sharedMaterial = slateMat;
+                float tip = height + 0.8f + size * 0.12f + size * 1.3f;
                 Proto.Sphere(t, new Vector3(at.x, tip - 0.3f, at.z), Vector3.one * 0.9f, GoldTrim, "Pommeau").GetComponent<Renderer>().sharedMaterial = gold;
                 Proto.Cylinder(t, new Vector3(at.x, tip + 2.2f, at.z), new Vector3(0.18f, 2.4f, 0.18f), GoldTrim, "Hampe").GetComponent<Renderer>().sharedMaterial = gold;
                 GameObject flag = Proto.Cube(t, new Vector3(at.x + 1.3f, tip + 3.6f, at.z), new Vector3(2.4f, 1.3f, 0.08f), Heraldry[seed % 3], "Fanion");
@@ -272,8 +306,8 @@ namespace Fief
                 Vector3 side = Vector3.Cross(Vector3.up, d);
                 Vector3 gate = d * HalfSize;
                 float off = GateWidth * 0.5f + GateTowerSize * 0.5f;
-                BigTower(t, gate + side * off + d * 1f, GateTowerSize, GateTowerHeight, false, 40 + i * 5);
-                BigTower(t, gate - side * off + d * 1f, GateTowerSize, GateTowerHeight, false, 42 + i * 5);
+                BigTower(t, gate + side * off + d * 1f, GateTowerSize, GateTowerHeight, true, 40 + i * 5);
+                BigTower(t, gate - side * off + d * 1f, GateTowerSize, GateTowerHeight, true, 43 + i * 5);
                 // L'arc : un bandeau sombre au-dessus du passage, et la herse relevee.
                 Proto.BeginVisualOnly();
                 for (float s = -GateWidth * 0.5f + 0.5f; s < GateWidth * 0.5f; s += 0.8f)
@@ -303,17 +337,17 @@ namespace Fief
                     // Le montant d'or de l'arc.
                     GameObject gilt = Proto.Cube(t, gate + d * 1.65f + side * k * (GateWidth * 0.5f + 0.1f) + Vector3.up * (GateHeight * 0.5f), new Vector3(0.3f, GateHeight, 0.08f), Color.white, "Arc d'or");
                     gilt.transform.rotation = face;
-                    gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.35f), 1.6f);
+                    gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(GoldTrim, 0.8f, 1f);
                 }
                 GameObject lintel = Proto.Cube(t, gate + d * 1.65f + Vector3.up * (GateHeight + 0.15f), new Vector3(GateWidth + 0.5f, 0.3f, 0.08f), Color.white, "Arc d'or");
                 lintel.transform.rotation = face;
-                lintel.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.35f), 1.8f);
+                lintel.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(GoldTrim, 0.8f, 1f);
                 // La grande banniere, au-dessus de l'arc.
-                GameObject cloth = Proto.Cube(t, gate + d * 1.75f + Vector3.up * (GateHeight + 4.2f), new Vector3(4.2f, 6f, 0.08f), new Color(0.55f, 0.1f, 0.12f), "Bannière");
+                GameObject cloth = Proto.Cube(t, gate + d * 1.75f + Vector3.up * (GateHeight + 4.2f), new Vector3(4.2f, 6f, 0.08f), Heraldry[0], "Bannière");
                 cloth.transform.rotation = face;
                 GameObject stripe = Proto.Cube(t, gate + d * 1.8f + Vector3.up * (GateHeight + 4.2f), new Vector3(0.7f, 5.2f, 0.04f), Color.white, "Blason");
                 stripe.transform.rotation = face;
-                stripe.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.8f, 0.4f), 1.4f);
+                stripe.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(GoldTrim, 0.8f, 1f);
                 GameObject cross = Proto.Cube(t, gate + d * 1.8f + Vector3.up * (GateHeight + 5.2f), new Vector3(3f, 0.6f, 0.04f), Color.white, "Blason");
                 cross.transform.rotation = face;
                 cross.GetComponent<Renderer>().sharedMaterial = stripe.GetComponent<Renderer>().sharedMaterial;
@@ -446,7 +480,7 @@ namespace Fief
             Proto.BeginVisualOnly();
             Quaternion face = Quaternion.LookRotation(outward, Vector3.up);
             Material cloth = MaterialFactory.GetShiny(c, 0.3f, 0f);
-            Material gold = MaterialFactory.GetShiny(GoldTrim, 0.85f, 1f, 0.3f);
+            Material gold = MaterialFactory.GetShiny(GoldTrim, 0.8f, 1f);
             float top = WallHeight - 0.6f;
             GameObject pole = Proto.Cylinder(t, at + outward * 0.2f + Vector3.up * top, new Vector3(0.16f, 1.7f, 0.16f), GoldTrim, "Hampe");
             pole.transform.rotation = face * Quaternion.Euler(0f, 0f, 90f) * Quaternion.Euler(0f, 90f, 0f);

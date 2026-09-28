@@ -244,9 +244,9 @@ namespace Fief
             if (rig != null) rig.Celebrate(90f);
             if (Crown.Instance != null) Crown.Instance.ShowOff(s.Body);
             Vector3 at = s.Body.position + Vector3.up * 1.6f;
-            Color[] confetti = { s.Colour, new Color(1f, 0.82f, 0.36f), Color.white, Color.Lerp(s.Colour, Color.white, 0.5f) };
-            for (int i = 0; i < confetti.Length; i++)
-                Fx.Burst(at, confetti[i], 40, 9f, 0.14f, 2.4f, 0.6f, Vector3.up, 70f);
+            Color[] confetti = { s.Colour, new Color(1f, 0.82f, 0.36f), Color.white, Color.Lerp(s.Colour, Color.white, 0.5f), new Color(0.45f, 0.8f, 1f) };
+            Fx.Confetti(at, confetti, 180, 13f, Vector3.up, 40f);
+            Fx.Shock(at, new Color(1f, 0.82f, 0.36f), 5f, 0.5f);
             VictoryShow.Begin(s);
         }
 

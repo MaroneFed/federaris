@@ -32,7 +32,7 @@ namespace Fief
             get
             {
                 if (Instance == null) return Vector3.zero;
-                if (Holder != null && Holder.Body != null) return Holder.Body.position + Vector3.up * 2.2f;
+                if (Holder != null && Holder.Body != null) return Holder.Body.position + Vector3.up * 2.6f;
                 return Instance.visual.position;
             }
         }
@@ -279,7 +279,7 @@ namespace Fief
             {
                 if (Holder == null || Holder.Body == null) { Drop(visual.position); return; }
                 // Au-dessus de sa tete : tout le monde la voit briller.
-                visual.position = Holder.Body.position + Vector3.up * 2.25f + Vector3.up * Mathf.Sin(Time.time * 3f) * 0.05f;
+                visual.position = Holder.Body.position + Vector3.up * 2.6f + Vector3.up * Mathf.Sin(Time.time * 3f) * 0.05f;
             }
             // Quand c'est TOI qui la portes, on ne la montre pas au-dessus de ta tete ni
             // sa colonne (la camera serait dedans) : l'ecran te le dit, et tu brilles.
@@ -309,7 +309,7 @@ namespace Fief
                     Renderer[] all = visual.GetComponentsInChildren<Renderer>(true);
                     for (int i = 0; i < all.Length; i++) all[i].enabled = true;
                 }
-                Vector3 above = showOff.position + Vector3.up * (2.9f + Mathf.Sin(Time.time * 3f) * 0.12f);
+                Vector3 above = showOff.position + Vector3.up * (3.1f + Mathf.Sin(Time.time * 3f) * 0.12f);
                 visual.position = Vector3.Lerp(visual.position, above, 1f - Mathf.Exp(-5f * Time.deltaTime));
             }
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);

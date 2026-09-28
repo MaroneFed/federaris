@@ -65,10 +65,22 @@ TrueTypeFontImporter:
   - {family}
   fallbackFontReferences: []
   customCharacters: 
-  fontRenderingMode: 0
+  fontRenderingMode: 1
   ascentCalculationMode: 1
   useLegacyBoundsCalculation: 0
   shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+"""
+
+# Un shader (.shader) : le code qui dit a la carte graphique comment peindre.
+SHADER = """fileFormatVersion: 2
+guid: {guid}
+ShaderImporter:
+  externalObjects: {{}}
+  defaultTextures: []
+  nonModifiableTextures: []
   userData: 
   assetBundleName: 
   assetBundleVariant: 
@@ -125,6 +137,8 @@ def main():
                 template = SCRIPT
             elif name.lower().endswith((".ttf", ".otf")):
                 template = FONT
+            elif name.lower().endswith(".shader"):
+                template = SHADER
             elif name.lower().endswith((".txt", ".json", ".md")):
                 template = TEXT
             else:

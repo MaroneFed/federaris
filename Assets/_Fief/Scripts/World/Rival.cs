@@ -1200,26 +1200,18 @@ namespace Fief
 
     /// <summary>
     /// CE QUI FAIT QU'ON SE RECONNAIT DE LOIN (Martin : "je veux que les gens puissent
-    /// se voir"). Chaque joueur porte une echarpe et un ruban a sa couleur, une LANTERNE
-    /// a sa couleur au bout du baton, et un HALO au-dessus de la tete.
+    /// se voir"). Chaque joueur est un haricot A SA COULEUR, porte une petite LANTERNE a sa
+    /// couleur a la hanche, et un HALO au-dessus de la tete.
     /// </summary>
     public static class PlayerLook
     {
         /// <summary>
-        /// Habiller un corps a sa couleur (30/09 : le petit chevalier) : une echarpe qui
-        /// flotte sous le casque, une petite lanterne a la hanche. Renvoie sa lumiere.
+        /// Habiller un corps a sa couleur : une petite lanterne a la hanche, le halo.
+        /// (01/10 : plus d'echarpe -- le haricot entier est a sa couleur.) Renvoie sa lumiere.
         /// </summary>
         public static Light Dress(CharacterRig rig, Transform root, Color colour)
         {
             Proto.BeginVisualOnly();
-            Transform neck = rig.HeadBone;
-            Material scarf = MaterialFactory.GetShiny(colour, 0.35f, 0f);
-            GameObject ring = Proto.Cylinder(neck, new Vector3(0f, -0.17f, 0f), new Vector3(0.7f, 0.05f, 0.62f), colour, "Écharpe");
-            ring.GetComponent<Renderer>().sharedMaterial = scarf;
-            GameObject tail = Proto.Capsule(neck, new Vector3(0.14f, -0.3f, -0.3f), new Vector3(0.1f, 0.16f, 0.04f), colour, "Pan");
-            tail.GetComponent<Renderer>().sharedMaterial = scarf;
-            tail.transform.localRotation = Quaternion.Euler(-35f, 0f, 12f);
-
             Transform hip = rig.HipBone;
             Vector3 lamp = new Vector3(0f, -0.14f, 0f);
             Color flameColour = Color.Lerp(colour, new Color(1f, 0.8f, 0.5f), 0.35f);
