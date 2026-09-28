@@ -509,9 +509,10 @@ namespace Fief
         public static void Torch(Transform t, Vector3 at, float height)
         {
             Proto.BeginVisualOnly();
-            Proto.Cube(t, new Vector3(at.x, at.y + height * 0.5f, at.z), new Vector3(0.16f, height, 0.16f), Timber, "Torche");
-            Proto.Cube(t, new Vector3(at.x, at.y + height + 0.12f, at.z), new Vector3(0.3f, 0.12f, 0.3f), IronDark, "Coupe");
-            GameObject flame = Proto.Cube(t, new Vector3(at.x, at.y + height + 0.38f, at.z), new Vector3(0.22f, 0.4f, 0.22f), new Color(1f, 0.62f, 0.22f), "Flamme");
+            // (01/10) Un poteau rond, une coupe de fer, une flamme en goutte (plus de cubes).
+            Proto.Cylinder(t, new Vector3(at.x, at.y + height * 0.5f, at.z), new Vector3(0.18f, height * 0.5f, 0.18f), Timber, "Torche");
+            Proto.Sphere(t, new Vector3(at.x, at.y + height + 0.1f, at.z), new Vector3(0.42f, 0.22f, 0.42f), IronDark, "Coupe");
+            GameObject flame = Proto.Sphere(t, new Vector3(at.x, at.y + height + 0.4f, at.z), new Vector3(0.26f, 0.5f, 0.26f), new Color(1f, 0.62f, 0.22f), "Flamme");
             Proto.EndVisualOnly();
             Renderer r = flame.GetComponent<Renderer>();
             if (r != null) r.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.22f), 2.2f);

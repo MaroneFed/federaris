@@ -4,14 +4,13 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// UN SANCTUAIRE dans la foret (27/09 -- ils remplacent les coffres et les objets) :
-    /// un cercle de pierres levees, et au milieu un cristal qui flotte, a la couleur du
-    /// DON qu'il renferme. E maintenu une seconde : ce don devient ta capacite de la
-    /// manche, sur la touche V. Un seul don a la fois, un seul passage par sanctuaire.
+    /// UN SANCTUAIRE (27/09 -- ils remplacent les coffres et les objets) : un cercle de
+    /// pierres levees, et au milieu un cristal qui flotte, a la couleur du DON qu'il
+    /// renferme. Un appui sur E (01/10 : plus de maintien) : ce don REMPLACE ton clic
+    /// gauche pour la manche. Un seul passage par sanctuaire.
     ///
-    /// C'est la raison d'aller dans la foret plutot que de foncer a la tour : une
-    /// capacite de plus, c'est un grappin pour sauter un tour de rampe, une onde pour
-    /// faire tomber le porteur...
+    /// C'est la raison de faire un detour sur l'ile plutot que de foncer a la tour : un
+    /// grappin pour sauter un tour de rampe, une onde pour faire tomber le porteur...
     /// </summary>
     public class Shrine : MonoBehaviour, IInteractable
     {
@@ -25,7 +24,8 @@ namespace Fief
         public bool Spent { get { return spent; } }
         public Ability Gift { get { return gift; } }
 
-        static readonly Color Stone = new Color(0.3f, 0.31f, 0.33f);
+        // (01/10) Le meme marbre clair que les Monuments (la pierre noire jurait avec l'ile).
+        static readonly Color Stone = new Color(0.82f, 0.81f, 0.85f);
 
         public static Shrine Build(Transform parent, Vector3 at, Ability gift, bool compact = false)
         {
@@ -46,7 +46,7 @@ namespace Fief
             {
                 float a = i / 6f * Mathf.PI * 2f;
                 Vector3 p = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 3.2f;
-                GameObject stone = Proto.Cube(t, p + Vector3.up * 1.1f, new Vector3(0.7f, 2.2f + (i % 2) * 0.5f, 0.5f), Stone, "Pierre levée");
+                GameObject stone = Proto.Capsule(t, p + Vector3.up * 1.1f, new Vector3(0.7f, 1.1f + (i % 2) * 0.25f, 0.5f), Stone, "Pierre levée");
                 stone.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, (i % 3 - 1) * 4f);
                 Proto.BeginVisualOnly();
                 GameObject rune = Proto.Cube(t, p * 0.93f + Vector3.up * 1.6f, new Vector3(0.18f, 0.5f, 0.05f), Color.white, "Rune");
@@ -55,7 +55,7 @@ namespace Fief
                 Proto.EndVisualOnly();
             }
             Proto.BeginVisualOnly();
-            if (!compact) Proto.Cylinder(t, new Vector3(0f, 0.05f, 0f), new Vector3(4.6f, 0.05f, 4.6f), new Color(0.2f, 0.2f, 0.22f), "Dalle");
+            if (!compact) Proto.Cylinder(t, new Vector3(0f, 0.05f, 0f), new Vector3(4.6f, 0.05f, 4.6f), new Color(0.6f, 0.62f, 0.7f), "Dalle");
             Proto.Cylinder(t, new Vector3(0f, 0.35f, 0f), new Vector3(1.2f, 0.35f, 1.2f), Stone, "Autel");
             GameObject c = new GameObject("Cristal");
             c.transform.SetParent(t, false);

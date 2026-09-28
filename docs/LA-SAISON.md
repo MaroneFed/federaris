@@ -78,9 +78,9 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
    pas dans la citadelle par les airs** : le **sceau** renvoie dehors qui essaie. On
    passe le **couloir piégé**, le **pont-levis**, la porte.
 3. **La montée.** En face de chaque porte, **sa rampe** (quatre rampes, le même chemin
-   pour tous), **à pied**, en se battant. Au sommet, la Couronne sur son socle (**E
-   maintenu 1 s**) ; qui pose le pied au sommet reçoit des **ailes d'or** — mais le
-   porteur, lui, n'en a jamais.
+   pour tous), **à pied**, en se battant. Au sommet, la Couronne sur son socle : **on la
+   prend en montant sur le socle** (ou d'un appui sur E ; 01/10 : plus rien à tenir) ; qui
+   pose le pied au sommet reçoit des **ailes d'or** — mais le porteur, lui, n'en a jamais.
 4. **Le vol — LA COURONNE EST LOURDE** (30/09 : « avec les élytres, c'est trop facile
    de gagner »). On saute dans le vide : les ailes s'ouvrent seules, mais le porteur
    plane à 11 m/s et **tombe à 8 m/s** : du sommet, **il n'atteint pas les Monuments**.
@@ -91,7 +91,11 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
    disque d'or s'étend, une cloche sonne chaque seconde, une barre s'affiche à l'écran de
    TOUT LE MONDE (« X SE FAIT SACRER — VA LE POUSSER ! »). Sorti du cercle, le sacre
    retombe vite. Aucune touche à tenir.
-6. **Le temps.** Au gong, celui qui tient la Couronne gagne ; sinon, personne.
+6. **Le temps.** Au gong, **personne** ne gagne la manche (01/10, Martin : « la victoire,
+   il ne faut pas la donner s'il a la couronne à la fin »). On ne gagne **qu'au Monument**.
+7. **La fête.** Le vainqueur **danse sur la musique** (six figures, un pas par temps) ;
+   la Couronne flotte au-dessus de sa tête ; confettis, feux d'artifice et projecteur
+   battent sur le rythme (`CharacterRig.Party`, `VictoryShow`, `MusicDirector.DanceBeat`).
 
 ### La Couronne
 
@@ -145,7 +149,7 @@ plateforme de départ**, dans une **colonne de lumière** à sa couleur, protég
 | Touche | Ce qu'elle fait |
 |---|---|
 | **Clic gauche** | **TA capacité active** — une seule, nouvelle à chaque manche (le don d'un sanctuaire la remplace pour la manche) |
-| **Clic droit** | **POUSSER** (3 m, recharge 0,9 s, projette fort) — pousser le porteur, c'est lui **voler** la Couronne ; **en l'air, sur le porteur : le piqué d'aigle** |
+| **Clic droit** | **POUSSER** (3,2 m, recharge 0,9 s) : **le poussé part en cloche à une quinzaine de mètres** (01/10), en faisant des saltos — pousser le porteur, c'est lui **voler** la Couronne ; **en l'air, sur le porteur : le piqué d'aigle** |
 | **E** | **interagir** : prendre la Couronne, un don ; **monter sur une arbaleste** (et en descendre) |
 | **Espace** | sauter ; en vol, replier ou rouvrir les ailes |
 | **Sur l'arbaleste de ta plateforme** | clic gauche : elle te pose devant ta porte |
@@ -217,8 +221,8 @@ une gerbe d'étincelles, un **coup de phonk**.
 
 ### Les sanctuaires
 
-Un cercle de pierres levées, un cristal qui flotte à la couleur de son don. **E
-maintenu 1 s** : ce don (une capacité active au hasard) **remplace ton clic gauche pour
+Un cercle de pierres levées, un cristal qui flotte à la couleur de son don. **Un appui
+sur E** (01/10) : ce don (une capacité active au hasard) **remplace ton clic gauche pour
 la manche**. Un seul don à la fois ; un sanctuaire ne sert qu'une fois. Il y en
 a quatre sur l'île, hors des murs, et un sur chaque îlot flottant sans Monument (la
 récompense de ceux qui y vont en planant ou par l'arbaleste).
@@ -369,13 +373,17 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
 - **Pas de boussole, pas de carte, pas de marqueur** : la tour, les colonnes bleues des
   Monuments, la colonne dorée de la Couronne, les courants d'air, les colonnes et
   fanions des plateformes de départ, les arches des couloirs.
-- **Les joueurs se voient** : écharpe, lanterne et halo à leur couleur ; leurs **ailes
-  dans le dos** (repliées au sol, grandes ouvertes en vol, liseré d'or pour les ailes
-  d'or) ; une **bulle** quand ils sont protégés.
-- **Les effets** : chaque capacité a sa signature (onde qui gonfle, anneaux, gerbes,
-  éclairs, traînées), les coups ont leur impact, le respawn sa colonne de lumière.
+- **Les joueurs se voient** (01/10) : chacun est **un haricot à sa couleur** (façon Fall
+  Guys) avec de grands yeux, un petit casque d'acier, un cimier et une cape ; une lanterne
+  et un halo à sa couleur ; ses **ailes dans le dos** (repliées au sol, grandes ouvertes
+  en vol, liseré d'or pour les ailes d'or) ; une **bulle** quand il est protégé. Un vrai
+  modèle 3D animé peut le remplacer (`docs/MODELES.md`).
+- **Les effets** : chaque capacité a sa signature (onde qui gonfle — une **bulle à bord
+  lumineux** —, anneaux, gerbes, éclairs, traînées), les coups ont leur impact, le respawn
+  sa colonne de lumière, la victoire ses **confettis** et ses feux d'artifice.
 - **L'écran, sans texte, en icônes** (30/09 au soir : « je déteste le texte, des icônes,
-  comme Fall Guys ») :
+  comme Fall Guys »), **net au pixel** (01/10 : chaque icône dessinée à sa taille exacte,
+  plus de flou) :
   - en haut : le **chrono** dans une pastille bleue (rouge et qui bat les dix dernières
     secondes), une **pastille par manche** (à la couleur de son gagnant, la courante
     bat), la **Couronne** dans une pastille à la couleur de qui la tient (au sommet : la
@@ -390,10 +398,16 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
   - le **sacre** : la Couronne et une barre à la couleur de qui se fait sacrer ;
   - plus d'astuces écrites ; F1/H : les touches en icônes.
 - **Les menus** : gros boutons ronds avec icône, jaunes quand on les vise ; « FIEF » en
-  lettres rondes (Titan One) ; l'intro de manche montre la règle en icônes.
-- **Le château de conte** (30/09 au soir) : tours rondes à toits bleu roi, pommeaux et
-  fanions d'or, bannières rouge/bleu/or, jardins ronds dans la cour ; quatre cascades
-  tombent du bord de l'île dans les nuages ; des rochers flottent autour.
+  lettres rondes (Titan One) ; l'intro de manche montre la règle en icônes ; **les
+  Commandes en trois colonnes de pastilles** (touche → icône) ; salon, pause, fin de
+  manche, podium en pastilles (01/10). **Les cartes** : l'icône qui brille dans sa
+  fenêtre, le nom sur un bandeau, la phrase sur un cartouche clair, jamais coupée.
+- **Le château de conte** (30/09 au soir, assagi le 01/10) : pierre crème, tours rondes à
+  **toits en cloche d'ardoise bleu nuit** (toutes, portes comprises), créneaux réguliers
+  à chaperon, meurtrières, bandeau, l'or mat ; jardins ronds dans la cour ; quatre
+  cascades tombent du bord de l'île dans les nuages ; des rochers flottent autour. Les
+  **gargouilles** en formes rondes (corps de lion, ailes de chauve-souris, cornes
+  enroulées), sur des consoles.
 
 ## Les autres joueurs (des bots, en attendant le jeu en ligne)
 
@@ -406,9 +420,12 @@ la rampe de leur porte (sautent **les balayeurs et les moulinets**,
 **planent** jusqu'au Monument le plus commode (près d'eux, que personne ne garde), vont
 chercher un **courant d'air** quand ils sont trop bas — avec la Couronne, ils sautent
 vers le courant d'air du Monument et y tournent pour remonter (30/09), **chassent** le porteur (en vol
-aussi, avec le **piqué d'aigle**) et l'un d'eux va **l'attendre au Monument** le plus
-proche de lui. **Ils se battent en montant** (29/09 : « faut qu'il y ait du combat ») :
-qui passe à portée dans la citadelle ou sur la rampe se fait pousser — toi d'abord. Ils se servent de toutes leurs capacités (le Souffle, jusqu'à 90 m).
+aussi, avec le **piqué d'aigle**) en **visant là où il va** (01/10), et l'un d'eux va
+**l'attendre au Monument** le plus proche de lui. **Ils se battent en montant** (29/09 :
+« faut qu'il y ait du combat ») : qui passe à portée dans la citadelle ou sur la rampe
+peut se faire pousser (pas un joueur protégé). Coincés plus de 5 s, ils refont leur
+chemin ; poussés hors de l'île, ils cherchent un courant d'air. Ils se servent de toutes
+leurs capacités (le Souffle, jusqu'à 90 m).
 
 ## Retiré
 
@@ -427,6 +444,9 @@ qui passe à portée dans la citadelle ou sur la rampe se fait pousser — toi d
 - Le 30/09 : **l'aura** (moments, ralenti, phonk, flammes), **les trous** de la rampe,
   le panneau des touches automatique, le mendiant en poncho (remplacé par le petit
   chevalier).
+- Le 01/10 : **la victoire au chrono** (tenir la Couronne à la fin ne gagne plus), **le
+  maintien de E** (Couronne, sanctuaires), l'écharpe (le haricot entier est à sa couleur),
+  les dernières phrases des menus.
 
 ## Phases
 

@@ -192,7 +192,11 @@ namespace Fief
                 }
             t.SetPixels32(px);
             t.Apply(false);
-            if (discs.Count > 400) discs.Clear();
+            if (discs.Count > 400)
+            {
+                foreach (Texture2D old in discs.Values) if (old != null) Object.Destroy(old);
+                discs.Clear();
+            }
             discs[n] = t;
             return t;
         }
@@ -224,7 +228,11 @@ namespace Fief
             s = new GUIStyle();
             s.normal.background = t;
             s.border = new RectOffset((w - uniform) / 2, (w - uniform) / 2, 0, 0);
-            if (capsules.Count > 400) capsules.Clear();
+            if (capsules.Count > 400)
+            {
+                foreach (GUIStyle old in capsules.Values) if (old != null && old.normal.background != null) Object.Destroy(old.normal.background);
+                capsules.Clear();
+            }
             capsules[h] = s;
             return s;
         }

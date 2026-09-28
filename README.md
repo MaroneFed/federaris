@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · v11 · icônes · 30/09` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · v12 · net, danse · 01/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -68,6 +68,15 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 > puis re-Play. Le monde est entièrement généré par le code : il n'y a jamais rien à
 > perdre dans la scène.
 
+> **L'image est floue (surtout les textes) ?** Depuis la v12, le jeu dessine tout au
+> pixel près. S'il reste du flou, c'est la **fenêtre Game** d'Unity qui réduit l'image :
+> 1. en haut de la fenêtre **Game**, le curseur **Scale** doit être à **1x** (tout à
+>    gauche) ;
+> 2. dans la liste des résolutions juste à côté (« Free Aspect », « Full HD »…), choisis
+>    **Free Aspect**, et sur Mac **décoche « Low Resolution Aspect Ratios »** ;
+> 3. le plus simple : clique **Maximize On Play** (ou appuie sur **Maj+Espace** avec la
+>    souris sur la fenêtre Game) — le jeu prend tout l'écran d'Unity.
+
 ## 3. Les commandes
 
 | Touche | Action |
@@ -78,8 +87,8 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 | **Espace** | Sauter ; en vol : replier ou rouvrir les ailes |
 | **Voler** | Tombe dans le vide : **les ailes s'ouvrent seules**. Souris en bas : piquer (vite) ; en haut : remonter. Q/D : glisser, S : freiner |
 | **Clic gauche** | **TA capacité** (une seule, nouvelle à chaque manche ; celles qu'on vise : **maintiens** pour voir l'aperçu, **relâche** pour lancer) |
-| **Clic droit** | **Pousser** — pousser le porteur, c'est lui **voler la Couronne** ; **en l'air, sur le porteur : le piqué d'aigle** |
-| **E** | **Interagir** : prendre la Couronne, un don ; **monter sur une arbaleste** (et en descendre) |
+| **Clic droit** | **Pousser** (le poussé part à une quinzaine de mètres) — pousser le porteur, c'est lui **voler la Couronne** ; **en l'air, sur le porteur : le piqué d'aigle** |
+| **E** | **Interagir**, d'un simple appui : prendre la Couronne (ou passe dessus), un don ; **monter sur une arbaleste** (et en descendre) |
 | **Sur l'arbaleste de ta plateforme** | Clic gauche : elle te pose devant ta porte |
 | **Sur une autre arbaleste** | Souris : viser · **clic gauche maintenu : tendre**, relâché : tirer |
 | **F1** ou **H** | Le panneau des touches |

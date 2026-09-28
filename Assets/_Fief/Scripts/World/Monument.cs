@@ -122,16 +122,18 @@ namespace Fief
             Proto.EndVisualOnly();
             for (int side = -1; side <= 1; side += 2)
             {
-                Proto.Cube(t, new Vector3(side * 2.6f, 3f, 0f), new Vector3(1.1f, 6f, 1.1f), Stone, "Pilier");
+                // (01/10) Des colonnes RONDES (plus de poteaux carres) : fut, base, chapiteau.
+                Proto.Cylinder(t, new Vector3(side * 2.6f, 3f, 0f), new Vector3(1.05f, 3f, 1.05f), Stone, "Pilier");
                 Proto.BeginVisualOnly();
-                Proto.Cube(t, new Vector3(side * 2.6f, 0.3f, 0f), new Vector3(1.5f, 0.6f, 1.5f), StoneDark, "Base");
-                Proto.Cube(t, new Vector3(side * 2.6f, 6.1f, 0f), new Vector3(1.4f, 0.4f, 1.4f), StoneDark, "Chapiteau");
+                Proto.Cylinder(t, new Vector3(side * 2.6f, 0.3f, 0f), new Vector3(1.5f, 0.3f, 1.5f), StoneDark, "Base");
+                Proto.Cylinder(t, new Vector3(side * 2.6f, 6.05f, 0f), new Vector3(1.45f, 0.2f, 1.45f), StoneDark, "Chapiteau");
+                Proto.Sphere(t, new Vector3(side * 2.6f, 5.85f, 0f), new Vector3(1.25f, 0.3f, 1.25f), Stone, "Échine");
                 Proto.EndVisualOnly();
                 // Un brasero bleu de chaque cote.
                 Vector3 b = new Vector3(side * 4.6f, 0f, 1.5f);
                 Proto.Cylinder(t, b + new Vector3(0f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0.5f), StoneDark, "Brasero");
                 Proto.BeginVisualOnly();
-                GameObject fire = Proto.Cube(t, b + new Vector3(0f, 1.15f, 0f), new Vector3(0.4f, 0.5f, 0.4f), Color.white, "Feu bleu");
+                GameObject fire = Proto.Sphere(t, b + new Vector3(0f, 1.15f, 0f), new Vector3(0.42f, 0.56f, 0.42f), Color.white, "Feu bleu");
                 fire.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 3f);
                 fire.AddComponent<Flame>();
                 Proto.EndVisualOnly();
@@ -173,7 +175,7 @@ namespace Fief
             {
                 float a = (k + 0.5f) / 6f * Mathf.PI * 2f;
                 Vector3 sp = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 7.2f;
-                GameObject stone = Proto.Cube(t, sp + Vector3.up * 1.4f, new Vector3(0.8f, 2.8f, 0.5f), Stone, "Pierre levée");
+                GameObject stone = Proto.Capsule(t, sp + Vector3.up * 1.4f, new Vector3(0.8f, 1.4f, 0.5f), Stone, "Pierre levée");
                 stone.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, (float)(rng.NextDouble() - 0.5) * 8f);
                 GameObject glyph = Proto.Cube(stone.transform, new Vector3(0f, 0.15f, -0.52f), new Vector3(0.45f, 0.25f, 0.05f), Color.white, "Rune");
                 glyph.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 2.5f);

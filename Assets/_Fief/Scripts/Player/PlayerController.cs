@@ -438,7 +438,7 @@ namespace Fief
             flat.y = 0f;
             rig.Speed = flat.magnitude;
             rig.Grounded = controller.isGrounded;
-            rig.Tumbling = Game.Me != null && Game.Me.Tumbling;
+            rig.Tumbling = Game.Me != null && (Game.Me.Tumbling || Game.Me.Launched);
             rig.RunSpeed = cfg.moveSpeed * cfg.sprintMultiplier;
         }
 

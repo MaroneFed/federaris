@@ -1359,15 +1359,11 @@ namespace Fief
         /// <summary>UNE CARTE (28/09 : dessinee par CardArt -- dos, retournement, cadre d'or, rayons, etincelles).</summary>
         void Card(Rect card, Ability p, bool owned, bool on, float lift, float enter, int me)
         {
+            // (01/10) Plus de bande rouge "remplace ..." : les capacites changent a chaque
+            // manche, elle s'affichait sur TOUTES les cartes et ne disait rien.
             bool active = AbilityInfo.IsActive(p);
-            string replaces = null;
-            if (!owned && Match.Local != null)
-            {
-                int lost = Match.Draft.WouldReplace(me, p);
-                if (lost >= 0) replaces = AbilityInfo.Name((Ability)lost);
-            }
             CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), AbilityInfo.Line(p),
-                         active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, replaces, owned, on, lift, enter, Icons.Of(p));
+                         active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, null, owned, on, lift, enter, Icons.Of(p));
         }
 
         // ------------------------------------------------------------------ fin du match

@@ -4,26 +4,19 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// L'ECRAN DE JEU (27/09 -- Martin : "j'aime pas les icones"). Donc PLUS UNE SEULE
-    /// icone : des mots, des chiffres, des traits. C'est le parti pris des jeux qui
-    /// ont l'ecran le plus propre (Journey, Mirror's Edge, les premiers Doom) :
-    /// ce qui compte est ecrit, le reste disparait.
+    /// L'ECRAN DE JEU (refait le 30/09, sans un mot -- "plus pro, comme Fall Guys" -- et
+    /// net au pixel le 01/10). Des pastilles et des icones :
     ///
-    ///                          4:12
-    ///                      MANCHE 2 / 5                     TOI    2
-    ///               BRUME porte la Couronne                 Brume  1
-    ///                                                       Sorbe  0
-    ///                            ·            <- le point de visee
-    ///                      E  Prendre le don
+    ///            [chrono]                                  [toi 2]
+    ///          o o o o o     <- une pastille par manche     [Mahaut 1]
+    ///         [Couronne ou elle est]                       [Oswin 0]
+    ///                              .      <- le point de visee
+    ///                         [E  couronne]  <- l'invite
     ///
-    ///   CLIC DROIT  Ruée          prête
-    ///   R           Grappin       ▬▬▬▬▬▬ 3
-    ///   C           Onde          prête
-    ///   V           Clignement    (don)
-    ///   Double saut · Coureur                 <- les passifs, en une ligne
+    ///            (passive)   ( TA CAPACITE )   (pousser)
     ///
-    /// Il ne decide RIEN : il lit l'etat du jeu et l'ecrit. La pause, les ecrans entre
-    /// les manches : Menus.cs.
+    /// Il ne decide RIEN : il lit l'etat du jeu et le montre. La pause, les ecrans entre
+    /// les manches : Menus.cs. Les icones : Icons.cs / IconArt.cs.
     /// </summary>
     public class Hud : MonoBehaviour
     {
@@ -514,7 +507,7 @@ namespace Fief
             if (interactor == null) return;
             IInteractable target = interactor.Current;
             if (target == null || !target.CanInteract) return;
-            string icon = target is Crown ? "couronne" : target is Ballista ? "arbaleste" : target is Shrine ? "don" : target is Monument ? "monument" : "main";
+            string icon = target is Crown ? "couronne" : target is Ballista ? "arbaleste" : target is Shrine ? "don" : target is Monument ? "monument" : "touche";
             float s = UiStyle.S(58);
             float cx = Screen.width * 0.5f, y = Screen.height * 0.5f + UiStyle.S(70);
             Rect chip = new Rect(cx - s * 1.1f, y, s * 2.2f, s);

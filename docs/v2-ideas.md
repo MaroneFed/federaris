@@ -185,3 +185,21 @@ emplacements de construction.
   relief. À faire **après** avoir poussé l'île flottante à fond. Le code est prêt à en
   accueillir : `Ground`, `Tower`, `Castle` se construisent depuis une graine et des
   constantes — une carte = un autre jeu de constantes et de placements.
+
+## Le 01/10 (la v12 : net, la danse, le gamer et le designer chiants)
+
+- **Prolongation**, encore (01/10 : la victoire au chrono est supprimée, les manches nulles
+  vont se multiplier) : à 0:00, si quelqu'un porte la Couronne, la manche continue jusqu'à
+  ce qu'il la perde ou soit sacré. **À Martin de trancher.**
+- Le **château en modules du Castle Kit de Kenney** (voir `docs/MODELES.md`) dès que les
+  fichiers sont dans `Resources/Modeles/Chateau`.
+- Le **post-traitement** (bloom, occlusion ambiante, étalonnage) : le paquet *Post
+  Processing* d'Unity.
+- Un **verrou visible** sur la Couronne pendant les 3 s après un vol (un cadenas).
+- Les bots **esquivent les gargouilles** (la cible au sol) en coriace, **zigzaguent** quand
+  on les chasse avec la Couronne.
+- Garder sa passive si on la reprend au choix suivant (aujourd'hui interdit).
+- Des **expressions** au haricot (clignement, plissement à l'effort, yeux écarquillés en
+  chute).
+- Un **réglage des secousses** de caméra et de l'opacité du HUD.
+- Les réglages en **curseurs dessinés** (sensibilité, volume, champ de vision).

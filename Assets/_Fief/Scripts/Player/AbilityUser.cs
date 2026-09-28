@@ -9,14 +9,12 @@ namespace Fief
     ///
     ///   clic droit    POUSSER : le premier devant soi part en arriere et en l'air ;
     ///                 s'il porte la Couronne, il la lache ;
-    ///   clic gauche   ta premiere capacite active (28/09 : les touches inversables
-    ///                 dans les reglages, "Touche capacité" et "Touche pousser") ;
-    ///                 (28/09 : celles qu'on VISE -- ruee, grappin, crochet, clignement,
-    ///                 mur, givre, echange, souffle -- se lancent au RELACHEMENT : tant
-    ///                 qu'on tient la touche, un apercu montre ou elles iront.)
-    ///   E             la deuxieme ;
-    ///   R             la troisieme ;
-    ///   V             le DON d'un sanctuaire (pour la manche) ;
+    ///   clic gauche   TA capacite active, la seule (29/09) ; le don d'un sanctuaire la
+    ///                 remplace pour la manche. Les touches s'inversent dans les reglages
+    ///                 ("Touche capacité", "Touche pousser"). Celles qu'on VISE -- ruee,
+    ///                 grappin, crochet, clignement, mur, givre, echange, souffle -- partent
+    ///                 au RELACHEMENT : tant qu'on tient, un apercu montre ou elles iront.
+    ///   E             interagir (la Couronne, une arbaleste, un sanctuaire) : un appui.
     ///
     /// Les capacites elles-memes sont dans World/AbilityCaster.cs : les bots passent
     /// par le meme code. Rien ne s'affiche en main.

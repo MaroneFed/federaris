@@ -4,18 +4,18 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LA MUSIQUE. Quatre humeurs, et le jeu passe de l'une a l'autre en fondu :
+    /// LA MUSIQUE. Cinq humeurs, et le jeu passe de l'une a l'autre en fondu :
     ///
-    ///   TITRE     l'ecran-titre ;
-    ///   FORET     l'exploration, le calme inquietant ;
-    ///   TENSION   le mage descend, un garde court, on se bat, un voleur file ;
+    ///   TITRE     l'ecran-titre et les menus ;
+    ///   CALME     la montee, rien ne presse ;
+    ///   TENSION   quelqu'un porte la Couronne, une gargouille te vise, on se bat, la fin approche ;
     ///   FIN       le match est fini (le podium) ;
     ///   DANSE     (01/10) une manche est gagnee : le vainqueur DANSE dessus.
     ///
     /// LES MORCEAUX DE MARTIN : mets des fichiers audio (mp3, ogg, wav) dans
     /// Assets/_Fief/Resources/Music. Leur NOM dit leur humeur :
     ///     "titre" ou "menu"                         -> TITRE
-    ///     "foret", "calme", "explor", "ambiance"    -> FORET
+    ///     (tout autre nom : "calme", "ambiance"...)  -> CALME
     ///     "tension", "combat", "mage", "danger"     -> TENSION
     ///     "danse", "dance", "fete", "victoire"      -> DANSE
     ///     "fin", "final", "podium"                  -> FIN
@@ -26,8 +26,8 @@ namespace Fief
     /// compte 120. Et que le morceau commence sur un temps (pas de silence au debut).
     ///
     /// Sans fichier, la musique est FABRIQUEE ici : des nappes lentes en re mineur
-    /// pour la foret, un bourdon et un battement de coeur pour la tension. C'est
-    /// sobre, mais le jeu n'est jamais muet.
+    /// pour le calme, un bourdon et un battement de coeur pour la tension, un morceau
+    /// dansant pour la fete du vainqueur. C'est sobre, mais le jeu n'est jamais muet.
     ///
     /// Concept Unity : Resources.LoadAll charge tout ce qu'il y a dans un dossier
     /// nomme "Resources" -- n'importe ou dans Assets. C'est la seule facon de
@@ -36,7 +36,7 @@ namespace Fief
     /// </summary>
     public class MusicDirector : MonoBehaviour
     {
-        enum Mood { Title, Forest, Tension, End, Dance }
+        enum Mood { Title, Calm, Tension, End, Dance }
 
         readonly Dictionary<Mood, List<AudioClip>> tracks = new Dictionary<Mood, List<AudioClip>>();
         readonly Dictionary<AudioClip, float> tempo = new Dictionary<AudioClip, float>();
@@ -49,6 +49,8 @@ namespace Fief
         System.Random rng = new System.Random(5);
 
         static MusicDirector current;
+        int danceLoops;
+        float danceLast;
 
         /// <summary>
         /// Le temps de la musique de danse (en temps, depuis son debut) ; -1 si elle ne joue
@@ -61,7 +63,9 @@ namespace Fief
                 if (current == null || current.playing != Mood.Dance || current.live == null || current.live.clip == null || !current.live.isPlaying) return -1f;
                 float bpm;
                 if (!current.tempo.TryGetValue(current.live.clip, out bpm)) bpm = 120f;
-                return current.live.time * bpm / 60f;
+                // Les tours de boucle comptent : sinon la danse repartait a sa premiere figure
+                // a chaque tour du morceau (16 s), et on ne voyait jamais les dernieres.
+                return (current.danceLoops * current.live.clip.length + current.live.time) * bpm / 60f;
             }
         }
 
@@ -88,7 +92,7 @@ namespace Fief
 
         void LoadTracks()
         {
-            foreach (Mood md in new[] { Mood.Title, Mood.Forest, Mood.Tension, Mood.End, Mood.Dance }) tracks[md] = new List<AudioClip>();
+            foreach (Mood md in new[] { Mood.Title, Mood.Calm, Mood.Tension, Mood.End, Mood.Dance }) tracks[md] = new List<AudioClip>();
             AudioClip[] found = Resources.LoadAll<AudioClip>("Music");
             for (int i = 0; i < found.Length; i++)
             {
@@ -101,15 +105,15 @@ namespace Fief
                     tempo[found[i]] = TempoIn(n);
                 }
                 else if (Has(n, "fin", "final", "podium", "cloche", "end")) tracks[Mood.End].Add(found[i]);
-                else tracks[Mood.Forest].Add(found[i]);
+                else tracks[Mood.Calm].Add(found[i]);
             }
             if (found.Length > 0) Debug.Log("[FIEF] Musique : " + found.Length + " morceau(x) trouve(s) dans Resources/Music.");
 
             // Ce qui manque, on le fabrique.
-            if (tracks[Mood.Forest].Count == 0) tracks[Mood.Forest].Add(MusicSynth.Forest());
-            if (tracks[Mood.Title].Count == 0) tracks[Mood.Title].AddRange(tracks[Mood.Forest]);
+            if (tracks[Mood.Calm].Count == 0) tracks[Mood.Calm].Add(MusicSynth.Calm());
+            if (tracks[Mood.Title].Count == 0) tracks[Mood.Title].AddRange(tracks[Mood.Calm]);
             if (tracks[Mood.Tension].Count == 0) tracks[Mood.Tension].Add(MusicSynth.Tension());
-            if (tracks[Mood.End].Count == 0) tracks[Mood.End].AddRange(tracks[Mood.Forest]);
+            if (tracks[Mood.End].Count == 0) tracks[Mood.End].AddRange(tracks[Mood.Calm]);
             if (tracks[Mood.Dance].Count == 0)
             {
                 AudioClip d = MusicSynth.Dance();
@@ -156,6 +160,14 @@ namespace Fief
                 next.volume = mood == Mood.Dance ? volume : 0f;
                 next.Play();
                 live = next;
+                danceLoops = 0;
+                danceLast = 0f;
+            }
+            // Un tour de boucle de plus (le temps du morceau est revenu en arriere).
+            if (playing == Mood.Dance && live.isPlaying)
+            {
+                if (live.time < danceLast - 0.5f) danceLoops++;
+                danceLast = live.time;
             }
 
             float wanted = Sfx.Muted ? 0f : volume * (mood == Mood.Tension ? 1.1f : mood == Mood.Dance ? 1.35f : 1f);
@@ -176,7 +188,7 @@ namespace Fief
 
             bool tense = false;
             Seeker me = Game.Me;
-            // Un Oeil te vise, un bot te fonce dessus.
+            // Une gargouille te vise, un bot te fonce dessus.
             if (me != null && Eye.ChargingAt(me)) tense = true;
             if (Rival.HuntingPlayer) tense = true;
             if (me != null && Time.time - me.LastHurt < 6f) tense = true;
@@ -186,7 +198,7 @@ namespace Fief
 
             if (tense) calmTimer = 12f;
             else calmTimer -= Time.unscaledDeltaTime;
-            return calmTimer > 0f ? Mood.Tension : Mood.Forest;
+            return calmTimer > 0f ? Mood.Tension : Mood.Calm;
         }
     }
 
@@ -199,8 +211,8 @@ namespace Fief
     {
         const int Rate = 22050;          // la moitie du CD : largement assez pour des nappes
 
-        /// <summary>La foret : re mineur, si bemol, fa, do -- quatre accords de 6 s.</summary>
-        public static AudioClip Forest()
+        /// <summary>Le calme : re mineur, si bemol, fa, do -- quatre accords de 6 s.</summary>
+        public static AudioClip Calm()
         {
             float[][] chords =
             {
@@ -209,7 +221,7 @@ namespace Fief
                 new[] { 130.81f, 174.61f, 220.00f, 261.63f },   // fa (renversement)
                 new[] { 130.81f, 164.81f, 196.00f, 261.63f }    // do
             };
-            return Pads("forêt (fabriquée)", chords, 6f, 0.9f);
+            return Pads("calme (fabriquée)", chords, 6f, 0.9f);
         }
 
         /// <summary>La tension : un bourdon grave, une seconde mineure aigue, un coeur qui bat.</summary>
