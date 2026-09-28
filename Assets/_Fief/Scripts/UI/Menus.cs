@@ -220,9 +220,17 @@ namespace Fief
         }
 
         /// <summary>
-        /// LA FETE DU VAINQUEUR (30/09 -- Martin : "quand tu gagnes la manche, une petite
-        /// animation avec toi") : il saute les bras en l'air et tourne sur lui-meme, la
-        /// Couronne vient flotter au-dessus de sa tete, des confettis a sa couleur.
+        /// Vrai pendant que le vainqueur de la manche DANSE (fin de manche, puis le choix des
+        /// capacites) : la musique passe a la danse (MusicDirector), il danse dessus.
+        /// </summary>
+        public bool Dancing { get { return (Current == State.RoundOver || Current == State.Draft) && roundWinner >= 0 && WinnerBody() != null; } }
+
+        /// <summary>
+        /// LA FETE DU VAINQUEUR (01/10 -- Martin : "quand je gagne une manche, un effet, avec
+        /// notre perso qui danse avec la musique") : il DANSE sur la musique (CharacterRig,
+        /// un pas par temps), la Couronne flotte au-dessus de sa tete, et autour de lui, sur
+        /// le rythme : des confettis, des feux d'artifice, un anneau d'or au sol, un
+        /// projecteur (VictoryShow).
         /// </summary>
         static void Celebrate(Seeker s)
         {
@@ -233,12 +241,13 @@ namespace Fief
                 Rival r = Rival.Of(s);
                 if (r != null) rig = r.Rig;
             }
-            if (rig != null) rig.Celebrate(14f);
+            if (rig != null) rig.Celebrate(90f);
             if (Crown.Instance != null) Crown.Instance.ShowOff(s.Body);
             Vector3 at = s.Body.position + Vector3.up * 1.6f;
             Color[] confetti = { s.Colour, new Color(1f, 0.82f, 0.36f), Color.white, Color.Lerp(s.Colour, Color.white, 0.5f) };
             for (int i = 0; i < confetti.Length; i++)
-                Fx.Burst(at, confetti[i], 30, 7f, 0.12f, 2.2f, 0.6f, Vector3.up, 70f);
+                Fx.Burst(at, confetti[i], 40, 9f, 0.14f, 2.4f, 0.6f, Vector3.up, 70f);
+            VictoryShow.Begin(s);
         }
 
         /// <summary>

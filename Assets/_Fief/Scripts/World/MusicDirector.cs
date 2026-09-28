@@ -9,16 +9,21 @@ namespace Fief
     ///   TITRE     l'ecran-titre ;
     ///   FORET     l'exploration, le calme inquietant ;
     ///   TENSION   le mage descend, un garde court, on se bat, un voleur file ;
-    ///   FIN       la cloche a sonne ;
-    ///   AURA      (28/09) tu portes la Couronne, ou tu viens de gagner : du PHONK.
+    ///   FIN       le match est fini (le podium) ;
+    ///   DANSE     (01/10) une manche est gagnee : le vainqueur DANSE dessus.
     ///
     /// LES MORCEAUX DE MARTIN : mets des fichiers audio (mp3, ogg, wav) dans
     /// Assets/_Fief/Resources/Music. Leur NOM dit leur humeur :
     ///     "titre" ou "menu"                         -> TITRE
     ///     "foret", "calme", "explor", "ambiance"    -> FORET
     ///     "tension", "combat", "mage", "danger"     -> TENSION
-    ///     "fin", "final", "victoire", "cloche"      -> FIN
+    ///     "danse", "dance", "fete", "victoire"      -> DANSE
+    ///     "fin", "final", "podium"                  -> FIN
     /// Plusieurs morceaux par humeur : ils s'enchainent au hasard.
+    ///
+    /// LA DANSE SUIT LE RYTHME : le vainqueur fait un pas par temps. Mets le tempo du
+    /// morceau dans son nom ("danse-128.mp3" : 128 temps par minute) ; sans chiffre, on
+    /// compte 120. Et que le morceau commence sur un temps (pas de silence au debut).
     ///
     /// Sans fichier, la musique est FABRIQUEE ici : des nappes lentes en re mineur
     /// pour la foret, un bourdon et un battement de coeur pour la tension. C'est
@@ -31,9 +36,10 @@ namespace Fief
     /// </summary>
     public class MusicDirector : MonoBehaviour
     {
-        enum Mood { Title, Forest, Tension, End }
+        enum Mood { Title, Forest, Tension, End, Dance }
 
         readonly Dictionary<Mood, List<AudioClip>> tracks = new Dictionary<Mood, List<AudioClip>>();
+        readonly Dictionary<AudioClip, float> tempo = new Dictionary<AudioClip, float>();
         AudioSource a, b;
         AudioSource live;
         Mood mood = Mood.Title;
@@ -41,6 +47,23 @@ namespace Fief
         float volume = 0.4f;
         float calmTimer;
         System.Random rng = new System.Random(5);
+
+        static MusicDirector current;
+
+        /// <summary>
+        /// Le temps de la musique de danse (en temps, depuis son debut) ; -1 si elle ne joue
+        /// pas. Le vainqueur (CharacterRig) cale ses pas dessus.
+        /// </summary>
+        public static float DanceBeat
+        {
+            get
+            {
+                if (current == null || current.playing != Mood.Dance || current.live == null || current.live.clip == null || !current.live.isPlaying) return -1f;
+                float bpm;
+                if (!current.tempo.TryGetValue(current.live.clip, out bpm)) bpm = 120f;
+                return current.live.time * bpm / 60f;
+            }
+        }
 
         public static MusicDirector Build()
         {
@@ -57,19 +80,27 @@ namespace Fief
             }
             m.live = m.a;
             m.LoadTracks();
+            current = m;
             return m;
         }
 
+        void OnDestroy() { if (current == this) current = null; }
+
         void LoadTracks()
         {
-            foreach (Mood md in new[] { Mood.Title, Mood.Forest, Mood.Tension, Mood.End }) tracks[md] = new List<AudioClip>();
+            foreach (Mood md in new[] { Mood.Title, Mood.Forest, Mood.Tension, Mood.End, Mood.Dance }) tracks[md] = new List<AudioClip>();
             AudioClip[] found = Resources.LoadAll<AudioClip>("Music");
             for (int i = 0; i < found.Length; i++)
             {
                 string n = found[i].name.ToLowerInvariant();
                 if (Has(n, "titre", "menu", "title")) tracks[Mood.Title].Add(found[i]);
                 else if (Has(n, "tension", "combat", "mage", "danger", "chase")) tracks[Mood.Tension].Add(found[i]);
-                else if (Has(n, "fin", "final", "victoire", "cloche", "end")) tracks[Mood.End].Add(found[i]);
+                else if (Has(n, "danse", "dance", "fete", "fête", "party", "victoire", "victory"))
+                {
+                    tracks[Mood.Dance].Add(found[i]);
+                    tempo[found[i]] = TempoIn(n);
+                }
+                else if (Has(n, "fin", "final", "podium", "cloche", "end")) tracks[Mood.End].Add(found[i]);
                 else tracks[Mood.Forest].Add(found[i]);
             }
             if (found.Length > 0) Debug.Log("[FIEF] Musique : " + found.Length + " morceau(x) trouve(s) dans Resources/Music.");
@@ -79,6 +110,26 @@ namespace Fief
             if (tracks[Mood.Title].Count == 0) tracks[Mood.Title].AddRange(tracks[Mood.Forest]);
             if (tracks[Mood.Tension].Count == 0) tracks[Mood.Tension].Add(MusicSynth.Tension());
             if (tracks[Mood.End].Count == 0) tracks[Mood.End].AddRange(tracks[Mood.Forest]);
+            if (tracks[Mood.Dance].Count == 0)
+            {
+                AudioClip d = MusicSynth.Dance();
+                tracks[Mood.Dance].Add(d);
+                tempo[d] = MusicSynth.DanceBpm;
+            }
+        }
+
+        /// <summary>Le tempo ecrit dans le nom ("danse-128" : 128) ; 120 sinon.</summary>
+        static float TempoIn(string name)
+        {
+            int value = 0, digits = 0, best = 0;
+            for (int i = 0; i <= name.Length; i++)
+            {
+                if (i < name.Length && char.IsDigit(name[i])) { value = value * 10 + (name[i] - '0'); digits++; continue; }
+                if (digits >= 2 && digits <= 3 && value >= 60 && value <= 200) best = value;
+                value = 0;
+                digits = 0;
+            }
+            return best > 0 ? best : 120f;
         }
 
         static bool Has(string name, params string[] keys)
@@ -99,14 +150,16 @@ namespace Fief
                 AudioSource next = live == a ? b : a;
                 List<AudioClip> list = tracks[mood];
                 next.clip = list[rng.Next(list.Count)];
-                next.loop = list.Count == 1;
-                next.volume = 0f;
+                next.loop = list.Count == 1 || mood == Mood.Dance;
+                next.time = 0f;
+                // La danse part d'un coup, sur le temps : pas de lent fondu.
+                next.volume = mood == Mood.Dance ? volume : 0f;
                 next.Play();
                 live = next;
             }
 
-            float wanted = Sfx.Muted ? 0f : volume * (mood == Mood.Tension ? 1.1f : 1f);
-            float fade = 0.25f;
+            float wanted = Sfx.Muted ? 0f : volume * (mood == Mood.Tension ? 1.1f : mood == Mood.Dance ? 1.35f : 1f);
+            float fade = mood == Mood.Dance ? 3f : 0.25f;
             live.volume = Mathf.MoveTowards(live.volume, wanted, dt * fade);
             AudioSource other = live == a ? b : a;
             other.volume = Mathf.MoveTowards(other.volume, 0f, dt * fade);
@@ -117,6 +170,7 @@ namespace Fief
         Mood Decide()
         {
             Menus menus = Game.Menus;
+            if (menus != null && menus.Dancing) return Mood.Dance;
             if (menus != null && menus.Current == Menus.State.Ended) return Mood.End;
             if (menus != null && menus.Current != Menus.State.Playing && menus.Current != Menus.State.Paused) return Mood.Title;
 
@@ -178,6 +232,125 @@ namespace Fief
                 data[i] = drone * 0.5f + high + heart * 0.9f;
             }
             return Finish("tension (fabriquée)", data);
+        }
+
+        // ================================================================== la danse
+
+        /// <summary>Le tempo de la musique de danse fabriquee.</summary>
+        public const float DanceBpm = 120f;
+
+        /// <summary>
+        /// LA MUSIQUE DE LA DANSE DU VAINQUEUR (01/10), tant que Martin n'a pas donne la
+        /// sienne : huit mesures a 120 temps par minute qui tournent en boucle -- une grosse
+        /// caisse a chaque temps, un clap sur le 2 et le 4, un charleston entre les temps,
+        /// une basse qui saute d'octave, des accords piques (do, sol, la mineur, fa : la
+        /// suite de mille tubes) et une petite melodie de cloche par-dessus.
+        ///
+        /// Comment on fabrique un son : un tableau de nombres entre -1 et 1 (22 050 par
+        /// seconde). Une note, c'est une sinusoide qui s'eteint ; une grosse caisse, une
+        /// sinusoide grave dont la hauteur tombe ; un clap, du bruit (des nombres au hasard)
+        /// qui s'eteint tres vite.
+        /// </summary>
+        public static AudioClip Dance()
+        {
+            const int Bars = 8;
+            float beat = 60f / DanceBpm;
+            int count = Mathf.RoundToInt(Rate * beat * 4f * Bars);
+            float[] d = new float[count];
+            System.Random r = new System.Random(128);
+            int[][] chords =
+            {
+                new[] { 60, 64, 67 },   // do
+                new[] { 55, 59, 62 },   // sol
+                new[] { 57, 60, 64 },   // la mineur
+                new[] { 53, 57, 60 }    // fa
+            };
+            int[] roots = { 36, 43, 45, 41 };
+            // La melodie, en croches (0 : silence), deux mesures par accord.
+            int[] lead =
+            {
+                76, 0, 79, 0, 81, 79, 76, 0,    74, 0, 72, 74, 76, 0, 0, 0,
+                74, 0, 79, 0, 83, 81, 79, 0,    81, 79, 76, 74, 79, 0, 0, 0,
+                76, 0, 79, 0, 81, 0, 84, 83,    81, 0, 79, 76, 81, 0, 0, 0,
+                77, 0, 81, 0, 84, 81, 79, 77,   76, 74, 72, 74, 79, 0, 76, 0
+            };
+            int eighths = Bars * 8;
+            for (int e = 0; e < eighths; e++)
+            {
+                int at = Mathf.RoundToInt(e * beat * 0.5f * Rate);
+                int chord = (e / 16) % 4;
+                bool onBeat = e % 2 == 0;
+                int beatInBar = (e / 2) % 4;
+                if (onBeat) Kick(d, at);
+                else Hat(d, at, r, 0.13f);
+                if (onBeat && (beatInBar == 1 || beatInBar == 3)) Clap(d, at, r);
+                // La basse : la fondamentale, puis l'octave au-dessus.
+                Tone(d, at, 0.22f, Freq(roots[chord] + (onBeat ? 0 : 12)), 0.34f, 7f, 1);
+                // Les accords, piques entre les temps.
+                if (!onBeat)
+                    for (int k = 0; k < chords[chord].Length; k++) Tone(d, at, 0.16f, Freq(chords[chord][k]), 0.1f, 15f, 2);
+                if (lead[e] > 0) Tone(d, at, 0.5f, Freq(lead[e]), 0.2f, 4.5f, 3);
+            }
+            // Une cymbale au debut de la boucle.
+            for (int i = 0; i < Rate; i++) d[i] += ((float)r.NextDouble() * 2f - 1f) * Mathf.Exp(-i / (float)Rate * 4f) * 0.12f;
+            return Finish("danse (fabriquée)", d);
+        }
+
+        static float Freq(int midi) { return 440f * Mathf.Pow(2f, (midi - 69) / 12f); }
+
+        static void Kick(float[] d, int at)
+        {
+            int len = Mathf.RoundToInt(Rate * 0.3f);
+            float phase = 0f;
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / Rate;
+                phase += 2f * Mathf.PI * (45f + 95f * Mathf.Exp(-t * 28f)) / Rate;
+                d[(at + i) % d.Length] += Mathf.Sin(phase) * Mathf.Exp(-t * 9f) * 0.9f;
+            }
+        }
+
+        static void Clap(float[] d, int at, System.Random r)
+        {
+            int len = Mathf.RoundToInt(Rate * 0.2f);
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / Rate;
+                float noise = (float)r.NextDouble() * 2f - 1f;
+                d[(at + i) % d.Length] += noise * Mathf.Exp(-t * 20f) * 0.32f + Mathf.Sin(2f * Mathf.PI * 190f * t) * Mathf.Exp(-t * 30f) * 0.18f;
+            }
+        }
+
+        static void Hat(float[] d, int at, System.Random r, float level)
+        {
+            int len = Mathf.RoundToInt(Rate * 0.06f);
+            float last = 0f;
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / Rate;
+                float noise = (float)r.NextDouble() * 2f - 1f;
+                // La difference de deux bruits successifs : il ne reste que les aigus.
+                d[(at + i) % d.Length] += (noise - last) * Mathf.Exp(-t * 70f) * level;
+                last = noise;
+            }
+        }
+
+        /// <summary>Une note : 1 basse ronde, 2 accord pique (riche en harmoniques), 3 cloche.</summary>
+        static void Tone(float[] d, int at, float seconds, float f, float amp, float decay, int kind)
+        {
+            int len = Mathf.RoundToInt(Rate * seconds);
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / Rate;
+                float w = 2f * Mathf.PI * f * t;
+                float v;
+                if (kind == 1) v = (float)System.Math.Tanh(1.6f * (Mathf.Sin(w) + 0.3f * Mathf.Sin(2f * w)));
+                else if (kind == 2) v = Mathf.Sin(w) + Mathf.Sin(2f * w) / 2f + Mathf.Sin(3f * w) / 3f + Mathf.Sin(4f * w) / 4f + Mathf.Sin(5f * w) / 5f;
+                else v = Mathf.Sin(w) + 0.5f * Mathf.Sin(2f * w) + 0.22f * Mathf.Sin(3f * w);
+                // Une attaque d'un centieme de seconde (sans elle, chaque note "claque").
+                float env = Mathf.Min(1f, t * 100f) * Mathf.Exp(-t * decay);
+                d[(at + i) % d.Length] += v * env * amp;
+            }
         }
 
         static AudioClip Pads(string name, float[][] chords, float chordSeconds, float level)

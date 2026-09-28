@@ -55,6 +55,12 @@ namespace Fief
         Shrine shrine;
         Seeker prey;
         float preyTimer;
+        Vector3 preyLast, preyVelocity;
+        float preyLastAt = -1f;
+        // Le chien de garde du chemin : s'il ne se rapproche plus de son but, il replanifie.
+        float progressCheck;
+        float progressBest = float.MaxValue;
+        float noProgress;
         float castTimer;
         float barkTimer;
         float fellAt = -99f;
@@ -492,7 +498,7 @@ namespace Fief
             bool fresh = g != was || (at - target).sqrMagnitude > 9f || path.Count == 0 && (at - transform.position).magnitude > 6f;
             goal = g;
             target = at;
-            if (fresh) PlanPath(at);
+            if (fresh) { PlanPath(at); progressBest = float.MaxValue; noProgress = 0f; }
         }
 
         /// <summary>
@@ -696,7 +702,22 @@ namespace Fief
 
         void Act(float dt)
         {
-            if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null) target = prey.Body.position;
+            // LA PROIE (01/10 -- "qu'ils soient un minimum intelligents") : il ne court pas la
+            // ou elle EST, mais la ou elle VA (sa vitesse, une demi-seconde en avance).
+            if (prey != null && prey.Body != null)
+            {
+                Vector3 pp = prey.Body.position;
+                if (preyLastAt > 0f && Time.time - preyLastAt < 0.5f && dt > 0f)
+                    preyVelocity = Vector3.Lerp(preyVelocity, Flat(pp - preyLast) / Mathf.Max(dt, 0.001f), 1f - Mathf.Exp(-6f * dt));
+                preyLast = pp;
+                preyLastAt = Time.time;
+            }
+            if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null)
+            {
+                Vector3 lead = Vector3.ClampMagnitude(preyVelocity, 14f) * (Match.BotLevel == 0 ? 0f : 0.45f);
+                Vector3 aimAt = prey.Body.position + lead;
+                target = OnFoot(aimAt) ? aimAt : prey.Body.position;
+            }
             if (goal == Goal.Grab) target = Crown.Position;
             if (goal == Goal.Deliver && aimMonument != null && (gliding || ballistic || IsletAt(transform.position) >= 0))
                 target = aimMonument.transform.position;
@@ -708,9 +729,10 @@ namespace Fief
                         : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 1.6f : 1.8f;
             bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
 
-            // La poussee : des qu'il est a portee de sa proie (y compris en l'air).
-            if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove
-                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.7f)
+            // La poussee : des qu'il est a portee de sa proie (y compris en l'air) -- pas sur
+            // une proie protegee (le coup ne ferait rien, et il perdrait sa recharge).
+            if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove && !prey.Graced
+                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.9f)
             {
                 seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 1.05f);
                 if (rig != null) rig.PlaySwing();
@@ -727,7 +749,8 @@ namespace Fief
                 if (foe != null)
                 {
                     seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
-                    if (rng.NextDouble() < 0.45 + temper * 0.45)
+                    // (01/10 : la poussee projette loin maintenant -- ils la gardent pour les bons moments.)
+                    if (rng.NextDouble() < (Match.BotLevel == 1 ? 0.3 + temper * 0.35 : 0.45 + temper * 0.4))
                     {
                         if (rig != null) rig.PlaySwing();
                         Combat.Shove(seeker, foe.Body.position - transform.position);
@@ -741,9 +764,11 @@ namespace Fief
             if (!arrived)
             {
                 work = 0f;
+                WatchProgress(step, dt);
                 Walk(step, speed, dt);
                 return;
             }
+            noProgress = 0f;
             Walk(transform.position, 0f, dt);
 
             switch (goal)
@@ -775,6 +800,27 @@ namespace Fief
                     think = 0f;
                     break;
             }
+        }
+
+        /// <summary>
+        /// LE CHIEN DE GARDE (01/10 -- "les bots deconnent complet") : s'il ne se rapproche
+        /// plus de son but depuis cinq secondes (coince contre un mur, pris dans un coin, un
+        /// chemin perime), il en refait un, part de biais et saute. Avant, il pouvait pousser
+        /// contre la meme pierre jusqu'a la fin de la manche.
+        /// </summary>
+        void WatchProgress(Vector3 step, float dt)
+        {
+            if (!body.enabled || !body.isGrounded || gliding || ballistic || leaping) { noProgress = 0f; return; }
+            float remaining = path.Count * 1000f + Flat(step - transform.position).magnitude;
+            if (remaining < progressBest - 1f) { progressBest = remaining; noProgress = 0f; return; }
+            noProgress += dt;
+            if (noProgress < 5f) return;
+            noProgress = 0f;
+            progressBest = float.MaxValue;
+            PlanPath(target);
+            detourTimer = 1.2f;
+            detourSign = rng.NextDouble() < 0.5 ? -1f : 1f;
+            fallSpeed = 7.5f;
         }
 
         // ================================================================== les capacites
@@ -973,7 +1019,11 @@ namespace Fief
                     Vector3 aimAt = goal == Goal.Hunt && prey != null && prey.Body != null ? prey.Body.position : target;
                     Vector3 look = Wings.LookFor(transform.position, aimAt, seeker);
                     // Trop bas pour y arriver : il va chercher un courant d'air et tourne dedans.
-                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard) && !Wings.CanReach(transform.position, aimAt, seeker))
+                    // (01/10 : quel que soit son but -- pousse hors de l'ile, il ne se laisse plus
+                    // tomber dans les nuages s'il y a un courant a portee.)
+                    Vector3 here = transform.position;
+                    bool overLand = Ground.OnIsland(here.x, here.z) && here.y > -5f;
+                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard || !overLand) && !Wings.CanReach(here, aimAt, seeker))
                     {
                         Thermal t = Thermal.Nearest(transform.position);
                         if (t != null)

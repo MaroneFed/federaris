@@ -16,8 +16,7 @@ namespace Fief
     ///
     /// Tout est anime par le code : il se dandine en marchant, s'ecrase a l'atterrissage
     /// et s'etire en l'air (le "squash and stretch" des dessins animes), sa cape flotte
-    /// derriere lui, et quand il gagne une manche, il FETE (Celebrate) : il saute les
-    /// bras en l'air et tourne sur lui-meme.
+    /// derriere lui, et quand il gagne une manche, il DANSE sur la musique (Celebrate).
     ///
     /// Concept Unity : un "squelette" n'est qu'une hierarchie de Transform vides (des
     /// pivots). On tourne le pivot de l'epaule : tout ce qui est accroche dessous (le bras,
@@ -83,7 +82,7 @@ namespace Fief
             swingTimer = 0.36f;
         }
 
-        /// <summary>LA JOIE DU VAINQUEUR : sauter les bras en l'air, tourner sur soi.</summary>
+        /// <summary>LA JOIE DU VAINQUEUR : il danse sur la musique (voir Party).</summary>
         public void Celebrate(float seconds)
         {
             celebrate = seconds;
@@ -273,35 +272,124 @@ namespace Fief
         }
 
         /// <summary>
-        /// LA FETE : des petits sauts les bras en V qui s'agitent, puis un tour complet
-        /// sur soi-meme, et on recommence ; il s'ecrase a chaque reception.
+        /// LA DANSE DU VAINQUEUR (01/10 -- Martin : "notre perso qui danse avec la musique").
+        /// Un pas par TEMPS de la musique (MusicDirector.DanceBeat ; sans elle, 120 temps par
+        /// minute), et six figures de huit temps qui s'enchainent :
+        ///   1. le balance    : un pas a gauche, un pas a droite, on tape dans les mains en l'air ;
+        ///   2. le disco      : le doigt pointe le ciel, puis le sol en croisant, les hanches suivent ;
+        ///   3. le fil        : les bras balancent devant-derriere, les hanches a l'oppose ;
+        ///   4. le french cancan : les mains aux hanches, une jambe lancee a chaque temps ;
+        ///   5. les poings    : les deux poings au ciel a chaque temps, la tete qui bat ;
+        ///   6. saut et tour  : des petits bonds, et un tour complet sur soi-meme.
+        /// A chaque temps, il plie les genoux (un petit ecrasement) : c'est ce qui fait qu'on
+        /// "sent" qu'il est sur la musique.
         /// </summary>
         void Party(float dt)
         {
             celebrate -= dt;
-            celebrateAge += dt;
-            float t = celebrateAge;
-            const float Hop = 0.55f;
-            float phase = Mathf.Repeat(t, Hop) / Hop;
-            float lift = Mathf.Sin(phase * Mathf.PI);
-            // Le rebond : haut en l'air, ecrase au sol.
-            float land = phase < 0.18f ? 1f - phase / 0.18f : 0f;
-            pivot.localPosition = new Vector3(0f, lift * 0.55f, 0f);
-            body.localScale = new Vector3(1f + 0.16f * land - 0.05f * lift, 1f - 0.18f * land + 0.1f * lift, 1f + 0.16f * land - 0.05f * lift);
-            body.localPosition = new Vector3(0f, BodyY - 0.08f * land, 0f);
-            // Un tour complet toutes les quatre sauts.
-            float loop = Mathf.Repeat(t, Hop * 4f) / (Hop * 4f);
-            float spin = loop > 0.75f ? Mathf.SmoothStep(0f, 360f, (loop - 0.75f) / 0.25f) : 0f;
-            pivot.localRotation = Quaternion.Euler(0f, spin, 0f);
-            // Les bras en V, qui s'agitent ; les jambes se replient en l'air.
-            float wave = Mathf.Sin(t * 14f) * 14f;
-            armL.localRotation = Quaternion.Euler(0f, 0f, -150f + wave);
-            armR.localRotation = Quaternion.Euler(0f, 0f, 150f + wave);
-            legL.localRotation = Quaternion.Euler(-30f * lift, 0f, -6f * lift);
-            legR.localRotation = Quaternion.Euler(-30f * lift, 0f, 6f * lift);
-            body.localRotation = Quaternion.Euler(-8f * lift, 0f, Mathf.Sin(t * 7f) * 6f);
-            head.localRotation = Quaternion.Euler(-14f * lift, 0f, 0f);
-            cape.localRotation = Quaternion.Euler(-20f - 35f * lift + Mathf.Sin(t * 9f) * 6f, 0f, 0f);
+            celebrateAge += Time.unscaledDeltaTime;
+            float music = MusicDirector.DanceBeat;
+            float beat = music >= 0f ? music : celebrateAge * 2f;
+            int move = Mathf.FloorToInt(beat / 8f) % 6;
+            float inMove = Mathf.Repeat(beat, 8f);
+            int step = Mathf.FloorToInt(inMove);
+            float ph = Mathf.Repeat(beat, 1f);
+            // L'accent de chaque temps : fort sur le temps, qui retombe.
+            float hit = Mathf.Pow(1f - ph, 3f);
+            float side = step % 2 == 0 ? 1f : -1f;
+            float sway = Mathf.Sin(beat * Mathf.PI);              // gauche-droite, un aller par temps
+
+            Vector3 pos = new Vector3(0f, 0f, 0f);
+            Quaternion rot = Quaternion.identity;
+            Vector3 aL = new Vector3(0f, 0f, -12f), aR = new Vector3(0f, 0f, 12f);
+            Vector3 lL = Vector3.zero, lR = Vector3.zero;
+            Vector3 bodyRot = Vector3.zero;
+            float headNod = -10f * hit;
+
+            switch (move)
+            {
+                case 0:     // le balance, et on tape dans les mains en l'air
+                {
+                    pos.x = sway * 0.16f;
+                    bodyRot.z = -sway * 9f;
+                    float clap = step % 2 == 1 ? hit : 0f;
+                    aL = new Vector3(0f, 0f, -150f + 22f * clap);
+                    aR = new Vector3(0f, 0f, 150f - 22f * clap);
+                    lL = new Vector3(0f, 0f, sway > 0f ? -8f * sway : 0f);
+                    lR = new Vector3(0f, 0f, sway < 0f ? -8f * sway : 0f);
+                    break;
+                }
+                case 1:     // le disco
+                {
+                    bool up = step % 2 == 0;
+                    aR = up ? new Vector3(-25f, 0f, 145f) : new Vector3(-30f, 0f, -35f);
+                    aL = new Vector3(0f, 0f, -38f);
+                    bodyRot.z = (up ? -8f : 8f) * (0.6f + 0.4f * hit);
+                    pos.x = (up ? 0.08f : -0.08f);
+                    lR = new Vector3(up ? -18f : 0f, 0f, up ? 12f : 0f);
+                    break;
+                }
+                case 2:     // le fil (deux allers par temps)
+                {
+                    float f = Mathf.Sin(beat * Mathf.PI * 2f);
+                    float g = Mathf.Cos(beat * Mathf.PI * 2f);
+                    aL = new Vector3(g * 35f, 0f, -20f + f * 32f);
+                    aR = new Vector3(-g * 35f, 0f, 20f + f * 32f);
+                    pos.x = -f * 0.12f;
+                    bodyRot.z = f * 9f;
+                    lL = new Vector3(0f, 0f, f * 6f);
+                    lR = new Vector3(0f, 0f, f * 6f);
+                    break;
+                }
+                case 3:     // le french cancan
+                {
+                    float kick = Mathf.Sin(ph * Mathf.PI);
+                    aL = new Vector3(10f, 0f, -42f);
+                    aR = new Vector3(10f, 0f, 42f);
+                    if (side > 0f) lR = new Vector3(-95f * kick, 0f, 0f); else lL = new Vector3(-95f * kick, 0f, 0f);
+                    bodyRot.x = -8f * kick;
+                    pos.y = 0.06f * kick;
+                    break;
+                }
+                case 4:     // les poings au ciel
+                {
+                    float punch = Mathf.Sin(Mathf.Clamp01(ph * 1.6f) * Mathf.PI);
+                    aL = new Vector3(-15f, 0f, -100f - 60f * punch);
+                    aR = new Vector3(-15f, 0f, 100f + 60f * punch);
+                    pos.y = 0.18f * punch;
+                    headNod = -18f * hit;
+                    lL = new Vector3(-20f * punch, 0f, 0f);
+                    lR = new Vector3(-20f * punch, 0f, 0f);
+                    break;
+                }
+                default:    // saut et tour
+                {
+                    float lift = Mathf.Sin(ph * Mathf.PI);
+                    pos.y = lift * 0.55f;
+                    float spin = inMove >= 6f ? Mathf.SmoothStep(0f, 360f, (inMove - 6f) / 2f) : 0f;
+                    rot = Quaternion.Euler(0f, spin, 0f);
+                    float wave = Mathf.Sin(beat * Mathf.PI * 4f) * 14f;
+                    aL = new Vector3(0f, 0f, -150f + wave);
+                    aR = new Vector3(0f, 0f, 150f + wave);
+                    lL = new Vector3(-30f * lift, 0f, -6f * lift);
+                    lR = new Vector3(-30f * lift, 0f, 6f * lift);
+                    break;
+                }
+            }
+
+            // Plier les genoux sur chaque temps (l'ecrasement), et la tete qui bat.
+            float squat = hit * 0.08f;
+            pivot.localPosition = pos - new Vector3(0f, squat, 0f);
+            pivot.localRotation = rot;
+            body.localScale = new Vector3(1f + 0.1f * hit, 1f - 0.1f * hit, 1f + 0.1f * hit);
+            body.localPosition = new Vector3(0f, BodyY, 0f);
+            body.localRotation = Quaternion.Euler(bodyRot);
+            head.localRotation = Quaternion.Euler(headNod, sway * 10f, -sway * 6f);
+            armL.localRotation = Quaternion.Euler(aL);
+            armR.localRotation = Quaternion.Euler(aR);
+            legL.localRotation = Quaternion.Euler(lL);
+            legR.localRotation = Quaternion.Euler(lR);
+            cape.localRotation = Quaternion.Euler(-18f - 20f * hit + Mathf.Sin(beat * Mathf.PI) * 8f, 0f, 0f);
             if (celebrate <= 0f)
             {
                 pivot.localPosition = Vector3.zero;

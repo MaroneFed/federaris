@@ -410,4 +410,86 @@ namespace Fief
             else mat.color = c;
         }
     }
+
+    /// <summary>
+    /// LE SPECTACLE DU VAINQUEUR (01/10 -- Martin : "quand je gagne une manche, je dois avoir
+    /// un effet, avec notre perso qui danse avec la musique"). Tant qu'il danse, SUR LE
+    /// RYTHME de la musique de danse (MusicDirector.DanceBeat) :
+    ///   - a chaque temps, un anneau d'or s'ouvre a ses pieds et des confettis tombent ;
+    ///   - tous les deux temps, un feu d'artifice eclate dans le ciel autour de lui ;
+    ///   - a chaque mesure, une grande pluie de confettis a toutes les couleurs ;
+    ///   - un projecteur chaud le suit, et bat avec la musique.
+    /// </summary>
+    public class VictoryShow : MonoBehaviour
+    {
+        Seeker who;
+        Light spot;
+        int lastBeat = -1;
+        float age;
+        System.Random rng = new System.Random(7);
+
+        public static void Begin(Seeker s)
+        {
+            if (s == null || s.Body == null) return;
+            GameObject go = new GameObject("Fête du vainqueur");
+            VictoryShow v = go.AddComponent<VictoryShow>();
+            v.who = s;
+            GameObject lampGo = new GameObject("Projecteur");
+            lampGo.transform.SetParent(go.transform, false);
+            v.spot = lampGo.AddComponent<Light>();
+            v.spot.type = LightType.Spot;
+            v.spot.color = new Color(1f, 0.9f, 0.7f);
+            v.spot.range = 30f;
+            v.spot.spotAngle = 34f;
+            v.spot.intensity = 0f;
+            v.spot.shadows = LightShadows.None;
+        }
+
+        Color Pick()
+        {
+            Color[] c = { who.Colour, new Color(1f, 0.82f, 0.36f), Color.white, new Color(0.45f, 0.8f, 1f), new Color(1f, 0.45f, 0.6f), new Color(0.55f, 1f, 0.55f) };
+            return c[rng.Next(c.Length)];
+        }
+
+        void Update()
+        {
+            age += Time.unscaledDeltaTime;
+            bool on = who != null && who.Body != null && Game.Menus != null && Game.Menus.Dancing;
+            if (!on)
+            {
+                if (spot != null) spot.intensity = Mathf.MoveTowards(spot.intensity, 0f, Time.unscaledDeltaTime * 8f);
+                if (spot == null || spot.intensity <= 0f) Destroy(gameObject);
+                return;
+            }
+            Vector3 feet = who.Body.position;
+            // Le projecteur : au-dessus, un peu devant, il bat sur le temps.
+            float music = MusicDirector.DanceBeat;
+            float beat = music >= 0f ? music : age * 2f;
+            float pulse = 1f - Mathf.Repeat(beat, 1f);
+            spot.transform.position = feet + new Vector3(0f, 14f, -3f);
+            spot.transform.LookAt(feet + Vector3.up);
+            spot.intensity = Mathf.MoveTowards(spot.intensity, 5f + 4f * pulse * pulse, Time.unscaledDeltaTime * 30f);
+
+            int b = Mathf.FloorToInt(beat);
+            if (b == lastBeat) return;
+            lastBeat = b;
+            Fx.GroundRing(feet, new Color(1f, 0.82f, 0.36f), 4f, 0.5f);
+            Fx.Burst(feet + Vector3.up * 5f, Pick(), 14, 3f, 0.14f, 2f, 0.35f, Vector3.down, 60f);
+            if (b % 2 == 0)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float r = 7f + (float)rng.NextDouble() * 7f;
+                Vector3 sky = feet + new Vector3(Mathf.Cos(a) * r, 9f + (float)rng.NextDouble() * 7f, Mathf.Sin(a) * r);
+                Color c = Pick();
+                Fx.Burst(sky, c, 80, 12f, 0.26f, 1.5f, 0.45f, Vector3.zero, 0f);
+                Fx.Burst(sky, Color.white, 20, 5f, 0.18f, 0.6f, 0.2f, Vector3.zero, 0f);
+                Fx.Flash(sky, c, 30f, 5f, 0.5f);
+            }
+            if (b % 8 == 0)
+            {
+                for (int k = 0; k < 4; k++) Fx.Burst(feet + Vector3.up * 7f, Pick(), 40, 6f, 0.16f, 2.6f, 0.5f, Vector3.up, 80f);
+                Fx.Shock(feet + Vector3.up, new Color(1f, 0.82f, 0.36f), 4f, 0.4f);
+            }
+        }
+    }
 }
