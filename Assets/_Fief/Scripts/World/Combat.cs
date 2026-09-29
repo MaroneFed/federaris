@@ -432,9 +432,15 @@ namespace Fief
                 ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.2f);
                 Proto.Cylinder(t, new Vector3(0f, 0.08f, 0f), new Vector3(PadRadius * 2f - 1.4f, 0.02f, PadRadius * 2f - 1.4f), new Color(0.2f, 0.19f, 0.2f), "Dalle");
                 // Le fanion, derriere : on retrouve sa plateforme de loin.
-                Proto.Cube(t, new Vector3(-3.4f, 2.6f, -4.6f), new Vector3(0.14f, 5.2f, 0.14f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
-                GameObject flag = Proto.Cube(t, new Vector3(-2.75f, 4.4f, -4.6f), new Vector3(1.3f, 0.9f, 0.05f), c, "Fanion");
-                flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 0.9f);
+                // (02/10) Une hampe ronde, et un fanion qui claque autour d'elle (avant : un
+                // poteau carre et un drapeau fige, lumineux).
+                Proto.Cylinder(t, new Vector3(-3.4f, 2.6f, -4.6f), new Vector3(0.16f, 2.6f, 0.16f), new Color(0.25f, 0.2f, 0.16f), "Hampe");
+                GameObject hinge = new GameObject("Charnière du fanion");
+                hinge.transform.SetParent(t, false);
+                hinge.transform.localPosition = new Vector3(-3.35f, 4.6f, -4.6f);
+                GameObject flag = Proto.Cube(hinge.transform, new Vector3(0.75f, 0f, 0f), new Vector3(1.5f, 1f, 0.05f), c, "Fanion");
+                flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(c, 0.35f, 0f, 0.35f);
+                hinge.AddComponent<Flutter>();
                 Proto.EndVisualOnly();
                 // La colonne de lumiere monte du fanion, au bord : pas en plein milieu, ou
                 // l'on apparait (on ne voyait qu'elle).

@@ -243,7 +243,7 @@ namespace Fief
             b.chargeBar.SetParent(p, false);
             b.chargeBar.localPosition = new Vector3(0f, 0.22f, -2.3f);
             GameObject bar = Proto.Cube(b.chargeBar, new Vector3(0f, 0f, 0.5f), new Vector3(0.14f, 0.02f, 1f), Color.white, "Rune de tension");
-            bar.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 2.6f);
+            bar.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.8f);
             // Le corps de l'arc, et ses deux bras en chaine.
             Proto.Sphere(p, new Vector3(0f, 0.05f, BowZ), new Vector3(1.05f, 0.62f, 0.62f), Iron, "Noix").GetComponent<Renderer>().sharedMaterial = IronMat;
             b.tipL = BuildArm(p, -1, b.jointsL);

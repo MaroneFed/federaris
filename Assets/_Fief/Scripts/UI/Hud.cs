@@ -412,7 +412,10 @@ namespace Fief
             {
                 PlayerSlot s = Match.Slots[i];
                 Rect r = new Rect(x, y, w, h);
-                if (s.IsLocal) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), Wings.Gold);
+                // (02/10) Qui a la Couronne : sa ligne sort de la colonne et bat, en or.
+                bool holds = Crown.Holder != null && Crown.Holder.Index == s.Index;
+                if (holds) r.x -= UiStyle.S(18) + UiStyle.S(4) * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 5f));
+                if (s.IsLocal || holds) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), holds ? new Color(1f, 0.93f, 0.6f) : Wings.Gold);
                 Icons.Pill(r, s.Colour);
                 int size = fs;
                 while (size > 10 && Icons.Width(s.Name, size) > nameW) size -= 2;

@@ -62,10 +62,10 @@ namespace Fief
             c.transform.localPosition = new Vector3(0f, 1.6f, 0f);
             s.crystal = c.transform;
             GameObject top = Proto.Cone(s.crystal, Vector3.zero, 0.3f, 0.6f, tint, "Pointe", 6);
-            top.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 2.8f);
+            top.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 2f);
             GameObject bottom = Proto.Cone(s.crystal, Vector3.zero, 0.3f, 0.6f, tint, "Pointe", 6);
             bottom.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
-            bottom.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 2.8f);
+            bottom.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 2f);
             Proto.EndVisualOnly();
 
             GameObject lg = new GameObject("Lueur");

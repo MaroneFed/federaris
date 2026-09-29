@@ -235,7 +235,7 @@ namespace Fief
                 spar.transform.localRotation = Quaternion.Euler(0f, side * 12f, 0f);
                 GameObject edge = Proto.Cube(wing, new Vector3(side * span * 1.05f, 0.01f, -0.62f), new Vector3(span * 2f, 0.05f, 0.05f), Color.white, "Liseré");
                 edge.transform.localRotation = Quaternion.Euler(0f, side * 16f, 0f);
-                edge.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(edgeColour, 2f);
+                edge.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(edgeColour, 1.4f);
             }
             Proto.Cube(t, new Vector3(0f, 0f, 0f), new Vector3(0.12f, 0.1f, 1.2f), Wood, "Quille");
         }

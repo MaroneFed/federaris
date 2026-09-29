@@ -151,7 +151,7 @@ namespace Fief
             Proto.Cube(t, new Vector3(0f, 6.6f, 0f), new Vector3(6.6f, 0.9f, 1.3f), Stone, "Linteau");
             Proto.BeginVisualOnly();
             GameObject rune = Proto.Cube(t, new Vector3(0f, 6.6f, -0.66f), new Vector3(1.2f, 0.5f, 0.04f), Color.white, "Rune");
-            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 2.2f);
+            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 1.8f);
             Proto.EndVisualOnly();
             // L'autel, avec la place vide de la couronne.
             Proto.Cube(t, new Vector3(0f, 0.55f, 0f), new Vector3(1.4f, 1.1f, 0.9f), StoneDark, "Autel");
@@ -178,7 +178,7 @@ namespace Fief
                 GameObject stone = Proto.Capsule(t, sp + Vector3.up * 1.4f, new Vector3(0.8f, 1.4f, 0.5f), Stone, "Pierre levée");
                 stone.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, (float)(rng.NextDouble() - 0.5) * 8f);
                 GameObject glyph = Proto.Cube(stone.transform, new Vector3(0f, 0.15f, -0.52f), new Vector3(0.45f, 0.25f, 0.05f), Color.white, "Rune");
-                glyph.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 2.5f);
+                glyph.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 1.8f);
                 m.stones.Add(stone.transform);
             }
             Proto.EndVisualOnly();

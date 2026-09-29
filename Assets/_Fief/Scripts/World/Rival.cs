@@ -1225,7 +1225,7 @@ namespace Fief
                 Proto.Cylinder(hip, lamp + new Vector3(0f, 0.1f, 0f), new Vector3(0.13f, 0.02f, 0.13f), Color.black, "Lanterne").GetComponent<Renderer>().sharedMaterial = iron;
                 Proto.Cylinder(hip, lamp - new Vector3(0f, 0.09f, 0f), new Vector3(0.13f, 0.02f, 0.13f), Color.black, "Lanterne").GetComponent<Renderer>().sharedMaterial = iron;
                 GameObject flame = Proto.Sphere(hip, lamp, new Vector3(0.1f, 0.14f, 0.1f), Color.white, "Flamme");
-                flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(flameColour, 2.6f);
+                flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(flameColour, 1.8f);
                 flame.AddComponent<Flame>();
             }
             Proto.EndVisualOnly();
