@@ -459,7 +459,7 @@ namespace Fief
     /// rampe du bord interieur vers le vide et retour. Qui est dans sa course est
     /// projete -- et lache la Couronne.
     /// </summary>
-    public class Pendulum : MonoBehaviour
+    public class Pendulum : MonoBehaviour, IHazard
     {
         Transform arm;
         float phase;
@@ -517,13 +517,31 @@ namespace Fief
 
         Vector3 Head { get { return arm.TransformPoint(new Vector3(0f, -Length, 0f)); } }
 
+        /// <summary>L'angle du bras a l'instant "time" (un sinus : on peut le lire en avance).</summary>
+        float AngleAt(float time)
+        {
+            float wave = Mathf.Sin(time * Speed * Tower.Hardness + phase);
+            float mid = (SwingOut - SwingIn) * 0.5f, half = (SwingOut + SwingIn) * 0.5f;
+            return mid + half * wave;
+        }
+
+        void OnEnable() { Hazards.Add(this); }
+        void OnDisable() { Hazards.Remove(this); }
+
+        /// <summary>Pour les bots : la boule passera-t-elle sur "feet" d'ici "within" secondes ?</summary>
+        public bool Danger(Vector3 feet, float within)
+        {
+            if ((feet - transform.position).sqrMagnitude > 14f * 14f) return false;
+            float now = Time.time;
+            return Hazards.Sweeps(feet, within, t => transform.TransformPoint(Quaternion.Euler(0f, 0f, AngleAt(now + t)) * new Vector3(0f, -Length, 0f)), 2.4f);
+        }
+
         void Update()
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
             float wave = Mathf.Sin(Time.time * Speed * Tower.Hardness + phase);
-            float mid = (SwingOut - SwingIn) * 0.5f, half = (SwingOut + SwingIn) * 0.5f;
-            arm.localRotation = Quaternion.Euler(0f, 0f, mid + half * wave);
+            arm.localRotation = Quaternion.Euler(0f, 0f, AngleAt(Time.time));
             // Il siffle quand il passe a pleine vitesse, si tu es tout pres.
             bool low = wave > 0f;
             if (low != lastLow)
@@ -558,7 +576,7 @@ namespace Fief
     /// travers de la rampe toutes les quatre secondes et repousse vers le vide ce qui
     /// se trouve devant lui. Sa rune passe du bleu au ROUGE une demi-seconde avant.
     /// </summary>
-    public class Ram : MonoBehaviour
+    public class Ram : MonoBehaviour, IHazard
     {
         Transform block;
         Renderer rune;
@@ -611,11 +629,32 @@ namespace Fief
             return r;
         }
 
-        /// <summary>Ou en est le bloc : 0 rentre, 1 sorti. Et 0-1 : l'alerte avant la frappe.</summary>
-        float Stroke(out float warn)
+        void OnEnable() { Hazards.Add(this); }
+        void OnDisable() { Hazards.Remove(this); }
+
+        /// <summary>Pour les bots : "feet" est-il devant le belier, et sort-il (ou va-t-il sortir) d'ici "within" secondes ?</summary>
+        public bool Danger(Vector3 feet, float within)
         {
+            Vector3 d = feet - transform.position;
+            if (d.sqrMagnitude > 12f * 12f) return false;
+            float along = Vector3.Dot(d, outward);
+            float side = Vector3.Dot(d, transform.forward);
+            if (Mathf.Abs(side) > Size.z * 0.5f + 0.9f || d.y < -1f || d.y > Size.y + 0.6f || along < -0.5f || along > Reach + 1f) return false;
+            // Danger : le bloc est encore sorti (il barre la rampe), ou il va JAILLIR d'ici
+            // "within" secondes (c'est en sortant qu'il frappe). Entre les deux, on passe.
             float period = Period / Mathf.Clamp(Tower.Hardness, 1f, 1.6f);
             float t = Mathf.Repeat(Time.time + phase * period, period);
+            float warn;
+            return StrokeAt(Time.time, out warn) > 0.15f || t > period - within - 0.1f || t < 0.3f;
+        }
+
+        /// <summary>Ou en est le bloc : 0 rentre, 1 sorti. Et 0-1 : l'alerte avant la frappe.</summary>
+        float Stroke(out float warn) { return StrokeAt(Time.time, out warn); }
+
+        float StrokeAt(float time, out float warn)
+        {
+            float period = Period / Mathf.Clamp(Tower.Hardness, 1f, 1.6f);
+            float t = Mathf.Repeat(time + phase * period, period);
             warn = t > period - 0.6f ? 1f : 0f;
             if (t < 0.3f) return Mathf.SmoothStep(0f, 1f, t / 0.3f);          // il jaillit
             if (t < 0.9f) return 1f;                                          // il reste

@@ -337,7 +337,13 @@ namespace Fief
             string number = null;
             Color fill;
             if (name != null) fill = mine ? Wings.Gold : holder.Colour;
-            else if (where == Crown.State.Dropped) { fill = new Color(0.95f, 0.55f, 0.2f); number = Mathf.CeilToInt(Crown.ReturnIn).ToString(); }
+            else if (where == Crown.State.Dropped)
+            {
+                // A terre (02/10 : elle ne rentre plus au sommet) : a quelle distance de toi.
+                fill = new Color(0.95f, 0.55f, 0.2f);
+                Seeker m = Game.Me;
+                number = m != null && m.Body != null ? Mathf.RoundToInt((Crown.Position - m.Body.position).magnitude) + "m" : "";
+            }
             else if (where == Crown.State.Delivered) { fill = Monument.Blue; second = "monument"; }
             else { fill = new Color(0.36f, 0.3f, 0.62f); second = "tour"; }
             float inner = name != null ? Icons.Width(name, fs) + UiStyle.S(10) : number != null ? Icons.Width(number, fs) + UiStyle.S(10) : ic;

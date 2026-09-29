@@ -8,10 +8,13 @@ namespace Fief
     /// Elle attend sur son socle, au sommet de la tour. Qui la prend (en montant sur le
     /// socle, ou d'un appui sur E) la porte au-dessus de sa tete : une COLONNE DOREE monte au-dessus de
     /// lui, tout le monde sait ou il est. Il va moins vite et ne pousse plus. Si on le
-    /// POUSSE, elle roule par terre ; s'il SAUTE de haut, elle reste la ou il a quitte
-    /// le sol. A terre, il suffit de lui PASSER DESSUS pour la ramasser (27/09 : on ne
+    /// POUSSE, elle roule par terre ; s'il SAUTE de haut ou TOMBE DANS LES NUAGES, elle
+    /// reste la ou il a quitte le sol -- et elle Y RESTE, aussi longtemps qu'il faut
+    /// (02/10 -- Martin : "il faut la laisser bien ou elle est, c'est horrible de tout
+    /// remonter a chaque fois" : plus de retour au sommet, ni a la chute ni au bout de
+    /// 20 s). A terre, il suffit de lui PASSER DESSUS pour la ramasser (27/09 : on ne
     /// cherche pas la touche E en pleine bagarre). Le premier qui entre dans le cercle
-    /// du Monument avec elle gagne la manche.
+    /// du Monument avec elle, et y reste trois secondes, gagne la manche.
     ///
     /// Toi et les bots passez par les memes methodes (TryTakeFor, Drop) : en Phase 3,
     /// c'est l'hote qui les appellera.
@@ -292,8 +295,9 @@ namespace Fief
             }
             // (02/10) La colonne d'or plus franche : on la voit de toute l'ile (0,45 -> 0,7).
             if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.7f; beam.fadeSpeed = mine ? 30f : 0.5f; }
-            // Tombee et oubliee (ReturnSeconds, 20 s), ou tombee hors d'atteinte : elle retourne sur son socle.
-            if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.FallLine))
+            // (02/10) A terre, elle RESTE : plus de retour au sommet au bout de 20 s. Seul filet :
+            // si par malheur elle est passee sous l'ile, elle rentre au socle.
+            if (state == State.Dropped && visual.position.y < Ground.FallLine)
                 ReturnHome();
             // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
             if (state == State.Dropped) Attract();
@@ -329,21 +333,43 @@ namespace Fief
         bool hiddenForMe;
         Vector3 pedestal;
 
-        /// <summary>Tombee, la Couronne attend 20 s qu'on la ramasse -- puis elle rentre au sommet.</summary>
-        public const float ReturnSeconds = 20f;
 
-        /// <summary>Encore combien de temps avant qu'elle retourne sur son socle (0 si elle n'est pas par terre).</summary>
-        public static float ReturnIn { get { return Instance == null || Instance.state != State.Dropped ? 0f : Mathf.Max(0f, ReturnSeconds - (Time.time - Instance.droppedAt)); } }
-
-        /// <summary>La Couronne rentre au sommet tout de suite (son porteur est tombe dans les nuages).</summary>
-        public static void BackToTop()
+        /// <summary>
+        /// SON PORTEUR EST TOMBE DANS LES NUAGES (02/10) : elle ne rentre plus au sommet --
+        /// elle se pose la ou il a quitte le sol pour la derniere fois (le bord de l'ile, la
+        /// rampe d'ou on l'a pousse). Tout le monde la voit (son repere) et court la chercher.
+        /// </summary>
+        public static void FellWith(Seeker s)
         {
-            if (Instance == null || Instance.state == State.Delivered) return;
-            if (Holder != null) Holder.CrownLockUntil = Time.time + 1f;
-            if (Holder != null && Holder.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
-            Holder = null;
-            Instance.state = State.Dropped;
-            Instance.ReturnHome();
+            if (Instance == null || Holder != s || s == null) return;
+            Vector3 ground = LastGroundOf(s);
+            Instance.Drop(ground, ground);
+            Feed.CrownSlipped(s);
+        }
+
+        /// <summary>Le dernier sol d'un joueur (toi ou un bot) : la ou la Couronne doit rester s'il tombe.</summary>
+        static Vector3 LastGroundOf(Seeker s)
+        {
+            IMover m = AbilityCaster.MoverOf(s);
+            if (m != null) return m.LastGround;
+            return s.Body != null ? s.Body.position : Tower.CrownSpot;
+        }
+
+        /// <summary>
+        /// Un endroit ou l'on peut aller a pied (ou en planant) : l'ile (pas les toits, au-dessus
+        /// de 30 m), la tour, le dessus d'un ilot. Sinon, une Couronne posee la resterait pour
+        /// toujours -- maintenant qu'elle ne rentre plus au sommet.
+        /// </summary>
+        static bool Reachable(Vector3 p)
+        {
+            if (Tower.On(p)) return true;
+            if (Ground.OnIsland(p.x, p.z)) return p.y > -2f && p.y < 30f;
+            for (int i = 0; i < Ground.IsletCount; i++)
+            {
+                Ground.Islet it = Ground.GetIslet(i);
+                if (new Vector2(p.x - it.Top.x, p.z - it.Top.z).magnitude <= it.Radius + 1f && Mathf.Abs(p.y - it.Top.y) < 3f) return true;
+            }
+            return false;
         }
 
         void ReturnHome()
@@ -412,6 +438,13 @@ namespace Fief
             at = SafeSpot(at, fallback);
             float y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 30f, ~0, QueryTriggerInteraction.Ignore)
                 ? hit.point.y : Ground.Sample(at.x, at.z);
+            // (02/10) Au-dessus du vide, sur un toit, hors d'atteinte : elle se pose la ou son
+            // porteur a touche le sol pour la derniere fois (elle ne rentre plus au sommet).
+            if (!Reachable(new Vector3(at.x, y, at.z)) && was != null)
+            {
+                at = LastGroundOf(was);
+                y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : at.y;
+            }
             // Celui qui vient de la perdre ne la reprend pas tout de suite (trois secondes).
             if (was != null) was.CrownLockUntil = Time.time + LockSeconds;
             if (was != null && was.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();

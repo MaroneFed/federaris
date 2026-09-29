@@ -172,6 +172,8 @@ namespace Fief
             Teleport(position, transform.eulerAngles.y);
         }
 
+        public Vector3 LastGround { get { return lastGround; } }
+
         /// <summary>Oublier ou l'on etait (apres un respawn : le Rappel ne renvoie pas dans le vide).</summary>
         public void Forget()
         {

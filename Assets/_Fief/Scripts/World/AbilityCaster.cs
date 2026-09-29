@@ -24,6 +24,8 @@ namespace Fief
         void Blink(Vector3 position);
         /// <summary>Ou l'on etait il y a "seconds" secondes (le rappel).</summary>
         Vector3 PastPosition(float seconds);
+        /// <summary>Le dernier point ou l'on touchait le sol (la Couronne y reste quand on tombe).</summary>
+        Vector3 LastGround { get; }
     }
 
     /// <summary>

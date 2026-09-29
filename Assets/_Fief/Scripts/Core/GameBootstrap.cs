@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
@@ -77,6 +78,11 @@ namespace Fief
                 Spawns.Build(worldRoot);
 
                 BuildInhabitants();
+
+                // LE DECOR FIGE (02/10 -- "le jeu n'est pas tellement fluide") : tout ce qui ne
+                // bouge jamais est regroupe pour la carte graphique.
+                int still = FreezeScenery(worldRoot);
+                Debug.Log("[FIEF] Décor figé : " + still + " morceaux regroupés.");
             }
             catch (System.Exception error)
             {
@@ -124,6 +130,42 @@ namespace Fief
         /// LES YEUX (les sentinelles de la citadelle, voir Eye), les feux-follets et ce
         /// qu'on entend. Plus de PNJ humains (27/09) : rien qui parle, rien qui marche.
         /// </summary>
+        /// <summary>
+        /// REGROUPER LE DECOR IMMOBILE. Le chateau, la tour, les couloirs, c'est plusieurs
+        /// milliers de petits blocs (merlons, dalles, chaperons, meurtrieres) : dessines un
+        /// par un, ils coutaient des milliers d'"appels" a la carte graphique a chaque image.
+        ///
+        /// Concept Unity : le STATIC BATCHING (StaticBatchingUtility.Combine) fusionne des
+        /// objets qui ne bougeront plus jamais en quelques gros maillages -- la carte
+        /// graphique les dessine d'un coup. Ils restent des objets a part (on peut encore les
+        /// cacher, changer leur matiere), mais on ne doit plus les deplacer.
+        ///
+        /// On ne prend donc QUE ce qui n'a aucun script au-dessus de lui : un pendule, un
+        /// fanion qui claque, une gargouille, la Couronne, une arbaleste ont un script (ils
+        /// bougent) -- on les laisse.
+        /// </summary>
+        static int FreezeScenery(Transform root)
+        {
+            List<GameObject> still = new List<GameObject>();
+            MeshRenderer[] all = root.GetComponentsInChildren<MeshRenderer>(true);
+            for (int i = 0; i < all.Length; i++)
+            {
+                MeshRenderer r = all[i];
+                if (r.GetComponent<MeshFilter>() == null || Moves(r.transform, root)) continue;
+                still.Add(r.gameObject);
+            }
+            if (still.Count > 1) StaticBatchingUtility.Combine(still.ToArray(), root.gameObject);
+            return still.Count;
+        }
+
+        /// <summary>Vrai si ce bout de decor (ou l'un de ses parents) porte un script : il peut bouger.</summary>
+        static bool Moves(Transform t, Transform root)
+        {
+            for (Transform p = t; p != null && p != root; p = p.parent)
+                if (p.GetComponent<MonoBehaviour>() != null) return true;
+            return false;
+        }
+
         void BuildInhabitants()
         {
             GameObject folk = new GameObject("HABITANTS");

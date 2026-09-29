@@ -112,6 +112,12 @@ namespace Fief
         /// </summary>
         public float GraceUntil = -1f;
         /// <summary>
+        /// LE REPIT DES GARGOUILLES (02/10 -- "il a trois tirs sur lui qui font bam") :
+        /// jusqu'a cet instant, aucune gargouille ne le vise. Pose apres chaque tir sur lui
+        /// (9 s s'il est touche, 3 s s'il a esquive).
+        /// </summary>
+        public float EyeCalmUntil = -1f;
+        /// <summary>
         /// LES AILES D'OR (28/09) : prises au sommet de la tour (les planeurs) ou au depart
         /// d'une arbaleste, gardees jusqu'au prochain atterrissage. Tout le monde plane ;
         /// avec elles, on plane plus vite et plus loin (voir Wings). Le Planeur (passif)

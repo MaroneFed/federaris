@@ -232,6 +232,8 @@ namespace Fief
 
         public void Blink(Vector3 position) { Teleport(position); }
 
+        public Vector3 LastGround { get { return lastGround; } }
+
         /// <summary>Oublier ou l'on etait (apres un respawn : le Rappel ne renvoie pas dans le vide).</summary>
         public void Forget()
         {
@@ -746,15 +748,24 @@ namespace Fief
             // EN MONTANT, IL SE BAT (29/09 -- Martin : "faut qu'il y ait du combat, j'arrive a
             // monter facilement") : qui passe a portee dans la citadelle ou sur la rampe se
             // fait pousser -- toi le premier.
+            // (02/10 -- "les bots n'arrivent pas a monter", "avec tout le monde qui pousse, le
+            // jeu n'est pas fluide") : une poussee envoie a 15 m -- sur une rampe sans parapet,
+            // c'est le vide. Ils s'y jetaient les uns les autres et personne n'arrivait en
+            // haut. Desormais, SUR LA RAMPE, un bot ne pousse jamais un autre bot (sauf le
+            // porteur), et toi rarement ; au SOMMET et dans la cour, on se bat comme avant.
             else if ((goal == Goal.Raid || goal == Goal.Grab || goal == Goal.Roam) && Match.BotLevel > 0 && seeker.CanShove
                      && Time.time >= seeker.ShoveReadyAt && Castle.Inside(transform.position))
             {
                 Seeker foe = NearestFoe(2.7f);
+                bool onRamp = Tower.On(transform.position) && !Tower.Summit(transform.position);
+                if (foe != null && onRamp && !foe.IsPlayer && !foe.CarriesCrown) foe = null;
                 if (foe != null)
                 {
                     seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
                     // (01/10 : la poussee projette loin maintenant -- ils la gardent pour les bons moments.)
-                    if (rng.NextDouble() < (Match.BotLevel == 1 ? 0.3 + temper * 0.35 : 0.45 + temper * 0.4))
+                    double chance = Match.BotLevel == 1 ? 0.3 + temper * 0.35 : 0.45 + temper * 0.4;
+                    if (onRamp && !foe.CarriesCrown) chance *= 0.35;
+                    if (rng.NextDouble() < chance)
                     {
                         if (rig != null) rig.PlaySwing();
                         Combat.Shove(seeker, foe.Body.position - transform.position);
@@ -954,6 +965,8 @@ namespace Fief
 
         // ================================================================== marcher, voler
 
+        float hazardWait;
+
         void Walk(Vector3 destination, float speed, float dt)
         {
             if (!body.enabled) body.enabled = true;
@@ -974,6 +987,32 @@ namespace Fief
                 float lane = Flat(transform.position).magnitude - Tower.Centre;
                 float want = boulderLane > 0f ? -2f : 2f;
                 dir = (dir + radial * Mathf.Clamp(want - lane, -1f, 1f) * 1.4f).normalized;
+            }
+            // LES OBSTACLES QU'ON ATTEND (02/10 -- "la tour est trop compliquee pour les
+            // bots") : avant de faire un pas, il demande au radar (Hazards) si un pendule,
+            // un belier, une herse ou un marteau va frapper la. Si oui, il ATTEND son tour
+            // (3,5 s au plus), comme un joueur qui regarde le pendule passer. S'il est deja
+            // dans la zone, il file. Les faciles regardent moins loin (ils se font avoir).
+            if (speed > 0f && body.isGrounded && !leaping && !seeker.Tumbling && Time.time >= launchedUntil)
+            {
+                float look = Match.BotLevel == 0 ? 0.35f : Match.BotLevel == 1 ? 0.65f : 0.8f;
+                if (Hazards.Danger(transform.position + dir * 1.9f, look) && !Hazards.Danger(transform.position, 0.2f))
+                {
+                    hazardWait += dt;
+                    if (hazardWait < 3.5f) speed = 0f;
+                }
+                else hazardWait = 0f;
+            }
+            // UNE GARGOUILLE LE VISE (02/10) : dans la derniere demi-seconde, quand elle ne
+            // suit plus, il fonce (et s'ecarte du point vise) -- comme on apprend a le faire.
+            if (Match.BotLevel > 0 && d >= 0.05f && Time.time >= launchedUntil && Eye.LockedOn(seeker))
+            {
+                speed = Mathf.Max(speed, RunSpeed) * 1.25f;
+                if (Tower.On(transform.position))
+                {
+                    Vector3 inward = -Flat(transform.position).normalized;
+                    dir = (dir + inward * 0.5f).normalized;
+                }
             }
             knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-Combat.KnockDrag(seeker) * dt));
             Vector3 extra = Vector3.zero;

@@ -351,7 +351,7 @@ namespace Fief
     /// runes ROUGISSENT (trois quarts de seconde) puis des POINTES jaillissent et
     /// envoient en l'air ce qui est dessus.
     /// </summary>
-    public class SpikeTrap : MonoBehaviour
+    public class SpikeTrap : MonoBehaviour, IHazard
     {
         Transform spikes;
         Renderer grid;
@@ -397,6 +397,18 @@ namespace Fief
             h.spikes.localPosition = new Vector3(0f, Hidden, 0f);
             MaterialFactory.Polish(h.transform, 0.6f);
             return h;
+        }
+
+        void OnEnable() { Hazards.Add(this); }
+        void OnDisable() { Hazards.Remove(this); }
+
+        /// <summary>Pour les bots : "feet" est-il sur la grille, et les pointes sont-elles sorties (ou vont-elles sortir) d'ici "within" secondes ?</summary>
+        public bool Danger(Vector3 feet, float within)
+        {
+            Vector3 local = transform.InverseTransformPoint(feet);
+            if (Mathf.Abs(local.x) > width * 0.5f + 0.6f || Mathf.Abs(local.z) > depth * 0.5f + 0.6f || local.y < -1f || local.y > 1.6f) return false;
+            float t = Mathf.Repeat(Time.time + phase, period);
+            return t < 0.9f || t > period - within - 0.15f;
         }
 
         void Update()
@@ -448,7 +460,7 @@ namespace Fief
     /// manche qui balaie le couloir d'un mur a l'autre. Sa tete luit ; au passage,
     /// elle projette tres loin sur le cote.
     /// </summary>
-    public class Maul : MonoBehaviour
+    public class Maul : MonoBehaviour, IHazard
     {
         Transform arm;
         float phase;
@@ -499,11 +511,24 @@ namespace Fief
 
         Vector3 Head { get { return arm.TransformPoint(new Vector3(0f, -Length, 0f)); } }
 
+        float AngleAt(float time) { return Mathf.Sin(time * Speed * Tower.Hardness + phase) * Swing; }
+
+        void OnEnable() { Hazards.Add(this); }
+        void OnDisable() { Hazards.Remove(this); }
+
+        /// <summary>Pour les bots : la masse passera-t-elle sur "feet" d'ici "within" secondes ?</summary>
+        public bool Danger(Vector3 feet, float within)
+        {
+            if ((feet - transform.position).sqrMagnitude > 16f * 16f) return false;
+            float now = Time.time;
+            return Hazards.Sweeps(feet, within, t => transform.TransformPoint(Quaternion.Euler(0f, 0f, AngleAt(now + t)) * new Vector3(0f, -Length, 0f)), 2.5f);
+        }
+
         void Update()
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            arm.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * Speed * Tower.Hardness + phase) * Swing);
+            arm.localRotation = Quaternion.Euler(0f, 0f, AngleAt(Time.time));
             Vector3 head = Head;
             Vector3 velocity = (head - lastHead) / dt;
             lastHead = head;

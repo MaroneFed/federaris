@@ -46,13 +46,21 @@ namespace Fief
         // 29/09 (Martin : "l'oeil c'est beaucoup trop facile ; s'il me vise, ca fait un
         // BOUM et ca me fait redescendre ; hyper complique, mais pas trop") : elles voient
         // plus loin, chargent plus vite, et leur tir EXPLOSE et projette hors de la rampe.
+        // (02/10 -- Martin : "c'est un peu complique pour ceux qui ne savent pas jouer ; il
+        // a trois tirs sur lui qui font bam") : UNE gargouille a la fois sur une meme cible,
+        // un REPIT apres chaque tir (Seeker.EyeCalmUntil), une charge plus lente, la derniere
+        // demi-seconde plus longue (on a le temps de s'ecarter), et une explosion plus petite :
+        // qui court hors de la cible au sol s'en sort.
         const float Range = 42f;
         const float Angle = 50f;
-        const float ChargeTime = 0.95f;
-        const float LockTime = 0.4f;       // la fin de la charge : elle ne suit plus
-        const float RestTime = 2.4f;
+        const float ChargeTime = 1.25f;
+        const float LockTime = 0.55f;      // la fin de la charge : elle ne suit plus
+        const float RestTime = 3.5f;
+        /// <summary>Le repit apres un tir : touche, 9 s sans gargouille ; esquive, 3 s.</summary>
+        const float CalmAfterHit = 9f;
+        const float CalmAfterMiss = 3f;
         /// <summary>Le rayon de l'explosion du jet de feu (on est projete meme sans etre touche en plein).</summary>
-        public const float BlastRadius = 3.6f;
+        public const float BlastRadius = 2.4f;
 
         static readonly Color Calm = new Color(1f, 0.72f, 0.35f);
         static readonly Color Wary = new Color(1f, 0.6f, 0.2f);
@@ -69,6 +77,28 @@ namespace Fief
         public static bool ChargingAt(Seeker s)
         {
             for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].state == State.Charge && All[i].target == s) return true;
+            return false;
+        }
+
+        /// <summary>Vrai si une gargouille a VERROUILLE son tir sur "s" (la derniere demi-seconde : il faut bouger).</summary>
+        public static bool LockedOn(Seeker s)
+        {
+            for (int i = 0; i < All.Count; i++)
+            {
+                Eye e = All[i];
+                if (e != null && e.state == State.Charge && e.target == s && e.timer >= ChargeTime / Mathf.Sqrt(Tower.Hardness) - LockTime) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Vrai si une AUTRE gargouille fixe ou charge deja "s" (une seule a la fois).</summary>
+        bool TakenByOther(Seeker s)
+        {
+            for (int i = 0; i < All.Count; i++)
+            {
+                Eye e = All[i];
+                if (e != null && e != this && (e.state == State.Charge || e.state == State.Spot) && e.target == s) return true;
+            }
             return false;
         }
 
@@ -415,6 +445,7 @@ namespace Fief
                 bool graced = s.Graced;
                 Combat.Hit(s, push * 34f + Vector3.up * 11f, 0.6f, true, null);
                 if (graced) continue;       // protege : des etincelles, pas de coup (ni de secousse)
+                s.EyeCalmUntil = Time.time + CalmAfterHit;
                 Fx.Impact(c, Blaze, 1.8f);
                 if (s.IsPlayer)
                 {
@@ -452,6 +483,8 @@ namespace Fief
             beam.endWidth = 0.2f;
             state = State.Rest;
             timer = RestTime / Tower.Hardness;
+            // Meme esquive, la cible a un court repit : pas de second tir dans la foulee.
+            if (target != null) target.EyeCalmUntil = Mathf.Max(target.EyeCalmUntil, Time.time + CalmAfterMiss);
             firedAt = Time.time;
         }
 
@@ -507,6 +540,7 @@ namespace Fief
         bool Interested(Seeker s)
         {
             if (s == null || s.Body == null || s.Hidden || s.Graced) return false;
+            if (Time.time < s.EyeCalmUntil || TakenByOther(s)) return false;
             Vector3 p = s.Body.position;
             if (s.CarriesCrown) return (p - transform.position).magnitude < 45f;
             return Castle.Inside(p);
@@ -540,6 +574,10 @@ namespace Fief
             for (int i = 0; i < eyes.Count; i++) eyes[i].sharedMaterial = eyeGlow;
             cone.color = c;
             cone.intensity = mood >= 2 ? 5f : 3f;
+            // (02/10) Le cone de lumiere seulement quand elle te voit : seize projecteurs
+            // allumes en permanence, pour un balayage qu'on distingue a peine en plein jour,
+            // coutaient cher a chaque image.
+            cone.enabled = mood >= 1;
         }
 
         bool NearPlayer(float metres)

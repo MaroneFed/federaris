@@ -459,7 +459,8 @@ namespace Fief
     /// <summary>
     /// TOMBER DANS LES NUAGES (27/09 -- "un beau respawn"). On ne meurt pas : on
     /// reapparait sur sa plateforme de depart (28/09), dans une colonne de lumiere a sa couleur,
-    /// protege trois secondes. Si l'on portait la Couronne, elle rentre au sommet.
+    /// protege trois secondes. Si l'on portait la Couronne, elle reste la ou l'on a quitte
+    /// le sol (02/10 : plus de retour au sommet).
     /// </summary>
     public static class Respawn
     {
@@ -468,7 +469,9 @@ namespace Fief
         public static void Of(Seeker s)
         {
             if (s == null || s.Body == null) return;
-            if (s.CarriesCrown) Crown.BackToTop();
+            // (02/10 -- Martin : "quand tu meurs, elle respawn a chaque fois au-dessus, c'est
+            // horrible de tout remonter") : la Couronne RESTE ou il a quitte le sol.
+            if (s.CarriesCrown) Crown.FellWith(s);
             s.LastHitBy = null;
             Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;
             float yaw = Spawns.YawOf(s.Index);
