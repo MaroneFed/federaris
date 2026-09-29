@@ -82,7 +82,6 @@ namespace Fief
         void Update()
         {
             Toasts.Tick(Time.unscaledDeltaTime);
-            FloatingTexts.Tick(Time.unscaledDeltaTime);
             if (hitStop > 0f)
             {
                 hitStop -= Time.unscaledDeltaTime;
@@ -210,7 +209,6 @@ namespace Fief
             DrawVeils();
             DrawNames();
             DrawFlair();
-            FloatingTexts.Draw(viewCamera != null ? viewCamera : Camera.main);
             DrawTop();
             DrawStandings();
             DrawAbilities();
@@ -322,7 +320,17 @@ namespace Fief
             else { fill = new Color(0.36f, 0.3f, 0.62f); second = "tour"; }
             Icons.Pill(r, fill);
             float ic = r.height * 0.8f;
-            Icons.Draw(new Rect(r.x + r.height * 0.18f, r.y + (r.height - ic) * 0.5f, ic, ic), "couronne", new Color(1f, 0.86f, 0.35f));
+            Rect crownIcon = new Rect(r.x + r.height * 0.18f, r.y + (r.height - ic) * 0.5f, ic, ic);
+            Icons.Draw(crownIcon, "couronne", new Color(1f, 0.86f, 0.35f));
+            // (v13) TON VERROU : on vient de te la voler (ou tu viens de la lacher) -- tu ne
+            // peux pas la reprendre tout de suite. Une croix rouge sur la Couronne, le temps
+            // du verrou (avant : rien, on ne comprenait pas pourquoi on ne la reprenait pas).
+            Seeker me = Game.Me;
+            if (me != null && !me.CarriesCrown && Time.time < me.CrownLockUntil)
+            {
+                float k = ic * 0.62f;
+                Icons.Draw(new Rect(crownIcon.xMax - k * 0.7f, crownIcon.yMax - k * 0.8f, k, k), "croix", new Color(1f, 0.35f, 0.3f));
+            }
             Rect right = new Rect(r.xMax - r.height * 0.18f - ic, r.y + (r.height - ic) * 0.5f, ic, ic);
             if (second != null) Icons.Draw(right, second, secondTint);
             else Icons.Number(right, Mathf.CeilToInt(Crown.ReturnIn).ToString(), Mathf.RoundToInt(r.height * 0.55f), Color.white, TextAnchor.MiddleCenter);

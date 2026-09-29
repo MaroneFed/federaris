@@ -433,8 +433,13 @@ namespace Fief
                 }
                 if (arrival) continue;
                 Vector3 p = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Radius - 0.4f) + Vector3.up * (Height + 0.6f);
-                GameObject m = Proto.Cube(t, p, new Vector3(0.8f, 1.2f, 1.6f), StoneDark, "Merlon");
-                m.transform.localRotation = Quaternion.LookRotation(new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a)), Vector3.up);
+                // Des merlons de pierre claire coiffes d'un chaperon sombre, comme ceux du
+                // chateau (avant : de simples paves sombres, un autre style que la muraille).
+                Quaternion face = Quaternion.LookRotation(new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a)), Vector3.up);
+                GameObject m = Proto.Cube(t, p, new Vector3(0.8f, 1.2f, 1.6f), Stone, "Merlon");
+                m.transform.localRotation = face;
+                GameObject cap = Proto.Cube(t, p + Vector3.up * 0.67f, new Vector3(0.96f, 0.14f, 1.76f), StoneDark, "Chaperon");
+                cap.transform.localRotation = face;
             }
             // Deux disques bien separes en hauteur (3 cm), jamais au meme niveau : sinon
             // la carte graphique ne sait pas lequel dessiner devant (z-fighting).

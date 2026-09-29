@@ -93,6 +93,8 @@ namespace Fief
                         Vector3 m = Vector3.Lerp(a, b, (k + 0.5f) / 9f) + Vector3.up * 3.3f;
                         GameObject merlon = Proto.Cube(t, m, new Vector3(1.6f, 0.7f, 1.6f), Stone, "Merlon");
                         merlon.transform.rotation = face;
+                        GameObject cap = Proto.Cube(t, m + Vector3.up * 0.42f, new Vector3(1.76f, 0.14f, 1.76f), StoneDark, "Chaperon");
+                        cap.transform.rotation = face;
                     }
                     Proto.EndVisualOnly();
                     Castle.Torch(t, b + Vector3.up * 3f - axis * 0.5f, 1.4f);

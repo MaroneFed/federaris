@@ -186,18 +186,18 @@ une gerbe d'étincelles, un **coup de phonk**.
 | Capacité | Ce que ça fait | Recharge |
 |---|---|---|
 | **Ruée** | Douze mètres d'un trait : qui est sur ta route est bousculé. | 6 s |
-| **Grappin** | Vise un mur, un rebord, la tour (48 m) : le grappin t'y tire. | 7 s |
+| **Grappin** | Vise un mur, un rebord, la tour (48 m) : le grappin t'y tire. Jamais la muraille depuis dehors (on entre par une porte). | 7 s |
 | **Crochet** | Vise un joueur, jusqu'à 32 m : il est tiré jusqu'à toi. | 10 s |
 | **Onde de choc** | Une explosion : tout le monde à neuf mètres s'envole. | 8 s |
 | **Clignement** | Tu disparais et réapparais quinze mètres plus loin. | 5 s |
 | **Bond** | Un saut immense ; le souffle du départ repousse ceux qui sont tout près. | 8 s |
-| **Mur** | Un mur de 10 m sur 4,5 m surgit devant toi ; qui est dessus s'envole. | 12 s |
+| **Mur** | Un mur de 10 m sur 4,5 m surgit du sol devant toi ; qui est dessus s'envole. Pas en plein vol. | 12 s |
 | **Nuée** | Un nuage de fumée de 16 m : les gargouilles et les autres ne voient plus rien. | 14 s |
-| **Mine** | Pose une mine : elle envoie en l'air tous ceux qui passent à 4 m. | 9 s |
+| **Mine** | Pose une mine au sol : elle envoie en l'air tous ceux qui passent à 4 m. Pas en plein vol. | 9 s |
 | **Givre** | Une boule de givre (26 m) : l'éclat bouscule et ralentit, 6,5 m autour. | 8 s |
 | **Voile** | Tu deviens invisible pendant sept secondes. | 16 s |
-| **Échange** | Vise un joueur, jusqu'à 45 m : vous échangez vos places. | 14 s |
-| **Rappel** | Tu reviens là où tu étais il y a quatre secondes. | 10 s |
+| **Échange** | Vise un joueur, jusqu'à 45 m : vous échangez vos places. Jamais à travers la muraille (l'un dedans, l'autre dehors), jamais avec un protégé. | 14 s |
+| **Rappel** | Tu reviens là où tu étais il y a quatre secondes (jamais d'avant un respawn). | 10 s |
 | **Souffle** | **Une vague de vent qui traverse toute l'île** (150 m, 60 m/s, de 3 à 18 m de large) et emporte tout le monde, même en vol. | 9 s |
 
 ### Passives (toujours là)
@@ -258,13 +258,15 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
 - **Le sceau de la citadelle** : qui entre dans l'enceinte **par les airs** (en planant,
   tiré, en piqué) est renvoyé dehors dans un éclair de runes. On en sort en volant sans
   souci.
-- **Le parcours des portes** (tiré au hasard à chaque manche) : devant chaque porte, un
+- **Le parcours des portes** (tiré au hasard à chaque manche, **le même devant les quatre
+  portes** — v13 : personne n'a le couloir facile) : devant chaque porte, un
   **couloir** de 30 m bordé de murets de 3 m (on ne les saute pas), une arche de
   lumière à l'entrée, un **parvis** devant, et **quatre stations** parmi (plus rapides à
   chaque manche) :
   - une **chicane** : un mur en travers, un passage d'un côté (on zigzague) ;
   - un **moulinet** : une barre cloutée qui tourne à hauteur de genou (on saute) ;
-  - une **herse** : des pointes qui jaillissent du sol (ses runes rougissent avant) ;
+  - une **herse** : des pointes qui jaillissent du sol (ses runes rougissent avant) et
+    piquent **tant qu'elles sont sorties** ;
   - un **marteau** : une masse de fer qui balaie le couloir d'un mur à l'autre.
 
 ## La tour de la Couronne
@@ -291,8 +293,11 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   - des **béliers** qui jaillissent du mur (leur rune **rougit** avant) ;
   - des **balayeurs** : une barre cloutée à hauteur de genou, contre le fût, qui balaie
     la rampe **vers le vide** (on saute par-dessus) ;
-  - des **herses** : des pointes qui jaillissent de la rampe ;
-  - des **boulets** qui dévalent une rampe depuis le sommet, d'un côté ou de l'autre ;
+  - des **herses** : des pointes qui jaillissent de la rampe (elles piquent tant qu'elles
+    sont sorties) ;
+  - des **boulets** : une **volée** — un boulet sur **chaque** rampe, du même côté pour
+    toutes (le mur, puis le vide, en alternance) — toutes les 34 s, moins aux manches
+    suivantes ;
   - les **gargouilles** (ci-dessous) ;
   - **plus de courants** sur la rampe (« ça c'est n'importe quoi »).
 - **Le saut** (30/09 : « le saut bug ») : on colle à la pente en la descendant, un appui
@@ -396,7 +401,11 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
   - au centre : le point de visée, le **piqué** (la cible d'or), l'invite **E + icône** ;
   - le **fil des événements** : « pastille du joueur → main → Couronne → pastille » ;
   - le **sacre** : la Couronne et une barre à la couleur de qui se fait sacrer ;
-  - plus d'astuces écrites ; F1/H : les touches en icônes.
+  - plus d'astuces écrites : des **astuces en icônes** (v13), une fois par match, sous le
+    viseur — la touche, puis ce qu'elle fait (**[E] arbaleste [clic] ↑** sur ta
+    plateforme…) ; F1/H : les touches en icônes ;
+  - le **verrou** (on vient de te voler la Couronne, tu ne peux pas la reprendre
+    pendant 3 s) : une croix rouge sur la Couronne du HUD.
 - **Les menus** : gros boutons ronds avec icône, jaunes quand on les vise ; « FIEF » en
   lettres rondes (Titan One) ; l'intro de manche montre la règle en icônes ; **les
   Commandes en trois colonnes de pastilles** (touche → icône) ; salon, pause, fin de

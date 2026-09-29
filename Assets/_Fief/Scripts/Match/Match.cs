@@ -67,7 +67,16 @@ namespace Fief
         static readonly string[] BotNames = { "Mahaut", "Oswin", "Guérin", "Aliénor", "Tancrède", "Isaure", "Bohémond" };
 
         /// <summary>Le nom de la place "index" (0 : toi).</summary>
-        public static string NameOf(int index) { Settings.Load(); return index <= 0 ? Settings.Shown : BotNames[Mathf.Clamp(index - 1, 0, BotNames.Length - 1)]; }
+        public static string NameOf(int index)
+        {
+            Settings.Load();
+            if (index <= 0) return Settings.Shown;
+            string bot = BotNames[Mathf.Clamp(index - 1, 0, BotNames.Length - 1)];
+            // Ton pseudo est celui d'un bot ("Oswin") : le bot en prend un autre -- deux
+            // "Oswin" au-dessus des tetes, on ne sait plus qui est qui.
+            return string.Equals(bot, Settings.Shown, System.StringComparison.OrdinalIgnoreCase) ? SpareName : bot;
+        }
+        const string SpareName = "Enguerrand";
 
         /// <summary>
         /// LE NIVEAU DES BOTS (choisi au salon, garde d'un match a l'autre) : 0 faciles,

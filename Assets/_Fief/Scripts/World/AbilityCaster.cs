@@ -172,6 +172,14 @@ namespace Fief
                 {
                     RaycastHit hit;
                     if (!RayFrom(s, eye, aim, GrappinRange, out hit)) { s.Refund(a); return false; }
+                    // Pas de grappin sur la muraille depuis dehors : on se hissait sur le
+                    // rempart et on sautait dans la cour -- le couloir et la porte contournes.
+                    if (!Castle.Inside(pos) && Castle.Inside(hit.point - hit.normal * 0.4f))
+                    {
+                        s.Refund(a);
+                        Fx.Sparks(hit.point, Ward.Rune, 14, 3f);
+                        return false;
+                    }
                     // Contre un mur ou un rebord (normale a l'horizontale) : on vise un peu
                     // au-dessus, pour arriver PAR-DESSUS le rebord et s'y hisser.
                     Vector3 grip = hit.point + hit.normal * 0.6f;

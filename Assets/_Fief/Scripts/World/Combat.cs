@@ -278,6 +278,8 @@ namespace Fief
                 if (s == by || s.Body == null || s.Hidden) continue;
                 Vector3 to = s.Body.position + Vector3.up * 1.1f - eye;
                 if (to.magnitude > range) continue;
+                // On ne vise pas a travers la fumee de la Nuee (les gargouilles non plus).
+                if (Smoke.Blocks(eye, s.Body.position + Vector3.up * 1.1f)) continue;
                 float a = Vector3.Angle(dir, to);
                 if (a > bestAngle) continue;
                 RaycastHit hit;

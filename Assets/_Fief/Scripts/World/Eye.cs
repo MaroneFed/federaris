@@ -363,7 +363,8 @@ namespace Fief
         void Charge(float dt)
         {
             timer += dt;
-            if (target == null || target.Body == null || target.Hidden || Smoke.Inside(target.Body.position)) { Cancel(); return; }
+            // (v13) Une cible devenue protegee (respawn) : la charge s'eteint, pas de rayon pour rien.
+            if (target == null || target.Body == null || target.Hidden || target.Graced || Smoke.Inside(target.Body.position)) { Cancel(); return; }
             Vector3 chest = target.Body.position + Vector3.up * 1.1f;
             if (timer < ChargeTime / Mathf.Sqrt(Tower.Hardness) - LockTime) aim = chest;
             Look(aim, dt * 10f);
