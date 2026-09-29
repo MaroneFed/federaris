@@ -31,7 +31,7 @@ namespace Fief
         public static void CrownKnocked(Seeker victim, Seeker by)
         {
             if (victim == null || !Live) return;
-            if (by == null) Toasts.Show(true, Of(victim), N(victim), new[] { "rebond", "couronne" }, new[] { Loss, Crown }, false, White, null);
+            if (by == null) Toasts.Show(true, Of(victim), N(victim), new[] { "chute", "couronne" }, new[] { Loss, Crown }, false, White, null);
             else Toasts.Show(true, Of(by), N(by), new[] { "pousser", "couronne" }, new[] { White, Crown }, true, Of(victim), N(victim));
         }
 
@@ -62,13 +62,13 @@ namespace Fief
         public static void FellFromTower(Seeker s)
         {
             if (s == null || !Live) return;
-            Toasts.Show(true, Of(s), N(s), new[] { "tour", "rebond" }, new[] { White, Loss }, false, White, null);
+            Toasts.Show(true, Of(s), N(s), new[] { "tour", "chute" }, new[] { White, Loss }, false, White, null);
         }
 
         public static void FellIntoClouds(Seeker s)
         {
             if (s == null || !Live) return;
-            Toasts.Show(true, Of(s), N(s), new[] { "nuee" }, new[] { White }, false, White, null);
+            Toasts.Show(true, Of(s), N(s), new[] { "chute" }, new[] { Loss }, false, White, null);
         }
     }
 }

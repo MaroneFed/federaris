@@ -28,7 +28,8 @@ namespace Fief
             "vue", "texte", "ecran", "retour", "drapeau", "cloche", "touche", "bouclier",
             "ruee", "grappin", "crochet", "onde", "clignement", "bond", "mur", "nuee", "mine", "gel", "voile",
             "echange", "rappel", "souffle", "double-saut", "planeur", "coureur", "porteur", "poigne", "ancrage",
-            "flair", "ombre", "prise-ferme", "recharge", "rebond", "aimant"
+            "flair", "ombre", "prise-ferme", "recharge", "rebond", "aimant",
+            "etourdi", "chute"
         };
 
         // ================================================================== le rendu
@@ -320,6 +321,19 @@ namespace Fief
                     return Sub(wall, Min(Min(m1, m2), Min(v1, Min(v2, v3))));
                 }
                 case "nuee": return Cloud(x, y);
+                case "etourdi":
+                {
+                    // (02/10) ETOURDI : trois etoiles qui tournent sur une orbite aplatie (avant :
+                    // l'icone du Clignement -- une meme image pour deux choses).
+                    float yy = (y - 0.1f) * 2.3f;
+                    float orbit = (Math.Abs((float)Math.Sqrt(x * x + yy * yy) - 0.72f) - 0.1f) / 1.6f;
+                    float stars = Min(Star(x + 0.66f, y - 0.1f, 0.3f, 0.13f, 5), Min(Star(x - 0.66f, y - 0.1f, 0.3f, 0.13f, 5), Star(x, y + 0.26f, 0.36f, 0.15f, 5)));
+                    return Min(orbit, stars);
+                }
+                case "chute":
+                    // (02/10) LA CHUTE : une fleche qui plonge vers une ligne (avant : l'icone
+                    // de la Nuee pour "tombe dans les nuages").
+                    return Min(ArrowUp(x, -(y + 0.12f), 0.78f), Seg(x, y, -0.72f, 0.84f, 0.72f, 0.84f, 0.08f));
                 case "mine":
                 {
                     float body = Circle(x, y + 0.08f, 0.5f);

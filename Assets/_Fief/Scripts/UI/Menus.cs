@@ -915,7 +915,10 @@ namespace Fief
             bool on = selected == index;
             // La valeur, dans sa pastille, entre deux fleches.
             float vx = x + UiStyle.S(316);
-            Rect minus = new Rect(vx, y + UiStyle.S(6), UiStyle.S(36), UiStyle.S(36));
+            // (02/10) Des pixels entiers et une largeur paire : la fleche "moins" est la meme
+            // que "plus", retournee autour de son milieu -- un milieu entre deux pixels la floutait.
+            int side = UiStyle.S(36) / 2 * 2;
+            Rect minus = new Rect(Mathf.Round(vx), Mathf.Round(y + UiStyle.S(6)), side, side);
             Rect val = new Rect(vx + UiStyle.S(44), y + UiStyle.S(3), UiStyle.S(170), UiStyle.S(42));
             Rect plus = new Rect(vx + UiStyle.S(222), y + UiStyle.S(6), UiStyle.S(36), UiStyle.S(36));
             Icons.Pill(val, on ? new Color(0.3f, 0.34f, 0.72f) : new Color(0.14f, 0.16f, 0.36f));

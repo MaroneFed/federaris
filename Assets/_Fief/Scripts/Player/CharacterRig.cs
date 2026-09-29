@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -36,6 +37,13 @@ namespace Fief
         float celebrate;                  // secondes de fete restantes
         float celebrateAge;
         const float BodyY = 0.62f;
+
+        // (02/10) LES YEUX CLIGNENT : toutes les 2,5 a 6 s, un battement de 0,14 s. Des yeux
+        // qui ne clignent jamais, c'est ce qui rend un personnage "mort" (designer chiant).
+        readonly List<Transform> eyes = new List<Transform>();
+        readonly List<Vector3> eyeScales = new List<Vector3>();
+        float blinkIn = 2f;
+        float blinkAge = -1f;
         Renderer[] parts;
         ModelCharacter model;
         bool firstPerson;
@@ -162,9 +170,9 @@ namespace Fief
             head = Node(body, new Vector3(0f, 0.92f, 0f), "Tête");
             for (int side = -1; side <= 1; side += 2)
             {
-                Paint(Proto.Sphere(head, new Vector3(side * 0.14f, 0.02f, 0.36f), new Vector3(0.21f, 0.26f, 0.12f), colour, "Œil"), white);
-                Paint(Proto.Sphere(head, new Vector3(side * 0.13f, 0.0f, 0.415f), new Vector3(0.11f, 0.15f, 0.05f), colour, "Pupille"), pupil);
-                GameObject glint = Paint(Proto.Sphere(head, new Vector3(side * 0.11f + 0.02f, 0.05f, 0.44f), Vector3.one * 0.04f, colour, "Reflet"), spark);
+                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.14f, 0.02f, 0.36f), new Vector3(0.21f, 0.26f, 0.12f), colour, "Œil"), white));
+                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.13f, 0.0f, 0.415f), new Vector3(0.11f, 0.15f, 0.05f), colour, "Pupille"), pupil));
+                GameObject glint = Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.11f + 0.02f, 0.05f, 0.44f), Vector3.one * 0.04f, colour, "Reflet"), spark));
                 glint.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
                 Paint(Proto.Sphere(head, new Vector3(side * 0.28f, -0.14f, 0.3f), new Vector3(0.14f, 0.07f, 0.06f), colour, "Joue"), blush);
             }
@@ -188,6 +196,34 @@ namespace Fief
             cape = Node(body, new Vector3(0f, 0.76f, -0.43f), "Cape");
             Paint(Proto.Sphere(cape, new Vector3(0f, -0.36f, 0f), new Vector3(0.7f, 0.78f, 0.05f), accent, "Tissu"), capeMat);
             Paint(Proto.Sphere(body, new Vector3(0f, 0.8f, -0.42f), new Vector3(0.1f, 0.1f, 0.06f), colour, "Broche"), gold);
+        }
+
+        GameObject Eye(GameObject part)
+        {
+            eyes.Add(part.transform);
+            eyeScales.Add(part.transform.localScale);
+            return part;
+        }
+
+        /// <summary>Le clignement : les yeux s'aplatissent un instant (0,14 s), puis se rouvrent.</summary>
+        void Blink(float dt)
+        {
+            if (eyes.Count == 0) return;
+            blinkIn -= dt;
+            if (blinkIn <= 0f) { blinkIn = Random.Range(2.5f, 6f); blinkAge = 0f; }
+            float shut = 0f;
+            if (blinkAge >= 0f)
+            {
+                blinkAge += dt;
+                shut = blinkAge < 0.14f ? Mathf.Sin(blinkAge / 0.14f * Mathf.PI) : 0f;
+                if (blinkAge >= 0.14f) blinkAge = -1f;
+            }
+            for (int i = 0; i < eyes.Count; i++)
+            {
+                if (eyes[i] == null) continue;
+                Vector3 s = eyeScales[i];
+                eyes[i].localScale = new Vector3(s.x, s.y * (1f - 0.9f * shut), s.z);
+            }
         }
 
         void BuildLeg(Transform pivotLeg, Material suit, Material boot)
@@ -225,6 +261,7 @@ namespace Fief
                 model.Dancing = celebrate > 0f;
             }
 
+            Blink(dt);
             if (celebrate > 0f)
             {
                 Party(dt);

@@ -3,20 +3,21 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LA CITADELLE (27/09 -- Martin : "un giga chateau"). Au centre de la sylve.
+    /// LA CITADELLE (27/09 -- Martin : "un giga chateau"). Au centre de l'ile flottante.
     ///
     ///   - une ENCEINTE de cent metres de cote, murs de dix-huit metres, quatre tours
-    ///     d'angle coiffees d'ardoise ;
-    ///   - QUATRE PORTES, ouvertes, une par face, chacune entre deux tours de garde :
-    ///     on entre de partout, la bataille commence dans la cour ;
+    ///     d'angle rondes, coiffees d'un toit en cloche d'ardoise ;
+    ///   - QUATRE PORTES, une par face, chacune entre deux tours de garde, au bout d'un
+    ///     couloir piege (Course.cs), a pont-levis ; chaque porte a SA couleur de banniere
+    ///     (02/10 : on sait par ou on est entre) ;
     ///   - QUATRE ESCALIERS montent aux remparts : la-haut, on voit loin, et on saute ;
-    ///   - au milieu, LA TOUR DE LA COURONNE (voir Tower.cs) : soixante-quatre metres,
-    ///     une rampe en spirale a l'exterieur, la Couronne au sommet ;
-    ///   - les YEUX (voir Eye.cs) sur les tours et les portes : pas de gardes, des
-    ///     sentinelles de pierre qui chargent un rayon qu'on voit venir.
+    ///   - au milieu, LA TOUR DE LA COURONNE (voir Tower.cs) : cent metres, quatre
+    ///     rampes en spirale, la Couronne au sommet ;
+    ///   - les GARGOUILLES (voir Eye.cs) sur les tours et les portes.
     ///
-    /// Tout est bati en cubes, comme le reste du decor. Les murs, les tours et les
-    /// escaliers ont un collider ; les creneaux et les ornements, non.
+    /// Des formes simples (cubes, cylindres, cones, spheres) en attendant le Castle Kit
+    /// de Kenney (docs/MODELES.md). Les murs, les tours et les escaliers ont un collider ;
+    /// les creneaux et les ornements, non.
     /// </summary>
     public static class Castle
     {
@@ -54,6 +55,12 @@ namespace Fief
         static readonly Color Paving = new Color(0.66f, 0.61f, 0.54f);
         static readonly Color GoldTrim = new Color(1f, 0.8f, 0.32f);
         static readonly Color[] Heraldry = { new Color(0.66f, 0.13f, 0.16f), new Color(0.16f, 0.25f, 0.55f), new Color(0.82f, 0.6f, 0.16f) };
+        /// <summary>
+        /// LA COULEUR DE CHAQUE PORTE (02/10) : sa grande banniere -- nord rouge, sud bleu,
+        /// est or, ouest vert. Avant, les quatre etaient rouges : on ne savait jamais par
+        /// quelle porte on etait entre, ni laquelle on voyait du sommet.
+        /// </summary>
+        public static readonly Color[] GateColours = { new Color(0.66f, 0.13f, 0.16f), new Color(0.16f, 0.25f, 0.55f), new Color(0.82f, 0.6f, 0.16f), new Color(0.18f, 0.44f, 0.26f) };
 
         /// <summary>Vrai si ce point est dans l'emprise de la citadelle (plus une marge) : rien d'autre ne s'y pose.</summary>
         public static bool Covers(float x, float z, float margin)
@@ -278,9 +285,14 @@ namespace Fief
                 float tip = height + 0.8f + size * 0.12f + size * 1.3f;
                 Proto.Sphere(t, new Vector3(at.x, tip - 0.3f, at.z), Vector3.one * 0.9f, GoldTrim, "Pommeau").GetComponent<Renderer>().sharedMaterial = gold;
                 Proto.Cylinder(t, new Vector3(at.x, tip + 2.2f, at.z), new Vector3(0.18f, 2.4f, 0.18f), GoldTrim, "Hampe").GetComponent<Renderer>().sharedMaterial = gold;
-                GameObject flag = Proto.Cube(t, new Vector3(at.x + 1.3f, tip + 3.6f, at.z), new Vector3(2.4f, 1.3f, 0.08f), Heraldry[seed % 3], "Fanion");
+                // Le fanion claque AUTOUR DE SA HAMPE (avant, il tournait sur son propre
+                // milieu et se decollait du mat) : un pivot sur la hampe, le drap a cote.
+                GameObject hinge = new GameObject("Charnière du fanion");
+                hinge.transform.SetParent(t, false);
+                hinge.transform.localPosition = new Vector3(at.x + 0.1f, tip + 3.6f, at.z);
+                GameObject flag = Proto.Cube(hinge.transform, new Vector3(1.2f, 0f, 0f), new Vector3(2.4f, 1.3f, 0.08f), Heraldry[seed % 3], "Fanion");
                 flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Heraldry[seed % 3], 0.3f, 0f);
-                flag.AddComponent<Flutter>();
+                hinge.AddComponent<Flutter>();
                 Proto.EndVisualOnly();
                 return;
             }
@@ -343,8 +355,9 @@ namespace Fief
                 lintel.transform.rotation = face;
                 lintel.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(GoldTrim, 0.8f, 1f);
                 // La grande banniere, au-dessus de l'arc.
-                GameObject cloth = Proto.Cube(t, gate + d * 1.75f + Vector3.up * (GateHeight + 4.2f), new Vector3(4.2f, 6f, 0.08f), Heraldry[0], "Bannière");
+                GameObject cloth = Proto.Cube(t, gate + d * 1.75f + Vector3.up * (GateHeight + 4.2f), new Vector3(4.2f, 6f, 0.08f), GateColours[i], "Bannière");
                 cloth.transform.rotation = face;
+                cloth.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(GateColours[i], 0.3f, 0f);
                 GameObject stripe = Proto.Cube(t, gate + d * 1.8f + Vector3.up * (GateHeight + 4.2f), new Vector3(0.7f, 5.2f, 0.04f), Color.white, "Blason");
                 stripe.transform.rotation = face;
                 stripe.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(GoldTrim, 0.8f, 1f);
@@ -503,7 +516,7 @@ namespace Fief
         // ------------------------------------------------------------------ torches
 
         /// <summary>
-        /// Une torche : un poteau, une flamme, et une lumiere qui vacille. "at" est son
+        /// Une torche : un poteau, une coupe de fer, une flamme qui vacille. "at" est son
         /// pied (hauteur comprise : il y en a sur la tour).
         /// </summary>
         public static void Torch(Transform t, Vector3 at, float height)
@@ -515,18 +528,10 @@ namespace Fief
             GameObject flame = Proto.Sphere(t, new Vector3(at.x, at.y + height + 0.4f, at.z), new Vector3(0.26f, 0.5f, 0.26f), new Color(1f, 0.62f, 0.22f), "Flamme");
             Proto.EndVisualOnly();
             Renderer r = flame.GetComponent<Renderer>();
-            if (r != null) r.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.22f), 2.2f);
+            if (r != null) r.sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.22f), 1.6f);
             flame.AddComponent<Flame>();
-            GameObject lightGo = new GameObject("Lueur");
-            lightGo.transform.SetParent(t, false);
-            lightGo.transform.localPosition = new Vector3(at.x, at.y + height + 0.6f, at.z);
-            Light light = lightGo.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = new Color(1f, 0.70f, 0.40f);
-            light.intensity = 1.5f;
-            light.range = 11f;
-            light.shadows = LightShadows.None;
-            lightGo.AddComponent<LampFlicker>();
+            // (02/10) Plus de vraie lumiere : en plein jour, une lampe de 11 m ne se voyait
+            // pas -- et les torches en allumaient pres de trente dans la scene, pour rien.
         }
     }
 

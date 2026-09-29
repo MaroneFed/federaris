@@ -253,8 +253,8 @@ namespace Fief
             int studs = Mathf.RoundToInt(span / 0.9f);
             for (int k = 0; k < studs; k++)
             {
-                GameObject stud = Proto.Cube(w.bar, new Vector3(0f, 0.18f, start + (k + 0.5f) * span / studs), new Vector3(0.12f, 0.18f, 0.12f), iron, "Clou");
-                stud.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
+                // Des clous ronds (avant : des cubes tournes de 45 degres -- des diamants).
+                Proto.Sphere(w.bar, new Vector3(0f, 0.15f, start + (k + 0.5f) * span / studs), new Vector3(0.14f, 0.12f, 0.14f), iron, "Clou");
             }
             // Les bouts : des boules de fer a bande ambre (on les voit venir sans qu'elles brillent comme des lampes).
             GameObject tipA = Proto.Sphere(w.bar, new Vector3(0f, 0f, reach), Vector3.one * 0.5f, Color.white, "Bout");
@@ -413,7 +413,8 @@ namespace Fief
             {
                 shown = mood;
                 Color c = mood == 2 ? new Color(1f, 0.15f, 0.1f) : mood == 1 ? new Color(1f, 0.7f, 0.3f) : new Color(0.55f, 0.3f, 0.2f);
-                grid.sharedMaterial = MaterialFactory.GetGlow(c, mood == 2 ? 3f : 1f);
+                // Au repos, une lueur a peine (0,45) : c'est l'alerte (3) qui doit sauter aux yeux.
+                grid.sharedMaterial = MaterialFactory.GetGlow(c, mood == 2 ? 3f : mood == 1 ? 1f : 0.45f);
             }
             // Les pointes piquent TANT QU'ELLES SONT SORTIES (avant, seulement l'instant ou
             // elles jaillissaient : on traversait ensuite une herse herissee sans rien sentir).
@@ -469,13 +470,12 @@ namespace Fief
             Color wood = new Color(0.34f, 0.24f, 0.15f);
             Color iron = new Color(0.15f, 0.15f, 0.17f);
             // Le portique (les montants arretent les joueurs : contre les murets du couloir).
+            // (02/10) Des RONDINS : montants et traverse ronds, comme les piliers des couloirs.
             for (int side = -1; side <= 1; side += 2)
-            {
-                Proto.Cube(parent, centre + go.transform.right * side * (Course.HalfWidth + 0.2f) + Vector3.up * Height * 0.5f, new Vector3(0.8f, Height, 0.8f), wood, "Montant").transform.rotation = go.transform.rotation;
-            }
+                Proto.Cylinder(parent, centre + go.transform.right * side * (Course.HalfWidth + 0.2f) + Vector3.up * Height * 0.5f, new Vector3(0.9f, Height * 0.5f, 0.9f), wood, "Montant");
             Proto.BeginVisualOnly();
-            GameObject beam = Proto.Cube(parent, centre + Vector3.up * (Height + 0.3f), new Vector3(Course.HalfWidth * 2f + 1.6f, 0.7f, 0.9f), wood, "Traverse");
-            beam.transform.rotation = go.transform.rotation;
+            GameObject beam = Proto.Cylinder(parent, centre + Vector3.up * (Height + 0.3f), new Vector3(0.8f, Course.HalfWidth + 0.8f, 0.8f), wood, "Traverse");
+            beam.transform.rotation = go.transform.rotation * Quaternion.Euler(0f, 0f, 90f);
             m.arm = new GameObject("Manche").transform;
             m.arm.SetParent(go.transform, false);
             Proto.Cube(m.arm, new Vector3(0f, -Length * 0.5f, 0f), new Vector3(0.3f, Length, 0.3f), wood, "Manche");

@@ -8,7 +8,7 @@ cd Tools/icones
 dotnet run -- planche.png
 ```
 
-`planche.png` montre les 64 icônes. Pour en voir quelques-unes en grand :
+`planche.png` montre les 66 icônes. Pour en voir quelques-unes en grand :
 
 ```
 dotnet run -- grand.png couronne,ailes,pousser

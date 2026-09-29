@@ -468,7 +468,7 @@ namespace Fief
             // L'etat du moment : de petites pastilles, au-dessus.
             List<string> states = new List<string>();
             List<Color> tints = new List<Color>();
-            if (me.Stunned) { states.Add("clignement"); tints.Add(new Color(1f, 0.85f, 0.4f)); }
+            if (me.Stunned) { states.Add("etourdi"); tints.Add(new Color(1f, 0.85f, 0.4f)); }
             if (me.Slowed) { states.Add("gel"); tints.Add(AbilityInfo.Tint(Ability.Gel)); }
             if (me.Hidden) { states.Add("voile"); tints.Add(AbilityInfo.Tint(Ability.Voile)); }
             if (me.Graced) { states.Add("bouclier"); tints.Add(new Color(0.7f, 0.85f, 1f)); }

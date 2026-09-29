@@ -1210,7 +1210,7 @@ namespace Fief
     public static class PlayerLook
     {
         /// <summary>
-        /// Habiller un corps a sa couleur : une petite lanterne a la hanche, le halo.
+        /// Habiller un corps a sa couleur : une petite lanterne a la hanche.
         /// (01/10 : plus d'echarpe -- le haricot entier est a sa couleur.) Renvoie sa lumiere.
         /// </summary>
         public static Light Dress(CharacterRig rig, Transform root, Color colour)
@@ -1241,25 +1241,9 @@ namespace Fief
             lantern.shadows = LightShadows.None;
             lightGo.AddComponent<LampFlicker>();
 
-            Halo(root, colour);
+            // (02/10) Plus de halo au-dessus de la tete : le pseudo, a sa couleur, dit deja
+            // qui c'est -- et la petite flamme se logeait DANS la Couronne quand il la portait.
             return lantern;
-        }
-
-        /// <summary>
-        /// Une petite flamme a sa couleur, qui flotte a 2,4 m au-dessus de lui. Pas un
-        /// marqueur d'interface : une lueur dans le monde, que la brume avale au loin.
-        /// </summary>
-        public static void Halo(Transform root, Color colour)
-        {
-            Proto.BeginVisualOnly();
-            GameObject orb = Proto.Sphere(root, new Vector3(0f, 2.45f, 0f), Vector3.one * 0.16f, Color.white, "Halo");
-            Renderer r = orb.GetComponent<Renderer>();
-            r.sharedMaterial = MaterialFactory.GetGlow(colour, 4f);
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            Bobber bob = orb.AddComponent<Bobber>();
-            bob.amplitude = 0.07f;
-            bob.spin = 90f;
-            Proto.EndVisualOnly();
         }
     }
 }

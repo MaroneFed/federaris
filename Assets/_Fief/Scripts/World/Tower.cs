@@ -344,7 +344,7 @@ namespace Fief
                     corbel.transform.localRotation = slab.transform.localRotation;
                 }
                 Proto.EndVisualOnly();
-                // Une lanterne contre le fut, tous les quatorze pas, et une vraie lumiere une fois sur deux.
+                // Une lanterne contre le fut, tous les quatorze pas (02/10 : sans vraie lumiere -- invisible en plein jour).
                 if (i % 14 == 7)
                 {
                     Proto.BeginVisualOnly();
@@ -354,18 +354,6 @@ namespace Fief
                     lamp.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.45f), 1.4f);
                     Proto.Cone(t, m - outward * (width * 0.5f - 0.1f) + Vector3.up * 2.55f, 0.24f, 0.3f, new Color(0.16f, 0.15f, 0.17f), "Chapeau");
                     Proto.EndVisualOnly();
-                    if (i % 28 == 7)
-                    {
-                        GameObject lg = new GameObject("Lueur");
-                        lg.transform.SetParent(t, false);
-                        lg.transform.localPosition = m - outward * (width * 0.5f - 0.8f) + Vector3.up * 2.6f;
-                        Light l = lg.AddComponent<Light>();
-                        l.type = LightType.Point;
-                        l.color = new Color(1f, 0.74f, 0.45f);
-                        l.intensity = 1.2f;
-                        l.range = 12f;
-                        l.shadows = LightShadows.None;
-                    }
                 }
             }
         }

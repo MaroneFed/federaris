@@ -37,7 +37,7 @@ namespace Fief
             Proto.BeginVisualOnly();
             Proto.Cylinder(go.transform, new Vector3(0f, 0.04f, 0f), new Vector3(0.9f, 0.04f, 0.9f), new Color(0.16f, 0.15f, 0.15f), "Disque");
             GameObject rune = Proto.Cylinder(go.transform, new Vector3(0f, 0.09f, 0f), new Vector3(0.4f, 0.02f, 0.4f), Color.white, "Rune");
-            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 2f);
+            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.3f);
             Proto.EndVisualOnly();
             m.parts = go.GetComponentsInChildren<Renderer>();
             All.Add(m);
@@ -126,19 +126,28 @@ namespace Fief
             box.center = new Vector3(0f, Tall * 0.5f, 0f);
             box.size = new Vector3(Wide, Tall, 1.1f);
             Proto.BeginVisualOnly();
-            Color stone = new Color(0.34f, 0.33f, 0.31f);
+            // (02/10) La pierre CLAIRE du chateau, et des merlons a chaperon (avant : huit
+            // paves gris fonce, plus sombres que tout le decor creme -- une verrue).
+            Color stone = new Color(0.8f, 0.73f, 0.62f);
+            Color dark = new Color(0.56f, 0.49f, 0.42f);
             int blocks = 8;
             float bw = Wide / blocks;
             for (int i = 0; i < blocks; i++)
             {
-                float extra = (i % 3) * 0.25f;
-                Proto.Cube(go.transform, new Vector3(-Wide * 0.5f + bw * (i + 0.5f), (Tall + extra) * 0.5f, 0f), new Vector3(bw - 0.03f, Tall + extra, 1.1f),
-                           i % 2 == 0 ? stone : Palette.Shade(stone, 0.85f), "Pierre");
+                Proto.Cube(go.transform, new Vector3(-Wide * 0.5f + bw * (i + 0.5f), Tall * 0.5f, 0f), new Vector3(bw - 0.04f, Tall, 1.1f),
+                           i % 2 == 0 ? stone : Palette.Shade(stone, 0.93f), "Pierre");
+                if (i % 2 == 0)
+                {
+                    Proto.Cube(go.transform, new Vector3(-Wide * 0.5f + bw * (i + 0.5f), Tall + 0.35f, 0f), new Vector3(bw * 0.8f, 0.7f, 0.9f), stone, "Merlon");
+                    Proto.Cube(go.transform, new Vector3(-Wide * 0.5f + bw * (i + 0.5f), Tall + 0.76f, 0f), new Vector3(bw * 0.8f + 0.14f, 0.12f, 1.04f), dark, "Chaperon");
+                }
             }
+            Proto.Cube(go.transform, new Vector3(0f, 0.3f, 0f), new Vector3(Wide + 0.1f, 0.6f, 1.2f), dark, "Plinthe");
             for (int k = -1; k <= 1; k++)
             {
                 GameObject rune = Proto.Cube(go.transform, new Vector3(k * 3.2f, Tall * 0.6f, -0.57f), new Vector3(0.7f, 0.7f, 0.02f), Color.white, "Rune");
-                rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(AbilityInfo.Tint(Ability.Mur), 1.8f);
+                rune.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(AbilityInfo.Tint(Ability.Mur), 1.2f);
             }
             Proto.EndVisualOnly();
             // Qui se tient la ou il sort part en l'air.
