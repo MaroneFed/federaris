@@ -34,7 +34,7 @@ namespace Fief
             else if (!config.keepInspectorValues) GameConfig.RestoreDefaults(config);
 
             // A l'ecran-titre, pas de match : on en prepare un "d'apercu" (toi et trois
-            // bots) pour que la foret vive derriere le menu. Le salon le remplacera.
+            // bots) pour que l'ile vive derriere le menu. Le salon le remplacera.
             if (!Match.Active) Match.Begin(5, 5, Mathf.RoundToInt(config.seasonMinutes));
             if (!Match.Launched) Stats.Reset();
 
@@ -68,7 +68,7 @@ namespace Fief
                 // La Couronne, au sommet de la tour.
                 Crown.Build(worldRoot, Tower.CrownSpot);
 
-                // Les sanctuaires de la manche (un don chacun, touche V).
+                // Les sanctuaires de la manche (un don chacun, un appui sur E).
                 Shrine.Scatter(worldRoot, round);
 
                 // Les plateformes de depart : un rocher volant par joueur, tous a la meme
@@ -103,7 +103,7 @@ namespace Fief
 
             Game.BuildMilliseconds = chrono.ElapsedMilliseconds;
             Debug.Log("[FIEF] " + Game.Version + " -- manche " + Match.RoundNumber + " construite en " + chrono.ElapsedMilliseconds + " ms : "
-                      + Eye.All.Count + " Yeux, " + Shrine.All.Count + " sanctuaires, "
+                      + Eye.All.Count + " gargouilles, " + Shrine.All.Count + " sanctuaires, "
                       + Game.Seekers.Count + " joueurs.");
         }
 

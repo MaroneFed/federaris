@@ -231,7 +231,11 @@ namespace Fief
             Seeker holder = Crown.Holder;
             float dt = Time.deltaTime;
             bool inside = holder != null && holder.Body != null && Within(holder.Body.position, DeliverRadius)
-                && Mathf.Abs(holder.Body.position.y - transform.position.y) < 4f;
+                && Mathf.Abs(holder.Body.position.y - transform.position.y) < 4f
+                // En manche de departage, seuls les ex aequo peuvent etre sacres : pour
+                // les autres, pas de barre, pas de cloches (avant, la barre montait
+                // jusqu'au bout... et rien ne se passait).
+                && (!Match.IsTieBreak || Match.TieBreakers.Contains(holder.Index));
             if (inside)
             {
                 if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; Sfx.Alarm(); }

@@ -15,10 +15,10 @@ namespace Fief
     ///     dessous (ou dans le vide) ;
     ///   - SANS PARAPET ; chaque hauteur a sa COULEUR (six bandes, du bleu au violet) ;
     ///   - les OBSTACLES, tires au hasard a chaque manche, et PLUS NOMBREUX a chaque
-    ///     manche (voir Randomize et Hardness) : des TROUS a sauter, des PENDULES, des
-    ///     BELIERS, des BALAYEURS, des HERSES, des BOULETS -- et les gargouilles.
-    ///     (Plus de courants sur la rampe : "ca c'est n'importe quoi".)
-    ///   - au SOMMET : la Couronne sur son socle, et tout autour, les PLANEURS.
+    ///     manche (voir Randomize et Hardness) : des PENDULES, des BELIERS, des
+    ///     BALAYEURS, des HERSES, des BOULETS (une volee sur les quatre rampes a la
+    ///     fois) -- et les gargouilles. (Plus de trous ni de courants sur la rampe.)
+    ///   - au SOMMET : la Couronne sur son socle ; on en repart en planant.
     /// </summary>
     public static class Tower
     {
@@ -44,7 +44,6 @@ namespace Fief
         public static float Hardness { get; private set; }
 
         // Les obstacles de chaque rampe (0-1 le long de la rampe), tires au hasard.
-        static readonly List<float>[] Gaps = NewLists();
         static readonly List<float>[] Pendulums = NewLists();
         static readonly List<float>[] Rams = NewLists();
         static readonly List<float>[] Sweepers = NewLists();
@@ -67,7 +66,6 @@ namespace Fief
             new Color(0.95f, 0.30f, 0.35f),  // rouge
             new Color(0.78f, 0.50f, 1f)      // violet
         };
-        public static readonly string[] TurnName = { "bleu", "vert", "or", "orange", "rouge", "violet" };
 
         /// <summary>La couleur de la hauteur "y".</summary>
         public static Color ColourAt(float y) { return TurnColour[Mathf.Clamp(Mathf.FloorToInt(y / (Height / Turns)), 0, Turns - 1)]; }
@@ -82,7 +80,6 @@ namespace Fief
             Hardness = 1f + 0.14f * Mathf.Clamp(level, 0, 8);
             System.Random rng = new System.Random(seed * 7919 + 11);
             // (30/09 -- "les trous etaient trop compliques") : plus de trous dans la rampe.
-            int gaps = 0;
             int pendulums = Mathf.Min(2 + level / 2, 4);
             int rams = Mathf.Min(2 + level / 3, 3);
             int sweepers = Mathf.Min(2 + level / 2, 4);
@@ -90,7 +87,6 @@ namespace Fief
             for (int r = 0; r < Ramps; r++)
             {
                 List<float> taken = new List<float>();
-                Fill(rng, Gaps[r], taken, gaps, 0.06f);
                 Fill(rng, Pendulums[r], taken, pendulums, 0.045f);
                 Fill(rng, Rams[r], taken, rams, 0.04f);
                 Fill(rng, Sweepers[r], taken, sweepers, 0.045f);
@@ -239,17 +235,6 @@ namespace Fief
             Proto.EndVisualOnly();
         }
 
-        static bool IsGap(int ramp, int segment)
-        {
-            List<float> g = Gaps[ramp];
-            for (int i = 0; i < g.Count; i++)
-            {
-                int at = Mathf.RoundToInt(g[i] * SegmentsPerRamp);
-                if (segment == at || segment == at + 1) return true;
-            }
-            return false;
-        }
-
         // ================================================================== construction
 
         public static void Build(Transform parent)
@@ -275,7 +260,7 @@ namespace Fief
             {
                 Proto.Cylinder(t, new Vector3(0f, k * Height / Turns - 0.4f, 0f), new Vector3(Radius * 2f + 0.5f, 0.3f, Radius * 2f + 0.5f), StoneDark, "Bandeau");
                 GameObject gilt = Proto.Cylinder(t, new Vector3(0f, k * Height / Turns - 0.05f, 0f), new Vector3(Radius * 2f + 0.55f, 0.05f, Radius * 2f + 0.55f), Color.white, "Filet d'or");
-                gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Gold, 0.9f);
+                gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Gold, 0.8f, 1f);
             }
             // Des fenetres hautes ; un tiers luisent.
             for (int k = 0; k < 26; k++)
@@ -285,7 +270,7 @@ namespace Fief
                 Vector3 outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
                 GameObject win = Proto.Cube(t, outward * (Radius + 0.02f) + Vector3.up * y, new Vector3(1f, 2.8f, 0.1f), new Color(0.06f, 0.06f, 0.07f), "Fenêtre");
                 win.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
-                if (k % 3 == 0) win.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.4f), 1.3f);
+                if (k % 3 == 0) win.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.72f, 0.4f), 0.55f);
             }
             Proto.EndVisualOnly();
 
@@ -324,8 +309,6 @@ namespace Fief
                 }
             }
             BoulderChute.Build(t);
-            // (29/09 : plus de courants sur la rampe.)
-            Updraft.All.Clear();
         }
 
         /// <summary>La rampe "ramp" : une dalle par pas, inclinee dans la pente, bordee de la couleur de sa hauteur.</summary>
@@ -335,7 +318,6 @@ namespace Fief
             float width = RampWidth;
             for (int i = 0; i < total; i++)
             {
-                if (IsGap(ramp, i)) continue;
                 float ua = i / (float)total, ub = (i + 1) / (float)total;
                 Vector3 a = RampPoint(ramp, ua), b = RampPoint(ramp, ub);
                 Vector3 run = b - a;
@@ -353,7 +335,7 @@ namespace Fief
                 {
                     GameObject edge = Proto.Cube(t, m + outward * (width * 0.5f - 0.12f) + Vector3.up * 0.03f, new Vector3(0.22f, 0.08f, run.magnitude * 2.1f), Color.white, "Liseré");
                     edge.transform.localRotation = slab.transform.localRotation;
-                    edge.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(band, 1.2f);
+                    edge.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(band, 0.8f);
                 }
                 // Une console sous la dalle, tous les quatre pas : la rampe est portee.
                 if (i % 4 == 0)
@@ -366,8 +348,11 @@ namespace Fief
                 if (i % 14 == 7)
                 {
                     Proto.BeginVisualOnly();
-                    GameObject lamp = Proto.Cube(t, m - outward * (width * 0.5f - 0.1f) + Vector3.up * 2.4f, new Vector3(0.3f, 0.45f, 0.3f), Color.white, "Lanterne");
-                    lamp.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.45f), 2.2f);
+                    // Une lanterne ronde sur une console de fer (plus de cube qui luit).
+                    Proto.Cylinder(t, m - outward * (width * 0.5f - 0.1f) + Vector3.up * 2.05f, new Vector3(0.22f, 0.06f, 0.22f), new Color(0.16f, 0.15f, 0.17f), "Console");
+                    GameObject lamp = Proto.Sphere(t, m - outward * (width * 0.5f - 0.1f) + Vector3.up * 2.35f, new Vector3(0.36f, 0.44f, 0.36f), Color.white, "Lanterne");
+                    lamp.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.45f), 1.4f);
+                    Proto.Cone(t, m - outward * (width * 0.5f - 0.1f) + Vector3.up * 2.55f, 0.24f, 0.3f, new Color(0.16f, 0.15f, 0.17f), "Chapeau");
                     Proto.EndVisualOnly();
                     if (i % 28 == 7)
                     {
@@ -383,21 +368,6 @@ namespace Fief
                     }
                 }
             }
-            // Les trous : une barre rouge luisante au bord, pour qu'on les voie venir.
-            Proto.BeginVisualOnly();
-            List<float> g = Gaps[ramp];
-            for (int k = 0; k < g.Count; k++)
-            {
-                int at = Mathf.RoundToInt(g[k] * total);
-                for (int side = 0; side < 2; side++)
-                {
-                    float u = (at + side * 2) / (float)total;
-                    GameObject warn = Proto.Cube(t, RampPoint(ramp, u) + Vector3.up * 0.05f, new Vector3(width * 0.9f, 0.08f, 0.3f), Color.white, "Bord du trou");
-                    warn.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.3f, 0.2f), 2.5f);
-                    warn.transform.localRotation = Quaternion.LookRotation(Tangent(ramp, u), Vector3.up);
-                }
-            }
-            Proto.EndVisualOnly();
         }
 
         /// <summary>Des bannieres le long de la rampe, a la couleur de la hauteur, pendues au fut.</summary>
@@ -415,10 +385,10 @@ namespace Fief
                 rod.transform.localRotation = Quaternion.LookRotation(Vector3.Cross(outward, Vector3.up), Vector3.up);
                 GameObject cloth = Proto.Cube(t, on + outward * 0.05f, new Vector3(1.6f, 3.3f, 0.06f), c, "Bannière");
                 cloth.transform.localRotation = Quaternion.LookRotation(outward, Vector3.up);
-                cloth.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 0.55f);
+                cloth.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(c, 0.25f, 0f);
                 GameObject stripe = Proto.Cube(t, on + outward * 0.09f + Vector3.down * 0.4f, new Vector3(0.3f, 2.2f, 0.02f), Color.white, "Blason");
                 stripe.transform.localRotation = cloth.transform.localRotation;
-                stripe.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Gold, 1.2f);
+                stripe.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Gold, 0.8f, 1f);
             }
             Proto.EndVisualOnly();
         }
@@ -440,7 +410,7 @@ namespace Fief
             lintel.transform.rotation = Quaternion.LookRotation(along, Vector3.up);
             GameObject gilt = Proto.Cube(t, foot + Vector3.up * 6.2f - along * 0.52f, new Vector3(RampWidth + 1.4f, 0.35f, 0.05f), Color.white, "Filet d'or");
             gilt.transform.rotation = lintel.transform.rotation;
-            gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Gold, 2f);
+            gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Gold, 0.8f, 1f);
             Proto.EndVisualOnly();
         }
 
@@ -490,72 +460,6 @@ namespace Fief
     }
 
     // ====================================================================== les obstacles
-
-    /// <summary>
-    /// UN COURANT DE LA TOUR : un disque pale, a la couleur du tour du dessus, au bord
-    /// interieur de la rampe, et une colonne de lumiere qui monte a travers le trou.
-    /// Qui marche dedans est projete un tour plus haut, par le trou.
-    /// </summary>
-    public class Updraft : MonoBehaviour
-    {
-        public static readonly List<Updraft> All = new List<Updraft>();
-        readonly Dictionary<Seeker, float> lastLaunch = new Dictionary<Seeker, float>();
-        Transform disc;
-        Color tint;
-
-        public const float Radius = 1.1f;
-        const float Lift = 29f;         // assez pour monter de 17 m et depasser le rebord
-
-        public static Updraft Build(Transform parent, Vector3 at, Color tint)
-        {
-            GameObject go = new GameObject("COURANT");
-            go.transform.SetParent(parent, false);
-            go.transform.position = at;
-            Updraft u = go.AddComponent<Updraft>();
-            u.tint = Color.Lerp(tint, Color.white, 0.4f);
-            Proto.BeginVisualOnly();
-            GameObject d = Proto.Cylinder(go.transform, new Vector3(0f, 0.04f, 0f), new Vector3(Radius * 2f, 0.03f, Radius * 2f), Color.white, "Disque");
-            d.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(u.tint, 2f);
-            u.disc = d.transform;
-            Proto.EndVisualOnly();
-            LightBeam beam = LightBeam.Build(parent, at, u.tint, 1.4f, 18f);
-            if (beam != null) beam.targetAlpha = 0.4f;
-            All.Add(u);
-            return u;
-        }
-
-        void OnDestroy() { All.Remove(this); }
-
-        /// <summary>Le courant le plus proche de "p" a moins de "metres" (null sinon).</summary>
-        public static Updraft Near(Vector3 p, float metres)
-        {
-            for (int i = 0; i < All.Count; i++)
-                if (All[i] != null && (All[i].transform.position - p).magnitude < metres) return All[i];
-            return null;
-        }
-
-        void Update()
-        {
-            if (disc != null) disc.localScale = new Vector3(Radius * 2f, 0.03f, Radius * 2f) * (1f + 0.08f * Mathf.Sin(Time.time * 5f));
-            if (Game.Season == null || !Game.Season.Running) return;
-            for (int i = 0; i < Game.Seekers.Count; i++)
-            {
-                Seeker s = Game.Seekers[i];
-                if (s.Body == null) continue;
-                Vector3 d = s.Body.position - transform.position;
-                if (Mathf.Abs(d.y) > 1.2f || new Vector2(d.x, d.z).magnitude > Radius) continue;
-                float last;
-                if (lastLaunch.TryGetValue(s, out last) && Time.time - last < 1.5f) continue;
-                IMover m = AbilityCaster.MoverOf(s);
-                if (m == null) continue;
-                lastLaunch[s] = Time.time;
-                m.Push(Vector3.up * Lift);
-                Fx.Column(transform.position, tint, 18f, 0.4f, 0.9f);
-                Fx.GroundRing(transform.position, tint, 3f, 0.4f);
-                if (s.IsPlayer || (Game.PlayerTransform != null && (Game.PlayerTransform.position - transform.position).magnitude < 30f)) Sfx.Whoosh();
-            }
-        }
-    }
 
     /// <summary>
     /// UN PENDULE de la tour : une boule de pierre au bout d'une chaine, qui balaie la
@@ -769,10 +673,10 @@ namespace Fief
     }
 
     /// <summary>
-    /// LES BOULETS : toutes les vingt secondes, une grosse boule de pierre part du
-    /// sommet et DEVALE la rampe, d'un cote (pres du mur) ou de l'autre (pres du vide).
-    /// Elle gronde, ses runes luisent : on la voit venir, on change de cote -- ou on
-    /// saute par-dessus un trou au bon moment.
+    /// LES BOULETS : toutes les trente-quatre secondes (moins aux manches suivantes),
+    /// une VOLEE -- une grosse boule de pierre par rampe, du meme cote pour toutes --
+    /// part du sommet et DEVALE, pres du mur ou pres du vide, en alternance. Elle
+    /// gronde, ses runes luisent : on la voit venir, on change de cote.
     /// </summary>
     public class BoulderChute : MonoBehaviour
     {
@@ -781,7 +685,7 @@ namespace Fief
         int count;
         Transform parent;
 
-        const float Every = 20f;
+        const float Every = 34f;
 
         public static void Build(Transform parent)
         {
@@ -799,7 +703,11 @@ namespace Fief
             if (timer > 0f) return;
             timer = Every / Tower.Hardness;
             count++;
-            Boulder.Launch(parent, count % Tower.Ramps, count % 2 == 0 ? -1.9f : 1.9f);
+            // UNE VOLEE : un boulet sur CHAQUE rampe, du meme cote, au meme instant -- la
+            // meme course pour tout le monde (avant, les rampes 1 et 3 avaient toujours
+            // leur boulet a l'exterieur, les rampes 0 et 2 toujours a l'interieur).
+            float lane = count % 2 == 0 ? -1.9f : 1.9f;
+            for (int r = 0; r < Tower.Ramps; r++) Boulder.Launch(parent, r, lane);
         }
 
         /// <summary>Un boulet arrive sur "p" (a moins de "metres", sur son cote) : de quel cote s'ecarter.</summary>
@@ -846,7 +754,7 @@ namespace Fief
             {
                 GameObject band = Proto.Cylinder(b.ball, Vector3.zero, new Vector3(BallRadius * 2.04f, 0.08f, BallRadius * 2.04f), Color.white, "Rune");
                 band.transform.localRotation = Quaternion.Euler(k * 60f, 0f, 90f);
-                band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.5f, 0.2f), 2.2f);
+                band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.5f, 0.2f), 1.1f);
             }
             Proto.EndVisualOnly();
             MaterialFactory.Polish(b.ball, 0.55f);

@@ -82,7 +82,8 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s == by || s.Body == null) continue;
+                // Un protege n'est ni ralenti ni bouscule (Combat.Hit le dit aussi).
+                if (s == by || s.Body == null || s.Graced) continue;
                 if ((s.Body.position - at).magnitude > SlowRadius) continue;
                 s.SlowUntil = Time.time + SlowSeconds;
                 // Et un eclat qui bouscule un peu (28/09).

@@ -4,7 +4,7 @@ namespace Fief
 {
     /// <summary>
     /// Cherche en permanence l'interactif le plus pertinent autour du joueur,
-    /// et declenche l'action sur E (appui court ou maintien selon l'objet).
+    /// et declenche l'action sur E : un simple appui (01/10 -- plus rien a tenir).
     /// </summary>
     public class PlayerInteractor : MonoBehaviour
     {
@@ -84,7 +84,7 @@ namespace Fief
 
         /// <summary>
         /// On prend l'interactif le plus proche, avec un bonus pour ce qui est devant nous.
-        /// Sans ce bonus, on recolte l'arbre dans notre dos, ce qui est desagreable.
+        /// Sans ce bonus, on monterait sur l'arbaleste dans notre dos plutot que sur celle qu'on regarde.
         /// </summary>
         IInteractable FindBest(float radius)
         {
@@ -107,7 +107,7 @@ namespace Fief
                 if (anchor == null) continue;
 
                 // On mesure la distance au POINT LE PLUS PROCHE du collider, pas a son centre.
-                // Sans ca, une grande zone (le marche fait 14 m de rayon) serait
+                // Sans ca, une grande zone serait
                 // injoignable : on serait dedans tout en etant a 14 m de son centre.
                 Vector3 closest = c.ClosestPoint(origin);
                 Vector3 to = closest - origin;

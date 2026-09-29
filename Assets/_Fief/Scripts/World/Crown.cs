@@ -291,7 +291,7 @@ namespace Fief
                 for (int i = 0; i < parts.Length; i++) parts[i].enabled = !mine;
             }
             if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.45f; beam.fadeSpeed = mine ? 30f : 0.5f; }
-            // Tombee et oubliee (45 s), ou tombee hors d'atteinte : elle retourne sur son socle.
+            // Tombee et oubliee (ReturnSeconds, 20 s), ou tombee hors d'atteinte : elle retourne sur son socle.
             if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.FallLine))
                 ReturnHome();
             // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).

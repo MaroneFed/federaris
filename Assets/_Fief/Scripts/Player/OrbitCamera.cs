@@ -5,8 +5,8 @@ namespace Fief
     /// <summary>
     /// LA camera du jeu. Une seule vue : on regarde par les yeux du personnage.
     ///
-    /// Le mode orbital ne sert plus qu'a l'ecran-titre, ou la camera tourne autour
-    /// du mendiant pour le montrer. Il n'y a plus de bascule : "firstPerson" etait
+    /// Le mode orbital ne sert plus qu'a l'ecran-titre, ou la camera tourne tres loin
+    /// autour de la tour (le plan d'ensemble). Il n'y a plus de bascule : "firstPerson" etait
     /// un etat qu'on pouvait changer en jeu, ce n'est plus qu'une consequence --
     /// on est dans les yeux des que la scene n'est pas cinematique.
     ///
@@ -64,7 +64,6 @@ namespace Fief
             if (target != null) yaw = target.eulerAngles.y;
         }
 
-        /// <summary>Cadrage large pour l'ecran-titre : on recule et on prend de la hauteur.</summary>
         /// <summary>
         /// Le plan d'ensemble de l'ecran-titre (29/09) : la camera tourne tres loin, au-dessus
         /// du vide. On ne la rapproche pas quand un mur est entre elle et son pivot (le pivot
@@ -113,9 +112,8 @@ namespace Fief
             // Temps NON mis a l'echelle : la camera continue de vivre quand le jeu est en pause.
             float dt = Time.unscaledDeltaTime;
 
-            // Pendant l'ecran-titre la camera tourne autour du personnage : on montre
-            // alors le mendiant entier, pas le corps subjectif. Partout ailleurs on
-            // est dans ses yeux.
+            // Pendant l'ecran-titre la camera tourne loin autour de la tour ; partout
+            // ailleurs, on est dans les yeux du personnage.
             bool throughEyes = !cinematic;
             if (rig != null) rig.SetFirstPerson(throughEyes);
 
@@ -183,7 +181,7 @@ namespace Fief
                 if (shake > 0.001f)
                 {
                     shake = Mathf.MoveTowards(shake, 0f, dt * 1.6f);
-                    jolt1 = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * shake * 0.5f;
+                    jolt1 = Jolt() * shake * 0.5f;
                 }
 
                 transform.position = head + jolt1;
@@ -215,11 +213,22 @@ namespace Fief
             if (shake > 0.001f)
             {
                 shake = Mathf.MoveTowards(shake, 0f, dt * 1.6f);
-                jolt = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * shake;
+                jolt = Jolt() * shake;
             }
 
             transform.position = pivot + direction * currentDistance + jolt;
             transform.rotation = rotation;
+        }
+
+        /// <summary>
+        /// La secousse : un bruit DOUX (Perlin, 22 oscillations par seconde), pas un tirage
+        /// au hasard a chaque image -- a 144 images/s, ca donnait un grésillement, pas
+        /// un choc.
+        /// </summary>
+        static Vector3 Jolt()
+        {
+            float t = Time.unscaledTime * 22f;
+            return new Vector3(Mathf.PerlinNoise(t, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, t) - 0.5f, Mathf.PerlinNoise(t, 5.1f) - 0.5f) * 2f;
         }
 
         /// <summary>Distance libre devant la camera, en ignorant le joueur lui-meme.</summary>

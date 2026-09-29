@@ -7,7 +7,7 @@ namespace Fief
     /// LE CONTACT (27/09 : plus d'epee, plus de vie). Tout ce qui touche un joueur le
     /// PROJETTE : la poussee (clic droit), l'onde de choc, le souffle, le rayon d'un
     /// Oeil, une mine, un pendule de la tour. On ne meurt pas -- on perd sa place, et
-    /// la Couronne si on la portait. C'est Smash dans une foret noire.
+    /// la Couronne si on la portait. C'est Smash au-dessus des nuages.
     ///
     /// Tout passe par Hit() : un seul endroit decide de ce qu'un coup fait (Ancrage,
     /// Prise ferme, etourdissement, Couronne qui tombe). En Phase 3, sur l'hote seulement.
@@ -462,12 +462,13 @@ namespace Fief
             s.LastHitBy = null;
             Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;
             float yaw = Spawns.YawOf(s.Index);
-            if (s.IsPlayer && Game.Player != null) Game.Player.Teleport(at, yaw);
+            if (s.IsPlayer && Game.Player != null) { Game.Player.Teleport(at, yaw); Game.Player.Forget(); }
             else
             {
                 Rival r = Rival.Of(s);
                 if (r == null) return;
                 r.Teleport(at);
+                r.Forget();
                 r.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             }
             s.GraceUntil = Time.time + Grace;

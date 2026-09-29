@@ -89,6 +89,7 @@ namespace Fief
                 if (hitStop <= 0f && Mathf.Approximately(Time.timeScale, 0.05f)) Time.timeScale = 1f;
             }
             if (cardTimer > 0f) cardTimer -= Time.unscaledDeltaTime;
+            if (tipTimer > 0f) tipTimer -= Time.unscaledDeltaTime;
             if (flash > 0f) flash = Mathf.Max(0f, flash - Time.unscaledDeltaTime * 1.4f);
             if (hurtFlash > 0f) hurtFlash = Mathf.Max(0f, hurtFlash - Time.unscaledDeltaTime * 2f);
             if (hitSideTimer > 0f) hitSideTimer -= Time.unscaledDeltaTime;
@@ -148,11 +149,34 @@ namespace Fief
         /// <summary>Une astuce, une seule fois par match, au moment ou elle sert.</summary>
         public void Tip(string key, string text)
         {
-            // (30/09 -- "je deteste le texte") : plus d'astuces ecrites. On retient
-            // seulement qu'elle aurait servi (le jour ou on en fera des icones).
+            // (30/09 -- "je deteste le texte") : plus d'astuces ECRITES. La phrase reste
+            // dans le code (elle dit l'intention) ; a l'ecran, une pastille d'ICONES :
+            // la touche, puis ce qu'elle fait (v13).
             if (tipsShown.Contains(key)) return;
             tipsShown.Add(key);
+            string[] icons;
+            if (!TipIcons.TryGetValue(key, out icons)) return;
+            tipIcons = icons;
+            tipTimer = TipSeconds;
         }
+
+        /// <summary>
+        /// LES ASTUCES EN ICONES : "k:E" une touche, "k:use" la touche d'interaction,
+        /// "k:active" celle de la capacite, "k:push" celle de la poussee ; le reste, une icone.
+        /// </summary>
+        static readonly Dictionary<string, string[]> TipIcons = new Dictionary<string, string[]>
+        {
+            { "plateforme", new[] { "k:use", "arbaleste", "k:Clic gauche", "haut" } },
+            { "arbaleste", new[] { "k:use", "arbaleste", "k:Clic gauche", "cible" } },
+            { "rampe", new[] { "tour", "haut", "couronne" } },
+            { "chasse", new[] { "k:push", "pousser", "couronne" } },
+            { "porte", new[] { "couronne", "courant", "monument", "sacre" } },
+            { "don", new[] { "don", "k:active" } },
+            { "sceau", new[] { "ailes", "croix" } },
+        };
+        const float TipSeconds = 5f;
+        string[] tipIcons;
+        float tipTimer;
 
         /// <summary>
         /// LES ASTUCES AU BON MOMENT (27/09 -- « on comprend rien ») : pas de tutoriel,
@@ -170,7 +194,6 @@ namespace Fief
             if (me.CarriesCrown) Tip("porte", "La Couronne est LOURDE : tu planes mal. Tourne dans un courant d'air (colonne blanche) pour remonter, ou prends une arbaleste sur l'île. Au Monument (colonne bleue), reste 3 s dans le cercle.");
             else if (Spawns.OnPad(p)) Tip("plateforme", "Ta plateforme. E : monte sur TON arbaleste, clic gauche : elle te pose devant le château. Puis passe la porte et monte la tour.");
             else if (Ballista.NearestFree(p, 7f) != null) Tip("arbaleste", "Une arbaleste géante : E pour monter dessus, maintiens le clic gauche pour tendre, relâche pour être tiré.");
-            else if (Updraft.Near(p, 5f) != null) Tip("courant", "Un courant : marche dans le disque pour monter d'un tour.");
             else if (Tower.On(p) && Tower.Progress(p) > 0.2f) Tip("obstacle", "Un obstacle qui te touche t'éjecte de la tour : regarde les bandes ambre au sol, et passe entre deux coups.");
             else if (Tower.On(p)) Tip("rampe", "La rampe monte jusqu'à la Couronne. Pousse les autres dans le vide : " + AbilityInfo.PushKey.ToLowerInvariant() + ".");
             else if (Crown.Holder != null) Tip("chasse", Crown.Holder.Name + " porte la Couronne : pousse-le (" + AbilityInfo.PushKey.ToLowerInvariant() + ") pour la lui VOLER.");
@@ -718,7 +741,32 @@ namespace Fief
         // ================================================================== l'astuce
 
         /// <summary>(30/09 -- "je deteste le texte" : plus d'astuces ecrites.)</summary>
-        void DrawTip() { }
+        /// <summary>La pastille d'astuce, sous le viseur : des touches et des icones, sans un mot.</summary>
+        void DrawTip()
+        {
+            if (tipTimer <= 0f || tipIcons == null || tipIcons.Length == 0) return;
+            float alpha = Mathf.Clamp01(tipTimer / 0.6f) * Mathf.Clamp01((TipSeconds - tipTimer) / 0.25f);
+            float s = UiStyle.S(50), gap = UiStyle.S(10);
+            float w = tipIcons.Length * s + (tipIcons.Length - 1) * gap + s * 0.6f;
+            Rect chip = new Rect(Screen.width * 0.5f - w * 0.5f, Screen.height * 0.5f + UiStyle.S(150), w, s + UiStyle.S(12));
+            Icons.Pill(chip, new Color(0.18f, 0.2f, 0.34f, 0.9f), alpha);
+            float x = chip.x + s * 0.3f;
+            for (int i = 0; i < tipIcons.Length; i++)
+            {
+                Rect r = new Rect(x, chip.y + UiStyle.S(6), s, s);
+                string id = tipIcons[i];
+                if (id.StartsWith("k:"))
+                {
+                    string bind = id.Substring(2);
+                    if (bind == "use") bind = AbilityInfo.UseKey;
+                    else if (bind == "active") bind = AbilityInfo.Keys[0];
+                    else if (bind == "push") bind = AbilityInfo.PushKey;
+                    Icons.Key(r, bind, alpha);
+                }
+                else Icons.Draw(r, id, id == "couronne" ? new Color(1f, 0.86f, 0.35f, alpha) : id == "monument" ? new Color(0.55f, 0.75f, 1f, alpha) : new Color(1f, 1f, 1f, alpha));
+                x += s + gap;
+            }
+        }
 
         // ================================================================== le grand titre
 

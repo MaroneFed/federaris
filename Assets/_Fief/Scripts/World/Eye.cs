@@ -411,7 +411,9 @@ namespace Fief
                 Vector3 push = new Vector3(c.x, 0f, c.z);
                 // Sur la tour : vers le vide. Ailleurs : dans le sens du jet.
                 push = Tower.On(s.Body.position) && push.sqrMagnitude > 0.01f ? push.normalized : new Vector3(dir.x, 0f, dir.z).normalized;
+                bool graced = s.Graced;
                 Combat.Hit(s, push * 34f + Vector3.up * 11f, 0.6f, true, null);
+                if (graced) continue;       // protege : des etincelles, pas de coup (ni de secousse)
                 Fx.Impact(c, Blaze, 1.8f);
                 if (s.IsPlayer)
                 {

@@ -244,7 +244,8 @@ namespace Fief
                     break;
 
                 case Ability.Mur:
-                    StoneWall.Raise(pos + flat * WallAhead, flat, s);
+                    // Pas de mur en plein vol : il sort du SOL.
+                    if (!StoneWall.Raise(pos + flat * WallAhead, flat, s)) { s.Refund(a); return false; }
                     Fx.Burst(pos + flat * WallAhead, new Color(0.65f, 0.58f, 0.5f), 110, 11f, 0.45f, 1.1f, 0.6f, Vector3.up, 50f);
                     Fx.GroundRing(pos + flat * WallAhead, tint, 8f, 0.45f);
                     ShakeNear(pos, 0.25f);
@@ -256,7 +257,8 @@ namespace Fief
                     break;
 
                 case Ability.Mine:
-                    Mine.Place(s, pos);
+                    // Pas de mine en plein vol : elle flotterait dans le vide.
+                    if (Mine.Place(s, pos) == null) { s.Refund(a); return false; }
                     Fx.GroundRing(pos, tint, 1.8f, 0.35f);
                     Fx.Sparks(pos + Vector3.up * 0.2f, tint, 20, 3f);
                     break;
@@ -278,6 +280,15 @@ namespace Fief
                     IMover other = MoverOf(t);
                     if (t == null || other == null) { s.Refund(a); return false; }
                     Vector3 mine = pos, theirs = t.Body.position;
+                    // Pas d'echange a travers la muraille : on entre dans la citadelle par une
+                    // porte, jamais en prenant la place de quelqu'un qui y est deja. Et un
+                    // protege ne se deplace pas.
+                    if (t.Graced || Castle.Inside(mine) != Castle.Inside(theirs))
+                    {
+                        s.Refund(a);
+                        Fx.Sparks(t.Body.position + Vector3.up * 1.1f, Ward.Rune, 14, 3f);
+                        return false;
+                    }
                     Fx.Column(mine, tint, 14f, 0.3f, 0.7f);
                     Fx.Column(theirs, tint, 14f, 0.3f, 0.7f);
                     m.Blink(theirs);
@@ -372,6 +383,9 @@ namespace Fief
         Color tint;
         readonly List<Seeker> struck = new List<Seeker>();
         readonly List<LineRenderer> arcs = new List<LineRenderer>();
+        readonly Gradient gradient = new Gradient();
+        readonly GradientColorKey[] colourKeys = new GradientColorKey[3];
+        readonly GradientAlphaKey[] alphaKeys = new GradientAlphaKey[3];
         ParticleSystem wake;
 
         /// <summary>La largeur du front, selon le chemin parcouru.</summary>
@@ -486,13 +500,16 @@ namespace Fief
                 }
                 l.widthMultiplier = (0.9f - k * 0.2f) * (0.6f + width / 18f);
                 Color c = Color.Lerp(tint, Color.white, 0.25f * k);
-                l.startColor = new Color(c.r, c.g, c.b, 0.15f * fade);
-                l.endColor = new Color(c.r, c.g, c.b, 0.15f * fade);
-                // (le milieu plus vif que les bouts)
-                Gradient gr = new Gradient();
-                gr.SetKeys(new[] { new GradientColorKey(c, 0f), new GradientColorKey(Color.white, 0.5f), new GradientColorKey(c, 1f) },
-                           new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.85f * fade, 0.5f), new GradientAlphaKey(0f, 1f) });
-                l.colorGradient = gr;
+                // (le milieu plus vif que les bouts ; un seul degrade, reutilise : avant,
+                // trois degrades neufs par image, pour le ramasse-miettes)
+                colourKeys[0] = new GradientColorKey(c, 0f);
+                colourKeys[1] = new GradientColorKey(Color.white, 0.5f);
+                colourKeys[2] = new GradientColorKey(c, 1f);
+                alphaKeys[0] = new GradientAlphaKey(0f, 0f);
+                alphaKeys[1] = new GradientAlphaKey(0.85f * fade, 0.5f);
+                alphaKeys[2] = new GradientAlphaKey(0f, 1f);
+                gradient.SetKeys(colourKeys, alphaKeys);
+                l.colorGradient = gradient;
             }
             if (wake != null)
             {

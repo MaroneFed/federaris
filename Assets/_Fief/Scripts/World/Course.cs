@@ -49,6 +49,31 @@ namespace Fief
             GameObject root = new GameObject("PARCOURS DES PORTES");
             root.transform.SetParent(parent, false);
             Transform t = root.transform;
+            // LES MEMES STATIONS DEVANT LES QUATRE PORTES (comme les rampes de la tour :
+            // personne n'a le couloir facile). On tire la suite une fois, puis chaque
+            // porte la construit a l'identique.
+            int[] kinds = new int[Stations];
+            int[] sides = new int[Stations];
+            float[] speeds = new float[Stations];
+            float[] phases = new float[Stations];
+            int lastChicane = 0;
+            for (int k = 0; k < Stations; k++)
+            {
+                kinds[k] = rng.Next(4);
+                // Jamais deux chicanes de suite du meme cote : on zigzague.
+                if (kinds[k] == 0)
+                {
+                    sides[k] = lastChicane == 0 ? (rng.NextDouble() < 0.5 ? -1 : 1) : -lastChicane;
+                    lastChicane = sides[k];
+                }
+                else
+                {
+                    sides[k] = rng.NextDouble() < 0.5 ? -1 : 1;
+                    lastChicane = 0;
+                }
+                speeds[k] = (float)rng.NextDouble();
+                phases[k] = (float)rng.NextDouble();
+            }
             for (int g = 0; g < 4; g++)
             {
                 Openings[g].Clear();
@@ -78,26 +103,26 @@ namespace Fief
                 arch.transform.rotation = face;
                 GameObject glow = Proto.Cube(t, At(g, Length + 0.75f, 0f) + Vector3.up * 5.5f, new Vector3(HalfWidth * 1.4f, 0.3f, 0.05f), Color.white, "Rune de l'arche");
                 glow.transform.rotation = face;
-                glow.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 2f);
+                glow.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.1f);
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    GameObject pillar = Proto.Cube(t, At(g, Length, side * (HalfWidth + 0.8f)) + Vector3.up * 3f, new Vector3(1.8f, 6f, 1.8f), Stone, "Pilier");
-                    pillar.transform.rotation = face;
+                    // Des piliers ronds, coiffes d'une boule (plus de poteaux carres).
+                    Vector3 foot = At(g, Length, side * (HalfWidth + 0.8f));
+                    Proto.Cylinder(t, foot + Vector3.up * 3f, new Vector3(1.9f, 3f, 1.9f), Stone, "Pilier");
+                    Proto.Cylinder(t, foot + Vector3.up * 6.1f, new Vector3(2.3f, 0.2f, 2.3f), StoneDark, "Chapiteau");
+                    Proto.Sphere(t, foot + Vector3.up * 6.75f, Vector3.one * 0.9f, Stone, "Boule");
                 }
                 Proto.EndVisualOnly();
 
                 // Les stations, de l'entree vers la porte.
                 Openings[g].Add(At(g, Length + 4f, 0f));
-                int lastChicane = 0;
                 for (int k = 0; k < Stations; k++)
                 {
                     float d = Length - 4f - k * 5.5f;
-                    int kind = rng.Next(4);
-                    // Jamais deux chicanes de suite du meme cote : on zigzague.
+                    int kind = kinds[k];
                     if (kind == 0)
                     {
-                        int sideOpen = lastChicane == 0 ? (rng.NextDouble() < 0.5 ? -1 : 1) : -lastChicane;
-                        lastChicane = sideOpen;
+                        int sideOpen = sides[k];
                         Chicane(t, g, d, sideOpen, face);
                         Openings[g].Add(At(g, d + 2.5f, sideOpen * (HalfWidth - 2.5f)));
                         Openings[g].Add(At(g, d - 2.5f, sideOpen * (HalfWidth - 2.5f)));
@@ -106,13 +131,12 @@ namespace Fief
                     Vector3 c = At(g, d, 0f);
                     if (kind == 1)
                     {
-                        Sweeper.Build(t, c, Axes[g], HalfWidth - 0.4f, (1.3f + (float)rng.NextDouble() * 0.6f) * Tower.Hardness, (float)rng.NextDouble() * 6f, false);
+                        Sweeper.Build(t, c, Axes[g], HalfWidth - 0.4f, (1.3f + speeds[k] * 0.6f) * Tower.Hardness, phases[k] * 6f, false);
                         // (Les bots contournent son pied.)
-                        Openings[g].Add(At(g, d, (rng.NextDouble() < 0.5 ? -1f : 1f) * 3.5f));
+                        Openings[g].Add(At(g, d, sides[k] * 3.5f));
                     }
-                    else if (kind == 2) SpikeTrap.Build(t, c, Axes[g], HalfWidth * 2f, 4f, (2.6f + (float)rng.NextDouble()) / Tower.Hardness, (float)rng.NextDouble() * 3f);
-                    else Maul.Build(t, c, Axes[g], (float)rng.NextDouble() * 6f);
-                    lastChicane = 0;
+                    else if (kind == 2) SpikeTrap.Build(t, c, Axes[g], HalfWidth * 2f, 4f, (2.6f + speeds[k]) / Tower.Hardness, phases[k] * 3f);
+                    else Maul.Build(t, c, Axes[g], phases[k] * 6f);
                 }
                 Openings[g].Add(At(g, 9f, 0f));
             }
@@ -131,11 +155,10 @@ namespace Fief
             Proto.BeginVisualOnly();
             GameObject rune = Proto.Cube(t, (a + b) * 0.5f + Vector3.up * 2.2f + Axes[gate] * 0.62f, new Vector3(1f, 1f, 0.04f), Color.white, "Rune");
             rune.transform.rotation = face;
-            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.8f);
+            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.1f);
             Proto.EndVisualOnly();
         }
 
-        /// <summary>La porte dont le couloir sert a qui vient de "from" (0 a 3).</summary>
         /// <summary>Le parvis devant le couloir de la porte "gate" (la ou les arbalestes des plateformes posent).</summary>
         public static Vector3 Plaza(int gate, float lateral) { return At(gate, Length + 5f, lateral) + Vector3.up * 0.05f; }
 
@@ -221,7 +244,7 @@ namespace Fief
             w.bar = new GameObject("Barre").transform;
             w.bar.SetParent(go.transform, false);
             w.bar.localPosition = new Vector3(0f, BarHeight, 0f);
-            float reach = wiper ? length : length;
+            float reach = length;
             float start = wiper ? 0f : -length;
             float span = wiper ? length : length * 2f;
             Proto.Cube(w.bar, new Vector3(0f, 0f, start + span * 0.5f), new Vector3(0.28f, 0.28f, span), new Color(0.34f, 0.24f, 0.15f), "Poutre");
@@ -231,11 +254,12 @@ namespace Fief
                 GameObject stud = Proto.Cube(w.bar, new Vector3(0f, 0.18f, start + (k + 0.5f) * span / studs), new Vector3(0.12f, 0.18f, 0.12f), iron, "Clou");
                 stud.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
             }
-            GameObject tipA = Proto.Cube(w.bar, new Vector3(0f, 0f, reach), new Vector3(0.45f, 0.45f, 0.45f), Color.white, "Bout");
-            tipA.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 2.6f);
+            // Les bouts : des boules de fer a bande ambre (on les voit venir sans qu'elles brillent comme des lampes).
+            GameObject tipA = Proto.Sphere(w.bar, new Vector3(0f, 0f, reach), Vector3.one * 0.5f, Color.white, "Bout");
+            tipA.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 1.3f);
             if (!wiper)
             {
-                GameObject tipB = Proto.Cube(w.bar, new Vector3(0f, 0f, -reach), new Vector3(0.45f, 0.45f, 0.45f), Color.white, "Bout");
+                GameObject tipB = Proto.Sphere(w.bar, new Vector3(0f, 0f, -reach), Vector3.one * 0.5f, Color.white, "Bout");
                 tipB.GetComponent<Renderer>().sharedMaterial = tipA.GetComponent<Renderer>().sharedMaterial;
             }
             Proto.EndVisualOnly();
@@ -332,6 +356,7 @@ namespace Fief
         float width, depth, period, phase;
         int shown = -1;
         bool fired;
+        readonly Dictionary<Seeker, float> lastHit = new Dictionary<Seeker, float>();
         const float Warn = 0.75f;
         // Des pointes de 55 cm, rentrees de 60 : completement dans la dalle (60 cm d'epaisseur).
         const float Tall = 0.55f;
@@ -388,9 +413,9 @@ namespace Fief
                 Color c = mood == 2 ? new Color(1f, 0.15f, 0.1f) : mood == 1 ? new Color(1f, 0.7f, 0.3f) : new Color(0.55f, 0.3f, 0.2f);
                 grid.sharedMaterial = MaterialFactory.GetGlow(c, mood == 2 ? 3f : 1f);
             }
-            if (t >= 0.12f) { fired = false; return; }
-            if (fired) return;
-            fired = true;
+            // Les pointes piquent TANT QU'ELLES SONT SORTIES (avant, seulement l'instant ou
+            // elles jaillissaient : on traversait ensuite une herse herissee sans rien sentir).
+            if (up < 0.5f) { fired = false; return; }
             if (Game.Season == null || !Game.Season.Running) return;
             bool near = false;
             for (int i = 0; i < Game.Seekers.Count; i++)
@@ -399,14 +424,19 @@ namespace Fief
                 if (s.Body == null) continue;
                 Vector3 local = transform.InverseTransformPoint(s.Body.position);
                 if (Mathf.Abs(local.x) > width * 0.5f + 0.3f || Mathf.Abs(local.z) > depth * 0.5f + 0.3f || local.y < -0.5f || local.y > 1.2f) continue;
+                float last;
+                if (lastHit.TryGetValue(s, out last) && Time.time - last < 1f) continue;
+                lastHit[s] = Time.time;
                 Vector3 side = transform.right * (local.x >= 0f ? 1f : -1f);
                 Combat.Hit(s, Vector3.up * 20f + side * 6f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.35f, 0.2f));
                 near = true;
             }
+            if (fired && !near) return;
             Transform p = Game.PlayerTransform;
             if (near || p != null && (p.position - transform.position).magnitude < 14f) Sfx.TrapSnap();
-            Fx.Burst(transform.position + Vector3.up * 0.2f, new Color(0.7f, 0.62f, 0.52f), 16, 5f, 0.3f, 0.6f, 0.3f, Vector3.up, 50f);
+            if (!fired) Fx.Burst(transform.position + Vector3.up * 0.2f, new Color(0.7f, 0.62f, 0.52f), 16, 5f, 0.3f, 0.6f, 0.3f, Vector3.up, 50f);
+            fired = true;
         }
     }
 
@@ -447,9 +477,17 @@ namespace Fief
             m.arm = new GameObject("Manche").transform;
             m.arm.SetParent(go.transform, false);
             Proto.Cube(m.arm, new Vector3(0f, -Length * 0.5f, 0f), new Vector3(0.3f, Length, 0.3f), wood, "Manche");
-            Proto.Cube(m.arm, new Vector3(0f, -Length, 0f), new Vector3(2.6f, 1.5f, 1.5f), iron, "Masse");
-            GameObject band = Proto.Cube(m.arm, new Vector3(0f, -Length, 0f), new Vector3(2.7f, 0.3f, 1.6f), Color.white, "Rune");
-            band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 2.4f);
+            // La masse : un tonneau de fer couche (plus de pave), cercle d'une bande ambre.
+            GameObject head = Proto.Cylinder(m.arm, new Vector3(0f, -Length, 0f), new Vector3(1.55f, 1.3f, 1.55f), iron, "Masse");
+            head.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                GameObject cap = Proto.Sphere(m.arm, new Vector3(side * 1.3f, -Length, 0f), new Vector3(0.5f, 1.3f, 1.3f), iron, "Bout");
+                cap.transform.localRotation = Quaternion.identity;
+            }
+            GameObject band = Proto.Cylinder(m.arm, new Vector3(0f, -Length, 0f), new Vector3(1.62f, 0.14f, 1.62f), Color.white, "Rune");
+            band.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 1.3f);
             Proto.EndVisualOnly();
             Fx.KeepTrail(m.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.6f, 0.3f);
             m.lastHead = m.Head;

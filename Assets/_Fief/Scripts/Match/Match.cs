@@ -57,7 +57,7 @@ namespace Fief
         public static int LastWinner { get; private set; }
         /// <summary>Manche de departage : seuls ces joueurs peuvent la gagner.</summary>
         public static readonly List<int> TieBreakers = new List<int>();
-        /// <summary>Une graine par manche : le monument change de place, les coffres aussi.</summary>
+        /// <summary>Une graine par manche : les Monuments, les sanctuaires et les obstacles changent de place.</summary>
         public static int RoundSeed { get; private set; }
         /// <summary>Change a chaque nouveau match (les astuces du HUD se remontrent).</summary>
         public static int MatchId { get; private set; }
@@ -121,7 +121,7 @@ namespace Fief
         /// <summary>
         /// Le match est LANCE (le salon a dit "Commencer") : chaque chargement de la
         /// scene est une manche. Faux a l'ecran-titre, ou un match "d'apercu" (trois
-        /// bots) peuple la foret derriere le menu.
+        /// bots) peuple l'ile derriere le menu.
         /// </summary>
         public static bool Launched { get; private set; }
 
@@ -152,13 +152,13 @@ namespace Fief
         public static int RoundNumber { get { return Played + 1; } }
         public static bool IsTieBreak { get { return TieBreakers.Count > 0; } }
 
+        /// <summary>Qui a gagne chaque manche jouee (-1 : personne) -- les pastilles du HUD.</summary>
+        public static readonly List<int> History = new List<int>();
+
         /// <summary>
         /// Fin de manche. "winner" : la place gagnante, ou -1 si personne. Une manche de
         /// departage ne compte que pour les ex aequo.
         /// </summary>
-        /// <summary>Qui a gagne chaque manche jouee (-1 : personne) -- les pastilles du HUD.</summary>
-        public static readonly List<int> History = new List<int>();
-
         public static void EndRound(int winner)
         {
             if (winner >= 0 && IsTieBreak && !TieBreakers.Contains(winner)) winner = -1;
@@ -253,7 +253,9 @@ namespace Fief
             {
                 Clear();
                 Stage = stage;
-                System.Random rng = new System.Random(RoundSeed);
+                // Une graine par tour de table : a egalite de victoires, celui qui choisit sa
+                // passive en premier n'est pas forcement le premier pour l'active.
+                System.Random rng = new System.Random(RoundSeed + stage * 7919);
                 List<Ability> pool = new List<Ability>();
                 for (int i = 0; i < AbilityInfo.Count; i++) pool.Add((Ability)i);
                 // Une capacite que TOUT LE MONDE a deja ne sert a rien sur la table.

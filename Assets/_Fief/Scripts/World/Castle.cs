@@ -55,7 +55,7 @@ namespace Fief
         static readonly Color GoldTrim = new Color(1f, 0.8f, 0.32f);
         static readonly Color[] Heraldry = { new Color(0.66f, 0.13f, 0.16f), new Color(0.16f, 0.25f, 0.55f), new Color(0.82f, 0.6f, 0.16f) };
 
-        /// <summary>Vrai si ce point est dans l'emprise de la citadelle (plus une marge) : la foret n'y pousse pas.</summary>
+        /// <summary>Vrai si ce point est dans l'emprise de la citadelle (plus une marge) : rien d'autre ne s'y pose.</summary>
         public static bool Covers(float x, float z, float margin)
         {
             float reach = HalfSize + TowerSize * 0.5f + margin;

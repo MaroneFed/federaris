@@ -21,17 +21,17 @@ namespace Fief
 
         public static Mine Place(Seeker owner, Vector3 at)
         {
+            RaycastHit hit;
+            if (!Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore)) return null;
+            GameObject go = new GameObject("MINE de " + owner.Name);
+            go.transform.position = hit.point + Vector3.up * 0.02f;
+
             // Deux au plus : la plus vieille saute.
             int mine = 0;
             for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].owner == owner) mine++;
             if (mine >= 2)
                 for (int i = 0; i < All.Count; i++)
                     if (All[i] != null && All[i].owner == owner) { Destroy(All[i].gameObject); break; }
-
-            GameObject go = new GameObject("MINE de " + owner.Name);
-            go.transform.position = Ground.Place(at.x, at.z, 0.02f);
-            RaycastHit hit;
-            if (Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 6f, ~0, QueryTriggerInteraction.Ignore)) go.transform.position = hit.point + Vector3.up * 0.02f;
             Mine m = go.AddComponent<Mine>();
             m.owner = owner;
             Proto.BeginVisualOnly();
@@ -60,7 +60,8 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s == owner || s.Body == null) continue;
+                // Un protege passe dessus sans la declencher (elle l'aurait gaspillee).
+                if (s == owner || s.Body == null || s.Graced) continue;
                 Vector3 d = s.Body.position - transform.position;
                 if (Mathf.Abs(d.y) > 1.5f) continue;
                 d.y = 0f;
@@ -106,13 +107,13 @@ namespace Fief
         const float Wide = 10f;
         const float Tall = 4.5f;
 
-        public static void Raise(Vector3 at, Vector3 facing, Seeker by)
+        public static bool Raise(Vector3 at, Vector3 facing, Seeker by)
         {
             Vector3 f = new Vector3(facing.x, 0f, facing.z).normalized;
             if (f.sqrMagnitude < 0.01f) f = Vector3.forward;
-            float ground = at.y;
             RaycastHit hit;
-            if (Physics.Raycast(at + Vector3.up * 2f, Vector3.down, out hit, 8f, ~0, QueryTriggerInteraction.Ignore)) ground = hit.point.y;
+            if (!Physics.Raycast(at + Vector3.up * 2f, Vector3.down, out hit, 8f, ~0, QueryTriggerInteraction.Ignore)) return false;
+            float ground = hit.point.y;
             GameObject go = new GameObject("MUR");
             go.transform.rotation = Quaternion.LookRotation(f, Vector3.up);
             StoneWall w = go.AddComponent<StoneWall>();
@@ -150,6 +151,7 @@ namespace Fief
             }
             Ambiance.Burst(null, w.up + Vector3.up * 0.5f, new Color(0.5f, 0.45f, 0.4f));
             Sfx.Crash();
+            return true;
         }
 
         void Update()

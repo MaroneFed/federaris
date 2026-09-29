@@ -341,7 +341,7 @@ namespace Fief
                 joint = next;
             }
             GameObject tip = Proto.Sphere(joint, Vector3.zero, new Vector3(0.3f, 0.3f, 0.3f), Color.white, "Embout");
-            tip.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 2.2f);
+            tip.GetComponent<Renderer>().sharedMaterial = GoldMat;       // or mat : plus d'embouts qui brillent comme des ampoules
             return joint;
         }
 
@@ -353,7 +353,7 @@ namespace Fief
             head.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             head.GetComponent<Renderer>().sharedMaterial = IronMat;
             GameObject edge = Proto.Sphere(t, new Vector3(0f, 0f, 3.95f), new Vector3(0.34f, 0.34f, 0.1f), Color.white, "Collerette");
-            edge.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 2.5f);
+            edge.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.2f);
             for (int k = 0; k < 3; k++)
             {
                 GameObject fin = Proto.Cube(t, new Vector3(0f, 0f, -0.8f), new Vector3(0.04f, 0.8f, 0.9f), new Color(0.85f, 0.3f, 0.2f), "Ailette");

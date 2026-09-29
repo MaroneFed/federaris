@@ -232,6 +232,12 @@ namespace Fief
 
         public void Blink(Vector3 position) { Teleport(position); }
 
+        /// <summary>Oublier ou l'on etait (apres un respawn : le Rappel ne renvoie pas dans le vide).</summary>
+        public void Forget()
+        {
+            for (int i = 0; i < trail.Length; i++) trail[i] = transform.position;
+        }
+
         public Vector3 PastPosition(float seconds)
         {
             int back = Mathf.Clamp(Mathf.RoundToInt(seconds / 0.1f), 1, trail.Length - 1);
@@ -690,9 +696,7 @@ namespace Fief
                 // il en refait un depuis la ou il est.
                 if (!leaping && Mathf.Abs(d.y) > 6f && Tower.On(p) && body.isGrounded) { PlanPath(target); if (path.Count == 0) break; p = path[0]; d = p - transform.position; sameLevel = Mathf.Abs(d.y) < 2.5f; }
                 d.y = 0f;
-                // Un courant : il faut marcher DEDANS, pas a cote.
-                float close = Updraft.Near(p, 0.1f) != null ? 0.4f : 1.5f;
-                if (d.magnitude < close && (sameLevel || leaping)) { path.RemoveAt(0); continue; }
+                if (d.magnitude < 1.5f && (sameLevel || leaping)) { path.RemoveAt(0); continue; }
                 return p;
             }
             return target;

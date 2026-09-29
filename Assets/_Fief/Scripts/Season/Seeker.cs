@@ -39,7 +39,7 @@ namespace Fief
 
         // ------------------------------------------------------------------ les capacites
 
-        /// <summary>Le don d'un sanctuaire : une capacite active, pour cette manche (touche V).</summary>
+        /// <summary>Le don d'un sanctuaire : une capacite active, pour cette manche (il remplace le clic gauche).</summary>
         public Ability Gift;
         public bool HasGift;
 

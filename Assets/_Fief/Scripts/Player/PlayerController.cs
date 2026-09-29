@@ -172,6 +172,12 @@ namespace Fief
             Teleport(position, transform.eulerAngles.y);
         }
 
+        /// <summary>Oublier ou l'on etait (apres un respawn : le Rappel ne renvoie pas dans le vide).</summary>
+        public void Forget()
+        {
+            for (int i = 0; i < trail.Length; i++) trail[i] = transform.position;
+        }
+
         public Vector3 PastPosition(float seconds)
         {
             int back = Mathf.Clamp(Mathf.RoundToInt(seconds / 0.1f), 1, trail.Length - 1);

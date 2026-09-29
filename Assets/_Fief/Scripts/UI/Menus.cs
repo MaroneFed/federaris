@@ -68,7 +68,7 @@ namespace Fief
         {
             Time.timeScale = 1f;
             appear = 0f;
-            curtain = 1f;       // on ouvre sur du noir, la foret apparait en fondu
+            curtain = 1f;       // on ouvre sur du noir, l'ile apparait en fondu
             if (Match.Launched) Go(State.Briefing);
             else Go(openLobby ? State.Lobby : State.Title);
             openLobby = false;
