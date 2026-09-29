@@ -17,7 +17,7 @@ namespace Fief
         /// autre chose que ce texte, Unity ne fait pas tourner le dernier code (voir
         /// README.md, "Recuperer la derniere version").
         /// </summary>
-        public const string Version = "La Couronne · v13 · juste, en icônes · 01/10";
+        public const string Version = "La Couronne · v14 · on voit la Couronne · 02/10";
 
         public static GameConfig Config;
         public static Season Season;

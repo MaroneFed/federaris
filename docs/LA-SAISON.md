@@ -210,7 +210,7 @@ une gerbe d'étincelles, un **coup de phonk**.
 | **Porteur** | Avec la Couronne, tu n'es plus ralenti et tu peux pousser. |
 | **Poigne** | Ta poussée envoie deux fois plus loin. |
 | **Ancrage** | On te pousse deux fois moins loin. |
-| **Flair** | Tu vois toujours où est la Couronne, même à travers les murs. |
+| **Flair** | Tu vois l'invisible : les mines, les joueurs voilés, à travers la fumée. (02/10 : la Couronne, tout le monde la voit maintenant.) |
 | **Ombre** | Les gargouilles mettent deux fois plus de temps à te repérer. |
 | **Prise ferme** | Le premier coup ne te fait pas lâcher la Couronne. |
 | **Recharge** | Tes capacités reviennent un tiers plus vite. |
@@ -379,8 +379,9 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
   Monuments, la colonne dorée de la Couronne, les courants d'air, les colonnes et
   fanions des plateformes de départ, les arches des couloirs.
 - **Les joueurs se voient** (01/10) : chacun est **un haricot à sa couleur** (façon Fall
-  Guys) avec de grands yeux, un petit casque d'acier, un cimier et une cape ; une lanterne
-  et un halo à sa couleur ; ses **ailes dans le dos** (repliées au sol, grandes ouvertes
+  Guys) avec de grands yeux (qui clignent, 02/10), un petit casque d'acier, un cimier et une
+  cape ; une petite lanterne ; son **pseudo** à sa couleur au-dessus de la tête (plus de
+  halo : il se logeait dans la Couronne) ; ses **ailes dans le dos** (repliées au sol, grandes ouvertes
   en vol, liseré d'or pour les ailes d'or) ; une **bulle** quand il est protégé. Un vrai
   modèle 3D animé peut le remplacer (`docs/MODELES.md`).
 - **Les effets** : chaque capacité a sa signature (onde qui gonfle — une **bulle à bord
@@ -405,7 +406,16 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
     viseur — la touche, puis ce qu'elle fait (**[E] arbaleste [clic] ↑** sur ta
     plateforme…) ; F1/H : les touches en icônes ;
   - le **verrou** (on vient de te voler la Couronne, tu ne peux pas la reprendre
-    pendant 3 s) : une croix rouge sur la Couronne du HUD.
+    pendant 3 s) : une croix rouge sur la Couronne du HUD ;
+  - **LE REPÈRE DE LA COURONNE** (02/10 — Martin : « il faut qu'on voie tout le temps où
+    est la couronne ») : pour tout le monde, à sa place dans le monde, à travers les murs,
+    avec sa distance ; hors de l'écran, collé au bord avec trois points vers elle ; or sur
+    son socle, orange à terre, à la couleur du porteur sur une tête (et il bat) ;
+  - **QUAND TU LA PORTES** : l'écran se borde d'or tant que tu l'as, la pastille du haut
+    grossit avec ton pseudo, les **trois Monuments** ont leur repère (le plus proche plus
+    gros) ; à la prise, une fanfare ; à la perte, la Couronne barrée et un éclair rouge ;
+  - **Réglages ▸ Aide écrite** (oui par défaut) : quelques mots sous les icônes aux moments
+    qui comptent.
 - **Les menus** : gros boutons ronds avec icône, jaunes quand on les vise ; « FIEF » en
   lettres rondes (Titan One) ; l'intro de manche montre la règle en icônes ; **les
   Commandes en trois colonnes de pastilles** (touche → icône) ; salon, pause, fin de

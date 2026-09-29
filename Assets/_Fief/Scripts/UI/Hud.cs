@@ -1039,54 +1039,7 @@ namespace Fief
             UiStyle.Tinted(r, text, style, c);
         }
 
-        static GUIStyle bigCentered, rightSmall, wrapped, wrappedCentered;
-        static readonly Dictionary<int, GUIStyle> sized = new Dictionary<int, GUIStyle>();
-
-        /// <summary>Une copie du style "from", "k" fois plus grande et centree (jamais le style partage lui-meme).</summary>
-        static GUIStyle Sized(GUIStyle from, float k)
-        {
-            int px = Mathf.RoundToInt(from.fontSize * k);
-            GUIStyle s;
-            if (!sized.TryGetValue(px, out s))
-            {
-                s = new GUIStyle(from);
-                s.fontSize = px;
-                s.alignment = TextAnchor.MiddleCenter;
-                sized[px] = s;
-            }
-            return s;
-        }
-
-        static GUIStyle WrappedCentered()
-        {
-            if (wrappedCentered == null || wrappedCentered.fontSize != UiStyle.Label.fontSize)
-            {
-                wrappedCentered = new GUIStyle(UiStyle.Label);
-                wrappedCentered.wordWrap = true;
-                wrappedCentered.alignment = TextAnchor.UpperCenter;
-            }
-            return wrappedCentered;
-        }
-
-        static GUIStyle BigCentered()
-        {
-            if (bigCentered == null || bigCentered.fontSize != UiStyle.Title.fontSize)
-            {
-                bigCentered = new GUIStyle(UiStyle.Title);
-                bigCentered.alignment = TextAnchor.MiddleCenter;
-            }
-            return bigCentered;
-        }
-
-        static GUIStyle RightSmall()
-        {
-            if (rightSmall == null || rightSmall.fontSize != UiStyle.Small.fontSize)
-            {
-                rightSmall = new GUIStyle(UiStyle.Small);
-                rightSmall.alignment = TextAnchor.MiddleRight;
-            }
-            return rightSmall;
-        }
+        static GUIStyle wrapped;
 
         static GUIStyle Wrapped()
         {

@@ -203,3 +203,19 @@ emplacements de construction.
   chute).
 - Un **réglage des secousses** de caméra et de l'opacité du HUD.
 - Les réglages en **curseurs dessinés** (sensibilité, volume, champ de vision).
+
+## Le 02/10 (la v14 : on voit la Couronne, le designer chiant à 500 points)
+
+Tiré de `docs/DESIGNER-CHIANT-3.md` — hors de la Phase 1, à garder pour plus tard :
+
+- Des **gestes** (emotes) : saluer, se moquer, applaudir le vainqueur (Phase 2).
+- Un **podium** en 3D avec les haricots dessus, et des « trophées » de fin de match (le
+  plus de vols, le plus de chutes, le plus rapide au sommet).
+- Un **ciel peint** (panorama CC0) et des cumulus lointains ; le soleil qui descend
+  pendant la manche.
+- Un **pack de sons** Kenney (impacts, interface) à la place des sons synthétisés ; des
+  sons en 3D pour les obstacles et les gargouilles ; un volume de musique séparé.
+- Une **charte** graphique (`docs/CHARTE.md`) : un or, une pierre, un bois, un bleu.
+- Fusionner les dalles des rampes et les petits cubes du château (`Mesh.CombineMeshes`).
+- Un réglage **Qualité** (anticrénelage, ombres) et d'**accessibilité** (secousses,
+  roulis de la vue, luminosité).

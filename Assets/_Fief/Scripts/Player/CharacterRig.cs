@@ -58,8 +58,6 @@ namespace Fief
 
         /// <summary>La tete (le casque) : on y noue l'echarpe.</summary>
         public Transform HeadBone { get { return head; } }
-        /// <summary>La main droite.</summary>
-        public Transform StaffBone { get { return handR; } }
         /// <summary>La hanche gauche : la petite lanterne y pend.</summary>
         public Transform HipBone { get { return hip; } }
         /// <summary>Vrai pendant qu'il fete sa victoire.</summary>
