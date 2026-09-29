@@ -151,8 +151,8 @@ namespace Fief
             c.glow.shadows = LightShadows.None;
 
             // La colonne doree : on la voit de toute l'ile.
-            c.beam = LightBeam.Build(parent, c.home, new Color(1f, 0.8f, 0.35f), 1.6f, 90f);
-            if (c.beam != null) c.beam.targetAlpha = 0.45f;
+            c.beam = LightBeam.Build(parent, c.home, new Color(1f, 0.8f, 0.35f), 2.2f, 120f);
+            if (c.beam != null) c.beam.targetAlpha = 0.7f;
             return c;
         }
 
@@ -290,7 +290,8 @@ namespace Fief
                 Renderer[] parts = visual.GetComponentsInChildren<Renderer>(true);
                 for (int i = 0; i < parts.Length; i++) parts[i].enabled = !mine;
             }
-            if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.45f; beam.fadeSpeed = mine ? 30f : 0.5f; }
+            // (02/10) La colonne d'or plus franche : on la voit de toute l'ile (0,45 -> 0,7).
+            if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.7f; beam.fadeSpeed = mine ? 30f : 0.5f; }
             // Tombee et oubliee (ReturnSeconds, 20 s), ou tombee hors d'atteinte : elle retourne sur son socle.
             if (state == State.Dropped && (Time.time - droppedAt > ReturnSeconds || visual.position.y < Ground.FallLine))
                 ReturnHome();
@@ -339,6 +340,7 @@ namespace Fief
         {
             if (Instance == null || Instance.state == State.Delivered) return;
             if (Holder != null) Holder.CrownLockUntil = Time.time + 1f;
+            if (Holder != null && Holder.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
             Holder = null;
             Instance.state = State.Dropped;
             Instance.ReturnHome();
@@ -369,7 +371,10 @@ namespace Fief
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
             if (fromPedestal) Sfx.Alarm();
-            if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowSplash("couronne", Gold);
+            if (s.IsPlayer && Game.Hud != null) Game.Hud.ShowSplash("couronne", Gold, "LA COURONNE EST À TOI !");
+            // (02/10 -- "quand il l'a, il ne sait meme pas qu'il l'a") : une fanfare, et la
+            // camera s'ouvre d'un coup ; le cadre d'or reste tant qu'on la porte (Hud).
+            if (s.IsPlayer) { Sfx.Discovery(); if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Kick(8f); }
             Feed.CrownTaken(s, fromPedestal);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
             return true;
@@ -409,6 +414,7 @@ namespace Fief
                 ? hit.point.y : Ground.Sample(at.x, at.z);
             // Celui qui vient de la perdre ne la reprend pas tout de suite (trois secondes).
             if (was != null) was.CrownLockUntil = Time.time + LockSeconds;
+            if (was != null && was.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
             groundY = y + 0.35f;
             // Le declencheur d'abord (la couronne visible est son enfant : le bouger
             // apres elle la decalerait d'autant), puis la couronne elle-meme.
@@ -531,7 +537,14 @@ namespace Fief
             Fx.Sparks(thief.Body.position + Vector3.up * 2.3f, Gold, 50, 6f);
             Fx.Flash(thief.Body.position + Vector3.up * 2f, Gold, 14f, 5f, 0.4f);
             Sfx.Bell();
-            if (thief.IsPlayer) { Stats.CrownsStolen++; Stats.CrownsTaken++; if (Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f)); }
+            if (thief.IsPlayer)
+            {
+                Stats.CrownsStolen++;
+                Stats.CrownsTaken++;
+                Sfx.Discovery();
+                if (Game.Hud != null) { Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f)); Game.Hud.ShowSplash("couronne", Gold, "TU AS VOLÉ LA COURONNE !"); }
+            }
+            if (victim.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
             Feed.CrownStolen(thief, victim);
             return true;
         }

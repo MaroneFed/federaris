@@ -7,13 +7,17 @@ namespace Fief
     /// L'ECRAN DE JEU (refait le 30/09, sans un mot -- "plus pro, comme Fall Guys" -- et
     /// net au pixel le 01/10). Des pastilles et des icones :
     ///
-    ///            [chrono]                                  [toi 2]
-    ///          o o o o o     <- une pastille par manche     [Mahaut 1]
-    ///         [Couronne ou elle est]                       [Oswin 0]
+    ///            [chrono]                                  [toi      2]
+    ///          o o o o o     <- une pastille par manche     [Mahaut   1]
+    ///       [Couronne  Oswin]  <- ou elle est / qui l'a     [Oswin    0]
     ///                              .      <- le point de visee
+    ///            (O)  <- LE REPERE DE LA COURONNE, a sa place dans le monde (02/10)
     ///                         [E  couronne]  <- l'invite
     ///
     ///            (passive)   ( TA CAPACITE )   (pousser)
+    ///
+    /// Quand TU portes la Couronne (02/10) : l'ecran se borde d'or, et les trois
+    /// Monuments ont leur repere. Reglages > Aide ecrite : quelques mots sous les icones.
     ///
     /// Il ne decide RIEN : il lit l'etat du jeu et le montre. La pause, les ecrans entre
     /// les manches : Menus.cs. Les icones : Icons.cs / IconArt.cs.
@@ -34,8 +38,13 @@ namespace Fief
         const float CardDuration = 3.2f;
 
         /// <summary>Un titre au milieu du haut de l'ecran, pour les moments qui comptent.</summary>
-        public void ShowSplash(string icon, Color tint)
+        public void ShowSplash(string icon, Color tint) { ShowSplash(icon, tint, null); }
+
+        /// <summary>La meme chose, avec quelques mots dessous (seulement si Reglages > Aide ecrite).</summary>
+        public void ShowSplash(string icon, Color tint, string words)
         {
+            splashCross = false;
+            splashWords = words;
             cardIcon = icon;
             cardTint = tint;
             cardTimer = CardDuration;
@@ -156,6 +165,7 @@ namespace Fief
             string[] icons;
             if (!TipIcons.TryGetValue(key, out icons)) return;
             tipIcons = icons;
+            TipWords.TryGetValue(key, out tipWords);
             tipTimer = TipSeconds;
         }
 
@@ -173,7 +183,19 @@ namespace Fief
             { "don", new[] { "don", "k:active" } },
             { "sceau", new[] { "ailes", "croix" } },
         };
+        /// <summary>Les memes astuces en quelques mots (sous les icones, si l'aide ecrite est la).</summary>
+        static readonly Dictionary<string, string> TipWords = new Dictionary<string, string>
+        {
+            { "plateforme", "E : MONTE SUR TON ARBALESTE, CLIC : TIRE" },
+            { "arbaleste", "E : MONTE DESSUS, CLIC : TIRE" },
+            { "rampe", "MONTE JUSQU'À LA COURONNE, TOUT EN HAUT" },
+            { "chasse", "POUSSE LE PORTEUR : TU LUI VOLES LA COURONNE" },
+            { "porte", "VA À UN MONUMENT (COLONNE BLEUE) ET RESTES-Y 3 S" },
+            { "don", "TON CLIC GAUCHE A CHANGÉ POUR CETTE MANCHE" },
+            { "sceau", "ON N'ENTRE PAS EN VOLANT : PASSE PAR UNE PORTE" },
+        };
         const float TipSeconds = 5f;
+        string tipWords;
         string[] tipIcons;
         float tipTimer;
 
@@ -207,8 +229,9 @@ namespace Fief
             if (Hidden) return;
 
             DrawVeils();
+            DrawCarrying();
             DrawNames();
-            DrawFlair();
+            DrawCrownMarker();
             DrawTop();
             DrawStandings();
             DrawAbilities();
@@ -295,33 +318,39 @@ namespace Fief
             DrawTowerGauge();
         }
 
-        /// <summary>Ou est la Couronne : au sommet (tour), dans des mains (la couleur du porteur), a terre (et son retour).</summary>
+        /// <summary>
+        /// OU EST LA COURONNE, en haut : au sommet (la Couronne et la tour), a terre (et
+        /// les secondes avant qu'elle rentre), sur une tete -- et alors LE PSEUDO du
+        /// porteur, a sa couleur (02/10 : "on ne comprenait rien" ; un pseudo, ca se lit).
+        /// Quand c'est toi : la pastille grossit, en or, et bat.
+        /// </summary>
         void CrownBadge(float cx, float y)
         {
             Seeker holder = Crown.Holder;
             Crown.State where = Crown.Where;
-            float h = UiStyle.S(50), w = UiStyle.S(112);
-            Rect r = new Rect(cx - w * 0.5f, y, w, h);
+            bool mine = where == Crown.State.Carried && holder != null && holder.IsPlayer;
+            float h = UiStyle.S(mine ? 66 : 50);
+            float ic = h * 0.8f;
+            int fs = Mathf.RoundToInt(h * 0.48f / 2f) * 2;
+            string name = where == Crown.State.Carried && holder != null ? holder.Name : null;
+            string second = null;
+            string number = null;
             Color fill;
-            string second;
-            Color secondTint = Color.white;
-            if (where == Crown.State.Carried && holder != null)
-            {
-                fill = holder.IsPlayer ? Wings.Gold : holder.Colour;
-                second = "joueur";
-                if (holder.IsPlayer)
-                {
-                    float pulse = UiStyle.S(4) * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
-                    r = new Rect(r.x - pulse, r.y - pulse * 0.5f, r.width + pulse * 2f, r.height + pulse);
-                }
-            }
-            else if (where == Crown.State.Dropped) { fill = new Color(0.95f, 0.55f, 0.2f); second = null; }
+            if (name != null) fill = mine ? Wings.Gold : holder.Colour;
+            else if (where == Crown.State.Dropped) { fill = new Color(0.95f, 0.55f, 0.2f); number = Mathf.CeilToInt(Crown.ReturnIn).ToString(); }
             else if (where == Crown.State.Delivered) { fill = Monument.Blue; second = "monument"; }
             else { fill = new Color(0.36f, 0.3f, 0.62f); second = "tour"; }
+            float inner = name != null ? Icons.Width(name, fs) + UiStyle.S(10) : number != null ? Icons.Width(number, fs) + UiStyle.S(10) : ic;
+            float w = h * 0.2f + ic + UiStyle.S(8) + inner + h * 0.3f;
+            Rect r = new Rect(cx - w * 0.5f, y, w, h);
+            if (mine)
+            {
+                float pulse = UiStyle.S(5) * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
+                Icons.Pill(new Rect(r.x - pulse - UiStyle.S(4), r.y - pulse * 0.5f - UiStyle.S(4), r.width + pulse * 2f + UiStyle.S(8), r.height + pulse + UiStyle.S(8)), new Color(1f, 0.95f, 0.7f, 0.9f));
+            }
             Icons.Pill(r, fill);
-            float ic = r.height * 0.8f;
-            Rect crownIcon = new Rect(r.x + r.height * 0.18f, r.y + (r.height - ic) * 0.5f, ic, ic);
-            Icons.Draw(crownIcon, "couronne", new Color(1f, 0.86f, 0.35f));
+            Rect crownIcon = new Rect(r.x + h * 0.2f, r.y + (h - ic) * 0.5f, ic, ic);
+            Icons.Draw(crownIcon, "couronne", CrownGold);
             // (v13) TON VERROU : on vient de te la voler (ou tu viens de la lacher) -- tu ne
             // peux pas la reprendre tout de suite. Une croix rouge sur la Couronne, le temps
             // du verrou (avant : rien, on ne comprenait pas pourquoi on ne la reprenait pas).
@@ -331,9 +360,11 @@ namespace Fief
                 float k = ic * 0.62f;
                 Icons.Draw(new Rect(crownIcon.xMax - k * 0.7f, crownIcon.yMax - k * 0.8f, k, k), "croix", new Color(1f, 0.35f, 0.3f));
             }
-            Rect right = new Rect(r.xMax - r.height * 0.18f - ic, r.y + (r.height - ic) * 0.5f, ic, ic);
-            if (second != null) Icons.Draw(right, second, secondTint);
-            else Icons.Number(right, Mathf.CeilToInt(Crown.ReturnIn).ToString(), Mathf.RoundToInt(r.height * 0.55f), Color.white, TextAnchor.MiddleCenter);
+            Rect right = new Rect(crownIcon.xMax + UiStyle.S(8), r.y, inner, h);
+            if (name != null) Icons.Text(right, name, fs, Color.white, TextAnchor.MiddleLeft, true);
+            if (mine) Caption(cx, r.yMax + UiStyle.S(10), "TU AS LA COURONNE : VA À UN MONUMENT", UiStyle.S(22), CrownGold);
+            else if (number != null) Icons.Number(right, number, fs, Color.white, TextAnchor.MiddleLeft);
+            else Icons.Draw(new Rect(right.x, r.y + (h - ic) * 0.5f, ic, ic), second, Color.white);
         }
 
         /// <summary>
@@ -368,7 +399,14 @@ namespace Fief
         /// </summary>
         void DrawStandings()
         {
-            float h = UiStyle.S(34), w = UiStyle.S(78);
+            // (02/10) Le pseudo de chacun dans sa pastille : une couleur seule ne disait
+            // pas QUI etait qui. Puis la petite Couronne et ses manches gagnees.
+            float h = UiStyle.S(34);
+            int fs = Mathf.RoundToInt(h * 0.5f / 2f) * 2;
+            float nameW = 0f;
+            for (int i = 0; i < Match.Slots.Count; i++) nameW = Mathf.Max(nameW, Icons.Width(Match.Slots[i].Name, fs));
+            nameW = Mathf.Min(nameW, UiStyle.S(170));
+            float w = h * 0.3f + nameW + UiStyle.S(8) + h * 0.84f + h * 0.8f;
             float x = Screen.width - w - UiStyle.S(22), y = UiStyle.S(20);
             for (int i = 0; i < Match.Slots.Count; i++)
             {
@@ -376,8 +414,12 @@ namespace Fief
                 Rect r = new Rect(x, y, w, h);
                 if (s.IsLocal) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), Wings.Gold);
                 Icons.Pill(r, s.Colour);
-                Icons.Draw(new Rect(r.x + h * 0.12f, r.y + h * 0.08f, h * 0.84f, h * 0.84f), "couronne", new Color(1f, 0.86f, 0.35f));
-                Icons.Number(new Rect(r.x + h * 0.9f, r.y, r.width - h, r.height), s.Wins.ToString(), Mathf.RoundToInt(h * 0.66f), Color.white, TextAnchor.MiddleCenter);
+                int size = fs;
+                while (size > 10 && Icons.Width(s.Name, size) > nameW) size -= 2;
+                Icons.Text(new Rect(r.x + h * 0.3f, r.y, nameW, h), s.Name, size, Color.white, TextAnchor.MiddleLeft, true);
+                float cx = r.x + h * 0.3f + nameW + UiStyle.S(8);
+                Icons.Draw(new Rect(cx, r.y + h * 0.08f, h * 0.84f, h * 0.84f), "couronne", CrownGold);
+                Icons.Number(new Rect(cx + h * 0.84f, r.y, h * 0.8f, h), s.Wins.ToString(), Mathf.RoundToInt(h * 0.66f), Color.white, TextAnchor.MiddleCenter);
                 y += h + UiStyle.S(10);
             }
         }
@@ -530,6 +572,7 @@ namespace Fief
             float s = UiStyle.S(66);
             Icons.Draw(new Rect(Screen.width * 0.5f - s * 0.5f, bar.y - s - UiStyle.S(4), s, s), "sacre", new Color(1f, 0.86f, 0.35f));
             if (!who.IsPlayer) Icons.Draw(new Rect(bar.xMax + UiStyle.S(10), bar.y - UiStyle.S(10), UiStyle.S(46), UiStyle.S(46)), "pousser", c);
+            Caption(Screen.width * 0.5f, bar.yMax + UiStyle.S(6), who.IsPlayer ? "RESTE DANS LE CERCLE !" : who.Name + " VA GAGNER : POUSSE-LE !", UiStyle.S(24), who.IsPlayer ? CrownGold : Color.white);
         }
 
         /// <summary>L'invite d'interaction : la touche E, et l'icone de ce qu'on va prendre ; le cercle qui se remplit pendant le maintien.</summary>
@@ -566,6 +609,7 @@ namespace Fief
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
             if (cam == null || Game.PlayerTransform == null) return;
             Vector3 me = cam.transform.position;
+            bool flair = Game.Me != null && Game.Me.Has(Ability.Flair);
             // (29/09) Du plus proche au plus loin, et un nom ne se pose jamais sur un autre :
             // on le monte d'un cran, et s'il n'y a pas la place, on ne l'ecrit pas.
             nameOrder.Clear();
@@ -573,7 +617,7 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s.IsPlayer || s.Body == null || s.Hidden) continue;
+                if (s.IsPlayer || s.Body == null || s.Hidden && !flair) continue;
                 float d = (me - s.Body.position).magnitude;
                 int at = 0;
                 while (at < nameDist.Count && nameDist[at] < d) at++;
@@ -611,35 +655,175 @@ namespace Fief
         readonly List<float> nameDist = new List<float>();
         readonly List<Rect> namePlaced = new List<Rect>();
 
+        // ================================================================== la Couronne, toujours
+
         /// <summary>
-        /// LE FLAIR (passif) : la Couronne est ecrite a sa place a l'ecran, avec sa
-        /// distance -- "COURONNE 84 m" -- meme a travers les murs.
+        /// LA COURONNE, TOUJOURS VISIBLE (02/10 -- Martin : "il faut qu'on voie tout le temps
+        /// ou est la couronne", "quand il ne la voyait pas, on ne savait jamais ou elle
+        /// etait"). Un REPERE a sa place a l'ecran, pour tout le monde, a travers les murs :
+        /// une pastille ronde et la Couronne dedans, la distance dessous. Sur son socle ou a
+        /// terre : or ; sur une tete : a la couleur du porteur, et elle bat. Hors de l'ecran :
+        /// collee au bord, trois points qui montent vers elle. (Avant : seulement avec la
+        /// capacite Flair.) Toi, quand tu la portes : pas de repere, le cadre d'or (DrawCarrying).
         /// </summary>
-        void DrawFlair()
+        void DrawCrownMarker()
         {
             Seeker me = Game.Me;
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
-            if (me == null || cam == null || me.CarriesCrown || !me.Has(Ability.Flair) || Crown.Instance == null || me.Body == null) return;
-            Vector3 world = Crown.Position + Vector3.up * 0.6f;
+            if (me == null || cam == null || me.Body == null || Crown.Instance == null) return;
+            if (me.CarriesCrown || Crown.Where == Crown.State.Delivered) return;
+            Seeker holder = Crown.Holder;
+            Vector3 world = Crown.Position + Vector3.up * (holder != null ? 1.1f : 1.5f);
+            float dist = (world - me.Body.position).magnitude;
+            Color fill = holder != null ? holder.Colour : Crown.Where == Crown.State.Dropped ? new Color(0.95f, 0.55f, 0.2f) : new Color(0.62f, 0.44f, 0.12f);
+            float beat = holder != null ? Mathf.Abs(Mathf.Sin(Time.unscaledTime * 5f)) : 0f;
+            float size = UiStyle.S(50) * (1f + 0.1f * beat);
+            // Tout pres (on la voit tres bien) : le repere s'efface, pour ne pas la cacher.
+            float alpha = Mathf.Lerp(0.3f, 1f, Mathf.Clamp01((dist - 6f) / 10f));
+            Pin(cam, world, "couronne", CrownGold, fill, size, alpha, dist);
+        }
+
+        static readonly Color CrownGold = new Color(1f, 0.86f, 0.35f);
+
+        /// <summary>
+        /// UN REPERE sur une chose du monde : une pastille ronde a sa couleur, son icone, la
+        /// distance dessous. Dans l'image : pose au-dessus de la chose, deux points dessous
+        /// comme la pointe d'une epingle. Hors de l'image (ou derriere toi) : colle au bord,
+        /// et trois points qui filent vers le bord ou elle se trouve.
+        /// </summary>
+        static void Pin(Camera cam, Vector3 world, string icon, Color iconTint, Color fill, float size, float alpha, float distance)
+        {
             Vector3 sp = cam.WorldToScreenPoint(world);
             bool behind = sp.z <= 0f;
             float gx = sp.x, gy = Screen.height - sp.y;
             if (behind) { gx = Screen.width - gx; gy = Screen.height - gy; }
-            float m = UiStyle.S(60);
-            if (behind || gx < m || gx > Screen.width - m || gy < m || gy > Screen.height - m)
+            float m = size * 0.5f + UiStyle.S(40);
+            Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            Vector2 dir = new Vector2(gx, gy) - c;
+            bool edge = behind || gx < m || gx > Screen.width - m || gy < m || gy > Screen.height - m;
+            if (edge)
             {
-                Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-                Vector2 d = new Vector2(gx, gy) - c;
-                if (d.sqrMagnitude < 1f) d = Vector2.down;
-                float k = Mathf.Min((Screen.width * 0.5f - m) / Mathf.Max(1f, Mathf.Abs(d.x)), (Screen.height * 0.5f - m) / Mathf.Max(1f, Mathf.Abs(d.y)));
-                gx = c.x + d.x * k;
-                gy = c.y + d.y * k;
+                if (dir.sqrMagnitude < 1f) dir = Vector2.up;
+                float k = Mathf.Min((c.x - m) / Mathf.Max(1f, Mathf.Abs(dir.x)), (c.y - m) / Mathf.Max(1f, Mathf.Abs(dir.y)));
+                gx = c.x + dir.x * k;
+                gy = c.y + dir.y * k;
+                alpha = Mathf.Max(alpha, 0.85f);
             }
-            int dist = Mathf.RoundToInt((world - me.Body.position).magnitude);
-            float s = UiStyle.S(40);
-            float a = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
-            Icons.Draw(new Rect(gx - s * 0.5f, gy - s * 0.5f, s, s), "couronne", new Color(1f, 0.86f, 0.35f, a));
-            Icons.Number(new Rect(gx - UiStyle.S(60), gy + s * 0.5f, UiStyle.S(120), UiStyle.S(20)), dist + "m", UiStyle.S(18), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+            Rect r = new Rect(gx - size * 0.5f, gy - size * 0.5f, size, size);
+            Color light = Color.Lerp(fill, Color.white, 0.45f);
+            Icons.Dot(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), new Color(light.r, light.g, light.b, 0.9f * alpha));
+            Icons.Pill(r, fill, alpha);
+            Icons.Draw(new Rect(r.x + size * 0.14f, r.y + size * 0.12f, size * 0.72f, size * 0.72f), icon, new Color(iconTint.r, iconTint.g, iconTint.b, alpha));
+            Vector2 n = edge ? dir.normalized : new Vector2(0f, 1f);     // (l'ecran compte y vers le bas)
+            for (int i = 0; i < (edge ? 3 : 2); i++)
+            {
+                float ds = size * (0.2f - i * 0.05f);
+                Vector2 p = new Vector2(gx, gy) + n * (size * 0.5f + UiStyle.S(10) + i * UiStyle.S(12));
+                Icons.Dot(new Rect(p.x - ds * 0.5f, p.y - ds * 0.5f, ds, ds), new Color(light.r, light.g, light.b, alpha));
+            }
+            if (distance < 0f) return;
+            // La distance, du cote oppose aux points : dessus dans l'image (la pointe est
+            // dessous), et au bord, la ou les points ne sont pas.
+            bool above = !edge || n.y > 0.3f;
+            float ty = above ? r.y - UiStyle.S(26) : r.yMax + UiStyle.S(4);
+            Icons.Number(new Rect(gx - UiStyle.S(60), ty, UiStyle.S(120), UiStyle.S(24)), Mathf.RoundToInt(distance) + "m", UiStyle.S(20), new Color(1f, 1f, 1f, alpha), TextAnchor.MiddleCenter);
+        }
+
+        // ================================================================== tu l'as
+
+        /// <summary>
+        /// TU PORTES LA COURONNE (02/10 -- "quand il l'a, il ne sait meme pas qu'il l'a") :
+        /// l'ecran se borde d'OR et bat doucement, tant que tu l'as ; la pastille de la
+        /// Couronne, en haut, grossit et porte ton pseudo ; et les TROIS MONUMENTS
+        /// s'affichent a leur place, colonnes bleues, avec leur distance (le plus proche,
+        /// plus gros) : on sait ou aller. Quand tu la perds : l'or s'eteint d'un coup.
+        /// </summary>
+        void DrawCarrying()
+        {
+            Seeker me = Game.Me;
+            Camera cam = viewCamera != null ? viewCamera : Camera.main;
+            if (me == null || me.Body == null || !me.CarriesCrown) return;
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3f);
+            EdgeGlow(UiStyle.S(64) + UiStyle.S(18) * pulse, new Color(1f, 0.78f, 0.25f, 0.34f + 0.14f * pulse));
+            if (cam == null) return;
+            Monument nearest = null;
+            float best = float.MaxValue;
+            for (int i = 0; i < Monument.All.Count; i++)
+            {
+                Monument mo = Monument.All[i];
+                if (mo == null) continue;
+                float d = (mo.transform.position - me.Body.position).magnitude;
+                if (d < best) { best = d; nearest = mo; }
+            }
+            for (int i = 0; i < Monument.All.Count; i++)
+            {
+                Monument mo = Monument.All[i];
+                if (mo == null) continue;
+                bool close = mo == nearest;
+                float d = (mo.transform.position - me.Body.position).magnitude;
+                float size = UiStyle.S(close ? 56 : 42) * (close ? 1f + 0.08f * pulse : 1f);
+                Color fill = new Color(Monument.Blue.r * 0.55f, Monument.Blue.g * 0.55f, Monument.Blue.b * 0.7f);
+                Pin(cam, mo.transform.position + Vector3.up * 8f, "monument", Color.white, fill, size, close ? 1f : 0.8f, d);
+            }
+        }
+
+        static Texture2D rampV, rampH;
+
+        /// <summary>
+        /// Un liseré de couleur sur les quatre bords, qui s'efface vers le milieu (un vrai
+        /// degrade, pas une bande). Les coins, ou deux bords se croisent, sont plus vifs.
+        /// </summary>
+        static void EdgeGlow(float e, Color c)
+        {
+            if (rampV == null)
+            {
+                rampV = new Texture2D(1, 64, TextureFormat.RGBA32, false);
+                rampH = new Texture2D(64, 1, TextureFormat.RGBA32, false);
+                rampV.wrapMode = rampH.wrapMode = TextureWrapMode.Clamp;
+                rampV.hideFlags = rampH.hideFlags = HideFlags.HideAndDontSave;
+                for (int k = 0; k < 64; k++)
+                {
+                    float t = k / 63f;
+                    float a = t * t * t;
+                    rampV.SetPixel(0, k, new Color(1f, 1f, 1f, a));         // haut du rect = bord de l'ecran
+                    rampH.SetPixel(63 - k, 0, new Color(1f, 1f, 1f, a));    // gauche du rect = bord de l'ecran
+                }
+                rampV.Apply();
+                rampH.Apply();
+            }
+            Color was = GUI.color;
+            GUI.color = c;
+            float w = Screen.width, h = Screen.height;
+            GUI.DrawTextureWithTexCoords(new Rect(0f, 0f, w, e), rampV, new Rect(0f, 0f, 1f, 1f));
+            GUI.DrawTextureWithTexCoords(new Rect(0f, h - e, w, e), rampV, new Rect(0f, 1f, 1f, -1f));
+            GUI.DrawTextureWithTexCoords(new Rect(0f, 0f, e, h), rampH, new Rect(0f, 0f, 1f, 1f));
+            GUI.DrawTextureWithTexCoords(new Rect(w - e, 0f, e, h), rampH, new Rect(1f, 0f, -1f, 1f));
+            GUI.color = was;
+        }
+
+        /// <summary>
+        /// ON TE L'A PRISE : l'or s'eteint, un eclair rouge, la Couronne barree au milieu
+        /// de l'ecran (Crown l'appelle, que ce soit un vol, un coup ou une chute).
+        /// </summary>
+        public void CrownLost()
+        {
+            ShowSplash("couronne", new Color(0.85f, 0.25f, 0.22f), "TU AS PERDU LA COURONNE");
+            splashCross = true;
+            Flash(new Color(0.9f, 0.15f, 0.1f, 0.55f));
+            Sfx.Deny();
+        }
+        bool splashCross;
+        string splashWords;
+
+        /// <summary>
+        /// QUELQUES MOTS SOUS UNE ICONE (Reglages > Aide ecrite ; 02/10). Gros, blancs,
+        /// cernes -- le meme dessin que les chiffres. Rien si l'aide est coupee.
+        /// </summary>
+        static void Caption(float cx, float y, string words, int size, Color c)
+        {
+            if (!Settings.Help || string.IsNullOrEmpty(words) || c.a <= 0.01f) return;
+            float w = Icons.Width(words, size) + UiStyle.S(20);
+            Icons.Text(new Rect(cx - w * 0.5f, y, w, size * 1.5f), words, size, c, TextAnchor.MiddleCenter, true);
         }
 
         // ================================================================== les voiles
@@ -774,6 +958,7 @@ namespace Fief
                 else Icons.Draw(r, id, id == "couronne" ? new Color(1f, 0.86f, 0.35f, alpha) : id == "monument" ? new Color(0.55f, 0.75f, 1f, alpha) : new Color(1f, 1f, 1f, alpha));
                 x += s + gap;
             }
+            Caption(Screen.width * 0.5f, chip.yMax + UiStyle.S(6), tipWords, UiStyle.S(22), new Color(1f, 1f, 1f, alpha));
         }
 
         // ================================================================== le grand titre
@@ -788,10 +973,20 @@ namespace Fief
             float age = CardDuration - cardTimer;
             float alpha = Mathf.Clamp01(cardTimer / 0.5f);
             float punch = age < 0.15f ? Mathf.Lerp(1.6f, 1f, age / 0.15f) : 1f;
-            float s = UiStyle.S(120) * punch;
+            // (02/10) Plus gros, et un anneau qui s'ouvre : on ne peut pas le rater.
+            float s = UiStyle.S(150) * punch;
             float cx = Screen.width * 0.5f, cy = Screen.height * 0.3f;
+            if (age < 0.6f)
+            {
+                float k = age / 0.6f;
+                float ring = s * (1.3f + 1.4f * k);
+                Icons.Dot(new Rect(cx - ring * 0.5f, cy - ring * 0.5f, ring, ring), new Color(cardTint.r, cardTint.g, cardTint.b, 0.45f * (1f - k)));
+            }
+            Icons.Dot(new Rect(cx - s * 0.7f, cy - s * 0.7f, s * 1.4f, s * 1.4f), new Color(1f, 1f, 1f, 0.9f * alpha));
             Icons.Pill(new Rect(cx - s * 0.62f, cy - s * 0.62f, s * 1.24f, s * 1.24f), new Color(cardTint.r * 0.7f, cardTint.g * 0.7f, cardTint.b * 0.7f, 1f), alpha);
-            Icons.Draw(new Rect(cx - s * 0.45f, cy - s * 0.45f, s * 0.9f, s * 0.9f), cardIcon, new Color(1f, 1f, 1f, alpha));
+            Icons.Draw(new Rect(cx - s * 0.45f, cy - s * 0.45f, s * 0.9f, s * 0.9f), cardIcon, cardIcon == "couronne" && !splashCross ? new Color(CrownGold.r, CrownGold.g, CrownGold.b, alpha) : new Color(1f, 1f, 1f, alpha));
+            if (splashCross) Icons.Draw(new Rect(cx - s * 0.36f, cy - s * 0.36f, s * 0.72f, s * 0.72f), "croix", new Color(1f, 0.3f, 0.25f, alpha));
+            Caption(cx, cy + s * 0.78f, splashWords, UiStyle.S(34), new Color(splashCross ? 1f : CrownGold.r, splashCross ? 0.55f : CrownGold.g, splashCross ? 0.5f : CrownGold.b, alpha));
         }
 
         // ================================================================== Tab : le match

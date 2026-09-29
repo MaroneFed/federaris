@@ -748,6 +748,7 @@ namespace Fief
             if (text.StartsWith("Volume")) return "volume";
             if (text.StartsWith("Champ")) return "vue";
             if (text.StartsWith("Taille")) return "texte";
+            if (text.StartsWith("Aide")) return "commandes";
             if (text.StartsWith("Plein")) return "ecran";
             if (text.StartsWith("Touche capacité")) return "cible";
             if (text.StartsWith("Touche pousser")) return "pousser";
@@ -1004,7 +1005,18 @@ namespace Fief
 
         // ------------------------------------------------------------------ l'intro de manche
 
-        float BriefingLength { get { return Match.Played == 0 && !Match.IsTieBreak ? 7f : 3.8f; } }
+        float BriefingLength { get { return Match.Played == 0 && !Match.IsTieBreak ? (Settings.Help ? 9f : 7f) : 3.8f; } }
+
+        /// <summary>Les mots sous la regle en icones (Reglages > Aide ecrite ; 02/10).</summary>
+        static readonly string[] StepWords = { "MONTE LA TOUR", "PRENDS-LA", "PLANE", "COURANT D'AIR", "MONUMENT : 3 S" };
+
+        /// <summary>Quelques mots centres (rien si l'aide ecrite est coupee).</summary>
+        static void Words(float cx, float y, string words, int size, Color c)
+        {
+            if (!Settings.Help || c.a <= 0.01f) return;
+            float w = Icons.Width(words, size) + UiStyle.S(16);
+            Icons.Text(new Rect(cx - w * 0.5f, y, w, size * 1.5f), words, size, c, TextAnchor.MiddleCenter, true);
+        }
 
         /// <summary>
         /// L'INTRO DE MANCHE, toute seule, quelques secondes : "MANCHE 2", et tes
@@ -1048,7 +1060,7 @@ namespace Fief
                 // et en dessous : la main + la Couronne (pousser le porteur, c'est la lui voler).
                 string[] steps = { "tour", "couronne", "ailes", "courant", "sacre" };
                 Color[] tints = { Color.white, new Color(1f, 0.86f, 0.35f), Wings.Glow, new Color(0.75f, 0.92f, 1f), Monument.Blue };
-                float s = UiStyle.S(92), gap = UiStyle.S(56);
+                float s = UiStyle.S(92), gap = UiStyle.S(Settings.Help ? 84 : 56);
                 float x = (Screen.width - (steps.Length * s + (steps.Length - 1) * gap)) * 0.5f;
                 for (int i = 0; i < steps.Length; i++)
                 {
@@ -1059,8 +1071,9 @@ namespace Fief
                     Icons.Pill(rr, new Color(0.22f, 0.26f, 0.56f), k);
                     Icons.Draw(new Rect(rr.x + rr.width * 0.15f, rr.y + rr.height * 0.15f, rr.width * 0.7f, rr.height * 0.7f), steps[i], new Color(tints[i].r, tints[i].g, tints[i].b, k));
                     if (i < steps.Length - 1) Icons.Draw(new Rect(r.xMax + gap * 0.15f, r.y + s * 0.32f, gap * 0.7f, s * 0.36f), "jouer", new Color(1f, 1f, 1f, 0.6f * k), false);
+                    Words(r.center.x, r.yMax + UiStyle.S(12), StepWords[i], UiStyle.S(17), new Color(1f, 1f, 1f, k));
                 }
-                y += s + UiStyle.S(30);
+                y += s + UiStyle.S(Settings.Help ? 62 : 30);
                 float d = Mathf.Clamp01((t - 3.2f) / 0.4f) * a;
                 float cx = Screen.width * 0.5f;
                 Rect chip = new Rect(cx - s * 1.6f, y, s * 3.2f, s * 0.9f);
@@ -1068,7 +1081,8 @@ namespace Fief
                 Icons.Key(new Rect(chip.x + s * 0.12f, chip.y + s * 0.08f, s * 0.74f, s * 0.74f), AbilityInfo.PushKey, d);
                 Icons.Draw(new Rect(chip.x + s * 1.0f, chip.y + s * 0.08f, s * 0.74f, s * 0.74f), "pousser", new Color(1f, 1f, 1f, d));
                 Icons.Draw(new Rect(chip.x + s * 1.9f, chip.y + s * 0.08f, s * 0.74f, s * 0.74f), "couronne", new Color(1f, 0.86f, 0.35f, d));
-                y += s + UiStyle.S(20);
+                Words(cx, chip.yMax + UiStyle.S(10), "POUSSE CELUI QUI L'A : TU LA LUI VOLES", UiStyle.S(19), new Color(1f, 1f, 1f, d));
+                y += s + UiStyle.S(Settings.Help ? 52 : 20);
             }
             else
             {

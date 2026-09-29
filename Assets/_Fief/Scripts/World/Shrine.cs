@@ -105,7 +105,7 @@ namespace Fief
             if (s.IsPlayer)
             {
                 Sfx.Discovery();
-                if (Game.Hud != null) Game.Hud.ShowSplash(Icons.Of(gift), AbilityInfo.Tint(gift));
+                if (Game.Hud != null) Game.Hud.ShowSplash(Icons.Of(gift), AbilityInfo.Tint(gift), "NOUVEAU POUVOIR : " + AbilityInfo.Name(gift).ToUpperInvariant());
                 Stats.Shrines++;
             }
             return true;

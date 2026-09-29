@@ -99,7 +99,7 @@ namespace Fief
                 case Ability.Porteur: return "Avec la Couronne, tu n'es plus ralenti et tu peux pousser.";
                 case Ability.Poigne: return "Ta poussée envoie deux fois plus loin.";
                 case Ability.Ancrage: return "On te pousse deux fois moins loin.";
-                case Ability.Flair: return "Tu vois toujours où est la Couronne, même à travers les murs.";
+                case Ability.Flair: return "Tu vois l'invisible : les mines, les joueurs voilés, à travers la fumée.";
                 case Ability.Ombre: return "Les gargouilles mettent deux fois plus de temps à te repérer.";
                 case Ability.PriseFerme: return "Le premier coup ne te fait pas lâcher la Couronne.";
                 case Ability.Recharge: return "Tes capacités reviennent un tiers plus vite.";

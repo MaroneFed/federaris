@@ -275,11 +275,13 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s == by || s.Body == null || s.Hidden) continue;
+                // Le Flair voit les voiles et vise a travers la fumee.
+                bool flair = by != null && by.Has(Ability.Flair);
+                if (s == by || s.Body == null || s.Hidden && !flair) continue;
                 Vector3 to = s.Body.position + Vector3.up * 1.1f - eye;
                 if (to.magnitude > range) continue;
                 // On ne vise pas a travers la fumee de la Nuee (les gargouilles non plus).
-                if (Smoke.Blocks(eye, s.Body.position + Vector3.up * 1.1f)) continue;
+                if (!flair && Smoke.Blocks(eye, s.Body.position + Vector3.up * 1.1f)) continue;
                 float a = Vector3.Angle(dir, to);
                 if (a > bestAngle) continue;
                 RaycastHit hit;

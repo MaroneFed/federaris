@@ -5,9 +5,10 @@ namespace Fief
 {
     /// <summary>
     /// LE FIL DES EVENEMENTS, EN ICONES (30/09 -- "aucun texte a l'ecran") : a gauche, a
-    /// mi-hauteur, une rangee de pastilles par evenement -- qui (sa couleur), ce qu'il a
-    /// fait (une icone), a qui (sa couleur). "Rouge -> main -> Couronne -> Bleu" : Rouge a
-    /// vole la Couronne a Bleu. Feed.cs dit quoi afficher.
+    /// mi-hauteur, une rangee de pastilles par evenement -- qui, ce qu'il a fait (une
+    /// icone), a qui. "Mahaut -> main -> Couronne -> Oswin" : Mahaut a vole la Couronne a
+    /// Oswin. (02/10 : QUI est ecrit -- son pseudo dans une pastille a sa couleur ; une
+    /// couleur seule ne disait rien a qui decouvre le jeu.) Feed.cs dit quoi afficher.
     /// </summary>
     public static class Toasts
     {
@@ -19,6 +20,8 @@ namespace Fief
             public Color[] tints;
             public Color whom;
             public bool hasWhom;
+            public string whoName;
+            public string whomName;
             public float life;
         }
 
@@ -30,7 +33,15 @@ namespace Fief
         /// <summary>Un evenement : "who" (ou non) fait "icons" (de ces teintes) a "whom" (ou non).</summary>
         public static void Show(bool hasWho, Color who, string[] icons, Color[] tints, bool hasWhom, Color whom)
         {
+            Show(hasWho, who, null, icons, tints, hasWhom, whom, null);
+        }
+
+        /// <summary>La meme chose, avec les pseudos (null : une silhouette).</summary>
+        public static void Show(bool hasWho, Color who, string whoName, string[] icons, Color[] tints, bool hasWhom, Color whom, string whomName)
+        {
             Entry e = new Entry();
+            e.whoName = whoName;
+            e.whomName = whomName;
             e.hasWho = hasWho;
             e.who = who;
             e.icons = icons;
@@ -70,25 +81,42 @@ namespace Fief
                 float slide = (1f - Mathf.Clamp01((Lifetime - e.life) / 0.2f)) * UiStyle.S(-40);
                 float cx = x + slide;
                 float cy = y + i * (h + UiStyle.S(8));
-                int n = e.icons.Length + (e.hasWho ? 1 : 0) + (e.hasWhom ? 1 : 0);
-                Icons.Pill(new Rect(cx, cy, n * h + UiStyle.S(12), h), new Color(0.12f, 0.13f, 0.26f, 0.85f), alpha);
+                float whoW = e.hasWho ? PlayerWidth(e.whoName, h) : 0f;
+                float whomW = e.hasWhom ? PlayerWidth(e.whomName, h) : 0f;
+                float total = whoW + e.icons.Length * h + whomW + UiStyle.S(12) + (e.hasWho ? UiStyle.S(4) : 0f) + (e.hasWhom ? UiStyle.S(4) : 0f);
+                Icons.Pill(new Rect(cx, cy, total, h), new Color(0.12f, 0.13f, 0.26f, 0.85f), alpha);
                 cx += UiStyle.S(6);
-                if (e.hasWho) { Player(new Rect(cx, cy + h * 0.1f, h * 0.8f, h * 0.8f), e.who, alpha); cx += h; }
+                if (e.hasWho) { Player(new Rect(cx, cy + h * 0.1f, whoW, h * 0.8f), e.who, e.whoName, alpha); cx += whoW + UiStyle.S(4); }
                 for (int k = 0; k < e.icons.Length; k++)
                 {
                     Color t = e.tints[k];
                     Icons.Draw(new Rect(cx + h * 0.06f, cy + h * 0.06f, h * 0.88f, h * 0.88f), e.icons[k], new Color(t.r, t.g, t.b, alpha));
                     cx += h;
                 }
-                if (e.hasWhom) Player(new Rect(cx, cy + h * 0.1f, h * 0.8f, h * 0.8f), e.whom, alpha);
+                if (e.hasWhom) Player(new Rect(cx + UiStyle.S(4), cy + h * 0.1f, whomW, h * 0.8f), e.whom, e.whomName, alpha);
             }
         }
 
-        /// <summary>Un joueur : une pastille a sa couleur, une silhouette blanche.</summary>
-        static void Player(Rect r, Color c, float alpha)
+        static int NameSize(float h) { return Mathf.RoundToInt(h * 0.42f / 2f) * 2; }
+
+        /// <summary>La largeur de la pastille d'un joueur : son pseudo, ou un rond.</summary>
+        static float PlayerWidth(string name, float h)
+        {
+            if (string.IsNullOrEmpty(name)) return h * 0.8f;
+            return Mathf.Max(h * 0.8f, Icons.Width(name, NameSize(h)) + h * 0.5f);
+        }
+
+        /// <summary>Un joueur : une pastille a sa couleur, et son pseudo dedans (ou une silhouette).</summary>
+        static void Player(Rect r, Color c, string name, float alpha)
         {
             Icons.Pill(r, c, alpha);
-            Icons.Draw(new Rect(r.x + r.width * 0.16f, r.y + r.height * 0.16f, r.width * 0.68f, r.height * 0.68f), "joueur", new Color(1f, 1f, 1f, alpha), false);
+            if (string.IsNullOrEmpty(name))
+            {
+                float s = r.height;
+                Icons.Draw(new Rect(r.x + s * 0.16f, r.y + s * 0.16f, s * 0.68f, s * 0.68f), "joueur", new Color(1f, 1f, 1f, alpha), false);
+                return;
+            }
+            Icons.Text(r, name, NameSize(r.height / 0.8f), new Color(1f, 1f, 1f, alpha), TextAnchor.MiddleCenter, true);
         }
     }
 }

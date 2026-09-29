@@ -50,7 +50,9 @@ namespace Fief
         void Update()
         {
             Transform player = Game.PlayerTransform;
-            bool see = owner == Game.Me || player != null && (player.position - transform.position).magnitude < 5f;
+            // (02/10) Le Flair voit toutes les mines (la Couronne, elle, est desormais visible par tous).
+            bool see = owner == Game.Me || player != null && (player.position - transform.position).magnitude < 5f
+                       || Game.Me != null && Game.Me.Has(Ability.Flair);
             if (see != shown)
             {
                 shown = see;

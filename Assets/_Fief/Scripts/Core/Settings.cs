@@ -26,6 +26,13 @@ namespace Fief
         /// </summary>
         public static int ActiveBind = 0;
         public static int PushBind = 1;
+        /// <summary>
+        /// L'AIDE ECRITE (02/10 -- le frere de Martin, au premier essai : "les icones, on ne
+        /// comprenait rien", "quand il l'a, il ne sait meme pas qu'il l'a"). Oui : quelques
+        /// mots SOUS les icones aux moments qui comptent (la Couronne prise ou perdue, la
+        /// regle de la manche, les astuces). Non : zero texte, comme le veut Martin (30/09).
+        /// </summary>
+        public static bool Help = true;
         /// <summary>TON PSEUDO (29/09 : "il faut mettre le pseudo, les persos c'est quasi tous les memes").</summary>
         public static string Pseudo = "Joueur";
         public const int PseudoLength = 16;
@@ -60,6 +67,7 @@ namespace Fief
             PushBind = Mathf.Clamp(PlayerPrefs.GetInt("fief.touchePousser", oldLeft ? 0 : 1), 0, FiefInput.BindNames.Length - 1);
             if (PushBind == ActiveBind) { ActiveBind = 0; PushBind = 1; }
             Pseudo = PlayerPrefs.GetString("fief.pseudo", "Joueur");
+            Help = PlayerPrefs.GetInt("fief.aide", 1) == 1;
         }
 
         public static void Save()
@@ -72,6 +80,7 @@ namespace Fief
             PlayerPrefs.SetInt("fief.toucheCapacite", ActiveBind);
             PlayerPrefs.SetInt("fief.touchePousser", PushBind);
             PlayerPrefs.SetString("fief.pseudo", Pseudo);
+            PlayerPrefs.SetInt("fief.aide", Help ? 1 : 0);
             PlayerPrefs.Save();
         }
 
@@ -96,6 +105,7 @@ namespace Fief
             else if (row == 4) Fullscreen = !Fullscreen;
             else if (row == 5) ActiveBind = NextBind(ActiveBind, step, PushBind);
             else if (row == 6) PushBind = NextBind(PushBind, step, ActiveBind);
+            else if (row == 7) Help = !Help;
             Apply();
             Save();
         }
@@ -109,6 +119,7 @@ namespace Fief
             if (row == 3) return Mathf.RoundToInt(TextSize * 100f) + " %";
             if (row == 4) return Fullscreen ? "oui" : "non";
             if (row == 5) return FiefInput.BindNames[ActiveBind];
+            if (row == 7) return Help ? "oui" : "non";
             return FiefInput.BindNames[PushBind];
         }
 
@@ -125,6 +136,6 @@ namespace Fief
             return from;
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite" };
     }
 }
