@@ -106,6 +106,11 @@ namespace Fief
         public float LastHurt = -99f;
         /// <summary>Qui l'a frappe en dernier (pour l'aura de qui l'a ejecte dans les nuages).</summary>
         public Seeker LastHitBy;
+        /// <summary>Quand un JOUEUR l'a frappe pour la derniere fois (un obstacle ne l'efface pas : pousse sous un pendule, le KO est a toi).</summary>
+        public float LastHitByAt = -99f;
+        /// <summary>Le pique d'aigle en cours : sur qui, et jusqu'a quand (le porteur vise en est prevenu).</summary>
+        public Seeker DiveTarget;
+        public float DiveUntil = -1f;
         /// <summary>
         /// LA GRACE : protege (rien ne le projette, les Yeux l'ignorent). Au depart, apres
         /// un respawn, et une seconde et demie apres avoir vole la Couronne.
@@ -160,6 +165,8 @@ namespace Fief
         public float LastRingAt = -99f;
         /// <summary>Combien d'anneaux de la meme chaine il vient d'enfiler d'affilee (4 : l'enfilade).</summary>
         public int RingChain;
+        /// <summary>Le dernier anneau qu'il a frole sans y entrer (le "pfff").</summary>
+        public WindRing MissedRing;
         /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
         public bool CanGlide { get { return !Stunned && !Tumbling; } }
         public bool Graced { get { return Time.time < GraceUntil; } }

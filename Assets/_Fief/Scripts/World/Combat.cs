@@ -100,6 +100,8 @@ namespace Fief
             IMover m = AbilityCaster.MoverOf(by);
             if (m == null || target == null) return false;
             by.DiveReadyAt = Time.time + DiveCooldown;
+            by.DiveTarget = target;
+            by.DiveUntil = Time.time + 1.6f;
             m.Dive(target);
             Fx.Trail(by.Body, Wings.Gold, 1.4f, 1.3f);
             Fx.Ring(by.Body.position + Vector3.up * 1.2f, Wings.Gold, 0.5f, 5f, 0.35f, 0.3f, target.Body.position - by.Body.position);
@@ -116,11 +118,12 @@ namespace Fief
         {
             velocity = Vector3.zero;
             time -= dt;
-            if (by == null || target == null || target.Body == null || by.Stunned || time <= 0f) { time = 0f; return true; }
+            if (by == null || target == null || target.Body == null || by.Stunned || time <= 0f) { time = 0f; if (by != null) by.DiveUntil = -1f; return true; }
             Vector3 to = target.Body.position + Vector3.up * 0.9f - (from + Vector3.up * 0.9f);
             if (to.magnitude < 2.4f)
             {
                 DiveStrike(by, target);
+                by.DiveUntil = -1f;
                 time = 0f;
                 return true;
             }
@@ -164,7 +167,13 @@ namespace Fief
                 velocity = Tumble(victim, velocity);
             Knockback(victim, velocity);
             victim.LastHurt = Time.time;
-            if (by != null && by != victim) victim.LastHitBy = by;
+            if (by != null && by != victim) { victim.LastHitBy = by; victim.LastHitByAt = Time.time; }
+            // Un gros coup sur TOI : la tete se tourne vers d'ou il vient (OrbitCamera.Glance).
+            if (victim.IsPlayer && velocity.magnitude > 18f && Game.Hud != null && Game.Hud.orbitCamera != null)
+            {
+                Vector3 from = by != null && by.Body != null ? by.Body.position : victim.Body.position - new Vector3(velocity.x, 0f, velocity.z).normalized * 6f;
+                Game.Hud.orbitCamera.Glance(from + Vector3.up, 0.5f);
+            }
             // Tes coups PORTENT : une micro-pause, un petit tremblement (28/09 : "que les capacites soient vraiment impactantes").
             if (by != null && by.IsPlayer)
             {

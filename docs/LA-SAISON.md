@@ -373,11 +373,12 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
 
 ## Le personnage et les graphismes (30/09 : « lisse, lisse »)
 
-- **Le petit chevalier** (toi et les bots) : un corps en **haricot** satiné à sa couleur
-  (façon Fall Guys), un **casque d'acier poli** avec sa fente et deux yeux qui luisent,
-  un **cimier** à sa couleur, des épaulières, une ceinture à boucle d'or, une **cape**.
-  Il se dandine, s'écrase à l'atterrissage, s'étire en l'air, **fait des saltos** quand
-  un obstacle l'éjecte. En première personne, on ne voit toujours que son ombre.
+- **Le haricot** (toi et les bots ; simplifié le 03/10 — Martin : « hyper simples, garde le
+  haricot et ses yeux ») : un **haricot** satiné à sa couleur et **deux grands yeux**, de
+  tout petits pieds et mains ronds de la même couleur — rien d'autre. Il se dandine,
+  s'écrase à l'atterrissage, s'étire en l'air, **fait des saltos** quand un obstacle
+  l'éjecte, **écarquille les yeux** quand il est projeté ou qu'il danse ; quand un autre a
+  gagné la manche, il **s'affaisse**, déçu. En première personne, on ne voit que son ombre.
 - **L'image lissée** : anticrénelage x4 (x8 jusqu'au 03/10 : « le jeu n'est pas fluide »), filtrage anisotrope, ombres très fines en
   quatre cascades, synchro verticale, et une **sonde de reflets** qui photographie
   l'île et le ciel : l'or et l'acier reflètent le soir.
@@ -442,6 +443,15 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
     gros) ; à la prise, une fanfare ; à la perte, la Couronne barrée et un éclair rouge ;
   - **Réglages ▸ Aide écrite** (oui par défaut) : quelques mots sous les icônes aux moments
     qui comptent ;
+  - **v23, les dix priorités du clipper fou** (`docs/CLIPPER-FOU-500.md`) : chaque obstacle a
+    **sa voix** (le butoir fait « boing », le poing du bélier et les barres « paf », le
+    maillet « gong », la herse **cliquette** avant de sortir) ; frôler un anneau de vent sans
+    y entrer fait « pfff » ; quand un gros coup te projette, **ta tête se tourne** vers d'où il
+    vient (une demi-seconde) ; **pousser quelqu'un sous un obstacle** qui le jette dans les
+    nuages dans les 8 s, c'est **ton KO** ; le porteur voit une **pastille rouge** sur qui
+    fond sur lui en piqué ; au podium, des **médailles d'or** (roi des KO, roi des moments) ;
+    **F10 : l'écran propre** (rien par-dessus le monde, pour filmer) ; **une foule** qui fait
+    « ooooh » sur les gros moments et exulte à la victoire ;
   - **LES MOMENTS À CLIPPER** (v20, 02/10 — Martin : « rajoute plein de trucs à clipper »,
     `World/Highlights.cs`, `docs/CLIPPER-CHIANT.md`) : le jeu repère douze moments — **KO**
     (poussé dans les nuages dans les 8 s : une colonne de lumière à sa couleur jaillit des

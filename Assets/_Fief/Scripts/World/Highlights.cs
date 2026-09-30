@@ -61,10 +61,26 @@ namespace Fief
             }
         }
 
+        // (03/10, le clipper fou n° 427) Les KO de chacun : le ROI DES KO a son titre au podium.
+        static readonly Dictionary<int, int> kos = new Dictionary<int, int>();
+        public static int KosOf(int slot) { int n; return kos.TryGetValue(slot, out n) ? n : 0; }
+
+        /// <summary>Le joueur qui a le plus de KO (au moins deux), -1 sinon.</summary>
+        public static int KoKing
+        {
+            get
+            {
+                int best = -1, most = 1;
+                foreach (KeyValuePair<int, int> kv in kos) if (kv.Value > most) { most = kv.Value; best = kv.Key; }
+                return best;
+            }
+        }
+
         /// <summary>Un nouveau match : on remet les compteurs a zero.</summary>
         public static void Reset()
         {
             count.Clear();
+            kos.Clear();
             lastShoveAt.Clear();
             lastShoved.Clear();
             lastKoAt.Clear();
@@ -97,7 +113,9 @@ namespace Fief
         {
             if (!Live || victim == null || victim.Body == null) return;
             Seeker by = victim.LastHitBy;
-            if (by == null || by == victim || Time.time - victim.LastHurt > 8f) return;
+            // (03/10, le clipper fou n° 124) C'est le dernier coup d'un JOUEUR qui compte, meme si un
+            // obstacle a fini le travail : pousse sous un pendule dans les 8 s, le KO est a toi.
+            if (by == null || by == victim || Time.time - victim.LastHitByAt > 8f) return;
             Vector3 p = victim.Body.position;
             Vector3 exit = new Vector3(p.x, -22f, p.z);
             // LA COLONNE DU KO : elle jaillit des nuages a la couleur de la victime, on la voit
@@ -240,7 +258,11 @@ namespace Fief
             {
                 int n;
                 count[who.Index] = (count.TryGetValue(who.Index, out n) ? n : 0) + (actor != null ? 1 : 0);
+                if (actor != null && (k == Kind.KO || k == Kind.DoubleKO)) kos[actor.Index] = (kos.TryGetValue(actor.Index, out n) ? n : 0) + 1;
             }
+            // La foule fait "OOOOH" sur les plus gros (le clipper fou n° 499).
+            if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal || k == Kind.SacreStopped || k == Kind.HotPotato || k == Kind.Summit)
+                Sfx.Crowd(k == Kind.DoubleKO || k == Kind.AirSteal ? 0.8f : 0.55f);
             Color gold = new Color(1f, 0.82f, 0.4f);
             if (actor != null)
                 Toasts.Show(true, actor.IsPlayer ? gold : actor.Colour, actor.Name, new[] { "clip", icon }, new[] { Color.white, tint },

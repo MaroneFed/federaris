@@ -257,6 +257,19 @@ namespace Fief
         /// le rythme : des confettis, des feux d'artifice, un anneau d'or au sol, un
         /// projecteur (VictoryShow).
         /// </summary>
+        /// <summary>Les perdants s'affaissent pendant que le gagnant danse (CharacterRig.Disappointed).</summary>
+        static void Disappoint(Seeker s)
+        {
+            if (s == null || s.Body == null) return;
+            CharacterRig rig = s.IsPlayer ? Game.Rig : null;
+            if (!s.IsPlayer)
+            {
+                Rival r = Rival.Of(s);
+                if (r != null) rig = r.Rig;
+            }
+            if (rig != null) rig.Disappointed(90f);
+        }
+
         static void Celebrate(Seeker s)
         {
             if (s == null || s.Body == null) return;
@@ -544,7 +557,10 @@ namespace Fief
             roundWinner = winner;
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
             for (int i = 0; i < Game.Seekers.Count; i++)
+            {
                 if (Game.Seekers[i].Index == winner) Celebrate(Game.Seekers[i]);
+                else if (winner >= 0) Disappoint(Game.Seekers[i]);
+            }
             // La voix de l'arene : "you win", "you lose" -- ou "time" quand personne n'a gagne.
             // ("you lose" seulement a la derniere manche : l'entendre sept fois de suite, c'est dur.)
             bool mine = Match.Local != null && winner == Match.Local.Index;
@@ -555,6 +571,8 @@ namespace Fief
             Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();
+            // La foule exulte (une manche gagnee) -- rien quand le temps s'est ecoule.
+            if (winner >= 0) Sfx.Crowd(1f);
             if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.4f);
         }
 
@@ -1435,6 +1453,13 @@ namespace Fief
 
         // ------------------------------------------------------------------ fin du match
 
+        /// <summary>Une medaille : une pastille d'or ronde, une icone blanche dedans.</summary>
+        static void Medal(Rect r, string icon, float a)
+        {
+            Icons.Pill(r, new Color(0.86f, 0.62f, 0.2f), a);
+            Icons.Draw(new Rect(r.x + r.width * 0.16f, r.y + r.height * 0.16f, r.width * 0.68f, r.height * 0.68f), icon, new Color(1f, 1f, 1f, a));
+        }
+
         void DrawEnd()
         {
             // (01/10 -- sans phrases) Le champion : son pseudo en or et la Couronne ; le
@@ -1479,6 +1504,11 @@ namespace Fief
                     Icons.Draw(new Rect(r.xMax - h * 3.3f, r.y + h * 0.16f, h * 0.68f, h * 0.68f), "clip", new Color(1f, 1f, 1f, a));
                     Icons.Number(new Rect(r.xMax - h * 2.6f, r.y, h * 0.7f, h), clips.ToString(), Mathf.RoundToInt(h * 0.5f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
                 }
+                // (03/10, le clipper fou n° 427) LES TITRES, en medaille d'or a gauche de la ligne :
+                // le roi des KO (l'etoile d'impact), le roi des moments (la claquette).
+                float mx = r.x - h * 0.95f;
+                if (s.Index == Highlights.KoKing) { Medal(new Rect(mx, r.y + h * 0.05f, h * 0.9f, h * 0.9f), "ko", a); mx -= h * 0.95f; }
+                if (s.Index == Highlights.Best && Highlights.CountOf(s.Index) >= 2) Medal(new Rect(mx, r.y + h * 0.05f, h * 0.9f, h * 0.9f), "clip", a);
                 y += h + UiStyle.S(10);
             }
             y += UiStyle.S(20);
@@ -1550,10 +1580,12 @@ namespace Fief
                 Line("vue", "Diriger le vol : regarde où tu veux aller", "Souris", -1),
                 Line("ailes", "Replier ou rouvrir les ailes", "Espace", -1),
                 Line("courant", "Remonter : tourne dans un courant d'air", "", -1),
+                Line("ailes", "Te propulser : passe dans les anneaux de vent", "", -1),
                 Head("reglages", "LE RESTE"),
                 Line("manches", "Les scores", "Tab", -1),
                 Line("reglages", "Pause et réglages", "Échap", -1),
                 Line("commandes", "Cet écran", "F1", -1),
+                Line("clip", "Écran propre pour filmer (sans rien par-dessus)", "F10", -1),
             };
         }
 

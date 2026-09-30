@@ -102,6 +102,9 @@ namespace Fief
             if (hurtFlash > 0f) hurtFlash = Mathf.Max(0f, hurtFlash - Time.unscaledDeltaTime * 2f);
             if (hitSideTimer > 0f) hitSideTimer -= Time.unscaledDeltaTime;
             if (FiefInput.DiagnosticPressed) showDiagnostic = !showDiagnostic;
+            // (03/10, le clipper fou n° 454) F10 : L'ECRAN PROPRE -- plus rien par-dessus le monde
+            // (ni HUD, ni fil, ni reperes), pour filmer. F10 encore : tout revient.
+            if (FiefInput.CleanScreenPressed) { clean = !clean; Sfx.Pop(); }
             if (FiefInput.KeysPressed && !Hidden) keysOpen = !keysOpen;
             if (Game.Season != null && Game.Season.Running && !Hidden)
             {
@@ -222,11 +225,14 @@ namespace Fief
         }
 
         bool Hidden { get { return menus != null && menus.Blocking; } }
+        bool clean;
+        /// <summary>Vrai en ecran propre (F10) : rien par-dessus le monde.</summary>
+        public bool Clean { get { return clean; } }
 
         void OnGUI()
         {
             UiStyle.Ensure();
-            if (Hidden) return;
+            if (Hidden || clean) return;
 
             // (02/10 -- "des fois on ne voit plus les touches, des fois tout se barre, on ne
             // voit plus rien") : chaque morceau du HUD est dessine A PART. Avant, si un seul
@@ -823,6 +829,18 @@ namespace Fief
                 Color fill = new Color(Monument.Blue.r * 0.55f, Monument.Blue.g * 0.55f, Monument.Blue.b * 0.7f);
                 Pin(cam, mo.transform.position + Vector3.up * 8f, "monument", Color.white, fill, size, close ? 1f : 0.8f, d);
             }
+            // (03/10, le clipper fou n° 237 : "le porteur ne sait pas qu'on arrive sur lui") UN
+            // PIQUE D'AIGLE ARRIVE SUR TOI : une pastille ROUGE sur celui qui plonge (collee au
+            // bord s'il est hors de vue), et un sifflement la premiere fois -- esquive, ou pas.
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker diver = Game.Seekers[i];
+                if (diver == null || diver.Body == null || diver.DiveTarget != me || Time.time > diver.DiveUntil) continue;
+                float dd = (diver.Body.position - me.Body.position).magnitude;
+                float beat = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 18f);
+                Pin(cam, diver.Body.position + Vector3.up * 1.2f, "pique", Color.white, new Color(0.85f, 0.15f, 0.12f), UiStyle.S(58) * (1f + 0.12f * beat), 1f, dd);
+                if (warnedDive != diver.DiveUntil) { warnedDive = diver.DiveUntil; Sfx.WhooshAt(diver.Body.position); Sfx.Deny(); }
+            }
             // (02/10, gamer chiant n° 118) EN VOL, LE COURANT D'AIR le plus proche : avec la
             // Couronne (lourde), on ne va jamais d'une traite jusqu'aux Monuments -- il faut
             // tourner dans un courant pour remonter. Personne ne le savait.
@@ -846,6 +864,8 @@ namespace Fief
                 }
             }
         }
+
+        float warnedDive = -1f;
 
         static Texture2D rampV, rampH;
 

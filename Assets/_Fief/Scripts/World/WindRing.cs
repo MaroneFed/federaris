@@ -63,10 +63,22 @@ namespace Fief
                 WindRing r = All[i];
                 if (r == null) continue;
                 Vector3 d = p - r.Centre;
-                if (d.sqrMagnitude > (Radius + Depth) * (Radius + Depth)) continue;
+                if (d.sqrMagnitude > (Radius * 2.2f + Depth) * (Radius * 2.2f + Depth)) continue;
                 float along = Vector3.Dot(d, r.axis);
                 if (Mathf.Abs(along) > Depth) continue;
-                if ((d - r.axis * along).magnitude > Radius) continue;
+                float radial = (d - r.axis * along).magnitude;
+                if (radial > Radius)
+                {
+                    // FROLE, PAS ENTRE (le clipper fou n° 254) : un "pfff" qui se degonfle, une
+                    // bouffee grise -- on sait qu'on vient de le rater.
+                    if (radial < Radius * 2.2f && s.MissedRing != r && s.LastRing != r)
+                    {
+                        s.MissedRing = r;
+                        if (s.IsPlayer) Sfx.Deflate();
+                        Fx.Burst(p, new Color(0.8f, 0.82f, 0.86f), 14, 4f, 0.25f, 0.6f, 0f, Vector3.zero, 0f);
+                    }
+                    continue;
+                }
                 if (s.LastRing == r && now - s.LastRingAt < 2f) continue;
                 // L'ENFILADE : les anneaux d'une meme chaine, dans l'ordre, sans se poser.
                 bool follows = s.LastRing != null && s.LastRing.Route == r.Route && s.LastRing.Order == r.Order - 1 && now - s.LastRingAt < 12f;

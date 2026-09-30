@@ -126,13 +126,13 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 ## III. Les obstacles (101-150)
 
 101. « Pas clippable : un obstacle gris. » → ✔ Tous rouge et crème, ardoise et or (v21).
-102. « Pas clippable : le pendule touche sans bruit de caoutchouc. » → Un "boing" propre au butoir.
-103. « Pas clippable : le bélier frappe avec un bruit de choc générique. » → Un "PAF" de gant de boxe.
+102. « Pas clippable : le pendule touche sans bruit de caoutchouc. » → ✔ « Boing » (v23).
+103. « Pas clippable : le bélier frappe avec un bruit de choc générique. » → ✔ « Paf » (v23).
 104. « Pas clippable : la barre du balayeur siffle pareil que le reste. » → Un sifflement qui monte à chaque passage.
-105. « Pas clippable : la herse sort sans cliquetis. » → Un "clac-clac" 0,5 s avant.
-106. « Pas clippable : le marteau ne fait pas "gong". » → Un gong de cloche.
+105. « Pas clippable : la herse sort sans cliquetis. » → ✔ Le cliquet quand les runes rougissent (v23).
+106. « Pas clippable : le marteau ne fait pas "gong". » → ✔ Un gong (v23).
 107. « Pas clippable : un obstacle qui te sort, pas de pause. » → La micro-pause d'impact (0,1 s) aussi pour les obstacles.
-108. « Pas clippable : on se fait sortir et on ne voit pas par quoi. » → La caméra regarde l'obstacle 0,3 s pendant l'éjection.
+108. « Pas clippable : on se fait sortir et on ne voit pas par quoi. » → ✔ La tête se tourne vers d'où vient le coup (v23).
 109. « Pas clippable : un obstacle qui sort deux joueurs d'un coup n'est pas fêté. » → "Doublé" pour l'obstacle (moment).
 110. « Pas clippable : les obstacles tous en phase. » → Les phases sont au hasard ; ok.
 111. « Pas clippable : deux pendules voisins en opposition, jamais. » → Les mettre en contre-temps exprès.
@@ -148,7 +148,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 121. « Pas clippable : le marteau passe au-dessus des têtes. » → Sa masse descend à 15 cm du sol ; ok.
 122. « Pas clippable : un bot qui attend son tour devant un obstacle, trop sage. » → Parfois un bot pressé qui passe en force et se fait sortir.
 123. « Pas clippable : un bot qui passe parfaitement, tout le temps. » → Un bot sur cinq se trompe de temps.
-124. « Pas clippable : on ne peut pas utiliser un obstacle contre quelqu'un. » → Pousser quelqu'un sous un pendule : le KO compte pour toi.
+124. « Pas clippable : on ne peut pas utiliser un obstacle contre quelqu'un. » → ✔ Le KO est à toi s'il tombe dans les 8 s (v23).
 125. « Pas clippable : les chicanes sont des murs. » → ✔ Des chevrons qui montrent le passage (v21).
 126. « Pas clippable : un obstacle ne réagit jamais au porteur. » → Les obstacles plus rapides quand le porteur est sur leur rampe.
 127. « Pas clippable : les bandes de danger sont calmes. » → Elles clignotent quand l'obstacle va frapper.
@@ -220,7 +220,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 190. « Pas clippable : les gargouilles ne célèbrent pas. » → Voulu.
 191. « Pas clippable : aucune gargouille dans la cour. » → Normal ; la cour est l'arène des poussées.
 192. « Pas clippable : les tirs ne se croisent jamais. » → Voulu (une à la fois sur une même cible).
-193. « Pas clippable : on ne voit pas la gargouille qui t'a eu. » → La caméra la regarde 0,3 s pendant ta chute.
+193. « Pas clippable : on ne voit pas la gargouille qui t'a eu. » → ✔ La tête se tourne (v23).
 194. « Pas clippable : "abattu par une gargouille" n'est pas compté. » → Au podium : "victime des gargouilles".
 195. « Pas clippable : la gargouille du sommet contre le porteur qui saute. » → Le clip parfait ; le permettre (tir sur le porteur au bord).
 196. « Pas clippable : la pierre bleue se fond dans l'ardoise. » → Ok, elles ont leurs yeux.
@@ -267,7 +267,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 234. « Pas clippable : les bots ne se jettent pas sur le porteur tous ensemble. » → Parfois une meute, c'est drôle.
 235. « Pas clippable : la Couronne ne laisse jamais de trace dorée au sol. » → Au respawn de sa position, une poussière d'or.
 236. « Pas clippable : on ne voit pas la distance au Monument quand on la porte. » → Les trois repères ; ok.
-237. « Pas clippable : le porteur ne sait pas qu'on arrive sur lui. » → Une flèche rouge sur le bord de l'écran quand un piqué arrive.
+237. « Pas clippable : le porteur ne sait pas qu'on arrive sur lui. » → ✔ Une pastille rouge sur celui qui plonge, et un sifflement (v23).
 238. « Pas clippable : le porteur avec le Voile (invisible). » → La Couronne reste visible ; ok.
 239. « Pas clippable : la Couronne perdue dans une chute, rien. » → "Lâchée !" dans le fil.
 240. « Pas clippable : quand la Couronne est à terre, personne ne court. » → Les bots courent ; ok.
@@ -287,7 +287,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 251. « Pas clippable : du sommet, le porteur ne sait pas où aller. » → ✔ Quatre anneaux de vent vers chaque îlot (v22).
 252. « Pas clippable : planer, c'est long et vide. » → ✔ Les anneaux rythment le vol (un toutes les 5-7 s).
 253. « Pas clippable : passer dans un anneau, rien ne le dit. » → ✔ Anneaux d'éclat, gerbe, "whoup" qui monte, la caméra qui encaisse.
-254. « Pas clippable : rater un anneau, rien ne le dit. » → Un "pfff" d'air qui se dégonfle quand on passe à côté.
+254. « Pas clippable : rater un anneau, rien ne le dit. » → ✔ Un « pfff » et une bouffée grise (v23).
 255. « Pas clippable : enfiler les quatre anneaux d'une chaîne. » → ✔ L'enfilade : au 4e, un gros éclat d'or et la fanfare (v22).
 256. « Pas clippable : les anneaux sont les mêmes pour tous. » → Voulu (équité).
 257. « Pas clippable : un voleur qui passe dans l'anneau juste derrière le porteur. » → C'est le clip ; bien.
@@ -359,13 +359,13 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 320. « Pas clippable : les KO du bot le plus fort. » → Un bot "chasseur" qui a son compte.
 321. « Pas clippable : pas de "dernier debout". » → Pas de vie ; ok.
 322. « Pas clippable : la micro-pause est trop courte. » → 0,1 s ; ok.
-323. « Pas clippable : la victime ne voit pas qui l'a poussée. » → Caméra vers le pousseur 0,3 s.
+323. « Pas clippable : la victime ne voit pas qui l'a poussée. » → ✔ La tête se tourne vers le pousseur (v23).
 324. « Pas clippable : les poussées dans la cour sont trop nombreuses. » → Normal.
 325. « Pas clippable : la poussée dans le dos. » → Même effet ; ok.
 326. « Pas clippable : aucune poussée ne sauve un allié. » → Pas d'alliés (chacun pour soi).
 327. « Pas clippable : pousser le porteur, trop simple. » → C'est le cœur ; ok.
 328. « Pas clippable : le porteur poussé ne part qu'à moitié. » → Voulu.
-329. « Pas clippable : une poussée qui fait tomber sur un obstacle. » → Le KO t'est compté (à faire, 124).
+329. « Pas clippable : une poussée qui fait tomber sur un obstacle. » → ✔ (v23).
 330. « Pas clippable : la poussée ne fait pas trembler le sol. » → Une onde au sol.
 331. « Pas clippable : le poussé qui retombe sur un autre. » → Un rebond, un "bonk".
 332. « Pas clippable : les poussées des bots sont toujours réussies. » → Parfois ratées.
@@ -454,7 +454,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 409. « Pas clippable : la victoire n'a pas de "ralenti". » → Voulu (pas d'aura) ; la danse.
 410. « Pas clippable : la caméra de victoire tourne trop vite. » → 16°/s ; ok.
 411. « Pas clippable : la danse se ressemble. » → Six figures ; ok.
-412. « Pas clippable : les perdants ne réagissent pas. » → Les autres haricots s'assoient, déçus.
+412. « Pas clippable : les perdants ne réagissent pas. » → ✔ Ils s'affaissent (v23).
 413. « Pas clippable : les bots perdants ne regardent pas le gagnant. » → Ils se tournent vers lui.
 414. « Pas clippable : le pseudo du gagnant en or est statique. » → Il claque ; ok.
 415. « Pas clippable : les confettis sont trop petits. » → Plus gros.
@@ -469,7 +469,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 424. « Pas clippable : le dernier n'a rien. » → Une petite animation de consolation.
 425. « Pas clippable : les moments au podium. » → ✔ La claquette et leur nombre (v20).
 426. « Pas clippable : le "moment du match" n'est pas rejoué. » → En icônes (Phase 1) ; en vrai replay, plus tard.
-427. « Pas clippable : les titres (roi des KO…) n'existent pas. » → À faire.
+427. « Pas clippable : les titres (roi des KO…) n'existent pas. » → ✔ Médailles : roi des KO, roi des moments (v23).
 428. « Pas clippable : "winner" de la voix arrive en retard. » → Au premier pas de danse.
 429. « Pas clippable : la manche nulle (temps écoulé). » → La Couronne qui tombe seule, et "time".
 430. « Pas clippable : le départage, pas de finale. » → Musique à part.
@@ -499,7 +499,7 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 451. « Pas clippable : les émojis son et lumière dans l'image. » → ✔ Gizmos coupés tout seuls (v21).
 452. « Pas clippable : ça saccade. » → ✔ Plus léger (v21) ; à mesurer (Stats).
 453. « Pas clippable : le HUD couvre le centre. » → Il est aux bords ; ok.
-454. « Pas clippable : pas de mode "écran propre". » → Une touche F10 sans HUD.
+454. « Pas clippable : pas de mode "écran propre". » → ✔ F10 (v23).
 455. « Pas clippable : format vertical. » → Rien d'important sur les côtés.
 456. « Pas clippable : le chrono trop petit dans un clip. » → Grand dans les 10 dernières s.
 457. « Pas clippable : le fil des événements trop petit. » → Plus grand pour les moments.
@@ -527,10 +527,10 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 479. « Pas clippable : la caméra tremble trop. » → Secousse douce ; ok.
 480. « Pas clippable : la caméra ne tremble pas assez. » → Le coup sec (Kick) ; ok.
 481. « Pas clippable : les couleurs des joueurs se ressemblent. » → 8 couleurs bien séparées.
-482. « Pas clippable : les haricots sont trop détaillés pour un petit écran. » → Plus simples (voir la suite proposée à Martin).
+482. « Pas clippable : les haricots sont trop détaillés pour un petit écran. » → ✔ Haricot et yeux, rien d'autre (v23).
 483. « Pas clippable : les visages des haricots trop petits. » → Des yeux plus grands.
-484. « Pas clippable : le casque cache le visage. » → Plus haut.
-485. « Pas clippable : la cape flotte mal. » → Plus courte.
+484. « Pas clippable : le casque cache le visage. » → ✔ Plus de casque (v23).
+485. « Pas clippable : la cape flotte mal. » → ✔ Plus de cape (v23).
 486. « Pas clippable : les haricots ne réagissent pas assez. » → Bouche en "O" plus souvent.
 487. « Pas clippable : les haricots de loin sont des points. » → Le pseudo et la lanterne ; ok.
 488. « Pas clippable : l'ombre du joueur seule en première personne. » → Voulu (décision).
@@ -544,12 +544,12 @@ Légende : **✔** réglé (v21 ou v22) · **→** la piste · **?** à vérifie
 496. « Pas clippable : les moments ne sont pas enregistrés. » → Marqueurs Steam (Phase 5).
 497. « Pas clippable : aucun replay. » → Plus tard.
 498. « Pas clippable : le son 2D des moments ne se remarque pas dans un clip. » → Il est fort ; ok.
-499. « Pas clippable : pas de cri de foule. » → Pack Kenney "crowd" ou Suno.
+499. « Pas clippable : pas de cri de foule. » → ✔ Une foule fabriquée (« ooooh », ovation) ; un vrai son dans `Sons/Foule` la remplace (v23).
 500. « Pas clippable : rien de tout ça ne vaut un bon clip de Couronne volée en plein ciel au-dessus des nuages. » → **C'est pour ça qu'on a fait les anneaux.**
 
 ---
 
-**Les dix que le clipper ferait en premier** (après les réglages de v22) :
+**Les dix que le clipper ferait en premier** — **tous faits en v23** :
 254 (le "pfff" de l'anneau raté), 102-106 (un son par obstacle),
 108/193/323 (la caméra qui regarde qui t'a eu), 124 (le KO par obstacle compté),
 237 (la flèche du piqué qui arrive), 412 (les perdants déçus), 427 (les titres du podium),

@@ -130,6 +130,160 @@ namespace Fief
             End3D();
         }
 
+        // ------------------------------------------------------------- les obstacles
+        //
+        // (03/10, le clipper fou n° 102-106 : "tous les obstacles font le meme bruit de choc")
+        // Chacun sa voix, fabriquee ici -- on les reconnait les yeux fermes :
+        //   le BUTOIR (pendule)  : un "BOING" de caoutchouc, une note qui ondule en tombant ;
+        //   le POING (belier, barres) : un "PAF" de gant de boxe, sourd et sec ;
+        //   le MAILLET (marteau) : un "GONG" de cloche, long, aux harmoniques de metal ;
+        //   la HERSE, avant de sortir : un "clac-clac" de cliquet ;
+        //   l'ANNEAU RATE : un "pfff" qui se degonfle.
+
+        static AudioClip boing, paf, gong, rattle, deflate;
+
+        public static void BoingAt(Vector3 at) { if (Muted || source == null) return; if (boing == null) boing = MakeBoing(); Begin3D(at); Play(boing, 0.9f); End3D(); }
+        public static void PafAt(Vector3 at) { if (Muted || source == null) return; if (paf == null) paf = MakePaf(); Begin3D(at); Play(paf, 1f); PlayReal("Choc", 0.35f); End3D(); }
+        public static void GongAt(Vector3 at) { if (Muted || source == null) return; if (gong == null) gong = MakeGong(); Begin3D(at); Play(gong, 0.85f); End3D(); }
+        public static void RattleAt(Vector3 at) { if (Muted || source == null) return; if (rattle == null) rattle = MakeRattle(); Begin3D(at); Play(rattle, 0.6f); End3D(); }
+        public static void Deflate() { if (Muted || source == null) return; if (deflate == null) deflate = Sweep("anneau rate", 520f, 150f, 0.45f, 0.5f); Play(deflate, 0.45f); }
+
+        static AudioClip crowd;
+
+        /// <summary>
+        /// LA FOULE (03/10, le clipper fou n° 499 : "pas de cri de foule") : un public invisible
+        /// qui fait "OOOOH" sur les gros moments (un KO, une Couronne volee en plein ciel, un sacre
+        /// arrache) et qui EXULTE a la victoire. "loud" : 0-1. Fabriquee ici (du souffle filtre
+        /// et un chœur de voyelles "o" qui ondulent) ; un vrai son dans Resources/Sons/Foule la
+        /// remplace.
+        /// </summary>
+        public static void Crowd(float loud)
+        {
+            if (Muted || source == null) return;
+            if (PlayReal("Foule", 0.55f * loud)) return;
+            if (crowd == null) crowd = MakeCrowd();
+            Play(crowd, 0.5f * loud);
+        }
+
+        static AudioClip MakeCrowd()
+        {
+            float seconds = 2.6f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] d = new float[count];
+            System.Random r = new System.Random(77);
+            float a1 = 0f, a2 = 0f;
+            // Un choeur : douze voix, chacune sa hauteur (autour de 330 Hz) et son vibrato.
+            float[] pitch = new float[12];
+            float[] rate = new float[12];
+            float[] ph = new float[12];
+            for (int v = 0; v < pitch.Length; v++) { pitch[v] = 250f + (float)r.NextDouble() * 180f; rate[v] = 4f + (float)r.NextDouble() * 3f; }
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                // Ca monte vite, ca tient, ca retombe.
+                float env = Mathf.Clamp01(t / 0.35f) * Mathf.Clamp01((seconds - t) / 1.4f);
+                // Le brouhaha : un souffle filtre (entre ~300 et ~2000 Hz).
+                float n = (float)r.NextDouble() * 2f - 1f;
+                a1 += (n - a1) * 0.25f;
+                a2 += (a1 - a2) * 0.05f;
+                float murmur = (a1 - a2) * 1.4f;
+                // Les "ooo" : la hauteur monte un peu avec l'excitation.
+                float choir = 0f;
+                for (int v = 0; v < pitch.Length; v++)
+                {
+                    float f = pitch[v] * (1f + 0.1f * Mathf.Clamp01(t / 0.8f)) * (1f + 0.012f * Mathf.Sin(2f * Mathf.PI * rate[v] * t));
+                    ph[v] += 2f * Mathf.PI * f / Rate;
+                    choir += Mathf.Sin(ph[v]) + 0.35f * Mathf.Sin(ph[v] * 2f);
+                }
+                d[i] = (murmur * 0.8f + choir * 0.05f) * env;
+            }
+            Normalize(d, 0.85f);
+            return FromSamples("foule", d);
+        }
+
+        static AudioClip MakeBoing()
+        {
+            float seconds = 0.6f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] d = new float[count];
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                // Une note qui tombe (240 -> 120 Hz) en ondulant vite : le caoutchouc qui vibre.
+                float f = Mathf.Lerp(240f, 120f, t / seconds) * (1f + 0.18f * Mathf.Sin(t * 2f * Mathf.PI * 11f) * Mathf.Exp(-4f * t));
+                phase += 2f * Mathf.PI * f / Rate;
+                d[i] = (Mathf.Sin(phase) + 0.3f * Mathf.Sin(phase * 2f)) * Mathf.Exp(-5f * t) * Mathf.Min(1f, t * 300f);
+            }
+            Normalize(d, 0.95f);
+            return FromSamples("boing du butoir", d);
+        }
+
+        static AudioClip MakePaf()
+        {
+            float seconds = 0.3f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] d = new float[count];
+            System.Random r = new System.Random(5);
+            float phase = 0f;
+            float low = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float f = Mathf.Lerp(110f, 55f, t / seconds);
+                phase += 2f * Mathf.PI * f / Rate;
+                // Un bruit etouffe (filtre simple) + un grave qui cogne.
+                float n = (float)r.NextDouble() * 2f - 1f;
+                low += (n - low) * 0.18f;
+                d[i] = (Mathf.Sin(phase) * 0.9f * Mathf.Exp(-14f * t) + low * 1.6f * Mathf.Exp(-40f * t)) * Mathf.Min(1f, t * 800f);
+            }
+            Normalize(d, 0.95f);
+            return FromSamples("paf du poing", d);
+        }
+
+        static AudioClip MakeGong()
+        {
+            float seconds = 1.6f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] d = new float[count];
+            // Des harmoniques "fausses" (pas des multiples entiers) : c'est ce qui fait metal.
+            float[] ratio = { 1f, 2.02f, 2.74f, 3.93f, 5.4f };
+            float[] level = { 1f, 0.6f, 0.45f, 0.3f, 0.18f };
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float v = 0f;
+                for (int k = 0; k < ratio.Length; k++) v += Mathf.Sin(2f * Mathf.PI * 150f * ratio[k] * t) * level[k] * Mathf.Exp(-(1.6f + k * 1.1f) * t);
+                d[i] = v * Mathf.Min(1f, t * 500f);
+            }
+            Normalize(d, 0.9f);
+            return FromSamples("gong du maillet", d);
+        }
+
+        static AudioClip MakeRattle()
+        {
+            float seconds = 0.32f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] d = new float[count];
+            System.Random r = new System.Random(9);
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float v = 0f;
+                // Trois clics de cliquet, de plus en plus proches.
+                float[] at = { 0f, 0.12f, 0.2f };
+                for (int k = 0; k < at.Length; k++)
+                {
+                    float u = t - at[k];
+                    if (u < 0f) continue;
+                    v += (((float)r.NextDouble() * 2f - 1f) * 0.6f + Mathf.Sin(2f * Mathf.PI * 2400f * u)) * Mathf.Exp(-90f * u);
+                }
+                d[i] = v;
+            }
+            Normalize(d, 0.8f);
+            return FromSamples("cliquet de la herse", d);
+        }
+
         /// <summary>UN MOMENT A CLIPPER : le coup de cymbale d'orchestre (Kenney, un "hit" qui monte).</summary>
         public static void Moment() { if (!PlayReal("Moment", 0.85f)) Discovery(); }
 

@@ -661,7 +661,7 @@ namespace Fief
                 Vector3 push = velocity.sqrMagnitude > 1f ? new Vector3(velocity.x, 0f, velocity.z).normalized : transform.right;
                 Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.3f));
-                Sfx.ClangAt(Head);
+                Sfx.BoingAt(Head);
             }
         }
     }
@@ -802,7 +802,7 @@ namespace Fief
                 lastHit[s] = Time.time;
                 Combat.Hit(s, outward * 32f + Vector3.up * 8f, 0.4f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.4f, 0.25f));
-                Sfx.CrashAt(transform.position);
+                Sfx.PafAt(block.position);
             }
         }
     }

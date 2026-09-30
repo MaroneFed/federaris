@@ -352,7 +352,7 @@ namespace Fief
                 if (wiper) push = (push + transform.forward).normalized;
                 Combat.Hit(s, push * 26f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.5f, 0.25f));
-                Sfx.ClangAt(transform.position);
+                Sfx.PafAt(s.Body.position);
             }
         }
     }
@@ -450,6 +450,12 @@ namespace Fief
             int mood = t > period - Warn ? 2 : up > 0.5f ? 1 : 0;
             if (mood != shown)
             {
+                // (03/10) Le cliquet, quand les runes rougissent : on l'entend avant de la voir.
+                if (mood == 2)
+                {
+                    Transform me = Game.PlayerTransform;
+                    if (me != null && (me.position - transform.position).sqrMagnitude < 30f * 30f) Sfx.RattleAt(transform.position);
+                }
                 shown = mood;
                 Color c = mood == 2 ? new Color(1f, 0.15f, 0.1f) : mood == 1 ? new Color(1f, 0.7f, 0.3f) : new Color(0.55f, 0.3f, 0.2f);
                 // Au repos, une lueur a peine (0,45) : c'est l'alerte (3) qui doit sauter aux yeux.
@@ -585,7 +591,7 @@ namespace Fief
                 push = push.sqrMagnitude > 1f ? push.normalized : transform.right;
                 Combat.Hit(s, push * 32f + Vector3.up * 12f, 0.45f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.5f, 0.25f));
-                Sfx.CrashAt(transform.position);
+                Sfx.GongAt(Head);
             }
         }
     }

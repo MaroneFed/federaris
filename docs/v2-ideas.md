@@ -186,6 +186,13 @@ emplacements de construction.
   accueillir : `Ground`, `Tower`, `Castle` se construisent depuis une graine et des
   constantes — une carte = un autre jeu de constantes et de placements.
 
+**03/10 — Martin : « FIEF aura plusieurs maps ; le style entier du menu changera avec la map
+choisie ; on finit la 1, *Castle*, et après on passe à une autre. »** Recommandation de
+Claude : **3 maps pour l'Early Access, 5 pour la 1.0** ; une fiche de réglages par map
+(ScriptableObject : couleurs du menu, musiques, ciel, obstacles propres). Détail et idées
+(Volcan, Glacier, Jungle céleste, Cité engloutie) : `docs/MAPS.md`. **Pas avant que Castle
+soit finie.**
+
 ## Le 01/10 (la v12 : net, la danse, le gamer et le designer chiants)
 
 - **Prolongation**, encore (01/10 : la victoire au chrono est supprimée, les manches nulles

@@ -95,6 +95,8 @@ namespace Fief
         public static bool KeysPressed { get { return KeyPressed(KeyCode.F1) || KeyPressed(KeyCode.H); } }
         /// <summary>Tab maintenu : le score du match.</summary>
         public static bool ScoresHeld { get { return KeyHeld(KeyCode.Tab); } }
+        /// <summary>F10 : l'ecran propre, sans HUD (pour filmer des clips).</summary>
+        public static bool CleanScreenPressed { get { return KeyPressed(KeyCode.F10); } }
 
         // --- les menus au clavier
         public static bool UpPressed { get { return KeyPressed(KeyCode.UpArrow) || KeyPressed(KeyCode.W); } }
@@ -205,6 +207,7 @@ namespace Fief
                 case KeyCode.Escape: return k.escapeKey;
                 case KeyCode.F1: return k.f1Key;
                 case KeyCode.F3: return k.f3Key;
+                case KeyCode.F10: return k.f10Key;
                 case KeyCode.H: return k.hKey;
                 case KeyCode.LeftShift: return k.leftShiftKey;
                 case KeyCode.F: return k.fKey;

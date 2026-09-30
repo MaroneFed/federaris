@@ -86,6 +86,24 @@ namespace Fief
             kick = Mathf.Max(kick, degrees);
         }
 
+        Vector3 glanceAt;
+        float glanceUntil = -1f;
+        float glanceReadyAt;
+
+        /// <summary>
+        /// (03/10, le clipper fou n° 108/193/323 : "on se fait sortir et on ne voit pas par qui")
+        /// Quand un gros coup te projette, la tete se TOURNE un instant vers d'ou il vient (celui
+        /// qui t'a pousse, l'obstacle) -- un demi-tour de tete, pas plus, et une fois toutes les
+        /// trois secondes au plus. Ton clip a le coupable dedans.
+        /// </summary>
+        public void Glance(Vector3 at, float seconds)
+        {
+            if (cinematic || Time.unscaledTime < glanceReadyAt) return;
+            glanceAt = at;
+            glanceUntil = Time.unscaledTime + seconds;
+            glanceReadyAt = Time.unscaledTime + 3f;
+        }
+
         /// <summary>Secousse breve (atterrissage). L'amplitude est en metres.</summary>
         public void Shake(float amount)
         {
@@ -128,6 +146,17 @@ namespace Fief
             }
 
             if (autoOrbitSpeed != 0f) yaw += autoOrbitSpeed * dt;
+            if (!cinematic && Time.unscaledTime < glanceUntil)
+            {
+                Vector3 to = glanceAt - target.position;
+                if (new Vector2(to.x, to.z).sqrMagnitude > 0.5f)
+                {
+                    float want = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                    // A mi-chemin seulement : on apercoit, on ne perd pas le fil.
+                    float half = yaw + Mathf.DeltaAngle(yaw, want) * 0.6f;
+                    yaw = Mathf.LerpAngle(yaw, half, 1f - Mathf.Exp(-7f * dt));
+                }
+            }
 
             if (cinematic)
             {
