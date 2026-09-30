@@ -15,6 +15,8 @@ namespace Fief
     {
         public static float Sensitivity = 1f;    // 0,3 a 2,5 : multiplie la sensibilite de base
         public static float Volume = 0.8f;       // 0 a 1
+        /// <summary>Le volume de la musique, a part (02/10, gamer chiant n° 35) : 0 a 1.</summary>
+        public static float Music = 0.7f;
         public static float Fov = 78f;           // 65 a 100 degres
         public static float TextSize = 1f;       // 0,8 a 1,5 : la taille de tout le texte a l'ecran
         public static bool Fullscreen = true;
@@ -59,6 +61,7 @@ namespace Fief
             loaded = true;
             Sensitivity = PlayerPrefs.GetFloat("fief.sensibilite", 1f);
             Volume = PlayerPrefs.GetFloat("fief.volume", 0.8f);
+            Music = PlayerPrefs.GetFloat("fief.musique", 0.7f);
             Fov = PlayerPrefs.GetFloat("fief.fov", 78f);
             TextSize = PlayerPrefs.GetFloat("fief.texte", 1f);
             Fullscreen = PlayerPrefs.GetInt("fief.pleinecran", Screen.fullScreen ? 1 : 0) == 1;
@@ -74,6 +77,7 @@ namespace Fief
         {
             PlayerPrefs.SetFloat("fief.sensibilite", Sensitivity);
             PlayerPrefs.SetFloat("fief.volume", Volume);
+            PlayerPrefs.SetFloat("fief.musique", Music);
             PlayerPrefs.SetFloat("fief.fov", Fov);
             PlayerPrefs.SetFloat("fief.texte", TextSize);
             PlayerPrefs.SetInt("fief.pleinecran", Fullscreen ? 1 : 0);
@@ -106,6 +110,7 @@ namespace Fief
             else if (row == 5) ActiveBind = NextBind(ActiveBind, step, PushBind);
             else if (row == 6) PushBind = NextBind(PushBind, step, ActiveBind);
             else if (row == 7) Help = !Help;
+            else if (row == 8) Music = Mathf.Clamp(Mathf.Round((Music + step * 0.1f) * 10f) / 10f, 0f, 1f);
             Apply();
             Save();
         }
@@ -120,6 +125,7 @@ namespace Fief
             if (row == 4) return Fullscreen ? "oui" : "non";
             if (row == 5) return FiefInput.BindNames[ActiveBind];
             if (row == 7) return Help ? "oui" : "non";
+            if (row == 8) return Mathf.RoundToInt(Music * 100f) + " %";
             return FiefInput.BindNames[PushBind];
         }
 
@@ -136,6 +142,6 @@ namespace Fief
             return from;
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique" };
     }
 }

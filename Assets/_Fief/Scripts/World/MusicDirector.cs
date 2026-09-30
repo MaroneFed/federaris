@@ -44,7 +44,9 @@ namespace Fief
         AudioSource live;
         Mood mood = Mood.Title;
         Mood playing = Mood.End;
-        float volume = 0.4f;
+        float volume = 0.6f;
+        readonly Dictionary<AudioClip, float> resume = new Dictionary<AudioClip, float>();
+        readonly Dictionary<Mood, AudioClip> lastOf = new Dictionary<Mood, AudioClip>();
         float calmTimer;
         System.Random rng = new System.Random(5);
 
@@ -71,7 +73,13 @@ namespace Fief
 
         public static MusicDirector Build()
         {
+            // (02/10 -- les vraies musiques de Martin) : UNE musique pour tout le match. Avant,
+            // chaque manche recharge la scene et recreait le chef d'orchestre : le morceau
+            // repartait du debut a chaque manche. Maintenant il survit au rechargement
+            // (DontDestroyOnLoad) et la musique continue.
+            if (current != null) return current;
             GameObject go = new GameObject("MUSIQUE");
+            Object.DontDestroyOnLoad(go);
             MusicDirector m = go.AddComponent<MusicDirector>();
             m.a = go.AddComponent<AudioSource>();
             m.b = go.AddComponent<AudioSource>();
@@ -153,9 +161,26 @@ namespace Fief
                 playing = mood;
                 AudioSource next = live == a ? b : a;
                 List<AudioClip> list = tracks[mood];
-                next.clip = list[rng.Next(list.Count)];
+                // On retient ou en etait le morceau qu'on quitte : le calme et la tension
+                // REPRENNENT la ou ils s'etaient arretes (sinon, a chaque bascule, on reentendait
+                // les memes huit premieres secondes).
+                if (live.clip != null && live.isPlaying) resume[live.clip] = live.time;
+                AudioClip pick = list[rng.Next(list.Count)];
+                AudioClip before;
+                float at = 0f;
+                bool resumable = mood == Mood.Calm || mood == Mood.Tension || mood == Mood.Title;
+                if (resumable && lastOf.TryGetValue(mood, out before) && before != null && resume.TryGetValue(before, out at) && at < before.length - 15f)
+                    pick = before;
+                else
+                {
+                    at = 0f;
+                    // Un autre morceau que le dernier, s'il y en a plusieurs.
+                    if (list.Count > 1 && lastOf.TryGetValue(mood, out before) && pick == before) pick = list[(list.IndexOf(pick) + 1) % list.Count];
+                }
+                lastOf[mood] = pick;
+                next.clip = pick;
                 next.loop = list.Count == 1 || mood == Mood.Dance;
-                next.time = 0f;
+                next.time = at;
                 // La danse part d'un coup, sur le temps : pas de lent fondu.
                 next.volume = mood == Mood.Dance ? volume : 0f;
                 next.Play();
@@ -170,7 +195,7 @@ namespace Fief
                 danceLast = live.time;
             }
 
-            float wanted = Sfx.Muted ? 0f : volume * (mood == Mood.Tension ? 1.1f : mood == Mood.Dance ? 1.35f : 1f);
+            float wanted = Sfx.Muted ? 0f : volume * Settings.Music * (mood == Mood.Tension ? 1.1f : mood == Mood.Dance ? 1.2f : 1f);
             float fade = mood == Mood.Dance ? 3f : 0.25f;
             live.volume = Mathf.MoveTowards(live.volume, wanted, dt * fade);
             AudioSource other = live == a ? b : a;
@@ -186,17 +211,16 @@ namespace Fief
             if (menus != null && menus.Current == Menus.State.Ended) return Mood.End;
             if (menus != null && menus.Current != Menus.State.Playing && menus.Current != Menus.State.Paused) return Mood.Title;
 
+            // (02/10) La tension quand ca compte VRAIMENT : quelqu'un porte la Couronne, un
+            // sacre commence, les deux dernieres minutes. Avant, le moindre coup ou une
+            // gargouille qui te visait faisait basculer la musique pour douze secondes -- avec de
+            // vrais morceaux, ca hachait tout.
             bool tense = false;
-            Seeker me = Game.Me;
-            // Une gargouille te vise, un bot te fonce dessus.
-            if (me != null && Eye.ChargingAt(me)) tense = true;
-            if (Rival.HuntingPlayer) tense = true;
-            if (me != null && Time.time - me.LastHurt < 6f) tense = true;
-            // Quelqu'un porte la Couronne : tout le monde court.
             if (Crown.Holder != null) tense = true;
+            if (Monument.Sacring != null) tense = true;
             if (Game.Season != null && Game.Season.Running && Game.Season.Remaining < 120f) tense = true;
 
-            if (tense) calmTimer = 12f;
+            if (tense) calmTimer = 20f;
             else calmTimer -= Time.unscaledDeltaTime;
             return calmTimer > 0f ? Mood.Tension : Mood.Calm;
         }

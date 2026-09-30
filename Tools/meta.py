@@ -122,6 +122,11 @@ AudioImporter:
 """
 
 
+# (02/10) Les MUSIQUES (Resources/Music) : lues en STREAMING (loadType 2) -- trois minutes
+# decompressees en memoire, c'est 30 Mo par morceau ; en streaming, presque rien.
+MUSIC = AUDIO.replace("    loadType: 0", "    loadType: 2").replace("  loadInBackground: 0", "  loadInBackground: 1").replace("  3D: 1", "  3D: 0")
+
+
 def guid_for(path):
     return hashlib.md5(("fief:" + path.replace(os.sep, "/")).encode("utf-8")).hexdigest()
 
@@ -167,6 +172,8 @@ def main():
                 template = SHADER
             elif name.lower().endswith((".txt", ".json", ".md")):
                 template = TEXT
+            elif name.lower().endswith((".ogg", ".wav", ".mp3")) and "Resources/Music" in path.replace(os.sep, "/"):
+                template = MUSIC
             elif name.lower().endswith((".ogg", ".wav", ".mp3")):
                 # (02/10) Un son : l'importeur audio d'Unity (sinon, "DefaultImporter", Unity
                 # n'en ferait pas un AudioClip et Resources.LoadAll ne le trouverait pas).

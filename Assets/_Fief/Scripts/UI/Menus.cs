@@ -774,7 +774,7 @@ namespace Fief
             if (text.StartsWith("Manches")) return "manches";
             if (text.StartsWith("Durée")) return "duree";
             if (text.StartsWith("Sensibilité")) return "souris-g";
-            if (text.StartsWith("Volume")) return "volume";
+            if (text.StartsWith("Volume") || text.StartsWith("Musique")) return "volume";
             if (text.StartsWith("Champ")) return "vue";
             if (text.StartsWith("Taille")) return "texte";
             if (text.StartsWith("Aide")) return "commandes";
