@@ -173,7 +173,9 @@ namespace Fief
                 }
             }
 
-            Sfx.PunchAt(victim.Body.position);
+            // Un joueur qui frappe : un coup de poing ; un obstacle : un choc (le sien sonne deja).
+            if (by != null) Sfx.PunchAt(victim.Body.position);
+            else Sfx.ThudAt(victim.Body.position);
             if (victim.IsPlayer)
             {
                 if (Game.Hud != null) Game.Hud.Hurt(velocity);

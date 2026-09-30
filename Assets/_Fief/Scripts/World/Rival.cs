@@ -343,6 +343,15 @@ namespace Fief
                     bool holderAway = !OnFoot(hp);      // il vole, ou il est sur un ilot
                     // L'un d'eux (le plus pres du Monument) va l'y attendre, par l'arbaleste
                     // ou en planant ; les autres le chassent.
+                    // (02/10, gamer chiant n° 183-184) Quand il vole, ils se REPARTISSENT : le
+                    // gardien du Monument le plus proche du porteur y va, les autres couvrent les
+                    // deux autres Monuments (avant, tout le monde courait au meme, et le porteur
+                    // n'avait qu'a en choisir un autre).
+                    if (holderAway && Guardian(watched) != this && Monument.All.Count > 1)
+                    {
+                        Monument other = Monument.All[seeker.Index % Monument.All.Count];
+                        if (other != null) m = other.transform.position;
+                    }
                     if (holderAway || Guardian(watched) == this && Flat(hp - m).magnitude > 35f)
                     {
                         if (ReachTo(m + Flat(me - m).normalized * 5f, Goal.Guard, was)) return;

@@ -48,19 +48,19 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 25. **✔ La voix de l'arène était trop forte** (−13,7 dB de moyenne, jouée à 0,9). → 0,7.
 26. **✔ Le « bam » des chocs** revenait sans cesse, trop fort. → Baissé.
 27. **✔ Le coup de poing** couvrait tout. → Baissé.
-28. **→ Les pas sur l'herbe** sont deux fois plus longs que ceux sur la pierre (0,68 s contre 0,11 s) : on entend un froissement qui traîne. À couper court.
+28. **✔ Les pas sur l'herbe** sont deux fois plus longs que ceux sur la pierre (0,68 s contre 0,11 s) : on entend un froissement qui traîne. À couper court. → Coupés à 0,24 s avec un fondu ; et un seul pas par foulée (avant : pierre **et** herbe à chaque pas dehors).
 29. **→ Le treuil de l'arbaleste** (un grincement de porte) : pas sûr qu'on reconnaisse un treuil. À écouter.
-30. **→ Pas de son quand on atterrit après un vol** (on garde le « bam » générique).
+30. **✔ Pas de son quand on atterrit après un vol** (on garde le « bam » générique). → Un vrai son d'atterrissage (Kenney), pour toi et pour les bots proches.
 31. **→ Pas de son propre pour le piqué d'aigle** (un sifflement).
 32. **→ Les obstacles n'ont pas de son** tant qu'ils ne touchent personne (un pendule qui passe devrait souffler).
 33. **→ Les gargouilles** : un grondement de pierre quand elles te repèrent, avant l'alarme.
-34. **→ Les sons ne sont pas en 3D** : un fracas à 80 m sonne comme à côté.
-35. **→ Le volume de la musique n'est pas séparé** de celui des effets.
-36. **→ La voix « you lose »** à chaque manche perdue, c'est dur quand on en perd sept. Piste : seulement à la dernière.
+34. **✔ Les sons ne sont pas en 3D** : un fracas à 80 m sonne comme à côté. → Les bruits du monde partent de là où ils arrivent (seize sources 3D) : plein à 6 m, presque rien à 100 m.
+35. **✔ Le volume de la musique n'est pas séparé** de celui des effets. → **Réglages ▸ Musique**.
+36. **✔ La voix « you lose »** à chaque manche perdue, c'est dur quand on en perd sept. Piste : seulement à la dernière. → Seulement à la dernière manche.
 37. **→ La voix est en anglais** dans un jeu tout en français. Voulu pour l'ambiance arcade ; à Martin de dire.
 38. **→ Les jingles Kenney** vont se répéter ; en garder deux ou trois par moment et les tirer au hasard.
-39. **→ Le survol des boutons** fait un petit son à chaque bouton : agaçant si on promène la souris.
-40. **→ Les musiques Suno** arrivent : penser à leur volume par rapport aux sons (la danse est poussée à ×1,35).
+39. **✔ Le survol des boutons** fait un petit son à chaque bouton : agaçant si on promène la souris. → Plus doux.
+40. **✔ Les musiques Suno** arrivent : penser à leur volume par rapport aux sons (la danse est poussée à ×1,35). → Les six morceaux sont dans le jeu, en streaming, avec le réglage Musique ; la danse mesurée à 127 BPM.
 
 ## III. Le départ (41-60)
 
@@ -87,7 +87,7 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 
 ## IV. La tour (61-95)
 
-61. **→ Manche 1 : sept obstacles par rampe** (2 pendules, 2 béliers, 2 balayeurs, 1 herse) plus deux gargouilles : pour un débutant, c'est déjà beaucoup. Piste : 5 à la première manche.
+61. **✔ Manche 1 : sept obstacles par rampe** (2 pendules, 2 béliers, 2 balayeurs, 1 herse) plus deux gargouilles : pour un débutant, c'est déjà beaucoup. Piste : 5 à la première manche. → Cinq par rampe à la manche 1 (un pendule, un bélier), six à la 2, les mêmes nombres qu'avant ensuite.
 62. **→ Manche 8 : quatorze par rampe.** La difficulté monte pour **tout le monde**, y compris celui qui n'a jamais gagné.
 63. **→ Pas de point de reprise** : éjecté au 90e mètre, on repart du pied. C'est le cœur du jeu (Fall Guys), mais un **palier à mi-hauteur** (où l'on réapparaît au sol) rendrait moins cruel.
 64. **→ On ne voit pas l'obstacle suivant** dans la courbe de la rampe : le fût cache tout ce qui est à plus de 20 m.
@@ -129,7 +129,7 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 97. **→ Le cône de lumière** n'apparaît que quand elle t'a vu (v15) : avant, on ne sait pas où elle regarde.
 98. **→ Ambre / orange / rouge** : les yeux sont plus grands (v15), mais de loin, ambre et orange se confondent.
 99. **→ La cible rouge au sol** est un simple cercle de ligne : peu visible sur la pierre claire.
-100. **→ La dernière demi-seconde** (elle ne suit plus) n'est pas marquée : un flash, un son sec.
+100. **✔ La dernière demi-seconde** (elle ne suit plus) n'est pas marquée : un flash, un son sec. → Un « clac » sec et la cible devient blanche.
 101. **→ Leur tir t'étourdit 0,6 s** puis te projette 34 m/s : on ne sait pas qui t'a eu (le fil dit « chute »).
 102. **→ Les gargouilles des portes** tirent dans la cour, sur ceux qui descendent des rampes.
 103. **→ Une gargouille tire aussi sur les bots** : on les voit se faire éjecter, c'est drôle — mais rien ne le montre dans le fil.
@@ -150,7 +150,7 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 115. **✔ Le verrou de 3 s** après une perte : on passait dessus, rien ne se passait, on ne comprenait pas (la croix rouge est en haut de l'écran). → Le repère de la Couronne passe au **gris** pendant ton verrou.
 116. **→ Le vol au contact** (piqué d'aigle) : la cible fait 2,4 m, on la rate souvent à 48 m/s. À mesurer.
 117. **→ Le porteur plane à 11 m/s et tombe à 8 m/s** : du sommet (100 m), il fait ~140 m avant de toucher. Les Monuments sont à 150-200 m : il faut toujours un courant d'air. Voulu (30/09), mais personne ne le sait.
-118. **→ Les courants d'air** ne sont pas signalés au porteur (il voit les Monuments, pas les courants).
+118. **✔ Les courants d'air** ne sont pas signalés au porteur (il voit les Monuments, pas les courants). → En vol avec la Couronne, le courant d'air le plus proche a son repère.
 119. **→ Le sacre de 3 s** : une barre pour tous. Mais le porteur ne voit pas qui fonce sur lui pendant ces 3 s.
 120. **→ Sortir du cercle d'un pas** fait retomber le sacre de 2/s : on perd tout en une seconde et demie.
 121. **→ Deux joueurs dans le cercle** : seul le porteur compte, l'autre peut le pousser — mais il est sacré s'il reste dedans malgré la poussée ? (Le vol le fait sortir.)
@@ -198,7 +198,7 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 157. **→ La Poigne** : la carte ne disait pas que la poussée revient aussi plus vite. **✔** Corrigé.
 158. **→ Deux joueurs qui se poussent en même temps** : le premier dans la boucle gagne (ordre du tableau).
 159. **→ La poussée ignore la hauteur jusqu'à 2,2 m** : on pousse quelqu'un sur la marche du dessus.
-160. **→ Le coup de poing sonore** (v17) joue aussi quand un obstacle te frappe : on croit qu'un joueur t'a eu.
+160. **✔ Le coup de poing sonore** (v17) joue aussi quand un obstacle te frappe : on croit qu'un joueur t'a eu. → Un obstacle fait un choc, pas un coup de poing.
 161. **→ Les saltos du poussé** : spectaculaires en 3e personne, invisibles pour lui (1re personne).
 162. **→ Pas de « combo »** : pousser trois joueurs d'affilée ne donne rien.
 163. **→ Le HitStop (0,07 s)** sur chaque poussée : à haute fréquence, l'image saccade.
@@ -227,8 +227,8 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 
 181. **✔ Ils montent la tour** (v15) — Martin : « les bots fonctionnent bien ».
 182. **✔ Ils choisissaient leurs cartes en 0,9 s chacun** : avec sept bots, deux tours de table et quatre secondes d'attente, ~16 s entre deux manches. → 0,55 s chacun, 2,5 s à la fin (~10 s).
-183. **→ Quand le porteur s'envole**, les bots qui ne gardent pas un Monument remontent tous la tour chercher des ailes d'or : la cour se vide.
-184. **→ Un seul bot garde le Monument** le plus proche : le porteur va à un autre.
+183. **✔ Quand le porteur s'envole**, les bots qui ne gardent pas un Monument remontent tous la tour chercher des ailes d'or : la cour se vide. → Ils se répartissent sur les trois Monuments.
+184. **✔ Un seul bot garde le Monument** le plus proche : le porteur va à un autre. → Voir 183.
 185. **→ Les bots n'utilisent pas les courants d'air** pour intercepter (seulement avec la Couronne).
 186. **→ Les bots faciles** ne prennent jamais l'arbaleste vers la rampe (voulu) : ils arrivent toujours après.
 187. **→ Les bots ne se méfient pas des mines** des autres.
@@ -257,6 +257,7 @@ carte, de la Couronne prise et perdue (21-24), les volumes (25-27), la liste des
 (182), l'unité de la vitesse (16) — plus ce que Martin avait signalé plus tôt dans la
 journée (v16-v17 : 5-9, 41-44, 66, 111-113).
 
-**Les plus importants à faire ensuite, pour le gamer chiant** : 61 (moins d'obstacles à la
-première manche), 63 (un palier à mi-hauteur), 118 (les courants d'air montrés au porteur), 151-152 (la poussée sur les rampes),
-183-184 (les bots qui interceptent). Ce sont des choix de jeu : à Martin de dire.
+**Après la carte blanche de Martin (même soir, v19)** : 28, 30, 34-36, 39-40, 61, 100, 118,
+160, 183-184 corrigés, et le bruitage revu de fond en comble. **Restent, pour le gamer
+chiant** : 63 (un palier à mi-hauteur) et 151-152 (la poussée qui éjecte à coup sûr sur les
+rampes). Ce sont des choix de jeu : à Martin de dire.

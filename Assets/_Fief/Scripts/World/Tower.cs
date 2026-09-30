@@ -80,8 +80,11 @@ namespace Fief
             Hardness = 1f + 0.14f * Mathf.Clamp(level, 0, 8);
             System.Random rng = new System.Random(seed * 7919 + 11);
             // (30/09 -- "les trous etaient trop compliques") : plus de trous dans la rampe.
-            int pendulums = Mathf.Min(2 + level / 2, 4);
-            int rams = Mathf.Min(2 + level / 3, 3);
+            // (02/10, gamer chiant n° 61) La PREMIERE manche est plus douce : cinq obstacles par
+            // rampe au lieu de sept (un pendule, un belier) -- le frere de Martin n'arrivait pas
+            // en haut. Des la troisieme, on retrouve les memes nombres qu'avant.
+            int pendulums = Mathf.Min(1 + (level + 1) / 2, 4);
+            int rams = Mathf.Min(1 + (level + 1) / 3, 3);
             int sweepers = Mathf.Min(2 + level / 2, 4);
             int spikes = Mathf.Min(1 + level / 2, 3);
             for (int r = 0; r < Ramps; r++)

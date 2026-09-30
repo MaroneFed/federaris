@@ -424,7 +424,17 @@ namespace Fief
             // (v13) Une cible devenue protegee (respawn) : la charge s'eteint, pas de rayon pour rien.
             if (target == null || target.Body == null || target.Hidden || target.Graced || Smoke.Inside(target.Body.position)) { Cancel(); return; }
             Vector3 chest = target.Body.position + Vector3.up * 1.1f;
-            if (timer < ChargeTime / Mathf.Sqrt(Tower.Hardness) - LockTime) aim = chest;
+            bool locking = timer >= ChargeTime / Mathf.Sqrt(Tower.Hardness) - LockTime;
+            if (!locking) { aim = chest; lockHeard = false; }
+            // (02/10, gamer chiant n° 100) LE VERROU : elle ne suit plus -- un "clac" sec et la
+            // cible devient BLANCHE. C'est le moment de bouger.
+            else if (!lockHeard)
+            {
+                lockHeard = true;
+                if (target.IsPlayer) Sfx.Pop();
+                Sfx.ClangAt(ball.position);
+                reticle.startColor = reticle.endColor = new Color(1f, 1f, 1f, 0.95f);
+            }
             Look(aim, dt * 10f);
             Vector3 from = ball.position + ball.forward * 0.9f - ball.up * 0.15f;
             beam.enabled = true;
@@ -435,6 +445,7 @@ namespace Fief
             beam.SetPosition(1, from + (aim - from).normalized * Range * 1.2f);
             // La CIBLE a ses pieds : un cercle rouge qui se resserre et tourne.
             reticle.enabled = true;
+            if (!lockHeard) { reticle.startColor = new Color(1f, 0.15f, 0.1f, 0.9f); reticle.endColor = new Color(1f, 0.4f, 0.2f, 0.9f); }
             reticle.widthMultiplier = Mathf.Lerp(0.08f, 0.2f, k);
             float r = Mathf.Lerp(3.2f, 0.7f, k);
             Vector3 feet = target.Body.position + Vector3.up * 0.15f;
@@ -517,6 +528,7 @@ namespace Fief
         }
 
         float firedAt = -9f;
+        bool lockHeard;
 
         void Cancel()
         {

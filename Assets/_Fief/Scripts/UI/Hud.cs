@@ -823,6 +823,28 @@ namespace Fief
                 Color fill = new Color(Monument.Blue.r * 0.55f, Monument.Blue.g * 0.55f, Monument.Blue.b * 0.7f);
                 Pin(cam, mo.transform.position + Vector3.up * 8f, "monument", Color.white, fill, size, close ? 1f : 0.8f, d);
             }
+            // (02/10, gamer chiant n° 118) EN VOL, LE COURANT D'AIR le plus proche : avec la
+            // Couronne (lourde), on ne va jamais d'une traite jusqu'aux Monuments -- il faut
+            // tourner dans un courant pour remonter. Personne ne le savait.
+            if (Game.Player != null && Game.Player.Gliding && Thermal.LiftAt(me.Body.position) < 0.5f)
+            {
+                Thermal air = null;
+                float near = 170f;
+                for (int i = 0; i < Thermal.All.Count; i++)
+                {
+                    Thermal th = Thermal.All[i];
+                    if (th == null) continue;
+                    Vector3 f = th.transform.position - me.Body.position;
+                    f.y = 0f;
+                    if (f.magnitude < near) { near = f.magnitude; air = th; }
+                }
+                if (air != null)
+                {
+                    Vector3 at = air.transform.position;
+                    at.y = Mathf.Max(at.y, me.Body.position.y - 10f);
+                    Pin(cam, at, "courant", Color.white, new Color(0.35f, 0.55f, 0.72f), UiStyle.S(44), 0.9f, near);
+                }
+            }
         }
 
         static Texture2D rampV, rampH;

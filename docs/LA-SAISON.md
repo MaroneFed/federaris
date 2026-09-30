@@ -282,7 +282,8 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   violet : bannières, liseré du bord, filets d'or) : on lit sa hauteur d'un regard.
 - **Les obstacles, TIRÉS AU HASARD à chaque manche**, **le même nombre sur chaque
   rampe**, et **de plus en plus nombreux et rapides à chaque manche** (manche 1 : 2
-  pendules, 2 béliers, 2 balayeurs, 1 herse par rampe ; jusqu'à 4, 3, 4, 3). **Plus de
+  pendules, 2 béliers, 2 balayeurs, 1 herse par rampe ; jusqu'à 4, 3, 4, 3 — **02/10 : la
+  première manche n'a qu'un pendule et un bélier**, cinq obstacles au lieu de sept). **Plus de
   trous** (30/09 : « trop compliqués »).
   Tous annoncés avant de frapper (des **bandes ambre peintes sur la rampe** là où
   frappent pendules et béliers), tous laissent une **traînée de braise**, et
