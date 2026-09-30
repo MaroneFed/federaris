@@ -152,13 +152,21 @@ namespace Fief
             float to = openSide * (HalfWidth - 5f);
             Vector3 a = At(gate, d, from);
             Vector3 b = At(gate, d, to);
-            GameObject wall = Proto.Cube(t, (a + b) * 0.5f + Vector3.up * 1.6f, new Vector3((b - a).magnitude, 3.2f, 1.2f), Stone, "Chicane");
+            float span = (b - a).magnitude;
+            Vector3 mid = (a + b) * 0.5f;
+            GameObject wall = Proto.Cube(t, mid + Vector3.up * 1.6f, new Vector3(span, 3.2f, 1.2f), Stone, "Chicane");
             wall.transform.rotation = face;
-            Proto.BeginVisualOnly();
-            GameObject rune = Proto.Cube(t, (a + b) * 0.5f + Vector3.up * 2.2f + Axes[gate] * 0.62f, new Vector3(1f, 1f, 0.04f), Color.white, "Rune");
-            rune.transform.rotation = face;
-            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.1f);
-            Proto.EndVisualOnly();
+            // (03/10 -- "rends-les magnifiques") Un chaperon d'ardoise, un filet d'or, une
+            // COLONNE ronde au bout libre du mur (la ou l'on passe) avec son dome et sa boule
+            // d'or, et sur les deux faces des CHEVRONS de braise qui montrent le passage.
+            ObstacleKit.Slab(t, mid + Vector3.up * 3.32f, face, new Vector3(span + 0.3f, 0.26f, 1.5f), ObstacleKit.Slate, "Chaperon");
+            ObstacleKit.Slab(t, mid + Vector3.up * 2.55f, face, new Vector3(span + 0.02f, 0.12f, 1.26f), ObstacleKit.Gold, "Filet d'or");
+            ObstacleKit.Post(t, b, 0.95f, 3.4f, "Colonne de la chicane");
+            Quaternion pointing = openSide > 0 ? face : face * Quaternion.Euler(0f, 0f, 180f);
+            Vector3 side = face * Vector3.right;
+            for (int f = -1; f <= 1; f += 2)
+                for (int k = 0; k < 3; k++)
+                    ObstacleKit.Chevron(t, mid + side * openSide * (span * 0.5f - 1.6f - k * 1.2f) + Vector3.up * 1.5f + Axes[gate] * f * 0.63f, pointing, 1f, ObstacleKit.Amber, "Chevron");
         }
 
         /// <summary>Le parvis devant le couloir de la porte "gate" (la ou les arbalestes des plateformes posent).</summary>
@@ -239,37 +247,40 @@ namespace Fief
             w.speed = speed;
             w.phase = phase;
             w.wiper = wiper;
-            Color iron = new Color(0.16f, 0.16f, 0.18f);
-            // Le pied (on s'y cogne : un vrai collider fin).
-            Proto.Cylinder(go.transform, new Vector3(0f, 0.7f, 0f), new Vector3(0.6f, 0.7f, 0.6f), new Color(0.3f, 0.28f, 0.26f), "Pied");
-            Proto.BeginVisualOnly();
+            // Le pied (on s'y cogne : un vrai collider fin, invisible) ; ce qu'on voit, c'est
+            // (03/10 -- "rends-les magnifiques") une PERCHE tournee : socle d'ardoise, fut
+            // creme, moyeu d'or sous la barre, dome d'ardoise et boule d'or.
+            GameObject footCollider = Proto.Cylinder(go.transform, new Vector3(0f, 0.7f, 0f), new Vector3(0.6f, 0.7f, 0.6f), Color.white, "Pied");
+            footCollider.GetComponent<Renderer>().enabled = false;
+            ObstacleKit.Drum(go.transform, new Vector3(0f, 0.12f, 0f), Vector3.up, 0.62f, 0.24f, 0.07f, ObstacleKit.Slate, "Socle");
+            ObstacleKit.Drum(go.transform, new Vector3(0f, 0.42f, 0f), Vector3.up, 0.28f, 0.6f, 0.04f, ObstacleKit.Stone, "Fût");
+            ObstacleKit.Drum(go.transform, new Vector3(0f, BarHeight, 0f), Vector3.up, 0.42f, 0.4f, 0.12f, ObstacleKit.Gold, "Moyeu");
+            ObstacleKit.Dome(go.transform, new Vector3(0f, BarHeight + 0.2f, 0f), Vector3.up, 0.34f, ObstacleKit.Slate, "Dôme");
+            ObstacleKit.Ball(go.transform, new Vector3(0f, BarHeight + 0.62f, 0f), 0.12f, ObstacleKit.Gold, "Boule");
+            Proto.Weld(go.transform, "Perche soudée", null);
+
+            // LA BARRE : un boudin a rayures ROUGES et CREMES (on voit tout de suite qu'elle
+            // tourne, et ou elle est), des bouts ronds cremes cercles de braise.
             w.bar = new GameObject("Barre").transform;
             w.bar.SetParent(go.transform, false);
             w.bar.localPosition = new Vector3(0f, BarHeight, 0f);
             float reach = length;
-            float start = wiper ? 0f : -length;
-            float span = wiper ? length : length * 2f;
-            Proto.Cube(w.bar, new Vector3(0f, 0f, start + span * 0.5f), new Vector3(0.28f, 0.28f, span), new Color(0.34f, 0.24f, 0.15f), "Poutre");
-            int studs = Mathf.RoundToInt(span / 0.9f);
-            for (int k = 0; k < studs; k++)
+            float start = wiper ? 0.35f : -length;
+            float span = wiper ? length - 0.35f : length * 2f;
+            int stripes = Mathf.Max(2, Mathf.RoundToInt(span / 0.7f));
+            for (int k = 0; k < stripes; k++)
+                ObstacleKit.Drum(w.bar, new Vector3(0f, 0f, start + (k + 0.5f) * span / stripes), Vector3.forward, 0.22f, span / stripes, 0f, k % 2 == 0 ? ObstacleKit.Red : ObstacleKit.Cream, "Rayure");
+            for (int end = -1; end <= 1; end += 2)
             {
-                // Des clous ronds (avant : des cubes tournes de 45 degres -- des diamants).
-                Proto.Sphere(w.bar, new Vector3(0f, 0.15f, start + (k + 0.5f) * span / studs), new Vector3(0.14f, 0.12f, 0.14f), iron, "Clou");
+                if (wiper && end < 0) continue;
+                ObstacleKit.Ball(w.bar, new Vector3(0f, 0f, end * reach), 0.31f, ObstacleKit.Cream, "Bout");
+                ObstacleKit.Drum(w.bar, new Vector3(0f, 0f, end * reach), Vector3.forward, 0.315f, 0.1f, 0.03f, ObstacleKit.Amber, "Braise");
             }
-            // Les bouts : des boules de fer a bande ambre (on les voit venir sans qu'elles brillent comme des lampes).
-            GameObject tipA = Proto.Sphere(w.bar, new Vector3(0f, 0f, reach), Vector3.one * 0.5f, Color.white, "Bout");
-            tipA.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 1.3f);
-            if (!wiper)
-            {
-                GameObject tipB = Proto.Sphere(w.bar, new Vector3(0f, 0f, -reach), Vector3.one * 0.5f, Color.white, "Bout");
-                tipB.GetComponent<Renderer>().sharedMaterial = tipA.GetComponent<Renderer>().sharedMaterial;
-            }
-            Proto.EndVisualOnly();
+            Proto.Weld(w.bar, "Barre soudée", null);
             Fx.KeepTrail(w.bar, new Vector3(0f, 0f, reach), new Color(1f, 0.45f, 0.2f), 0.5f, 0.25f);
             if (!wiper) Fx.KeepTrail(w.bar, new Vector3(0f, 0f, -reach), new Color(1f, 0.45f, 0.2f), 0.5f, 0.25f);
             w.lastTip = w.Tip;
             All.Add(w);
-            MaterialFactory.Polish(w.transform, 0.6f);
             return w;
         }
 
@@ -378,24 +389,40 @@ namespace Fief
             h.depth = depth;
             h.period = Mathf.Max(1.8f, period);
             h.phase = phase;
+            // (03/10 -- "rends-les magnifiques") Une PLAQUE d'ardoise sombre dans un cadre d'or,
+            // une grille de runes qui luit (braise au repos, ROUGE avant de piquer), et un TROU
+            // noir sous chaque pointe : on voit ou elles sortiront avant qu'elles sortent.
+            // Les pointes : tournees, un collet et une pointe fine d'acier. Tout est soude
+            // (une herse de couloir, c'etaient cent quinze pointes dessinees une par une).
+            ObstacleKit.Slab(go.transform, new Vector3(0f, 0.03f, 0f), Quaternion.identity, new Vector3(width, 0.06f, depth), ObstacleKit.SlateDark, "Plaque");
+            for (int e = -1; e <= 1; e += 2)
+            {
+                ObstacleKit.Slab(go.transform, new Vector3(0f, 0.05f, e * depth * 0.5f), Quaternion.identity, new Vector3(width + 0.18f, 0.1f, 0.18f), ObstacleKit.Gold, "Cadre");
+                ObstacleKit.Slab(go.transform, new Vector3(e * width * 0.5f, 0.05f, 0f), Quaternion.identity, new Vector3(0.18f, 0.1f, depth), ObstacleKit.Gold, "Cadre");
+            }
             Proto.BeginVisualOnly();
-            Proto.Cube(go.transform, new Vector3(0f, 0.03f, 0f), new Vector3(width, 0.06f, depth), new Color(0.12f, 0.12f, 0.13f), "Grille");
-            GameObject g = Proto.Cube(go.transform, new Vector3(0f, 0.07f, 0f), new Vector3(width * 0.94f, 0.02f, depth * 0.9f), Color.white, "Runes");
+            GameObject g = Proto.Cube(go.transform, new Vector3(0f, 0.065f, 0f), new Vector3(width - 0.3f, 0.02f, depth - 0.3f), Color.white, "Runes");
+            Proto.EndVisualOnly();
             h.grid = g.GetComponent<Renderer>();
             h.spikes = new GameObject("Pointes").transform;
             h.spikes.SetParent(go.transform, false);
             int cols = Mathf.Max(2, Mathf.RoundToInt(width / 0.8f));
             int rows = Mathf.Max(2, Mathf.RoundToInt(depth / 0.8f));
-            Color iron = new Color(0.55f, 0.55f, 0.6f);
+            Vector2[] spike =
+            {
+                new Vector2(0.16f, 0f), new Vector2(0.16f, 0.07f), new Vector2(0.16f, 0.07f),
+                new Vector2(0.1f, 0.11f), new Vector2(0.02f, Tall - 0.03f), new Vector2(0f, Tall)
+            };
             for (int x = 0; x < cols; x++)
                 for (int z = 0; z < rows; z++)
                 {
                     Vector3 at = new Vector3(-width * 0.5f + (x + 0.5f) * width / cols, 0f, -depth * 0.5f + (z + 0.5f) * depth / rows);
-                    Proto.Cone(h.spikes, at, 0.14f, Tall, iron, "Pointe", 10);
+                    ObstacleKit.Drum(go.transform, at + Vector3.up * 0.085f, Vector3.up, 0.2f, 0.03f, 0f, ObstacleKit.Hole, "Trou");
+                    Proto.Lathe(h.spikes, at, spike, 10, Color.white, "Pointe").GetComponent<Renderer>().sharedMaterial = ObstacleKit.Steel;
                 }
-            Proto.EndVisualOnly();
+            Proto.Weld(go.transform, "Plaque soudée", new List<Renderer> { h.grid });
+            Proto.Weld(h.spikes, "Pointes soudées", null);
             h.spikes.localPosition = new Vector3(0f, Hidden, 0f);
-            MaterialFactory.Polish(h.transform, 0.6f);
             return h;
         }
 
@@ -479,33 +506,46 @@ namespace Fief
             go.transform.rotation = Quaternion.LookRotation(new Vector3(along.x, 0f, along.z).normalized, Vector3.up);
             Maul m = go.AddComponent<Maul>();
             m.phase = phase;
-            Color wood = new Color(0.34f, 0.24f, 0.15f);
-            Color iron = new Color(0.15f, 0.15f, 0.17f);
-            // Le portique (les montants arretent les joueurs : contre les murets du couloir).
-            // (02/10) Des RONDINS : montants et traverse ronds, comme les piliers des couloirs.
-            for (int side = -1; side <= 1; side += 2)
-                Proto.Cylinder(parent, centre + go.transform.right * side * (Course.HalfWidth + 0.2f) + Vector3.up * Height * 0.5f, new Vector3(0.9f, Height * 0.5f, 0.9f), wood, "Montant");
-            Proto.BeginVisualOnly();
-            GameObject beam = Proto.Cylinder(parent, centre + Vector3.up * (Height + 0.3f), new Vector3(0.8f, Course.HalfWidth + 0.8f, 0.8f), wood, "Traverse");
-            beam.transform.rotation = go.transform.rotation * Quaternion.Euler(0f, 0f, 90f);
-            m.arm = new GameObject("Manche").transform;
-            m.arm.SetParent(go.transform, false);
-            Proto.Cube(m.arm, new Vector3(0f, -Length * 0.5f, 0f), new Vector3(0.3f, Length, 0.3f), wood, "Manche");
-            // La masse : un tonneau de fer couche (plus de pave), cercle d'une bande ambre.
-            GameObject head = Proto.Cylinder(m.arm, new Vector3(0f, -Length, 0f), new Vector3(1.55f, 1.3f, 1.55f), iron, "Masse");
-            head.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            // (03/10 -- "rends-les magnifiques") LE PORTIQUE : deux colonnes de pierre creme
+            // (les montants arretent les joueurs, contre les murets du couloir) sur socle
+            // d'ardoise, chapiteau d'or, dome et boule ; une traverse d'ardoise baguee d'or ;
+            // un moyeu d'or. LA MASSE : un gros maillet ROUGE aux bords ronds, ses deux faces
+            // de frappe CREMES a cible rouge, des bagues d'or et une bande de braise, au bout
+            // d'un manche d'acier -- la meme famille que le butoir de la tour.
+            Vector3 right = go.transform.right;
             for (int side = -1; side <= 1; side += 2)
             {
-                GameObject cap = Proto.Sphere(m.arm, new Vector3(side * 1.3f, -Length, 0f), new Vector3(0.5f, 1.3f, 1.3f), iron, "Bout");
-                cap.transform.localRotation = Quaternion.identity;
+                Vector3 foot = centre + right * side * (Course.HalfWidth + 0.2f);
+                GameObject post = Proto.Cylinder(parent, foot + Vector3.up * Height * 0.5f, new Vector3(0.9f, Height * 0.5f, 0.9f), Color.white, "Montant");
+                post.GetComponent<Renderer>().sharedMaterial = ObstacleKit.Stone;
+                ObstacleKit.Drum(parent, foot + Vector3.up * 0.35f, Vector3.up, 0.78f, 0.7f, 0.08f, ObstacleKit.Slate, "Socle");
+                ObstacleKit.Drum(parent, foot + Vector3.up * (Height - 0.1f), Vector3.up, 0.62f, 0.22f, 0.06f, ObstacleKit.Gold, "Chapiteau");
+                ObstacleKit.Drum(parent, foot + Vector3.up * (Height + 0.3f), Vector3.up, 0.7f, 0.56f, 0.14f, ObstacleKit.Slate, "Tailloir");
+                ObstacleKit.Dome(parent, foot + Vector3.up * (Height + 0.55f), Vector3.up, 0.5f, ObstacleKit.Slate, "Dôme");
+                ObstacleKit.Ball(parent, foot + Vector3.up * (Height + 1.2f), 0.16f, ObstacleKit.Gold, "Boule");
+                ObstacleKit.Drum(parent, centre + right * side * (Course.HalfWidth * 0.5f) + Vector3.up * (Height + 0.3f), right, 0.46f, 0.2f, 0.06f, ObstacleKit.Gold, "Bague");
             }
-            GameObject band = Proto.Cylinder(m.arm, new Vector3(0f, -Length, 0f), new Vector3(1.62f, 0.14f, 1.62f), Color.white, "Rune");
-            band.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.2f), 1.3f);
-            Proto.EndVisualOnly();
+            ObstacleKit.Drum(parent, centre + Vector3.up * (Height + 0.3f), right, 0.42f, (Course.HalfWidth + 0.2f) * 2f, 0.1f, ObstacleKit.Slate, "Traverse");
+            ObstacleKit.Drum(parent, centre + Vector3.up * Height, go.transform.forward, 0.52f, 1f, 0.15f, ObstacleKit.Gold, "Moyeu");
+            ObstacleKit.Drum(parent, centre + Vector3.up * Height, go.transform.forward, 0.22f, 1.12f, 0.06f, ObstacleKit.Red, "Axe");
+
+            m.arm = new GameObject("Manche").transform;
+            m.arm.SetParent(go.transform, false);
+            ObstacleKit.Drum(m.arm, new Vector3(0f, -(Length - 1.2f) * 0.5f - 0.35f, 0f), Vector3.up, 0.17f, Length - 1.5f, 0.06f, ObstacleKit.Steel, "Manche");
+            ObstacleKit.Drum(m.arm, new Vector3(0f, -0.62f, 0f), Vector3.up, 0.27f, 0.24f, 0.08f, ObstacleKit.Gold, "Bague");
+            ObstacleKit.Drum(m.arm, new Vector3(0f, -Length + 1.35f, 0f), Vector3.up, 0.32f, 0.34f, 0.1f, ObstacleKit.Gold, "Bague");
+            Vector3 head = new Vector3(0f, -Length, 0f);
+            ObstacleKit.Drum(m.arm, head, Vector3.right, 1.05f, 2.5f, 0.38f, ObstacleKit.Red, "Masse");
+            for (int side = -1; side <= 1; side += 2)
+            {
+                ObstacleKit.Drum(m.arm, head + Vector3.right * side * 0.68f, Vector3.right, 1.08f, 0.16f, 0.05f, ObstacleKit.Gold, "Bague");
+                ObstacleKit.Drum(m.arm, head + Vector3.right * side * 1.26f, Vector3.right, 0.62f, 0.09f, 0.03f, ObstacleKit.Cream, "Face de frappe");
+                ObstacleKit.Drum(m.arm, head + Vector3.right * side * 1.315f, Vector3.right, 0.26f, 0.05f, 0.015f, ObstacleKit.Red, "Cible");
+            }
+            ObstacleKit.Drum(m.arm, head, Vector3.right, 1.075f, 0.14f, 0.04f, ObstacleKit.Amber, "Braise");
+            Proto.Weld(m.arm, "Masse soudée", null);
             Fx.KeepTrail(m.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.6f, 0.3f);
             m.lastHead = m.Head;
-            MaterialFactory.Polish(m.transform, 0.6f);
             return m;
         }
 

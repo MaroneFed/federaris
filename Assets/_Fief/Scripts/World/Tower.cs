@@ -540,8 +540,9 @@ namespace Fief
         readonly Dictionary<Seeker, float> lastHit = new Dictionary<Seeker, float>();
 
         const float Length = 6f;
-        // Du bord interieur (24 degres : au-dela, la boule entrerait dans le mur) jusqu'au-dessus du vide (68).
-        const float SwingIn = 24f;
+        // Du bord interieur (18 degres : au-dela, le butoir entrerait dans le mur -- 24 avant
+        // le butoir du 03/10, plus large) jusqu'au-dessus du vide (68).
+        const float SwingIn = 18f;
         const float SwingOut = 68f;
         const float Speed = 1.6f;
 
@@ -555,43 +556,48 @@ namespace Fief
             Pendulum p = go.AddComponent<Pendulum>();
             p.phase = phase;
 
-            // (02/10 -- Martin : "les gros boulets de canon accroches a une liane, ils sont
-            // horribles") : fini la boule de pierre a pointes au bout d'une chaine. UN BUTOIR
-            // de jeu televise, facon Fall Guys : une grosse boule ROUGE satinee, ses deux faces
-            // de frappe blanches (une cible rouge au milieu), au bout d'un bras RIGIDE -- on lit
-            // tout de suite l'arc qu'il balaie --, pendu a une potence ronde a bouts d'or.
-            Material red = MaterialFactory.GetShiny(new Color(0.86f, 0.16f, 0.16f), 0.65f, 0f);
-            Material white = MaterialFactory.GetShiny(new Color(0.97f, 0.95f, 0.9f), 0.55f, 0f);
-            Material steel = MaterialFactory.GetShiny(new Color(0.3f, 0.31f, 0.36f), 0.5f, 0.55f);
-            Material gold = MaterialFactory.GetShiny(new Color(0.9f, 0.7f, 0.34f), 0.4f, 0.55f);
-            Material wood = MaterialFactory.GetShiny(new Color(0.3f, 0.22f, 0.15f), 0.35f, 0f);
-            Proto.BeginVisualOnly();
+            // (02/10) Un BUTOIR de jeu televise au bout d'un bras RIGIDE, facon Fall Guys.
+            // (03/10 -- "rends-les magnifiques") Refait avec la boite a obstacles : une
+            // POTENCE d'ardoise qui sort d'une platine ronde cerclee d'or, tenue par une
+            // jambe de force ; un MOYEU d'or ; un bras d'acier bague d'or ; et le butoir, un
+            // gros palet ROUGE aux bords ronds, ceinture d'or, une face de frappe CREME et sa
+            // cible rouge de chaque cote -- la ou il frappe.
             Vector3 inward = -new Vector3(pivot.x, 0f, pivot.z).normalized;
-            // La potence : une poutre ronde qui sort du fut, un bout d'or, un moyeu d'or.
-            GameObject beam = Proto.Capsule(parent, pivot + inward * 1.7f + Vector3.up * 0.3f, new Vector3(0.6f, 2.1f, 0.6f), Color.white, "Potence");
-            beam.transform.rotation = Quaternion.FromToRotation(Vector3.up, inward);
-            beam.GetComponent<Renderer>().sharedMaterial = wood;
-            Proto.Sphere(parent, pivot - inward * 0.25f + Vector3.up * 0.3f, Vector3.one * 0.72f, Color.white, "Bout d'or").GetComponent<Renderer>().sharedMaterial = gold;
+            float toWall = new Vector2(pivot.x, pivot.z).magnitude - Tower.Radius;
+            Vector3 wall = pivot + inward * toWall;
+            Vector3 along = go.transform.forward;
+            // La potence : immobile, sous la tour (elle est figee avec le decor).
+            ObstacleKit.Drum(parent, wall, inward, 1.0f, 0.5f, 0.1f, ObstacleKit.Slate, "Platine");
+            ObstacleKit.Ring(parent, wall - inward * 0.2f, -inward, 0.94f, 1.1f, 0.14f, ObstacleKit.Gold, "Cercle de la platine");
+            float beamLength = toWall + 0.45f;
+            ObstacleKit.Drum(parent, wall - inward * (beamLength * 0.5f), inward, 0.3f, beamLength, 0.12f, ObstacleKit.Slate, "Potence");
+            ObstacleKit.Drum(parent, wall - inward * 0.5f, inward, 0.36f, 0.18f, 0.05f, ObstacleKit.Gold, "Bague de la potence");
+            Vector3 braceFoot = wall - inward * 0.3f + Vector3.down * 2.4f;
+            Vector3 braceTop = wall - inward * (toWall * 0.62f);
+            ObstacleKit.Drum(parent, (braceFoot + braceTop) * 0.5f, braceTop - braceFoot, 0.14f, (braceTop - braceFoot).magnitude, 0.07f, ObstacleKit.Steel, "Jambe de force");
+            for (int k = 0; k < 4; k++)
+            {
+                Vector3 round = Quaternion.AngleAxis(45f + k * 90f, inward) * Vector3.up;
+                ObstacleKit.Ball(parent, wall - inward * 0.27f + round * 0.72f, 0.1f, ObstacleKit.Gold, "Rivet");
+            }
+            ObstacleKit.Drum(parent, pivot, along, 0.44f, 0.84f, 0.14f, ObstacleKit.Gold, "Moyeu");
+            ObstacleKit.Drum(parent, pivot, along, 0.2f, 0.96f, 0.06f, ObstacleKit.Red, "Axe");
+
             GameObject armGo = new GameObject("Bras");
             armGo.transform.SetParent(go.transform, false);
             p.arm = armGo.transform;
-            Proto.Sphere(p.arm, Vector3.zero, Vector3.one * 0.55f, Color.white, "Moyeu").GetComponent<Renderer>().sharedMaterial = gold;
-            // Le bras rigide, et une bague d'or au tiers.
-            Proto.Capsule(p.arm, new Vector3(0f, -(Length - 0.9f) * 0.5f, 0f), new Vector3(0.26f, (Length - 0.9f) * 0.5f + 0.13f, 0.26f), Color.white, "Bras").GetComponent<Renderer>().sharedMaterial = steel;
-            Proto.Cylinder(p.arm, new Vector3(0f, -Length * 0.35f, 0f), new Vector3(0.36f, 0.08f, 0.36f), Color.white, "Bague").GetComponent<Renderer>().sharedMaterial = gold;
-            // Le butoir : la boule rouge, sa ceinture d'or, ses deux faces de frappe (vers le
-            // vide et vers le mur : la ou il frappe), chacune avec sa cible rouge.
+            // Le bras (il tourne autour du z local : la boule va du mur vers le vide, en x).
+            ObstacleKit.Drum(p.arm, new Vector3(0f, -(Length - 1.1f) * 0.5f - 0.35f, 0f), Vector3.up, 0.15f, Length - 1.4f, 0.06f, ObstacleKit.Steel, "Bras");
+            ObstacleKit.Drum(p.arm, new Vector3(0f, -0.62f, 0f), Vector3.up, 0.25f, 0.24f, 0.08f, ObstacleKit.Gold, "Bague");
+            ObstacleKit.Drum(p.arm, new Vector3(0f, -Length + 1.2f, 0f), Vector3.up, 0.3f, 0.34f, 0.1f, ObstacleKit.Gold, "Bague");
             Vector3 head = new Vector3(0f, -Length, 0f);
-            Proto.Sphere(p.arm, head, new Vector3(1.6f, 1.9f, 1.9f), Color.white, "Butoir").GetComponent<Renderer>().sharedMaterial = red;
-            GameObject belt = Proto.Cylinder(p.arm, head, new Vector3(1.96f, 0.09f, 1.96f), Color.white, "Ceinture");
-            belt.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            belt.GetComponent<Renderer>().sharedMaterial = gold;
+            ObstacleKit.Drum(p.arm, head, Vector3.right, 1.0f, 1.7f, 0.42f, ObstacleKit.Red, "Butoir");
+            ObstacleKit.Drum(p.arm, head, Vector3.right, 1.03f, 0.18f, 0.06f, ObstacleKit.Gold, "Ceinture");
             for (int side = -1; side <= 1; side += 2)
             {
-                Proto.Sphere(p.arm, head + Vector3.right * side * 0.72f, new Vector3(0.3f, 1.35f, 1.35f), Color.white, "Face de frappe").GetComponent<Renderer>().sharedMaterial = white;
-                Proto.Sphere(p.arm, head + Vector3.right * side * 0.86f, new Vector3(0.1f, 0.55f, 0.55f), Color.white, "Cible").GetComponent<Renderer>().sharedMaterial = red;
+                ObstacleKit.Drum(p.arm, head + Vector3.right * side * 0.86f, Vector3.right, 0.56f, 0.09f, 0.03f, ObstacleKit.Cream, "Face de frappe");
+                ObstacleKit.Drum(p.arm, head + Vector3.right * side * 0.915f, Vector3.right, 0.24f, 0.05f, 0.015f, ObstacleKit.Red, "Cible");
             }
-            Proto.EndVisualOnly();
             // Une trainee de braise suit la boule : on voit sa course.
             Fx.KeepTrail(p.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.55f, 0.5f), 1.2f, 0.35f);
             p.lastHead = p.Head;
@@ -688,11 +694,18 @@ namespace Fief
             r.outward = outDir;
             Tower.DangerStripes(parent, ramp, u);
 
-            // Le logement dans le mur : un cadre sombre.
-            Proto.BeginVisualOnly();
-            GameObject frame = Proto.Cube(go.transform, new Vector3(0f, 1.3f, 0f), new Vector3(0.3f, 2.8f, 2.4f), new Color(0.12f, 0.11f, 0.11f), "Logement");
-            frame.transform.localPosition = new Vector3(0.1f, 1.3f, 0f);
-            Proto.EndVisualOnly();
+            // (03/10 -- "rends-les magnifiques") LE LOGEMENT : un portail rond d'ardoise dans
+            // le fut, cercle d'or, quatre rivets, un trou noir d'ou le belier jaillit.
+            float cy = Size.y * 0.5f + 0.1f;
+            ObstacleKit.Ring(go.transform, new Vector3(0f, cy, 0f), Vector3.right, 1.12f, 1.45f, 0.5f, ObstacleKit.Slate, "Portail");
+            ObstacleKit.Ring(go.transform, new Vector3(0.06f, cy, 0f), Vector3.right, 1.43f, 1.57f, 0.44f, ObstacleKit.Gold, "Cercle");
+            ObstacleKit.Drum(go.transform, new Vector3(-0.35f, cy, 0f), Vector3.right, 1.16f, 0.2f, 0f, ObstacleKit.Hole, "Trou");
+            for (int k = 0; k < 4; k++)
+            {
+                float a = (45f + k * 90f) * Mathf.Deg2Rad;
+                ObstacleKit.Ball(go.transform, new Vector3(0.27f, cy + Mathf.Sin(a) * 1.29f, Mathf.Cos(a) * 1.29f), 0.1f, ObstacleKit.Gold, "Rivet");
+            }
+            Proto.Weld(go.transform, "Portail soudé", null);
 
             GameObject b = new GameObject("Bloc");
             b.transform.SetParent(go.transform, false);
@@ -700,15 +713,16 @@ namespace Fief
             BoxCollider box = b.AddComponent<BoxCollider>();
             box.size = new Vector3(Size.x, Size.y, Size.z);
             box.center = new Vector3(-Size.x * 0.5f, Size.y * 0.5f + 0.1f, 0f);
-            Proto.BeginVisualOnly();
-            Proto.Cube(r.block, new Vector3(-Size.x * 0.5f, Size.y * 0.5f + 0.1f, 0f), Size, new Color(0.38f, 0.36f, 0.34f), "Pierre");
-            Proto.Cube(r.block, new Vector3(0.05f, Size.y * 0.5f + 0.1f, 0f), new Vector3(0.2f, Size.y + 0.1f, Size.z + 0.1f), new Color(0.16f, 0.16f, 0.17f), "Face de fer");
-            for (int k = -1; k <= 1; k += 2)
-                Proto.Cube(r.block, new Vector3(-Size.x * 0.5f, Size.y * 0.5f + 0.1f + k * 0.8f, 0f), new Vector3(Size.x + 0.05f, 0.15f, Size.z + 0.05f), new Color(0.16f, 0.16f, 0.17f), "Cerclage");
-            GameObject runeGo = Proto.Cube(r.block, new Vector3(0.17f, Size.y * 0.5f + 0.1f, 0f), new Vector3(0.05f, 0.7f, 0.7f), Color.white, "Rune");
+            // LE BELIER : un fut d'ardoise bague d'or, et au bout un gros POING rouge aux bords
+            // ronds, sa face creme, et au centre la rune (bleue au repos, ROUGE avant de frapper).
+            ObstacleKit.Drum(r.block, new Vector3(-Size.x * 0.5f + 0.1f, cy, 0f), Vector3.right, 0.82f, Size.x - 0.4f, 0.1f, ObstacleKit.Slate, "Fût");
+            ObstacleKit.Drum(r.block, new Vector3(-1.5f, cy, 0f), Vector3.right, 0.88f, 0.2f, 0.06f, ObstacleKit.Gold, "Bague");
+            ObstacleKit.Drum(r.block, new Vector3(-3.3f, cy, 0f), Vector3.right, 0.88f, 0.2f, 0.06f, ObstacleKit.Gold, "Bague");
+            ObstacleKit.Drum(r.block, new Vector3(-0.2f, cy, 0f), Vector3.right, 1.04f, 0.76f, 0.3f, ObstacleKit.Red, "Poing");
+            ObstacleKit.Drum(r.block, new Vector3(0.2f, cy, 0f), Vector3.right, 0.7f, 0.08f, 0.03f, ObstacleKit.Cream, "Face de frappe");
+            GameObject runeGo = ObstacleKit.Drum(r.block, new Vector3(0.25f, cy, 0f), Vector3.right, 0.32f, 0.06f, 0.02f, ObstacleKit.Amber, "Rune");
             r.rune = runeGo.GetComponent<Renderer>();
-            Proto.EndVisualOnly();
-            MaterialFactory.Polish(r.transform, 0.6f);
+            Proto.Weld(r.block, "Bélier soudé", new List<Renderer> { r.rune });
             r.Place(0f);
             return r;
         }
@@ -864,16 +878,14 @@ namespace Fief
             GameObject ballGo = new GameObject("Boule");
             ballGo.transform.SetParent(go.transform, false);
             b.ball = ballGo.transform;
-            Proto.BeginVisualOnly();
-            Proto.Sphere(b.ball, Vector3.zero, Vector3.one * BallRadius * 2f, new Color(0.33f, 0.3f, 0.28f), "Pierre");
-            for (int k = 0; k < 3; k++)
-            {
-                GameObject band = Proto.Cylinder(b.ball, Vector3.zero, new Vector3(BallRadius * 2.04f, 0.08f, BallRadius * 2.04f), Color.white, "Rune");
-                band.transform.localRotation = Quaternion.Euler(k * 60f, 0f, 90f);
-                band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.5f, 0.2f), 1.1f);
-            }
-            Proto.EndVisualOnly();
-            MaterialFactory.Polish(b.ball, 0.55f);
+            // (03/10) Une grosse boule ROUGE a deux bandes CREME croisees et une bande de braise :
+            // de la famille des butoirs (le rouge frappe), et on la voit ROULER (les bandes
+            // tournent). Soudee : un seul dessin.
+            ObstacleKit.Ball(b.ball, Vector3.zero, BallRadius, ObstacleKit.Red, "Boule");
+            ObstacleKit.Drum(b.ball, Vector3.zero, Vector3.right, BallRadius + 0.02f, 0.3f, 0.08f, ObstacleKit.Cream, "Bande");
+            ObstacleKit.Drum(b.ball, Vector3.zero, Vector3.forward, BallRadius + 0.02f, 0.3f, 0.08f, ObstacleKit.Cream, "Bande");
+            ObstacleKit.Drum(b.ball, Vector3.zero, Vector3.up, BallRadius + 0.015f, 0.12f, 0.03f, ObstacleKit.Amber, "Braise");
+            Proto.Weld(b.ball, "Boulet soudé", null);
             b.Place();
             BoulderChute.Rolling.Add(b);
             Fx.Sparks(go.transform.position, new Color(1f, 0.55f, 0.25f), 30, 6f);
