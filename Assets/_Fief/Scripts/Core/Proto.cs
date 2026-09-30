@@ -125,6 +125,170 @@ namespace Fief
             return go;
         }
 
+        static readonly Dictionary<string, Mesh> Lathes = new Dictionary<string, Mesh>();
+
+        /// <summary>
+        /// UN VOLUME TOURNE (02/10) : une silhouette -- des points (rayon, hauteur) du bas vers
+        /// le haut -- qu'on fait tourner autour de l'axe, comme un vase sur un tour de potier.
+        /// Les ombres sont LISSES (la lumiere glisse d'une face a l'autre) : c'est ce qui
+        /// fait un toit en cloche d'une seule piece, sans la marche entre deux cones
+        /// empiles ; un point double dans la silhouette fait une arete vive. Toujours sans
+        /// collider. Le haut est ferme si le dernier rayon est nul ; le bas est ferme par un
+        /// disque (on ne voit pas dedans par-dessous).
+        ///
+        /// Concept Unity : un Mesh, ce sont des sommets et des triangles. Ici, pour chaque
+        /// point de la silhouette, un anneau de "sides" sommets ; entre deux anneaux, une
+        /// bande de triangles. Les maillages identiques sont gardes en cache (meme forme =
+        /// meme maillage), comme les cones.
+        /// </summary>
+        public static GameObject Lathe(Transform parent, Vector3 basePos, Vector2[] profile, int sides, Color color, string name)
+        {
+            GameObject go = new GameObject(name);
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.transform.localPosition = basePos;
+            go.AddComponent<MeshFilter>().sharedMesh = LatheMesh(profile, sides);
+            go.AddComponent<MeshRenderer>().sharedMaterial = MaterialFactory.Get(color);
+            return go;
+        }
+
+        static Mesh LatheMesh(Vector2[] profile, int sides)
+        {
+            System.Text.StringBuilder key = new System.Text.StringBuilder();
+            key.Append(sides);
+            for (int i = 0; i < profile.Length; i++) key.Append('|').Append(profile[i].x.ToString("0.###")).Append(',').Append(profile[i].y.ToString("0.###"));
+            Mesh mesh;
+            if (Lathes.TryGetValue(key.ToString(), out mesh) && mesh != null) return mesh;
+
+            List<Vector3> v = new List<Vector3>();
+            List<Vector3> n = new List<Vector3>();
+            List<int> tris = new List<int>();
+            int ring = sides + 1;                       // un sommet de plus : la couture
+            for (int i = 0; i < profile.Length; i++)
+            {
+                // La normale vient de la silhouette elle-meme (la pente entre le point d'avant
+                // et celui d'apres) : pas de couture visible la ou l'anneau se referme. Un point
+                // DOUBLE dans la silhouette fait une arete vive (un bandeau, une corniche).
+                Vector2 along = profile[Mathf.Min(i + 1, profile.Length - 1)] - profile[Mathf.Max(i - 1, 0)];
+                Vector2 side = new Vector2(along.y, -along.x);
+                side = side.sqrMagnitude > 0.000001f ? side.normalized : Vector2.up;
+                for (int k = 0; k <= sides; k++)
+                {
+                    float a = k / (float)sides * Mathf.PI * 2f;
+                    v.Add(new Vector3(Mathf.Cos(a) * profile[i].x, profile[i].y, Mathf.Sin(a) * profile[i].x));
+                    n.Add(new Vector3(Mathf.Cos(a) * side.x, side.y, Mathf.Sin(a) * side.x));
+                }
+            }
+            for (int i = 0; i < profile.Length - 1; i++)
+                for (int k = 0; k < sides; k++)
+                {
+                    int a0 = i * ring + k, a1 = a0 + 1, b0 = a0 + ring, b1 = b0 + 1;
+                    // Vus de dehors : dans le sens des aiguilles d'une montre (Unity).
+                    tris.Add(a0); tris.Add(b0); tris.Add(a1);
+                    tris.Add(a1); tris.Add(b0); tris.Add(b1);
+                }
+            // Le fond : un disque tourne vers le bas.
+            int centre = v.Count;
+            v.Add(new Vector3(0f, profile[0].y, 0f));
+            n.Add(Vector3.down);
+            int start = v.Count;
+            for (int k = 0; k <= sides; k++)
+            {
+                float a = k / (float)sides * Mathf.PI * 2f;
+                v.Add(new Vector3(Mathf.Cos(a) * profile[0].x, profile[0].y, Mathf.Sin(a) * profile[0].x));
+                n.Add(Vector3.down);
+            }
+            for (int k = 0; k < sides; k++) { tris.Add(centre); tris.Add(start + k); tris.Add(start + k + 1); }
+
+            mesh = new Mesh();
+            mesh.name = "Tour de potier";
+            mesh.SetVertices(v);
+            mesh.SetTriangles(tris, 0);
+            mesh.SetNormals(n);
+            mesh.RecalculateBounds();
+            Lathes[key.ToString()] = mesh;
+            return mesh;
+        }
+
+        /// <summary>
+        /// SOUDER (02/10 -- "le jeu n'est pas tellement fluide") : les morceaux immobiles d'un
+        /// objet (les enfants directs de "group" qui n'ont qu'un maillage et une matiere, sans
+        /// collider ni script ni enfant) deviennent UN seul maillage, avec un morceau par
+        /// matiere. Une gargouille, c'etait soixante-cinq petits objets dessines un par un ;
+        /// soudee, c'est une poignee. Ceux de "keep" (un oeil qui change de couleur) restent
+        /// a part. Rend le nouveau Renderer (null s'il n'y avait rien a souder).
+        ///
+        /// Concept Unity : chaque objet visible coute un "draw call" (un ordre envoye a la
+        /// carte graphique) par matiere. Mille petits objets, c'est mille ordres par image,
+        /// meme s'ils sont minuscules. Mesh.CombineMeshes fusionne des maillages en un seul :
+        /// on les dessine d'un coup. Le static batching (GameBootstrap) fait la meme chose
+        /// pour le decor, mais pas pour ce qui porte un script (une gargouille bouge la tete).
+        /// </summary>
+        public static MeshRenderer Weld(Transform group, string name, List<Renderer> keep)
+        {
+            List<Material> mats = new List<Material>();
+            List<List<CombineInstance>> byMat = new List<List<CombineInstance>>();
+            List<GameObject> used = new List<GameObject>();
+            Matrix4x4 toGroup = group.worldToLocalMatrix;
+            int verts = 0;
+            UnityEngine.Rendering.ShadowCastingMode shadows = UnityEngine.Rendering.ShadowCastingMode.On;
+            for (int i = 0; i < group.childCount; i++)
+            {
+                Transform c = group.GetChild(i);
+                if (c.childCount > 0 || !c.gameObject.activeSelf) continue;
+                MeshFilter f = c.GetComponent<MeshFilter>();
+                MeshRenderer r = c.GetComponent<MeshRenderer>();
+                if (f == null || r == null || f.sharedMesh == null || r.sharedMaterial == null) continue;
+                if (keep != null && keep.Contains(r)) continue;
+                if (c.GetComponents<Component>().Length != 3) continue;     // Transform, MeshFilter, MeshRenderer : rien d'autre
+                int m = mats.IndexOf(r.sharedMaterial);
+                if (m < 0)
+                {
+                    mats.Add(r.sharedMaterial);
+                    byMat.Add(new List<CombineInstance>());
+                    m = mats.Count - 1;
+                }
+                CombineInstance part = new CombineInstance();
+                part.mesh = f.sharedMesh;
+                part.transform = toGroup * c.localToWorldMatrix;
+                byMat[m].Add(part);
+                verts += f.sharedMesh.vertexCount;
+                if (used.Count == 0) shadows = r.shadowCastingMode;
+                used.Add(c.gameObject);
+            }
+            if (used.Count < 2) return null;
+
+            bool big = verts > 65000;
+            CombineInstance[] layers = new CombineInstance[mats.Count];
+            for (int m = 0; m < mats.Count; m++)
+            {
+                Mesh layer = new Mesh();
+                if (big) layer.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                layer.CombineMeshes(byMat[m].ToArray(), true, true);
+                layers[m].mesh = layer;
+                layers[m].transform = Matrix4x4.identity;
+            }
+            Mesh mesh = new Mesh();
+            mesh.name = name;
+            if (big) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            mesh.CombineMeshes(layers, false, false);
+            for (int m = 0; m < layers.Length; m++) Object.Destroy(layers[m].mesh);
+
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(group, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            MeshRenderer welded = go.AddComponent<MeshRenderer>();
+            welded.sharedMaterials = mats.ToArray();
+            welded.shadowCastingMode = shadows;
+            // Eteints tout de suite (Destroy n'agit qu'a la fin de l'image : d'ici la, on ne
+            // doit ni les dessiner deux fois, ni les compter ailleurs).
+            for (int i = 0; i < used.Count; i++)
+            {
+                used[i].SetActive(false);
+                Object.Destroy(used[i]);
+            }
+            return welded;
+        }
+
         /// <summary>
         /// Un bloc invisible qui arrete le joueur. Pour les objets dont la forme
         /// visible est compliquee (un puits, une charrette) : un seul collider simple

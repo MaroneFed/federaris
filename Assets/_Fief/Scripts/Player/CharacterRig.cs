@@ -9,10 +9,10 @@ namespace Fief
     /// bots... tout doit etre exceptionnel, LISSE"). Il remplace le mendiant en poncho,
     /// fait de boites.
     ///
-    /// Un corps en haricot (une capsule, facon Fall Guys) a la couleur du joueur, un
-    /// casque d'acier poli avec sa fente et deux yeux qui luisent, un cimier a sa couleur
-    /// (on le reconnait de loin), des epaulieres, une ceinture a boucle d'or, une cape,
-    /// des bras et des jambes courts et ronds. Rien que des formes lisses (spheres,
+    /// Un corps en haricot (une capsule, facon Fall Guys) a la couleur du joueur, le
+    /// visage dedans (grands yeux, joues roses, une bouche qui sourit), un petit casque
+    /// d'acier satine, un cimier a sa couleur (on le reconnait de loin), une cape, des
+    /// bras et des jambes courts et ronds. Rien que des formes lisses (spheres,
     /// capsules) et des materiaux satines (MaterialFactory.GetShiny).
     ///
     /// Tout est anime par le code : il se dandine en marchant, s'ecrase a l'atterrissage
@@ -28,6 +28,7 @@ namespace Fief
         Transform pivot;                  // tout le corps : le saut de joie, le tour sur soi, l'ecrasement
         Transform body, head, cape;
         Transform legL, legR, armL, armR, handR, hip;
+        Transform mouth;
 
         float cycle;
         float speedSmoothed;
@@ -138,13 +139,15 @@ namespace Fief
             Material suit = MaterialFactory.GetShiny(colour, 0.6f, 0f);
             Material suitDark = MaterialFactory.GetShiny(Palette.Shade(colour, 0.8f), 0.55f, 0f);
             Material belly = MaterialFactory.GetShiny(Color.Lerp(colour, new Color(1f, 0.97f, 0.9f), 0.6f), 0.5f, 0f);
-            Material steel = MaterialFactory.GetShiny(new Color(0.8f, 0.82f, 0.86f), 0.85f, 0.85f);
+            // (02/10) L'acier satine et l'or mat : le casque brillait comme un miroir.
+            Material steel = MaterialFactory.GetShiny(new Color(0.78f, 0.8f, 0.85f), 0.6f, 0.5f);
             Material leather = MaterialFactory.GetShiny(new Color(0.26f, 0.17f, 0.11f), 0.4f, 0f);
-            Material gold = MaterialFactory.GetShiny(new Color(1f, 0.78f, 0.34f), 0.85f, 1f);
+            Material gold = MaterialFactory.GetShiny(new Color(0.92f, 0.72f, 0.34f), 0.45f, 0.55f);
             Material white = MaterialFactory.GetShiny(new Color(0.98f, 0.98f, 0.98f), 0.7f, 0f);
             Material pupil = MaterialFactory.GetShiny(new Color(0.04f, 0.04f, 0.06f), 0.9f, 0f);
             Material spark = MaterialFactory.GetGlow(Color.white, 2f);
             Material blush = MaterialFactory.GetShiny(new Color(1f, 0.55f, 0.6f), 0.3f, 0f);
+            Material lips = MaterialFactory.GetShiny(new Color(0.32f, 0.08f, 0.1f), 0.35f, 0f);
             Material capeMat = MaterialFactory.GetShiny(accent, 0.35f, 0f);
             Material plume = MaterialFactory.GetShiny(Color.Lerp(colour, Color.white, 0.15f), 0.45f, 0f);
 
@@ -156,28 +159,30 @@ namespace Fief
             BuildLeg(legL, suitDark, leather);
             BuildLeg(legR, suitDark, leather);
 
-            // --- LE HARICOT : le corps et la tete d'un seul tenant
+            // --- LE HARICOT : le corps et la tete d'un seul tenant, un ventre clair. (02/10 :
+            // plus de ceinture ni de boucle, plus d'epaulieres -- ils coupaient le haricot en
+            // morceaux ; la silhouette de Fall Guys, c'est une seule forme.)
             body = Node(pivot, new Vector3(0f, BodyY, 0f), "Corps");
             Paint(Proto.Capsule(body, new Vector3(0f, 0.6f, 0f), new Vector3(0.88f, 0.62f, 0.8f), colour, "Haricot"), suit);
             Paint(Proto.Sphere(body, new Vector3(0f, 0.36f, 0.24f), new Vector3(0.6f, 0.62f, 0.36f), colour, "Ventre"), belly);
-            Paint(Proto.Cylinder(body, new Vector3(0f, 0.16f, 0f), new Vector3(0.9f, 0.04f, 0.82f), colour, "Ceinture"), leather);
-            Paint(Proto.Sphere(body, new Vector3(0f, 0.16f, 0.41f), new Vector3(0.14f, 0.11f, 0.05f), colour, "Boucle"), gold);
             hip = Node(body, new Vector3(-0.42f, 0.12f, 0.06f), "Hanche");
 
-            // --- le visage, dans le haut du haricot (la "tete" est un pivot : elle hoche)
+            // --- le visage, dans le haut du haricot (la "tete" est un pivot : elle hoche).
+            // (02/10) Des yeux plus grands, et une BOUCHE : un sourire, qui s'arrondit en "O"
+            // quand il est projete ou qu'il danse (voir Mouth).
             head = Node(body, new Vector3(0f, 0.92f, 0f), "Tête");
             for (int side = -1; side <= 1; side += 2)
             {
-                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.14f, 0.02f, 0.36f), new Vector3(0.21f, 0.26f, 0.12f), colour, "Œil"), white));
-                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.13f, 0.0f, 0.415f), new Vector3(0.11f, 0.15f, 0.05f), colour, "Pupille"), pupil));
-                GameObject glint = Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.11f + 0.02f, 0.05f, 0.44f), Vector3.one * 0.04f, colour, "Reflet"), spark));
+                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.15f, 0f, 0.36f), new Vector3(0.24f, 0.3f, 0.12f), colour, "Œil"), white));
+                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.14f, -0.01f, 0.415f), new Vector3(0.12f, 0.17f, 0.05f), colour, "Pupille"), pupil));
+                GameObject glint = Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.12f + 0.02f, 0.05f, 0.44f), Vector3.one * 0.045f, colour, "Reflet"), spark));
                 glint.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
-                Paint(Proto.Sphere(head, new Vector3(side * 0.28f, -0.14f, 0.3f), new Vector3(0.14f, 0.07f, 0.06f), colour, "Joue"), blush);
+                Paint(Proto.Sphere(head, new Vector3(side * 0.29f, -0.15f, 0.3f), new Vector3(0.14f, 0.07f, 0.06f), colour, "Joue"), blush);
             }
-            // Le petit casque d'acier qui descend sur le front, un rivet d'or, le cimier.
+            mouth = Paint(Proto.Sphere(head, new Vector3(0f, -0.19f, 0.395f), MouthSmile, colour, "Bouche"), lips).transform;
+            // Le petit casque d'acier qui descend sur le front, son bord d'or mat, le cimier.
             Paint(Proto.Sphere(head, new Vector3(0f, 0.26f, -0.02f), new Vector3(0.94f, 0.52f, 0.9f), colour, "Casque"), steel);
             Paint(Proto.Cylinder(head, new Vector3(0f, 0.17f, -0.02f), new Vector3(0.95f, 0.035f, 0.91f), colour, "Bord du casque"), gold);
-            Paint(Proto.Sphere(head, new Vector3(0f, 0.3f, 0.44f), Vector3.one * 0.08f, colour, "Rivet"), gold);
             Paint(Proto.Sphere(head, new Vector3(0f, 0.55f, 0.02f), new Vector3(0.14f, 0.19f, 0.14f), colour, "Cimier"), plume);
             Paint(Proto.Sphere(head, new Vector3(0f, 0.6f, -0.12f), new Vector3(0.13f, 0.16f, 0.17f), colour, "Cimier"), plume);
             Paint(Proto.Sphere(head, new Vector3(0f, 0.57f, -0.26f), new Vector3(0.11f, 0.12f, 0.17f), colour, "Cimier"), plume);
@@ -187,13 +192,22 @@ namespace Fief
             armR = Node(body, new Vector3(0.46f, 0.62f, 0f), "BrasD");
             BuildArm(armL, suit, white);
             handR = BuildArm(armR, suit, white);
-            for (int side = -1; side <= 1; side += 2)
-                Paint(Proto.Sphere(body, new Vector3(side * 0.4f, 0.7f, 0f), new Vector3(0.3f, 0.2f, 0.3f), colour, "Épaulière"), steel);
 
             // --- la cape, accrochee aux epaules, fermee par une broche d'or
             cape = Node(body, new Vector3(0f, 0.76f, -0.43f), "Cape");
             Paint(Proto.Sphere(cape, new Vector3(0f, -0.36f, 0f), new Vector3(0.7f, 0.78f, 0.05f), accent, "Tissu"), capeMat);
             Paint(Proto.Sphere(body, new Vector3(0f, 0.8f, -0.42f), new Vector3(0.1f, 0.1f, 0.06f), colour, "Broche"), gold);
+        }
+
+        static readonly Vector3 MouthSmile = new Vector3(0.15f, 0.055f, 0.04f);
+        static readonly Vector3 MouthOpen = new Vector3(0.11f, 0.12f, 0.05f);
+
+        /// <summary>La bouche : un sourire ; un "O" quand il est projete, qu'il tournoie ou qu'il danse.</summary>
+        void Mouth(float dt)
+        {
+            if (mouth == null) return;
+            bool open = Tumbling || celebrate > 0f || !Grounded && squash <= 0f && Speed > RunSpeed * 1.4f;
+            mouth.localScale = Vector3.Lerp(mouth.localScale, open ? MouthOpen : MouthSmile, 1f - Mathf.Exp(-14f * dt));
         }
 
         GameObject Eye(GameObject part)
@@ -260,6 +274,7 @@ namespace Fief
             }
 
             Blink(dt);
+            Mouth(dt);
             if (celebrate > 0f)
             {
                 Party(dt);

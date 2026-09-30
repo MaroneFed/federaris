@@ -153,3 +153,4 @@ AnisotropicFiltering
 ShadowResolution
 ShadowProjection
 StaticBatchingUtility
+CombineInstance

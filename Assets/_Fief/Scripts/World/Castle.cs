@@ -273,23 +273,57 @@ namespace Fief
             }
             if (roofed)
             {
-                // LE TOIT EN CLOCHE (01/10) : une jupe evasee qui deborde du mur, puis la
-                // pointe elancee -- l'ardoise d'une tour a l'autre change un peu de ton.
+                // LE TOIT EN CLOCHE, D'UNE SEULE PIECE (02/10 -- Martin : "revois le toit du
+                // chateau"). Avant : deux cones empiles (une jupe, une pointe) et la marche
+                // entre les deux se voyait. Maintenant une seule silhouette qui tourne
+                // (Proto.Lathe) : le bord s'evase au-dessus du mur, puis la pente se creuse
+                // et file vers la pointe -- le toit des chateaux de conte. Deux rangs
+                // d'ardoise plus sombres, des lucarnes sur les grandes tours, la pointe d'or.
                 Color slate = Color.Lerp(Slate, seed % 2 == 0 ? new Color(0.2f, 0.34f, 0.44f) : new Color(0.28f, 0.27f, 0.42f), 0.35f);
                 Material slateMat = MaterialFactory.GetShiny(slate, 0.45f, 0.05f);
+                Material slateDark = MaterialFactory.GetShiny(Palette.Shade(slate, 0.72f), 0.4f, 0.05f);
                 Proto.Cylinder(t, new Vector3(at.x, height + 0.75f, at.z), new Vector3(size + 1.9f, 0.16f, size + 1.9f), StoneDark, "Corniche").GetComponent<Renderer>().sharedMaterial = dark;
-                GameObject skirt = Proto.Cone(t, new Vector3(at.x, height + 0.8f, at.z), r + 1.6f, size * 0.32f, slate, "Jupe du toit", 24);
-                skirt.GetComponent<Renderer>().sharedMaterial = slateMat;
-                GameObject roof = Proto.Cone(t, new Vector3(at.x, height + 0.8f + size * 0.12f, at.z), r + 0.75f, size * 1.3f, slate, "Toit", 24);
+                float baseY = height + 0.8f;
+                float R = r + 1.7f;
+                float H = size * 1.45f;
+                GameObject roof = Proto.Lathe(t, new Vector3(at.x, baseY, at.z), RoofProfile(R, H, 0f), 28, slate, "Toit en cloche");
                 roof.GetComponent<Renderer>().sharedMaterial = slateMat;
-                float tip = height + 0.8f + size * 0.12f + size * 1.3f;
-                Proto.Sphere(t, new Vector3(at.x, tip - 0.3f, at.z), Vector3.one * 0.9f, GoldTrim, "Pommeau").GetComponent<Renderer>().sharedMaterial = gold;
-                Proto.Cylinder(t, new Vector3(at.x, tip + 2.2f, at.z), new Vector3(0.18f, 2.4f, 0.18f), GoldTrim, "Hampe").GetComponent<Renderer>().sharedMaterial = gold;
+                // Deux rangs d'ardoise : une bande a peine plus large, plus sombre.
+                for (int band = 0; band < 2; band++)
+                {
+                    float u0 = band == 0 ? 0.14f : 0.4f, u1 = u0 + 0.035f;
+                    Vector2[] ring = { new Vector2(RoofRadius(R, u0) + 0.07f, u0 * H), new Vector2(RoofRadius(R, u1) + 0.07f, u1 * H) };
+                    GameObject rang = Proto.Lathe(t, new Vector3(at.x, baseY, at.z), ring, 28, slate, "Rang d'ardoise");
+                    rang.GetComponent<Renderer>().sharedMaterial = slateDark;
+                }
+                // Les lucarnes : une petite fenetre de pierre a toit pointu, aux quatre vents.
+                if (size >= 12f)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        float a = (k / 4f + 0.125f) * Mathf.PI * 2f;
+                        Vector3 outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        float u = 0.2f;
+                        Vector3 p = at + outward * (RoofRadius(R, u) + 0.2f) + Vector3.up * (baseY + u * H + 0.5f);
+                        Quaternion face = Quaternion.LookRotation(outward, Vector3.up);
+                        GameObject box = Proto.Cube(t, p, new Vector3(1.5f, 1.7f, 1.6f), Stone, "Lucarne");
+                        box.transform.localRotation = face;
+                        box.GetComponent<Renderer>().sharedMaterial = stone;
+                        GameObject pane = Proto.Cube(t, p + outward * 0.81f - Vector3.up * 0.1f, new Vector3(0.8f, 1f, 0.04f), IronDark, "Vitre");
+                        pane.transform.localRotation = face;
+                        GameObject cap = Proto.Cone(t, p + Vector3.up * 0.85f, 1.05f, 1.3f, slate, "Toit de lucarne", 4);
+                        cap.transform.localRotation = face * Quaternion.Euler(0f, 45f, 0f);
+                        cap.GetComponent<Renderer>().sharedMaterial = slateMat;
+                    }
+                }
+                float tip = baseY + H;
+                Proto.Sphere(t, new Vector3(at.x, tip - 0.1f, at.z), Vector3.one * 0.7f, GoldTrim, "Pommeau").GetComponent<Renderer>().sharedMaterial = gold;
+                Proto.Cylinder(t, new Vector3(at.x, tip + 1.9f, at.z), new Vector3(0.14f, 2.1f, 0.14f), GoldTrim, "Hampe").GetComponent<Renderer>().sharedMaterial = gold;
                 // Le fanion claque AUTOUR DE SA HAMPE (avant, il tournait sur son propre
                 // milieu et se decollait du mat) : un pivot sur la hampe, le drap a cote.
                 GameObject hinge = new GameObject("Charnière du fanion");
                 hinge.transform.SetParent(t, false);
-                hinge.transform.localPosition = new Vector3(at.x + 0.1f, tip + 3.6f, at.z);
+                hinge.transform.localPosition = new Vector3(at.x + 0.08f, tip + 3.4f, at.z);
                 GameObject flag = Proto.Cube(hinge.transform, new Vector3(1.2f, 0f, 0f), new Vector3(2.4f, 1.3f, 0.08f), Heraldry[seed % 3], "Fanion");
                 flag.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Heraldry[seed % 3], 0.3f, 0f);
                 hinge.AddComponent<Flutter>();
@@ -306,6 +340,26 @@ namespace Fief
                 m.GetComponent<Renderer>().sharedMaterial = stone;
             }
             Proto.EndVisualOnly();
+        }
+
+        /// <summary>
+        /// La silhouette du toit en cloche : le rayon a la hauteur "u" (0 : le bord, 1 : la
+        /// pointe). Un bord a peine releve, puis une pente qui se creuse (1 - u)^1.7 : large
+        /// en bas, effilee en haut.
+        /// </summary>
+        static float RoofRadius(float R, float u)
+        {
+            if (u < 0.03f) return R * (1f - u);                      // la levre du bord
+            return R * 0.97f * Mathf.Pow(1f - (u - 0.03f) / 0.97f, 1.7f);
+        }
+
+        static Vector2[] RoofProfile(float R, float H, float grow)
+        {
+            float[] us = { 0f, 0.03f, 0.08f, 0.15f, 0.24f, 0.35f, 0.48f, 0.62f, 0.76f, 0.88f, 0.96f, 1f };
+            Vector2[] p = new Vector2[us.Length];
+            for (int i = 0; i < us.Length; i++) p[i] = new Vector2(RoofRadius(R, us[i]) + grow * (1f - us[i]), us[i] * H);
+            p[us.Length - 1].x = 0f;
+            return p;
         }
 
         /// <summary>Les quatre portes, au milieu de chaque muraille : deux tours de garde, la herse relevee, un pont-levis, un arc d'or, une banniere.</summary>

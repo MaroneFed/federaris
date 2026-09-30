@@ -74,7 +74,9 @@ namespace Fief
         static readonly Color WoodDark = new Color(0.26f, 0.18f, 0.11f);
         static readonly Color Iron = new Color(0.2f, 0.2f, 0.23f);
         static readonly Color Bronze = new Color(0.72f, 0.5f, 0.25f);
-        static readonly Color StoneC = new Color(0.4f, 0.38f, 0.35f);
+        static readonly Color StoneC = new Color(0.7f, 0.65f, 0.56f);
+        /// <summary>La hauteur de l'estrade du tireur (au-dessus du plateau tournant).</summary>
+        const float SeatHeight = 1.2f;
         static readonly Color Rune = new Color(1f, 0.66f, 0.25f);
         static readonly Color GroundOk = new Color(0.5f, 1f, 0.55f);
 
@@ -154,26 +156,29 @@ namespace Fief
             b.yaw = facing;
             Transform t = go.transform;
 
-            // LE SOCLE : une plate-forme de pierre octogonale (on marche dessus), un
-            // cercle de runes, huit petits merlons.
-            Proto.Cylinder(t, new Vector3(0f, 0.35f, 0f), new Vector3(4.6f, 0.35f, 4.6f), StoneC, "Socle");
+            // LE SOCLE (02/10 -- Martin : "revois le design de l'arbalete") : une seule piece
+            // de pierre tournee a double levre (on marche sur le cylindre, invisible), un
+            // cercle de runes, quatre bornes rondes coiffees de bronze. Plus de braseros :
+            // quatre flammes par arbaleste, quatorze arbalestes, cinquante-six feux qui
+            // s'agitaient pour rien -- et l'or mat, le bronze sourd : presque rien ne brille.
+            Proto.Cylinder(t, new Vector3(0f, 0.35f, 0f), new Vector3(4.6f, 0.35f, 4.6f), StoneC, "Socle").GetComponent<Renderer>().enabled = false;
             Proto.BeginVisualOnly();
-            // (30/09 -- "il a refuse l'arbalete" : refaite en formes rondes et matieres
-            // polies. Quatre braseros de bronze au lieu des cubes-flammes.)
+            Material stoneMat = MaterialFactory.Get(StoneC);
+            Proto.Lathe(t, Vector3.zero, new[] {
+                new Vector2(2.2f, -0.3f), new Vector2(2.2f, 0.04f), new Vector2(2.4f, 0.08f), new Vector2(2.4f, 0.18f), new Vector2(2.4f, 0.18f),
+                new Vector2(2.26f, 0.24f), new Vector2(2.2f, 0.54f), new Vector2(2.2f, 0.54f), new Vector2(2.38f, 0.6f), new Vector2(2.38f, 0.7f),
+                new Vector2(2.38f, 0.7f), new Vector2(0f, 0.7f) }, 32, StoneC, "Socle tourné");
             GameObject ring = Proto.Cylinder(t, new Vector3(0f, 0.71f, 0f), new Vector3(4.2f, 0.02f, 4.2f), Color.white, "Cercle de runes");
-            ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.1f);
-            Proto.Cylinder(t, new Vector3(0f, 0.745f, 0f), new Vector3(3.9f, 0.03f, 3.9f), StoneC, "Dalle");
-            Proto.Cylinder(t, new Vector3(0f, 0.36f, 0f), new Vector3(4.7f, 0.05f, 4.7f), Color.white, "Liseré").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+            ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 0.9f);
+            Proto.Cylinder(t, new Vector3(0f, 0.745f, 0f), new Vector3(3.9f, 0.03f, 3.9f), StoneC, "Dalle").GetComponent<Renderer>().sharedMaterial = stoneMat;
             for (int k = 0; k < 4; k++)
             {
                 float a = (k * 90f + 45f) * Mathf.Deg2Rad;
-                Vector3 at2 = new Vector3(Mathf.Cos(a) * 2.05f, 0.72f, Mathf.Sin(a) * 2.05f);
-                Proto.Cylinder(t, at2 + Vector3.up * 0.25f, new Vector3(0.14f, 0.25f, 0.14f), Color.white, "Pied").GetComponent<Renderer>().sharedMaterial = IronMat;
-                Proto.Sphere(t, at2 + Vector3.up * 0.6f, new Vector3(0.5f, 0.26f, 0.5f), Color.white, "Vasque").GetComponent<Renderer>().sharedMaterial = BronzeMat;
-                GameObject fire = Proto.Sphere(t, at2 + Vector3.up * 0.8f, new Vector3(0.28f, 0.4f, 0.28f), Color.white, "Flamme");
-                fire.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.6f, 0.2f), 3f);
-                fire.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                fire.AddComponent<Flame>();
+                Vector3 at2 = new Vector3(Mathf.Cos(a) * 2.05f, 0.7f, Mathf.Sin(a) * 2.05f);
+                Proto.Lathe(t, at2, new[] {
+                    new Vector2(0.24f, 0f), new Vector2(0.24f, 0.06f), new Vector2(0.24f, 0.06f), new Vector2(0.17f, 0.12f),
+                    new Vector2(0.15f, 0.42f), new Vector2(0.2f, 0.48f), new Vector2(0.2f, 0.54f), new Vector2(0f, 0.56f) }, 14, StoneC, "Borne");
+                Proto.Sphere(t, at2 + Vector3.up * 0.62f, Vector3.one * 0.22f, Color.white, "Pommeau").GetComponent<Renderer>().sharedMaterial = BronzeMat;
             }
             Proto.EndVisualOnly();
 
@@ -188,11 +193,12 @@ namespace Fief
             Proto.Cylinder(y, new Vector3(0f, 0.08f, 0f), new Vector3(3.45f, 0.06f, 3.45f), Bronze, "Cerclage").GetComponent<Renderer>().sharedMaterial = BronzeMat;
             for (int k = -1; k <= 1; k += 2)
             {
-                // Deux flasques en A : des poutres rondes, cerclees de bronze.
+                // Deux flasques en A : des poutres rondes, une chape de bronze au sommet.
                 Rod(y, new Vector3(k * 0.8f, 0.2f, 0.85f), new Vector3(k * 0.8f, 2.3f, 0f), 0.26f, WoodMat);
                 Rod(y, new Vector3(k * 0.8f, 0.2f, -0.85f), new Vector3(k * 0.8f, 2.3f, 0f), 0.26f, WoodMat);
+                Rod(y, new Vector3(k * 0.8f, 0.95f, 0.53f), new Vector3(k * 0.8f, 0.95f, -0.53f), 0.16f, WoodDarkMat);
                 Proto.Sphere(y, new Vector3(k * 0.8f, 2.3f, 0f), new Vector3(0.42f, 0.42f, 0.42f), Color.white, "Chape").GetComponent<Renderer>().sharedMaterial = BronzeMat;
-                // Les roues du treuil.
+                // Les roues du treuil : une jante, un bandage de fer, six rayons, un moyeu.
                 Transform wheel = new GameObject("Roue").transform;
                 wheel.SetParent(y, false);
                 wheel.localPosition = new Vector3(k * 0.98f, 0.95f, -1.25f);
@@ -202,13 +208,14 @@ namespace Fief
                 GameObject tyre = Proto.Cylinder(wheel, Vector3.zero, new Vector3(1.36f, 0.035f, 1.36f), Iron, "Bandage");
                 tyre.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
                 tyre.GetComponent<Renderer>().sharedMaterial = IronMat;
-                for (int s2 = 0; s2 < 4; s2++)
+                for (int s2 = 0; s2 < 3; s2++)
                 {
-                    GameObject spoke = Proto.Capsule(wheel, new Vector3(k * 0.06f, 0f, 0f), new Vector3(0.08f, 0.6f, 0.08f), Wood, "Rayon");
-                    spoke.transform.localRotation = Quaternion.Euler(s2 * 45f, 0f, 0f);
+                    GameObject spoke = Proto.Capsule(wheel, new Vector3(k * 0.06f, 0f, 0f), new Vector3(0.09f, 0.6f, 0.09f), Wood, "Rayon");
+                    spoke.transform.localRotation = Quaternion.Euler(s2 * 60f, 0f, 0f);
                     spoke.GetComponent<Renderer>().sharedMaterial = WoodMat;
                 }
-                Proto.Sphere(wheel, new Vector3(k * 0.08f, 0f, 0f), Vector3.one * 0.2f, Color.white, "Moyeu").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+                Proto.Sphere(wheel, new Vector3(k * 0.08f, 0f, 0f), Vector3.one * 0.22f, Color.white, "Moyeu").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+                Proto.Weld(wheel, "Roue soudée", null);
                 b.wheels.Add(wheel);
             }
             GameObject drum = Proto.Cylinder(y, new Vector3(0f, 0.95f, -1.25f), new Vector3(0.45f, 0.9f, 0.45f), Wood, "Treuil");
@@ -226,8 +233,8 @@ namespace Fief
             b.pitchPivot.localPosition = new Vector3(0f, 2.3f, 0f);
             Transform p = b.pitchPivot;
             Proto.BeginVisualOnly();
-            // Le fut : une longue poutre ronde et polie, trois bagues de bronze, deux joncs
-            // d'or, un medaillon d'or a l'arriere.
+            // Le fut : une longue poutre ronde, trois bagues de bronze, deux joncs d'or mat,
+            // un medaillon d'or mat a l'arriere.
             Rod(p, new Vector3(0f, 0f, -2.3f), new Vector3(0f, 0f, 4.5f), 0.56f, WoodMat);
             for (int k = 0; k < 3; k++)
             {
@@ -254,18 +261,23 @@ namespace Fief
             b.bolt.localPosition = new Vector3(0f, 0.34f, 0f);
             BoltModel(b.bolt);
             Proto.EndVisualOnly();
+            Proto.Weld(p, "Fût soudé", null);
 
             // LE POSTE DU TIREUR (30/09 -- "les arbaletes buggent") : on se tient DERRIERE
-            // l'arbaleste, sur une estrade de la tourelle, les yeux juste au-dessus du fut.
-            // Avant, on etait assis SUR le fut : il se levait avec la visee et la camera
-            // entrait dedans.
+            // l'arbaleste, debout sur une estrade ronde portee par une jambe de force, les
+            // yeux juste au-dessus du fut. (02/10 : la pose de chaque image le ramenait
+            // encore DANS la tourelle, a cheval sur le carreau, depuis le 28/09 : on tenait
+            // debout entre les flasques et l'estrade restait vide.)
             b.seat = new GameObject("Siège").transform;
             b.seat.SetParent(y, false);
-            b.seat.localPosition = new Vector3(0f, 1.0f, -3.0f);
+            b.seat.localPosition = new Vector3(0f, SeatHeight, -3.1f);
             Proto.BeginVisualOnly();
-            Proto.Cube(y, new Vector3(0f, 0.5f, -3.0f), new Vector3(1.3f, 1.0f, 1.1f), WoodDark, "Estrade").GetComponent<Renderer>().sharedMaterial = WoodDarkMat;
-            Proto.Cube(y, new Vector3(0f, 1.02f, -3.0f), new Vector3(1.36f, 0.06f, 1.16f), Bronze, "Bord de l'estrade").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+            Rod(y, new Vector3(0f, 0.2f, -1.55f), new Vector3(0f, SeatHeight - 0.2f, -2.95f), 0.3f, WoodDarkMat);
+            Proto.Cylinder(y, new Vector3(0f, SeatHeight - 0.12f, -3.1f), new Vector3(1.4f, 0.12f, 1.4f), WoodDark, "Estrade").GetComponent<Renderer>().sharedMaterial = WoodDarkMat;
+            Proto.Cylinder(y, new Vector3(0f, SeatHeight - 0.02f, -3.1f), new Vector3(1.46f, 0.03f, 1.46f), Bronze, "Bord de l'estrade").GetComponent<Renderer>().sharedMaterial = BronzeMat;
             Proto.EndVisualOnly();
+            Proto.Weld(y, "Tourelle soudée", null);
+            Proto.Weld(t, "Socle soudé", null);
 
             // La corde.
             GameObject cordGo = new GameObject("Corde");
@@ -360,14 +372,16 @@ namespace Fief
                 fin.transform.localRotation = Quaternion.Euler(0f, 0f, k * 60f);
                 fin.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(new Color(0.85f, 0.3f, 0.2f), 0.35f, 0f);
             }
+            Proto.Weld(t, "Carreau soudé", null);
         }
 
         // Les matieres polies (30/09).
         static Material WoodMat { get { return MaterialFactory.GetShiny(Wood, 0.35f, 0f); } }
         static Material WoodDarkMat { get { return MaterialFactory.GetShiny(WoodDark, 0.35f, 0f); } }
-        static Material IronMat { get { return MaterialFactory.GetShiny(new Color(0.34f, 0.35f, 0.4f), 0.75f, 0.85f); } }
-        static Material BronzeMat { get { return MaterialFactory.GetShiny(Bronze, 0.75f, 0.9f); } }
-        static Material GoldMat { get { return MaterialFactory.GetShiny(new Color(1f, 0.78f, 0.34f), 0.85f, 1f, 0.3f); } }
+        // (02/10) Le fer, le bronze et l'or adoucis : ils brillaient comme des miroirs.
+        static Material IronMat { get { return MaterialFactory.GetShiny(new Color(0.3f, 0.31f, 0.36f), 0.5f, 0.55f); } }
+        static Material BronzeMat { get { return MaterialFactory.GetShiny(Bronze, 0.45f, 0.5f); } }
+        static Material GoldMat { get { return MaterialFactory.GetShiny(new Color(0.9f, 0.7f, 0.34f), 0.4f, 0.55f); } }
 
         /// <summary>Une poutre ronde (une gelule) de "a" a "b", d'epaisseur "thick".</summary>
         static void Rod(Transform t, Vector3 a, Vector3 b, float thick, Material m)
@@ -652,8 +666,6 @@ namespace Fief
             // Le carreau suit la corde ; il n'est la que charge.
             bolt.localPosition = new Vector3(0f, 0.34f, nockZ - rest + 0.1f);
             if (bolt.gameObject.activeSelf != loaded) bolt.gameObject.SetActive(loaded);
-            // On est assis a cheval sur le carreau.
-            seat.localPosition = new Vector3(0f, 0.55f, bolt.localPosition.z + 1.2f);
             chargeBar.localScale = new Vector3(1f, 1f, Mathf.Max(0.01f, c * 6.4f));
             // Le treuil tourne pendant qu'on tend.
             if (charging && c < 1f) wheelTurn += Time.deltaTime * 400f;
