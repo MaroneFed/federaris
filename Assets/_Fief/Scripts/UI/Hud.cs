@@ -687,6 +687,14 @@ namespace Fief
             Color fill = holder != null ? holder.Colour : Crown.Where == Crown.State.Dropped ? new Color(0.95f, 0.55f, 0.2f) : new Color(0.62f, 0.44f, 0.12f);
             float beat = holder != null ? Mathf.Abs(Mathf.Sin(Time.unscaledTime * 5f)) : 0f;
             float size = UiStyle.S(50) * (1f + 0.1f * beat);
+            // Elle vient de tomber : le repere grossit et bat trois secondes, pour tout le monde.
+            float fell = Time.time - Crown.DroppedAt;
+            if (holder == null && Crown.Where == Crown.State.Dropped && fell < 3f)
+            {
+                float pulse = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 9f));
+                size *= 1f + (1f - fell / 3f) * (0.6f + 0.3f * pulse);
+                fill = Color.Lerp(fill, new Color(1f, 0.3f, 0.2f), pulse);
+            }
             // Tout pres (on la voit tres bien) : le repere s'efface, pour ne pas la cacher.
             float alpha = Mathf.Lerp(0.3f, 1f, Mathf.Clamp01((dist - 6f) / 10f));
             Pin(cam, world, "couronne", CrownGold, fill, size, alpha, dist);

@@ -453,7 +453,16 @@ namespace Fief
             visual.position = new Vector3(at.x, groundY, at.z);
             Sfx.Thud();
             Ambiance.Burst(null, visual.position, Gold);
+            // (02/10 -- "on ne voit pas tres bien quand on perd la Couronne") : une gerbe d'or
+            // qui monte haut et un anneau au sol, la ou elle tombe ; le repere a l'ecran de
+            // tout le monde grossit et bat trois secondes (Hud.DrawCrownMarker).
+            DroppedAt = Time.time;
+            Fx.Column(visual.position, Gold, 16f, 0.5f, 1.2f);
+            Fx.Shock(visual.position, Gold, 4f, 0.45f);
         }
+
+        /// <summary>Quand elle est tombee pour la derniere fois (le repere a l'ecran bat trois secondes).</summary>
+        public static float DroppedAt = -99f;
 
         /// <summary>
         /// Un endroit ou la Couronne peut tomber : jamais DANS le fut de la tour (un
@@ -540,7 +549,7 @@ namespace Fief
         }
 
         /// <summary>A quelle distance on ramasse la Couronne en passant : a terre, et sur son socle (du centre).</summary>
-        public const float TouchGround = 1.9f;
+        public const float TouchGround = 2.3f;
         public const float TouchPedestal = 2.1f;
 
         /// <summary>Qui vient de perdre (ou de se faire voler) la Couronne ne peut pas la reprendre avant...</summary>

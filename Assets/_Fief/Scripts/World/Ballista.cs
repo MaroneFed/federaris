@@ -193,11 +193,12 @@ namespace Fief
             Proto.Cylinder(y, new Vector3(0f, 0.08f, 0f), new Vector3(3.45f, 0.06f, 3.45f), Bronze, "Cerclage").GetComponent<Renderer>().sharedMaterial = BronzeMat;
             for (int k = -1; k <= 1; k += 2)
             {
-                // Deux flasques en A : des poutres rondes, une chape de bronze au sommet.
-                Rod(y, new Vector3(k * 0.8f, 0.2f, 0.85f), new Vector3(k * 0.8f, 2.3f, 0f), 0.26f, WoodMat);
-                Rod(y, new Vector3(k * 0.8f, 0.2f, -0.85f), new Vector3(k * 0.8f, 2.3f, 0f), 0.26f, WoodMat);
-                Rod(y, new Vector3(k * 0.8f, 0.95f, 0.53f), new Vector3(k * 0.8f, 0.95f, -0.53f), 0.16f, WoodDarkMat);
-                Proto.Sphere(y, new Vector3(k * 0.8f, 2.3f, 0f), new Vector3(0.42f, 0.42f, 0.42f), Color.white, "Chape").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+                // (02/10 -- "l'arbalete est toujours aussi horrible") : deux FLASQUES pleines et
+                // arrondies, peintes, bordees d'or mat, a la place des quatre poutres croisees
+                // (un fouillis de batons marron) ; une chape d'or ou le bras pivote.
+                Proto.Sphere(y, new Vector3(k * 0.8f, 1.2f, 0f), new Vector3(0.24f, 2.3f, 2.2f), Color.white, "Flasque").GetComponent<Renderer>().sharedMaterial = PaintMat;
+                Proto.Sphere(y, new Vector3(k * 0.8f, 1.2f, 0f), new Vector3(0.2f, 2.4f, 2.3f), Color.white, "Bord de la flasque").GetComponent<Renderer>().sharedMaterial = GoldMat;
+                Proto.Sphere(y, new Vector3(k * 0.84f, 2.3f, 0f), new Vector3(0.46f, 0.46f, 0.46f), Color.white, "Chape").GetComponent<Renderer>().sharedMaterial = GoldMat;
                 // Les roues du treuil : une jante, un bandage de fer, six rayons, un moyeu.
                 Transform wheel = new GameObject("Roue").transform;
                 wheel.SetParent(y, false);
@@ -224,7 +225,8 @@ namespace Fief
             GameObject axle = Proto.Cylinder(y, new Vector3(0f, 2.3f, 0f), new Vector3(0.16f, 0.95f, 0.16f), Iron, "Axe");
             axle.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
             axle.GetComponent<Renderer>().sharedMaterial = IronMat;
-            Proto.Banner(y, new Vector3(-1.5f, 0f, -1.3f), new Color(0.85f, 0.45f, 0.18f), 4.8f, "Fanion");
+            // (02/10) Plus de fanion sur la tourelle : il tournait avec elle et bouchait la vue
+            // du tireur ("un drapeau, on ne sait meme pas d'ou il sort").
             Proto.EndVisualOnly();
 
             // LE BRAS : le fut, ses cerclages de fer, la rune de tension, l'arc et le carreau.
@@ -235,7 +237,7 @@ namespace Fief
             Proto.BeginVisualOnly();
             // Le fut : une longue poutre ronde, trois bagues de bronze, deux joncs d'or mat,
             // un medaillon d'or mat a l'arriere.
-            Rod(p, new Vector3(0f, 0f, -2.3f), new Vector3(0f, 0f, 4.5f), 0.56f, WoodMat);
+            Rod(p, new Vector3(0f, 0f, -2.3f), new Vector3(0f, 0f, 4.5f), 0.56f, PaintMat);
             for (int k = 0; k < 3; k++)
             {
                 GameObject band = Proto.Cylinder(p, new Vector3(0f, 0f, -1.4f + k * 2.2f), new Vector3(0.64f, 0.09f, 0.64f), Bronze, "Bague");
@@ -377,6 +379,8 @@ namespace Fief
 
         // Les matieres polies (30/09).
         static Material WoodMat { get { return MaterialFactory.GetShiny(Wood, 0.35f, 0f); } }
+        /// <summary>La peinture (02/10) : un bleu roi satine, comme un jouet -- le bois brut partout faisait terne.</summary>
+        static Material PaintMat { get { return MaterialFactory.GetShiny(new Color(0.2f, 0.36f, 0.74f), 0.5f, 0f); } }
         static Material WoodDarkMat { get { return MaterialFactory.GetShiny(WoodDark, 0.35f, 0f); } }
         // (02/10) Le fer, le bronze et l'or adoucis : ils brillaient comme des miroirs.
         static Material IronMat { get { return MaterialFactory.GetShiny(new Color(0.3f, 0.31f, 0.36f), 0.5f, 0.55f); } }

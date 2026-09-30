@@ -523,7 +523,7 @@ namespace Fief
     // ====================================================================== les obstacles
 
     /// <summary>
-    /// UN PENDULE de la tour : une boule de pierre au bout d'une chaine, qui balaie la
+    /// UN PENDULE de la tour (un butoir rouge au bout d'un bras rigide, 02/10), qui balaie la
     /// rampe du bord interieur vers le vide et retour. Qui est dans sa course est
     /// projete -- et lache la Couronne.
     /// </summary>
@@ -551,35 +551,47 @@ namespace Fief
             Pendulum p = go.AddComponent<Pendulum>();
             p.phase = phase;
 
-            Color iron = new Color(0.14f, 0.14f, 0.15f);
+            // (02/10 -- Martin : "les gros boulets de canon accroches a une liane, ils sont
+            // horribles") : fini la boule de pierre a pointes au bout d'une chaine. UN BUTOIR
+            // de jeu televise, facon Fall Guys : une grosse boule ROUGE satinee, ses deux faces
+            // de frappe blanches (une cible rouge au milieu), au bout d'un bras RIGIDE -- on lit
+            // tout de suite l'arc qu'il balaie --, pendu a une potence ronde a bouts d'or.
+            Material red = MaterialFactory.GetShiny(new Color(0.86f, 0.16f, 0.16f), 0.65f, 0f);
+            Material white = MaterialFactory.GetShiny(new Color(0.97f, 0.95f, 0.9f), 0.55f, 0f);
+            Material steel = MaterialFactory.GetShiny(new Color(0.3f, 0.31f, 0.36f), 0.5f, 0.55f);
+            Material gold = MaterialFactory.GetShiny(new Color(0.9f, 0.7f, 0.34f), 0.4f, 0.55f);
+            Material wood = MaterialFactory.GetShiny(new Color(0.3f, 0.22f, 0.15f), 0.35f, 0f);
             Proto.BeginVisualOnly();
             Vector3 inward = -new Vector3(pivot.x, 0f, pivot.z).normalized;
-            GameObject beam = Proto.Cube(parent, pivot + inward * 1.7f + Vector3.up * 0.3f, new Vector3(0.7f, 0.7f, 3.8f), new Color(0.26f, 0.24f, 0.22f), "Potence");
-            beam.transform.rotation = Quaternion.LookRotation(inward, Vector3.up);
+            // La potence : une poutre ronde qui sort du fut, un bout d'or, un moyeu d'or.
+            GameObject beam = Proto.Capsule(parent, pivot + inward * 1.7f + Vector3.up * 0.3f, new Vector3(0.6f, 2.1f, 0.6f), Color.white, "Potence");
+            beam.transform.rotation = Quaternion.FromToRotation(Vector3.up, inward);
+            beam.GetComponent<Renderer>().sharedMaterial = wood;
+            Proto.Sphere(parent, pivot - inward * 0.25f + Vector3.up * 0.3f, Vector3.one * 0.72f, Color.white, "Bout d'or").GetComponent<Renderer>().sharedMaterial = gold;
             GameObject armGo = new GameObject("Bras");
             armGo.transform.SetParent(go.transform, false);
             p.arm = armGo.transform;
-            for (int k = 0; k < 8; k++)
+            Proto.Sphere(p.arm, Vector3.zero, Vector3.one * 0.55f, Color.white, "Moyeu").GetComponent<Renderer>().sharedMaterial = gold;
+            // Le bras rigide, et une bague d'or au tiers.
+            Proto.Capsule(p.arm, new Vector3(0f, -(Length - 0.9f) * 0.5f, 0f), new Vector3(0.26f, (Length - 0.9f) * 0.5f + 0.13f, 0.26f), Color.white, "Bras").GetComponent<Renderer>().sharedMaterial = steel;
+            Proto.Cylinder(p.arm, new Vector3(0f, -Length * 0.35f, 0f), new Vector3(0.36f, 0.08f, 0.36f), Color.white, "Bague").GetComponent<Renderer>().sharedMaterial = gold;
+            // Le butoir : la boule rouge, sa ceinture d'or, ses deux faces de frappe (vers le
+            // vide et vers le mur : la ou il frappe), chacune avec sa cible rouge.
+            Vector3 head = new Vector3(0f, -Length, 0f);
+            Proto.Sphere(p.arm, head, new Vector3(1.6f, 1.9f, 1.9f), Color.white, "Butoir").GetComponent<Renderer>().sharedMaterial = red;
+            GameObject belt = Proto.Cylinder(p.arm, head, new Vector3(1.96f, 0.09f, 1.96f), Color.white, "Ceinture");
+            belt.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            belt.GetComponent<Renderer>().sharedMaterial = gold;
+            for (int side = -1; side <= 1; side += 2)
             {
-                // (30/09) Des maillons ronds, a plat et de chant en alternance : une vraie chaine.
-                GameObject link = Proto.Capsule(p.arm, new Vector3(0f, -0.4f - k * 0.62f, 0f), new Vector3(0.22f, 0.36f, 0.09f), iron, "Maillon");
-                link.transform.localRotation = Quaternion.Euler(0f, k % 2 == 0 ? 0f : 90f, 0f);
+                Proto.Sphere(p.arm, head + Vector3.right * side * 0.72f, new Vector3(0.3f, 1.35f, 1.35f), Color.white, "Face de frappe").GetComponent<Renderer>().sharedMaterial = white;
+                Proto.Sphere(p.arm, head + Vector3.right * side * 0.86f, new Vector3(0.1f, 0.55f, 0.55f), Color.white, "Cible").GetComponent<Renderer>().sharedMaterial = red;
             }
-            Proto.Sphere(p.arm, new Vector3(0f, -Length, 0f), new Vector3(1.8f, 1.8f, 1.8f), new Color(0.34f, 0.32f, 0.3f), "Boule");
-            for (int k = 0; k < 6; k++)
-            {
-                GameObject spike = Proto.Cone(p.arm, new Vector3(0f, -Length, 0f), 0.22f, 0.7f, iron, "Pointe", 10);
-                spike.transform.localRotation = Quaternion.Euler(k < 4 ? 90f : (k == 4 ? 0f : 180f), k * 90f, 0f);
-                spike.transform.localPosition = new Vector3(0f, -Length, 0f) + spike.transform.localRotation * Vector3.up * 0.85f;
-            }
-            GameObject band = Proto.Cylinder(p.arm, new Vector3(0f, -Length, 0f), new Vector3(1.9f, 0.12f, 1.9f), Color.white, "Rune");
-            band.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.45f, 0.25f), 2.4f);
-            band.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
             Proto.EndVisualOnly();
             // Une trainee de braise suit la boule : on voit sa course.
-            Fx.KeepTrail(p.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.5f, 0.2f), 1.2f, 0.35f);
+            Fx.KeepTrail(p.arm, new Vector3(0f, -Length, 0f), new Color(1f, 0.55f, 0.5f), 1.2f, 0.35f);
             p.lastHead = p.Head;
-            MaterialFactory.Polish(p.transform, 0.6f);
+            Proto.Weld(p.arm, "Butoir soudé", null);
             return p;
         }
 

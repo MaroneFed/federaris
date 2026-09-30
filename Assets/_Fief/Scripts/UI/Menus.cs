@@ -146,8 +146,11 @@ namespace Fief
             if (Game.Hud != null && Game.Hud.interactor != null) Game.Hud.interactor.InputLocked = blocked;
 
             float wantVeil = Current == State.Paused || showControls || showSettings || Current == State.Lobby || Current == State.Online ? 0.82f
-                           : Current == State.RoundOver && stateTime < 1.3f ? 0.1f     // on regarde d'abord le ralenti
-                           : Current == State.RoundOver || Current == State.Draft || Current == State.Ended ? 0.86f : 0f;
+                           // (02/10 -- "il n'y a meme plus l'animation quand on gagne") : plus de voile
+                           // noir sur la fin de manche -- il recouvrait la danse du vainqueur a 86 % des
+                           // 1,3 s. Les deux bandeaux de DrawRoundOver suffisent a lire les mots.
+                           : Current == State.RoundOver ? (roundWinner >= 0 ? 0f : 0.5f)
+                           : Current == State.Draft || Current == State.Ended ? 0.86f : 0f;
             veil = Mathf.MoveTowards(veil, wantVeil, dt * 3f);
         }
 
@@ -272,7 +275,7 @@ namespace Fief
 
             if (showControls)
             {
-                if (FiefInput.ConfirmPressed) { showControls = false; selected = 0; Sfx.Pop(); }
+                ControlsKeyboard();
                 return;
             }
             if (showSettings)
@@ -326,7 +329,7 @@ namespace Fief
                 case State.Lobby: return LobbyRows + 2;
                 case State.Online: return 1;
                 case State.Paused: return PauseItems.Length;
-                case State.RoundOver: return stateTime > 1.8f ? 1 : 0;
+                case State.RoundOver: return stateTime > 3f ? 1 : 0;
                 case State.Ended: return stateTime > 1.5f ? EndItems.Length : 0;
             }
             return 0;
@@ -529,7 +532,7 @@ namespace Fief
         /// <summary>Apres la fin de manche : le podium, ou le choix des capacites, ou la manche suivante.</summary>
         void AfterRound()
         {
-            if (Current != State.RoundOver || stateTime < 1.8f) return;
+            if (Current != State.RoundOver || stateTime < 3f) return;
             if (Match.Over) { Go(State.Ended); return; }
             Match.Draft.Prepare();
             if (Match.Draft.Done) { NextRound(); return; }
@@ -861,7 +864,9 @@ namespace Fief
         {
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
-            float y = Screen.height * 0.5f - UiStyle.S(230);
+            // Centre sur sa vraie hauteur (titre, quatre lignes, les pseudos, le chrono, les boutons).
+            float height = UiStyle.S(80) + LobbyRows * UiStyle.S(58) + UiStyle.S(38) * (lobbyBots > 5 ? 2 : 1) + UiStyle.S(64) + UiStyle.S(56) + UiStyle.S(38);
+            float y = Mathf.Round(Mathf.Max(UiStyle.S(20), (Screen.height - height) * 0.5f));
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "NOUVEAU MATCH", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(80);
 
@@ -966,7 +971,11 @@ namespace Fief
         {
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
-            float y = Screen.height * 0.5f - UiStyle.S(170);
+            // (02/10 -- "Reglages, c'est beaucoup trop en bas") : centre sur sa VRAIE hauteur
+            // (le titre, les reglages, le pseudo, Retour) -- avant, il partait du milieu de
+            // l'ecran moins 170 px, pour 650 px de haut : le bas sortait de l'ecran.
+            float height = UiStyle.S(80) + Settings.Labels.Length * UiStyle.S(56) + UiStyle.S(56) + UiStyle.S(24) + UiStyle.S(40);
+            float y = Mathf.Round(Mathf.Max(UiStyle.S(20), (Screen.height - height) * 0.5f));
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "RÉGLAGES", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(80);
             for (int i = 0; i < Settings.Labels.Length; i++)
@@ -1220,7 +1229,7 @@ namespace Fief
             ScoreLine(y, a);
             y += UiStyle.S(74);
 
-            if (stateTime > 1.8f)
+            if (stateTime > 3f)
             {
                 string label = Match.Over ? "Le podium" : "Choisir une capacité";
                 float bw = UiStyle.S(420);
@@ -1455,75 +1464,191 @@ namespace Fief
         // ------------------------------------------------------------------ les commandes
 
         /// <summary>
-        /// LES COMMANDES, SANS UNE PHRASE (01/10 -- Martin : "comment tu veux qu'un joueur lise
-        /// tout ca ? il a la flemme"). Trois colonnes -- BOUGER, TES POUVOIRS, VOLER -- et dans
-        /// chacune, des pastilles : la touche, une fleche, ce qu'elle fait en icone. Ca se lit
-        /// en deux secondes, comme l'ecran des touches de Fall Guys.
-        /// ("#icone" a la place d'une touche : rien a appuyer, ca se fait tout seul.)
+        /// LES COMMANDES, EN LISTE (02/10 -- Martin : "on ne comprend absolument rien ; dans
+        /// tous les autres jeux, t'as un truc tout lisse, ca descend, et tu peux changer").
+        /// Fini les trois colonnes d'icones : une liste comme partout, par rubriques -- ce que
+        /// ca fait, en toutes lettres, et la touche a droite. Elle defile en douceur (molette,
+        /// fleches) ; la touche de capacite et celle de la poussee se changent ici meme (gauche
+        /// / droite, ou les fleches a la souris), comme dans les Reglages.
         /// </summary>
-        static readonly string[] MoveKeys = { "ZQSD", "Maj", "Espace", "E" };
-        static readonly string[] MoveIcons = { "joueur", "coureur", "haut", "couronne" };
-        static readonly string[] MoveIcons2 = { null, null, null, "arbaleste" };
-        static readonly string[] FlyKeys = { "#vue", "Espace", "#courant", "" };
-        static readonly string[] FlyIcons = { "ailes", "ailes", "haut", "pique" };
-        static readonly string[] FlyIcons2 = { null, "croix", null, "couronne" };
+        struct ControlLine
+        {
+            public string Head;         // une rubrique (sinon null)
+            public string Icon;         // l'icone de la rubrique ou de la ligne
+            public string What;         // ce que ca fait
+            public string Key;          // la touche ("" : ca se fait tout seul)
+            public int Bind;            // -1, ou la ligne des Reglages qui la change (5 : capacite, 6 : pousser)
+        }
+
+        static ControlLine Head(string icon, string text) { ControlLine l = new ControlLine(); l.Head = text; l.Icon = icon; l.Bind = -1; return l; }
+        static ControlLine Line(string icon, string what, string key, int bind) { ControlLine l = new ControlLine(); l.Icon = icon; l.What = what; l.Key = key; l.Bind = bind; return l; }
+
+        static ControlLine[] ControlLines()
+        {
+            string act = FiefInput.BindNames[Settings.ActiveBind];
+            string push = FiefInput.BindNames[Settings.PushBind];
+            return new[] {
+                Head("joueur", "SE DÉPLACER"),
+                Line("joueur", "Avancer, reculer, aller à gauche ou à droite", "Z Q S D", -1),
+                Line("coureur", "Courir", "Maj", -1),
+                Line("haut", "Sauter", "Espace", -1),
+                Line("couronne", "Prendre (arbaleste, sanctuaire, Couronne)", "E", -1),
+                Head("cible", "SE BATTRE"),
+                Line("cible", "Ta capacité", act, 5),
+                Line("pousser", "Pousser (sur le porteur : tu lui voles la Couronne)", push, 6),
+                Line("pique", "En vol : fondre sur le porteur (piqué d'aigle)", push, -1),
+                Head("ailes", "VOLER"),
+                Line("ailes", "Les ailes s'ouvrent toutes seules au-dessus du vide", "", -1),
+                Line("vue", "Diriger le vol : regarde où tu veux aller", "Souris", -1),
+                Line("ailes", "Replier ou rouvrir les ailes", "Espace", -1),
+                Line("courant", "Remonter : tourne dans un courant d'air", "", -1),
+                Head("reglages", "LE RESTE"),
+                Line("manches", "Les scores", "Tab", -1),
+                Line("reglages", "Pause et réglages", "Échap", -1),
+                Line("commandes", "Cet écran", "F1", -1),
+            };
+        }
+
+        float controlsScroll, controlsScrollShown;
+
+        /// <summary>Les lignes qu'on peut viser au clavier (les rubriques, non), puis Retour.</summary>
+        static int ControlRows(ControlLine[] lines)
+        {
+            int n = 0;
+            for (int i = 0; i < lines.Length; i++) if (lines[i].Head == null) n++;
+            return n + 1;
+        }
+
+        /// <summary>Le clavier sur la liste des commandes : haut/bas, gauche/droite sur les touches a changer, Entree.</summary>
+        void ControlsKeyboard()
+        {
+            ControlLine[] lines = ControlLines();
+            int rows = ControlRows(lines);
+            if (FiefInput.UpPressed) { selected = (selected + rows - 1) % rows; Sfx.Pop(); return; }
+            if (FiefInput.DownPressed) { selected = (selected + 1) % rows; Sfx.Pop(); return; }
+            if (selected == rows - 1) { if (FiefInput.ConfirmPressed) { showControls = false; selected = 0; Sfx.Pop(); } return; }
+            int bind = BindOfRow(lines, selected);
+            if (bind < 0) return;
+            if (FiefInput.LeftPressed) { Settings.Step(bind, -1); Sfx.Pop(); }
+            else if (FiefInput.RightPressed || FiefInput.ConfirmPressed) { Settings.Step(bind, 1); Sfx.Pop(); }
+        }
+
+        static int BindOfRow(ControlLine[] lines, int row)
+        {
+            int n = 0;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Head != null) continue;
+                if (n == row) return lines[i].Bind;
+                n++;
+            }
+            return -1;
+        }
 
         void DrawControls()
         {
-            Glide(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.02f, 0.015f, 0.05f, 0.82f));
-            float col = UiStyle.S(270), row = UiStyle.S(66), gap = UiStyle.S(26);
-            float total = col * 3f + gap * 2f;
-            float x = Mathf.Max(Left, (Screen.width - total) * 0.5f);
-            float y = Screen.height * 0.5f - UiStyle.S(260);
-            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "COMMANDES", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
-            y += UiStyle.S(84);
+            Glide(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.02f, 0.015f, 0.05f, 0.86f));
+            ControlLine[] lines = ControlLines();
+            int rows = ControlRows(lines);
+            float w = Mathf.Min(UiStyle.S(900), Screen.width - UiStyle.S(60));
+            float x = Mathf.Round((Screen.width - w) * 0.5f);
+            float top = Mathf.Round(Mathf.Max(UiStyle.S(30), Screen.height * 0.08f));
+            Icons.Number(new Rect(x, top, w, UiStyle.S(56)), "COMMANDES", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
 
-            string[] powerKeys = { AbilityInfo.Keys[0], AbilityInfo.PushKey, AbilityInfo.PushKey, "Tab" };
-            string[] powerIcons = { "cible", "pousser", "pousser", "manches" };
-            string[] powerIcons2 = { null, null, "couronne", null };
-            FlyKeys[3] = AbilityInfo.PushKey;
-            ControlColumn(x, y, col, row, "joueur", new Color(0.45f, 0.72f, 1f), MoveKeys, MoveIcons, MoveIcons2);
-            ControlColumn(x + col + gap, y, col, row, "cible", new Color(1f, 0.5f, 0.42f), powerKeys, powerIcons, powerIcons2);
-            ControlColumn(x + (col + gap) * 2f, y, col, row, "ailes", Wings.Gold, FlyKeys, FlyIcons, FlyIcons2);
-            y += UiStyle.S(78) + row * 4f + UiStyle.S(10);
+            // La fenetre de la liste : entre le titre et le bouton Retour. Ce qui depasse defile.
+            float viewTop = top + UiStyle.S(76);
+            float viewBottom = Screen.height - UiStyle.S(110);
+            Rect view = new Rect(x - UiStyle.S(10), Mathf.Round(viewTop), w + UiStyle.S(20), Mathf.Round(viewBottom - viewTop));
+            float rowH = UiStyle.S(50), headH = UiStyle.S(58);
+            float content = 0f;
+            for (int i = 0; i < lines.Length; i++) content += lines[i].Head != null ? headH : rowH;
+            float maxScroll = Mathf.Max(0f, content - view.height + UiStyle.S(10));
 
-            // En bas : la pause, et ce panneau pendant la partie.
-            float small = row * 0.86f;
-            ControlRow(new Rect(x, y, col, small), "Échap", "reglages", null, Color.white);
-            ControlRow(new Rect(x + col + gap, y, col, small), "F1", "commandes", null, Color.white);
-            y += small + UiStyle.S(30);
-            if (Entry(new Rect(x, y, UiStyle.S(300), UiStyle.S(48)), "Retour", 0, false, 1f)) { showControls = false; selected = 0; }
-        }
-
-        /// <summary>Une colonne : son icone en tete, dans un gros rond a sa couleur, puis ses lignes.</summary>
-        static void ControlColumn(float x, float y, float w, float row, string head, Color tint, string[] keys, string[] icons, string[] icons2)
-        {
-            float hs = UiStyle.S(64);
-            Rect hr = new Rect(x + (w - hs) * 0.5f, y, hs, hs);
-            Icons.Pill(hr, new Color(tint.r * 0.55f, tint.g * 0.55f, tint.b * 0.6f));
-            Icons.Draw(new Rect(hr.x + hs * 0.14f, hr.y + hs * 0.14f, hs * 0.72f, hs * 0.72f), head, Color.white);
-            y += UiStyle.S(78);
-            for (int i = 0; i < keys.Length; i++)
-                ControlRow(new Rect(x, y + i * row, w, row - UiStyle.S(10)), keys[i], icons[i], icons2[i], tint);
-        }
-
-        /// <summary>Une ligne : la touche, une petite fleche, ce qu'elle fait (une ou deux icones).</summary>
-        static void ControlRow(Rect r, string key, string icon, string icon2, Color tint)
-        {
-            Icons.Pill(r, new Color(0.12f + tint.r * 0.12f, 0.12f + tint.g * 0.12f, 0.24f + tint.b * 0.14f, 0.96f));
-            float s = r.height;
-            Rect k = new Rect(r.x + s * 0.72f, r.y + s * 0.1f, s * 0.8f, s * 0.8f);
-            if (key.StartsWith("#")) Icons.Draw(new Rect(r.x + s * 0.5f, r.y + s * 0.12f, s * 0.76f, s * 0.76f), key.Substring(1), new Color(1f, 1f, 1f, 0.85f));
-            else if (key.Length > 0) Icons.Key(k, key, 1f);
-            Icons.Draw(new Rect(r.x + s * 1.95f, r.y + s * 0.33f, s * 0.34f, s * 0.34f), "jouer", new Color(1f, 1f, 1f, 0.5f), false);
-            Icons.Draw(new Rect(r.xMax - s * 0.98f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), icon, tint);
-            if (icon2 != null)
+            // La molette fait defiler ; au clavier, la ligne visee reste toujours en vue.
+            Event e = Event.current;
+            if (e.type == EventType.ScrollWheel && view.Contains(e.mousePosition)) { controlsScroll += e.delta.y * UiStyle.S(20); e.Use(); }
+            if (e.type == EventType.Repaint && selected < rows - 1)
             {
-                bool cross = icon2 == "croix";
-                float c2 = cross ? s * 0.46f : s * 0.66f;
-                Rect r2 = cross ? new Rect(r.xMax - s * 0.62f, r.y + s * 0.4f, c2, c2) : new Rect(r.xMax - s * 1.72f, r.y + s * 0.17f, c2, c2);
-                Icons.Draw(r2, icon2, cross ? new Color(1f, 0.4f, 0.35f) : icon2 == "couronne" ? new Color(1f, 0.86f, 0.35f) : Color.white);
+                float at = 0f; int n = 0;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    float h = lines[i].Head != null ? headH : rowH;
+                    if (lines[i].Head == null && n++ == selected)
+                    {
+                        if (at - controlsScroll < 0f) controlsScroll = at - headH;
+                        if (at + h - controlsScroll > view.height) controlsScroll = at + h - view.height + UiStyle.S(10);
+                        break;
+                    }
+                    at += h;
+                }
             }
+            controlsScroll = Mathf.Clamp(controlsScroll, 0f, maxScroll);
+            if (e.type == EventType.Repaint) controlsScrollShown = Mathf.Lerp(controlsScrollShown, controlsScroll, 1f - Mathf.Exp(-16f * Time.unscaledDeltaTime));
+            float scroll = Mathf.Round(controlsScrollShown);
+
+            GUI.BeginGroup(view);
+            float y = -scroll;
+            int row = 0;
+            int keySize = UiStyle.S(20), textSize = UiStyle.S(22);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                ControlLine l = lines[i];
+                if (l.Head != null)
+                {
+                    // Une rubrique : son icone dans un rond, son nom en or.
+                    float hs = UiStyle.S(40);
+                    Rect ic = new Rect(UiStyle.S(10), Mathf.Round(y + UiStyle.S(12)), hs, hs);
+                    Icons.Pill(ic, new Color(0.22f, 0.26f, 0.58f));
+                    Icons.Draw(new Rect(ic.x + hs * 0.15f, ic.y + hs * 0.15f, hs * 0.7f, hs * 0.7f), l.Icon, Color.white);
+                    Icons.Number(new Rect(ic.xMax + UiStyle.S(14), ic.y, w, hs), l.Head, UiStyle.S(26), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
+                    y += headH;
+                    continue;
+                }
+                int index = row++;
+                bool on = selected == index;
+                Rect r = new Rect(UiStyle.S(10), Mathf.Round(y + UiStyle.S(3)), w, Mathf.Round(rowH - UiStyle.S(6)));
+                if (r.Contains(e.mousePosition) && e.type == EventType.MouseMove) selected = index;
+                Icons.Pill(r, on ? new Color(0.36f, 0.4f, 0.86f) : new Color(0.13f, 0.15f, 0.34f, 0.95f));
+                float s = r.height;
+                Icons.Draw(new Rect(r.x + s * 0.3f, r.y + s * 0.16f, s * 0.68f, s * 0.68f), l.Icon, new Color(1f, 1f, 1f, 0.9f));
+                Icons.Text(new Rect(r.x + s * 1.2f, r.y, r.width * 0.64f, s), l.What, textSize, on ? new Color(1f, 0.92f, 0.6f) : Color.white, TextAnchor.MiddleLeft, true);
+                // La touche, a droite, dans sa pastille claire ; les fleches si on peut la changer.
+                float kw = Mathf.Max(s * 1.4f, Icons.Width(l.Key.Length > 0 ? l.Key : "auto", keySize) + s * 0.8f);
+                Rect kr = new Rect(Mathf.Round(r.xMax - kw - s * (l.Bind >= 0 ? 1.1f : 0.3f)), r.y + s * 0.14f, Mathf.Round(kw), Mathf.Round(s * 0.72f));
+                if (l.Key.Length > 0)
+                {
+                    Icons.Pill(kr, new Color(0.93f, 0.93f, 0.97f));
+                    Icons.Text(kr, l.Key, keySize, new Color(0.1f, 0.1f, 0.2f), TextAnchor.MiddleCenter, false);
+                }
+                else Icons.Text(kr, "tout seul", keySize, new Color(0.7f, 0.9f, 1f), TextAnchor.MiddleCenter, true);
+                if (l.Bind >= 0)
+                {
+                    int side = Mathf.RoundToInt(s * 0.62f) / 2 * 2;
+                    Rect minus = new Rect(Mathf.Round(kr.x - side - s * 0.12f), Mathf.Round(r.y + (s - side) * 0.5f), side, side);
+                    Rect plus = new Rect(Mathf.Round(kr.xMax + s * 0.12f), minus.y, side, side);
+                    Color arrow = new Color(1f, 1f, 1f, on ? 1f : 0.5f);
+                    Matrix4x4 keep = GUI.matrix;
+                    GUIUtility.ScaleAroundPivot(new Vector2(-1f, 1f), minus.center);
+                    Icons.Draw(minus, "jouer", arrow);
+                    GUI.matrix = keep;
+                    Icons.Draw(plus, "jouer", arrow);
+                    if (GUI.Button(minus, GUIContent.none, GUIStyle.none)) { selected = index; Settings.Step(l.Bind, -1); Sfx.Pop(); }
+                    if (GUI.Button(plus, GUIContent.none, GUIStyle.none)) { selected = index; Settings.Step(l.Bind, 1); Sfx.Pop(); }
+                }
+                y += rowH;
+            }
+            GUI.EndGroup();
+
+            // La barre de defilement, fine, a droite : on voit qu'il y a une suite.
+            if (maxScroll > 0f)
+            {
+                float track = view.height;
+                float thumb = Mathf.Max(UiStyle.S(40), track * view.height / (content + UiStyle.S(10)));
+                float ty = view.y + (track - thumb) * (scroll / maxScroll);
+                Icons.Pill(new Rect(view.xMax + UiStyle.S(6), view.y, UiStyle.S(8), track), new Color(1f, 1f, 1f, 0.12f));
+                Icons.Pill(new Rect(view.xMax + UiStyle.S(6), Mathf.Round(ty), UiStyle.S(8), Mathf.Round(thumb)), new Color(1f, 0.84f, 0.3f, 0.9f));
+            }
+            if (Entry(new Rect(x, Screen.height - UiStyle.S(90), UiStyle.S(300), UiStyle.S(50)), "Retour", rows - 1, false, 1f)) { showControls = false; selected = 0; }
         }
     }
 }
