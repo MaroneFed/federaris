@@ -308,6 +308,12 @@ namespace Fief
                 Icons.Draw(new Rect(chip.x + s * 0.2f, chip.y + s * 0.12f, s * 0.76f, s * 0.76f), "arbaleste", Color.white);
                 Icons.Draw(new Rect(chip.x + s * 1.02f, chip.y + s * 0.2f, s * 0.6f, s * 0.6f), "retour", new Color(1f, 1f, 1f, 0.6f), false);
                 Icons.Draw(new Rect(chip.xMax - s * 0.96f, chip.y + s * 0.12f, s * 0.76f, s * 0.76f), where, wc);
+                // (02/10 -- "on ne voit pas tres bien ou on vise") : OU TU VAS TOMBER, un repere a
+                // l'ecran (la cible, a la couleur de l'arrivee, et la distance) -- colle au bord
+                // s'il sort de l'image. L'arbaleste ne le cache plus jamais.
+                Camera view = viewCamera != null ? viewCamera : Camera.main;
+                if (b.HasLanding && view != null && Game.PlayerTransform != null)
+                    Pin(view, b.LandingPoint + Vector3.up * 1.2f, "cible", Color.white, wc, UiStyle.S(54), 1f, (b.LandingPoint - Game.PlayerTransform.position).magnitude);
                 if (b.Charging)
                 {
                     Rect bar = new Rect(chip.x + s * 0.3f, chip.yMax + UiStyle.S(10), chip.width - s * 0.6f, UiStyle.S(12));

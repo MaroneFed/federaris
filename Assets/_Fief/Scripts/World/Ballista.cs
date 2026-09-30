@@ -57,6 +57,13 @@ namespace Fief
         Renderer markerDisc;
         Seeker rider;
         Rival riderBot;
+        float shownYaw, shownPitch;
+        bool posed;
+
+        /// <summary>Vrai si la courbe retombe quelque part (le HUD y pose un repere).</summary>
+        public bool HasLanding { get { return marker != null && marker.gameObject.activeSelf; } }
+        /// <summary>Ou la courbe retombe.</summary>
+        public Vector3 LandingPoint { get { return marker != null ? marker.position : transform.position; } }
         float mountedAt;
         float readyAt;
         Vector3 botAim;
@@ -76,7 +83,7 @@ namespace Fief
         static readonly Color Bronze = new Color(0.72f, 0.5f, 0.25f);
         static readonly Color StoneC = new Color(0.7f, 0.65f, 0.56f);
         /// <summary>La hauteur de l'estrade du tireur (au-dessus du plateau tournant).</summary>
-        const float SeatHeight = 1.2f;
+        const float SeatHeight = 1.7f;
         static readonly Color Rune = new Color(1f, 0.66f, 0.25f);
         static readonly Color GroundOk = new Color(0.5f, 1f, 0.55f);
 
@@ -272,11 +279,11 @@ namespace Fief
             // debout entre les flasques et l'estrade restait vide.)
             b.seat = new GameObject("Siège").transform;
             b.seat.SetParent(y, false);
-            b.seat.localPosition = new Vector3(0f, SeatHeight, -3.1f);
+            b.seat.localPosition = new Vector3(0f, SeatHeight, -3f);
             Proto.BeginVisualOnly();
             Rod(y, new Vector3(0f, 0.2f, -1.55f), new Vector3(0f, SeatHeight - 0.2f, -2.95f), 0.3f, WoodDarkMat);
-            Proto.Cylinder(y, new Vector3(0f, SeatHeight - 0.12f, -3.1f), new Vector3(1.4f, 0.12f, 1.4f), WoodDark, "Estrade").GetComponent<Renderer>().sharedMaterial = WoodDarkMat;
-            Proto.Cylinder(y, new Vector3(0f, SeatHeight - 0.02f, -3.1f), new Vector3(1.46f, 0.03f, 1.46f), Bronze, "Bord de l'estrade").GetComponent<Renderer>().sharedMaterial = BronzeMat;
+            Proto.Cylinder(y, new Vector3(0f, SeatHeight - 0.12f, -3f), new Vector3(1.4f, 0.12f, 1.4f), WoodDark, "Estrade").GetComponent<Renderer>().sharedMaterial = WoodDarkMat;
+            Proto.Cylinder(y, new Vector3(0f, SeatHeight - 0.02f, -3f), new Vector3(1.46f, 0.03f, 1.46f), Bronze, "Bord de l'estrade").GetComponent<Renderer>().sharedMaterial = BronzeMat;
             Proto.EndVisualOnly();
             Proto.Weld(y, "Tourelle soudée", null);
             Proto.Weld(t, "Socle soudé", null);
@@ -648,11 +655,18 @@ namespace Fief
         void Pose()
         {
             float c = rider != null ? charge : 0f;
-            yawPivot.rotation = Quaternion.Euler(0f, yaw, 0f);
+            // (02/10 -- "quand on tourne, on ne voit pas tres bien ou on vise, ce n'est pas
+            // fluide") : le MODELE suit la visee en douceur au lieu de sauter d'une image a
+            // l'autre (le tir, lui, part toujours exactement ou la courbe le montre).
+            float follow = posed ? 1f - Mathf.Exp(-14f * Time.deltaTime) : 1f;
+            posed = true;
+            shownYaw = Mathf.LerpAngle(shownYaw, yaw, follow);
+            yawPivot.rotation = Quaternion.Euler(0f, shownYaw, 0f);
             // (29/09) L'arbaleste d'une plateforme tire en cloche tres haute (~66 degres) :
             // dressee comme ca, sa crosse basculait devant les yeux de qui est dessus.
             // Le MODELE ne se leve pas au-dela de 38 degres ; le tir, lui, part comme prevu.
-            float shown = hasFixed ? Mathf.Min(pitch, 38f) : pitch;
+            shownPitch = Mathf.Lerp(shownPitch, hasFixed ? Mathf.Min(pitch, 38f) : pitch, follow);
+            float shown = shownPitch;
             pitchPivot.localRotation = Quaternion.Euler(-shown + recoil * 8f, 0f, 0f);
             // L'arc plie : chaque articulation tourne un peu plus quand on tend (et il vibre au tir).
             float bend = Mathf.Lerp(5f, 15f, c) + Mathf.Sin(Time.time * 60f) * recoil * 6f;
