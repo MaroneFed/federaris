@@ -219,3 +219,15 @@ Tiré de `docs/DESIGNER-CHIANT-3.md` — hors de la Phase 1, à garder pour plus
 - Fusionner les dalles des rampes et les petits cubes du château (`Mesh.CombineMeshes`).
 - Un réglage **Qualité** (anticrénelage, ombres) et d'**accessibilité** (secousses,
   roulis de la vue, luminosité).
+
+## Le 02/10 au soir (la v15 : des bots qui montent)
+
+- **Une capacité qui renvoie la Couronne au sommet** (Martin : « peut-être faire une
+  capacité de merde comme ça ») : par exemple « Rappel de la Couronne » — elle rentre sur
+  son socle, et tout le monde doit remonter. **À Martin de trancher** (elle irait contre
+  « on ne refait plus toute la tour » ; en capacité rare, elle peut créer de belles
+  remontées).
+- Souder aussi les **dalles des rampes** et les **créneaux** (`Proto.Weld` existe
+  désormais) : des milliers de petits cubes en moins.
+- Les bots qui **esquivent la cible rouge** des gargouilles au lieu de seulement foncer.
+

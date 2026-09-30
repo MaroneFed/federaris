@@ -107,15 +107,18 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
   de la « reprendre en une demi-seconde ».
 - Les autres coups (onde, souffle, Œil, pendule, bélier, boulet, mine) la font
   **tomber** ; même verrou de 3 s pour qui la perd. À terre, on la **ramasse en passant
-  dessus** ; oubliée, elle **rentre au sommet au bout de 20 s**.
+  dessus**. **Elle reste là où elle tombe** (02/10 : plus de retour au sommet au bout de
+  20 s) ; si elle tombe hors d'atteinte (dans le vide), elle revient au dernier endroit
+  où son porteur touchait le sol.
 - **En l'air, on l'attrape facilement : LE PIQUÉ D'AIGLE.** Le porteur dans le viseur
   (à 45 m, dans un cône de 30°), la touche pour pousser : on **fond sur lui**, guidé, à
   48 m/s ; au contact, c'est un **vol**. Recharge 3 s. (Choisi parmi : une poussée à
   plus grande portée en l'air, un vol au simple contact, un aimant… Le piqué est le
   plus lisible et le plus spectaculaire, et il récompense la visée.)
 - **Replier ses ailes** (Espace en vol) avec la Couronne et tomber comme une pierre :
-  elle **reste là où tu as quitté le sol**. Tomber dans les nuages avec : elle
-  **rentre au sommet**.
+  elle **reste là où tu as quitté le sol**. Tomber dans les nuages avec : pareil, elle
+  **reste au dernier endroit où tu touchais le sol** (02/10, Martin : « c'est horrible de
+  tout remonter à chaque fois ») — on ne refait plus toute la tour.
 
 ### Le vol plané (refait le 28/09)
 
@@ -327,11 +330,16 @@ tourne** ; elles ne quittent jamais leur perchoir.
 |---|---|
 | **Ambre** | elle balaie la cour du regard (un cône de lumière) |
 | **Orange** | elle t'a aperçu : elle te fixe, ses ailes s'entrouvrent |
-| **Rouge** | elle **charge** 1,1 s : ailes déployées, gueule ouverte qui rougeoie, un trait rouge vous relie et une **cible rouge se resserre à tes pieds**. La dernière demi-seconde, elle ne te suit plus — bouge ! |
+| **Rouge** | elle **charge** 1,25 s : ailes déployées, gueule ouverte qui rougeoie, un trait rouge vous relie et une **cible rouge se resserre à tes pieds**. La dernière demi-seconde, elle ne te suit plus — bouge ! |
 | **Blanc** | elle **crache un jet de feu** : une **explosion** là où il frappe ; projeté, étourdi 0,7 s, et **tu lâches la Couronne** |
 
 Elles ne regardent que la citadelle, la tour — et le porteur de la Couronne. Elles
-ignorent qui est protégé. La Nuée les aveugle, le Voile te cache, l'Ombre les ralentit.
+ignorent qui est protégé. **Justes pour qui débute** (02/10 : « il a trois tirs sur lui
+qui font bam ») : **une seule à la fois** sur la même cible, **9 s de répit** après un
+coup (3 s après une esquive), une explosion de **2,4 m** : qui court hors de la cible
+rouge s'en sort. Dessin du 02/10 : pierre bleu ardoise (elle se détache sur la pierre
+crème), grosse tête ronde, **grands yeux** dans des orbites sombres (c'est eux qu'on lit
+de loin), sourcil en V, cornes courtes, queue en fer de pique. La Nuée les aveugle, le Voile te cache, l'Ombre les ralentit.
 
 ## La victoire (plus d'aura)
 
@@ -442,7 +450,12 @@ vers le courant d'air du Monument et y tournent pour remonter (30/09), **chassen
 aussi, avec le **piqué d'aigle**) en **visant là où il va** (01/10), et l'un d'eux va
 **l'attendre au Monument** le plus proche de lui. **Ils se battent en montant** (29/09 :
 « faut qu'il y ait du combat ») : qui passe à portée dans la citadelle ou sur la rampe
-peut se faire pousser (pas un joueur protégé). Coincés plus de 5 s, ils refont leur
+peut se faire pousser (pas un joueur protégé). **Ils lisent les obstacles** (02/10 : « les bots
+n'arrivent pas à monter la tour ») : pendules, béliers, herses et marteaux disent où ils
+frapperont (`World/Hazards.cs`) ; le bot **attend son tour** (3,5 s au plus) puis passe,
+et **fonce** quand une gargouille a verrouillé son tir. **Sur les rampes, ils ne se
+poussent plus entre eux** (ils s'éjectaient de la tour les uns les autres) : ils ne
+poussent que toi ou le porteur, et rarement. Coincés plus de 5 s, ils refont leur
 chemin ; poussés hors de l'île, ils cherchent un courant d'air. Ils se servent de toutes
 leurs capacités (le Souffle, jusqu'à 90 m).
 

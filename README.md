@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · v14 · on voit la Couronne · 02/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · v15 · des bots qui montent · 02/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -109,10 +109,13 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
    sceau te renvoie.**
 4. Monte **la rampe en face de ta porte** (il y en a quatre, une par porte) : saute les
    trous et les **balayeurs**, esquive pendules, béliers, herses, boulets — et le feu
-   des **gargouilles**, qui explose et te fait redescendre. Les bots te poussent.
-5. Au sommet : la **Couronne** (E maintenu). Saute : **tes ailes s'ouvrent toutes
+   des **gargouilles**, qui explose et te fait redescendre (une seule te vise à la fois,
+   puis elles te laissent 9 s). **Regarde les bots : ils doivent arriver en haut** (ils
+   attendent le pendule, le bélier, la herse). Ils te poussent parfois.
+5. Au sommet : la **Couronne** (passe dessus). Si tu tombes avec, **elle reste là
+   où tu touchais le sol** : plus besoin de tout remonter. Saute : **tes ailes s'ouvrent toutes
    seules**. Vole jusqu'à **l'un des trois Monuments**. Entre dans son cercle.
-6. **Gagne la manche** : la caméra te filme, **ton pseudo en or**, la musique d'aura.
+6. **Gagne la manche** : la caméra te filme, **ton pseudo en or**, et ton haricot danse.
 7. Joue plusieurs manches : **les obstacles changent et deviennent plus nombreux**.
 
 **Ce que tu dois me dire :** qu'est-ce qui t'a fait rire, qu'est-ce qui t'a ennuyé, et

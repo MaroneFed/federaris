@@ -362,6 +362,44 @@ namespace Fief
             return p;
         }
 
+        /// <summary>La couleur de la porte qui regarde vers "dir" (rouge, bleu, or, vert) : les rampes d'en face la reprennent.</summary>
+        public static Color GateColourToward(Vector3 dir)
+        {
+            Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.right, Vector3.left };
+            int best = 0;
+            for (int i = 1; i < dirs.Length; i++) if (Vector3.Dot(dirs[i], dir) > Vector3.Dot(dirs[best], dir)) best = i;
+            return GateColours[best];
+        }
+
+        /// <summary>
+        /// UNE COLONNE TOURNEE (02/10) : une base a plinthe, un fut qui s'amincit, un chapiteau
+        /// -- d'une seule piece (Proto.Lathe). "at" : son pied. Sans collider.
+        /// </summary>
+        public static GameObject Column(Transform t, Vector3 at, float r, float height, Color colour, string name)
+        {
+            return Proto.Lathe(t, at, new[] {
+                new Vector2(r * 1.35f, 0f), new Vector2(r * 1.35f, 0.22f), new Vector2(r * 1.35f, 0.22f), new Vector2(r * 1.1f, 0.34f),
+                new Vector2(r, 0.5f), new Vector2(r * 0.9f, height - 0.55f), new Vector2(r * 1.05f, height - 0.42f), new Vector2(r * 1.3f, height - 0.28f),
+                new Vector2(r * 1.3f, height), new Vector2(r * 1.3f, height), new Vector2(0f, height) }, 16, colour, name);
+        }
+
+        /// <summary>Un petit toit en cloche d'ardoise (le meme dessin que les tours) et sa boule d'or mat : "at" est son bord.</summary>
+        public static void BellRoof(Transform t, Vector3 at, float R, float H)
+        {
+            Proto.Lathe(t, at, RoofProfile(R, H, 0f), 18, Slate, "Toit en cloche").GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Slate, 0.4f, 0.05f);
+            Proto.Sphere(t, at + Vector3.up * (H + R * 0.12f), Vector3.one * R * 0.28f, Color.white, "Boule d'or").GetComponent<Renderer>().sharedMaterial = MatteGold;
+        }
+
+        /// <summary>Un poteau de pierre tournee coiffe d'une boule d'or mat (le debut et la fin d'un escalier).</summary>
+        public static void Newel(Transform t, Vector3 at, float height)
+        {
+            Column(t, at, 0.2f, height, StoneDark, "Poteau");
+            Proto.Sphere(t, at + Vector3.up * (height + 0.16f), Vector3.one * 0.34f, Color.white, "Boule d'or").GetComponent<Renderer>().sharedMaterial = MatteGold;
+        }
+
+        /// <summary>L'or mat (v13 : presque rien ne brille).</summary>
+        public static Material MatteGold { get { return MaterialFactory.GetShiny(new Color(0.9f, 0.7f, 0.34f), 0.4f, 0.55f); } }
+
         /// <summary>Les quatre portes, au milieu de chaque muraille : deux tours de garde, la herse relevee, un pont-levis, un arc d'or, une banniere.</summary>
         static void BuildGates(Transform t)
         {
@@ -444,6 +482,16 @@ namespace Fief
                 Vector3 to = d * inner + along * 37f + Vector3.up * WallHeight;
                 Stair(t, from, to);
                 Proto.Cube(t, d * inner + along * 39f + Vector3.up * (WallHeight - 0.2f), Rot(d, new Vector3(2.6f, 0.4f, 4f)), StoneDark, "Palier");
+                // (02/10 -- Martin : "revois le debut et la fin de l'escalier") : une premiere
+                // marche pleine au pied (avant, la dalle entrait dans le sol en biseau), un
+                // poteau rond a boule d'or en bas et en haut, cote cour, et le bord du palier.
+                Proto.BeginVisualOnly();
+                Proto.Cube(t, from - along * 0.35f + Vector3.up * 0.08f, Rot(d, new Vector3(2.9f, 0.16f, 0.8f)), Paving, "Première marche");
+                Newel(t, from - d * 1.08f - along * 0.35f + Vector3.up * 0.16f, 1.2f);
+                Newel(t, to - d * 1.08f, 1.1f);
+                Newel(t, d * inner + along * 40.8f - d * 1.08f + Vector3.up * WallHeight, 1.1f);
+                Proto.Cube(t, d * inner + along * 39f - d * 1.33f + Vector3.up * (WallHeight + 0.02f), Rot(d, new Vector3(0.12f, 0.1f, 4f)), Paving, "Bord du palier");
+                Proto.EndVisualOnly();
             }
         }
 

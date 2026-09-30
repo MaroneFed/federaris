@@ -381,25 +381,76 @@ namespace Fief
             Proto.EndVisualOnly();
         }
 
-        /// <summary>Au pied d'une rampe : deux piliers et un linteau d'or -- on voit ou l'on monte.</summary>
+        /// <summary>
+        /// LE PIED D'UNE RAMPE (02/10 -- Martin : "revois le debut de l'escalier") : un seuil
+        /// rond cercle a la couleur de la porte d'en face, deux colonnes tournees coiffees
+        /// d'un petit toit en cloche, un arc de pierre et sa banniere. Avant : deux piliers
+        /// carres, un linteau-cube et un filet d'or qui brillait -- et la dalle de la rampe
+        /// qui sortait du sol en biseau.
+        /// </summary>
         static void BuildArch(Transform t, int ramp)
         {
-            Vector3 foot = RampPoint(ramp, 0.004f);
+            Vector3 foot = RampPoint(ramp, 0f);
             Vector3 along = Tangent(ramp, 0.004f);
             Vector3 outward = new Vector3(foot.x, 0f, foot.z).normalized;
+            Color gate = Castle.GateColourToward(outward);
+            Material stone = MaterialFactory.Get(Stone);
             Proto.BeginVisualOnly();
-            for (int side = -1; side <= 1; side += 2)
+            // Le seuil : un anneau a la couleur de la porte, une dalle ronde dedans (il cache
+            // le bout de la premiere dalle de la rampe).
+            Vector3 sill = foot - along * 1.2f + Vector3.up * 0.04f;
+            Proto.Lathe(t, sill, new[] { new Vector2(2.9f, 0f), new Vector2(2.9f, 0.07f), new Vector2(2.9f, 0.07f), new Vector2(0f, 0.07f) }, 32, gate, "Anneau du seuil")
+                .GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(gate, 0.3f, 0f);
+            Proto.Lathe(t, sill, new[] { new Vector2(2.6f, 0f), new Vector2(2.6f, 0.1f), new Vector2(2.45f, 0.13f), new Vector2(2.45f, 0.13f), new Vector2(0f, 0.13f) }, 32, StoneLight, "Seuil");
+            // Les deux colonnes et leur toit en cloche : l'une adossee au soubassement de la
+            // tour (le bord interieur de la rampe longe le fut), l'autre dehors, au bord du vide.
+            Vector3 ground = new Vector3(0f, 0.04f, 0f);
+            Vector3 inner = outward * (Radius + 0.35f) + ground;
+            Vector3 outer = outward * (OuterRadius + 0.75f) + ground;
+            Vector3[] columns = { inner, outer };
+            for (int k = 0; k < columns.Length; k++)
             {
-                Vector3 at = foot + outward * side * (RampWidth * 0.5f + 0.4f) + Vector3.up * 3f;
-                Proto.Cube(t, at, new Vector3(0.9f, 6f, 0.9f), StoneDark, "Pilier").transform.rotation = Quaternion.LookRotation(along, Vector3.up);
-                Castle.Torch(t, at + Vector3.up * 3f, 0.6f);
+                GameObject col = Castle.Column(t, columns[k], 0.5f, 5.4f, Stone, "Colonne");
+                col.GetComponent<Renderer>().sharedMaterial = stone;
+                Castle.BellRoof(t, columns[k] + Vector3.up * 5.4f, 0.85f, 1.9f);
+                CapsuleCollider body = col.AddComponent<CapsuleCollider>();
+                body.radius = 0.5f;
+                body.height = 5.4f;
+                body.center = new Vector3(0f, 2.7f, 0f);
             }
-            GameObject lintel = Proto.Cube(t, foot + Vector3.up * 6.2f, new Vector3(RampWidth + 2.6f, 0.8f, 1f), Stone, "Linteau");
-            lintel.transform.rotation = Quaternion.LookRotation(along, Vector3.up);
-            GameObject gilt = Proto.Cube(t, foot + Vector3.up * 6.2f - along * 0.52f, new Vector3(RampWidth + 1.4f, 0.35f, 0.05f), Color.white, "Filet d'or");
-            gilt.transform.rotation = lintel.transform.rotation;
-            gilt.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(Gold, 0.8f, 1f);
+            // L'arc : une anse de panier de pierre, d'une colonne a l'autre, sa clef d'or mat,
+            // et la banniere de la porte qui pend dessous.
+            Vector3 mid = (inner + outer) * 0.5f;
+            float half = (outer - inner).magnitude * 0.5f;
+            Vector3 prev = Vector3.zero;
+            for (int k = 0; k <= 8; k++)
+            {
+                float th = k / 8f * Mathf.PI;
+                Vector3 p = mid + outward * (-Mathf.Cos(th) * half) + Vector3.up * (4.6f + Mathf.Sin(th) * 2.1f);
+                if (k > 0) Beam(t, prev, p, 0.62f, stone);
+                prev = p;
+            }
+            Vector3 apex = mid + Vector3.up * 6.7f;
+            Proto.Sphere(t, apex - along * 0.1f, new Vector3(0.7f, 0.8f, 0.75f), Color.white, "Clef").GetComponent<Renderer>().sharedMaterial = Castle.MatteGold;
+            GameObject cloth = Proto.Cube(t, apex + Vector3.down * 1.55f, new Vector3(1.5f, 2.2f, 0.06f), gate, "Bannière de la rampe");
+            cloth.transform.rotation = Quaternion.LookRotation(along, Vector3.up);
+            cloth.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(gate, 0.3f, 0f);
+            GameObject point = Proto.Cone(t, apex + Vector3.down * 2.65f, 0.75f, 0.45f, gate, "Pointe de la bannière", 4);
+            point.transform.rotation = Quaternion.LookRotation(along, Vector3.up) * Quaternion.Euler(180f, 0f, 45f);
+            point.transform.localScale = new Vector3(0.75f, 0.45f, 0.03f);
+            point.GetComponent<Renderer>().sharedMaterial = cloth.GetComponent<Renderer>().sharedMaterial;
             Proto.EndVisualOnly();
+        }
+
+        /// <summary>Une poutre ronde (une gelule) de "a" a "b".</summary>
+        static void Beam(Transform t, Vector3 a, Vector3 b, float thick, Material m)
+        {
+            Vector3 d = b - a;
+            float len = d.magnitude;
+            if (len < 0.001f) return;
+            GameObject g = Proto.Capsule(t, (a + b) * 0.5f, new Vector3(thick, (len + thick) * 0.5f, thick), Color.white, "Voussoir");
+            g.transform.localRotation = Quaternion.FromToRotation(Vector3.up, d / len);
+            g.GetComponent<Renderer>().sharedMaterial = m;
         }
 
         /// <summary>
@@ -428,6 +479,23 @@ namespace Fief
                 m.transform.localRotation = face;
                 GameObject cap = Proto.Cube(t, p + Vector3.up * 0.67f, new Vector3(0.96f, 0.14f, 1.76f), StoneDark, "Chaperon");
                 cap.transform.localRotation = face;
+            }
+            // LES ARRIVEES (02/10 -- "revois la fin de l'escalier") : de chaque cote de la
+            // breche dans les creneaux, une borne tournee a boule d'or mat, baguee a la couleur
+            // de la porte de sa rampe -- on sait par ou l'on est monte, et ou redescendre.
+            for (int r = 0; r < Ramps; r++)
+            {
+                Vector3 arr = RampPoint(r, 1f);
+                float aa = Mathf.Atan2(arr.z, arr.x);
+                Color gate = Castle.GateColourToward(new Vector3(RampPoint(r, 0f).x, 0f, RampPoint(r, 0f).z));
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    float a = aa + side * 21f * Mathf.Deg2Rad;
+                    Vector3 at = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Radius - 0.5f) + Vector3.up * Height;
+                    Castle.Column(t, at, 0.34f, 1.7f, StoneLight, "Borne d'arrivée");
+                    Proto.Cylinder(t, at + Vector3.up * 1.05f, new Vector3(0.66f, 0.1f, 0.66f), Color.white, "Bague").GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(gate, 0.3f, 0f);
+                    Proto.Sphere(t, at + Vector3.up * 1.95f, Vector3.one * 0.5f, Color.white, "Boule d'or").GetComponent<Renderer>().sharedMaterial = Castle.MatteGold;
+                }
             }
             // Deux disques bien separes en hauteur (3 cm), jamais au meme niveau : sinon
             // la carte graphique ne sait pas lequel dessiner devant (z-fighting).

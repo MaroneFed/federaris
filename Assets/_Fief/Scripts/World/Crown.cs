@@ -45,7 +45,6 @@ namespace Fief
         Vector3 home;
         Light glow;
         LightBeam beam;
-        float droppedAt;
 
         static readonly Color Gold = new Color(0.95f, 0.76f, 0.3f);
         static readonly Color Ruby = new Color(0.9f, 0.18f, 0.2f);
@@ -433,7 +432,6 @@ namespace Fief
             Seeker was = Holder;
             state = State.Dropped;
             Holder = null;
-            droppedAt = Time.time;
             // Par terre, un peu devant : on la voit rouler.
             at = SafeSpot(at, fallback);
             float y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 30f, ~0, QueryTriggerInteraction.Ignore)
