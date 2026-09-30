@@ -52,6 +52,12 @@ namespace Fief
         float slowMotion;
         int bellWarnings;
         float botPickTimer;
+        /// <summary>
+        /// Le temps qu'un bot met a choisir sa carte (02/10, gamer chiant : "entre deux manches,
+        /// j'attends quinze secondes que sept bots choisissent" -- 0,9 s chacun, deux tours de
+        /// table, plus quatre secondes a la fin). Assez pour voir la carte partir.
+        /// </summary>
+        const float BotPickDelay = 0.55f;
 
         /// <summary>L'entree choisie dans l'ecran courant (fleches ou survol de la souris).</summary>
         int selected;
@@ -561,7 +567,7 @@ namespace Fief
             if (Match.Draft.SecondStageNext)
             {
                 Match.Draft.PrepareSecondStage();
-                botPickTimer = 0.9f;
+                botPickTimer = BotPickDelay;
                 selected = 0;
                 Sfx.Pop();
                 Go(State.Draft);
@@ -582,7 +588,7 @@ namespace Fief
             {
                 CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
                 Sfx.CardPick();
-                botPickTimer = 0.9f;
+                botPickTimer = BotPickDelay;
                 selected = 0;
             }
         }
@@ -593,14 +599,14 @@ namespace Fief
             {
                 // Tout le monde a choisi : on part tout seul apres un temps de lecture.
                 botPickTimer -= dt;
-                if (botPickTimer < -4f) FinishDraft();
+                if (botPickTimer < -2.5f) FinishDraft();
                 return;
             }
             int slot = Match.Draft.Current;
             if (slot < 0 || slot >= Match.Slots.Count || !Match.Slots[slot].IsBot) return;
             botPickTimer -= dt;
             if (botPickTimer > 0f) return;
-            botPickTimer = 0.9f;
+            botPickTimer = BotPickDelay;
             int card = Match.Draft.BotChoice(slot);
             if (card < 0) card = 0;
             Ability botTook = card < Match.Draft.Offer.Count ? Match.Draft.Offer[card] : Ability.Ruee;
@@ -1627,7 +1633,9 @@ namespace Fief
                 int index = row++;
                 bool on = selected == index;
                 Rect r = new Rect(UiStyle.S(10), Mathf.Round(y + UiStyle.S(3)), w, Mathf.Round(rowH - UiStyle.S(6)));
-                if (r.Contains(e.mousePosition) && e.type == EventType.MouseMove) selected = index;
+                // (Pas d'evenement MouseMove en jeu -- seulement dans l'editeur : on suit la
+                // souris quand elle a bouge, comme les boutons des autres menus.)
+                if (hoverFollows && r.Contains(e.mousePosition) && selected != index) { selected = index; Sfx.Hover(); }
                 Icons.Pill(r, on ? new Color(0.36f, 0.4f, 0.86f) : new Color(0.13f, 0.15f, 0.34f, 0.95f));
                 float s = r.height;
                 Icons.Draw(new Rect(r.x + s * 0.3f, r.y + s * 0.16f, s * 0.68f, s * 0.68f), l.Icon, new Color(1f, 1f, 1f, 0.9f));
@@ -1635,9 +1643,11 @@ namespace Fief
                 // La touche, a droite, dans sa pastille claire ; les fleches si on peut la changer.
                 float kw = Mathf.Max(s * 1.4f, Icons.Width(l.Key.Length > 0 ? l.Key : "auto", keySize) + s * 0.8f);
                 Rect kr = new Rect(Mathf.Round(r.xMax - kw - s * (l.Bind >= 0 ? 1.1f : 0.3f)), r.y + s * 0.14f, Mathf.Round(kw), Mathf.Round(s * 0.72f));
+                // Un clic sur la touche d'une ligne qu'on peut changer : la touche suivante.
+                if (l.Bind >= 0 && GUI.Button(kr, GUIContent.none, GUIStyle.none)) { selected = index; Settings.Step(l.Bind, 1); Sfx.Pop(); }
                 if (l.Key.Length > 0)
                 {
-                    Icons.Pill(kr, new Color(0.93f, 0.93f, 0.97f));
+                    Icons.Pill(kr, l.Bind >= 0 && on ? new Color(1f, 0.86f, 0.4f) : new Color(0.93f, 0.93f, 0.97f));
                     Icons.Text(kr, l.Key, keySize, new Color(0.1f, 0.1f, 0.2f), TextAnchor.MiddleCenter, false);
                 }
                 else Icons.Text(kr, "tout seul", keySize, new Color(0.7f, 0.9f, 1f), TextAnchor.MiddleCenter, true);

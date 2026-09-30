@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · v17 · les vrais sons · 02/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · v18 · gamer chiant 200 · 02/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -76,7 +76,10 @@ Le premier import prend 1 à 3 minutes. Une seule fois.
 >    une **vraie résolution** (« Full HD (1920x1080) ») et **pas Free Aspect** — testé le
 >    02/10 par Martin : avec Free Aspect tout était flou, avec une résolution fixe tout est
 >    net ; si la case « Low Resolution Aspect Ratios » existe, décoche-la ;
-> 3. le plus simple : clique **Maximize On Play** (ou appuie sur **Maj+Espace** avec la
+> 3. **l'ampoule et le haut-parleur** qu'on voit en regardant en bas : ce sont les
+>    **Gizmos** d'Unity (la lanterne, les sons). En haut à droite de la fenêtre Game,
+>    décoche **Gizmos** — ils n'existent pas dans le jeu exporté ;
+> 4. le plus simple : clique **Maximize On Play** (ou appuie sur **Maj+Espace** avec la
 >    souris sur la fenêtre Game) — le jeu prend tout l'écran d'Unity.
 
 ## 3. Les commandes

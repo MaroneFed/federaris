@@ -531,7 +531,7 @@ namespace Fief
             }
             // En vol : la vitesse, en chiffres, a droite des pastilles.
             if (Game.Player != null && Game.Player.Gliding)
-                Icons.Number(new Rect(cx + UiStyle.S(140), y - st - UiStyle.S(18), UiStyle.S(160), st), Mathf.RoundToInt(Game.Player.Airspeed * 3.6f).ToString(), UiStyle.S(26), Wings.Glow, TextAnchor.MiddleLeft);
+                Icons.Number(new Rect(cx + UiStyle.S(140), y - st - UiStyle.S(18), UiStyle.S(160), st), Mathf.RoundToInt(Game.Player.Airspeed * 3.6f) + " km/h", UiStyle.S(26), Wings.Glow, TextAnchor.MiddleLeft);
         }
 
         /// <summary>Le gros rond de ta capacite active.</summary>
@@ -732,6 +732,10 @@ namespace Fief
                 size *= 1f + (1f - fell / 3f) * (0.6f + 0.3f * pulse);
                 fill = Color.Lerp(fill, new Color(1f, 0.3f, 0.2f), pulse);
             }
+            // (02/10, gamer chiant n° 115) Tu viens de la perdre : trois secondes ou tu ne peux
+            // pas la reprendre -- le repere passe au GRIS (on comprend pourquoi on passe dessus
+            // sans la prendre).
+            if (holder == null && Time.time < me.CrownLockUntil) fill = new Color(0.4f, 0.4f, 0.45f);
             // Tout pres (on la voit tres bien) : le repere s'efface, pour ne pas la cacher.
             float alpha = Mathf.Lerp(0.3f, 1f, Mathf.Clamp01((dist - 6f) / 10f));
             Pin(cam, world, "couronne", CrownGold, fill, size, alpha, dist);

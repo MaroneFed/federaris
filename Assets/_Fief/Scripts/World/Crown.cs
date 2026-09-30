@@ -343,7 +343,7 @@ namespace Fief
             if (Instance == null || Holder != s || s == null) return;
             Vector3 ground = LastGroundOf(s);
             Instance.Drop(ground, ground);
-            Feed.CrownSlipped(s);
+            Feed.CrownKnocked(s, null);
         }
 
         /// <summary>Le dernier sol d'un joueur (toi ou un bot) : la ou la Couronne doit rester s'il tombe.</summary>

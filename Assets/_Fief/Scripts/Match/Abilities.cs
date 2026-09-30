@@ -4,12 +4,12 @@ namespace Fief
 {
     /// <summary>
     /// LES CAPACITES (26/09, Martin : "pas d'epee, juste des capacites, on tiendra jamais
-    /// rien en main", "trouve une liste de plein de capacites"). On en choisit une avant
-    /// la premiere manche, puis une entre chaque manche ; on les garde tout le match.
+    /// rien en main", "trouve une liste de plein de capacites"). Avant CHAQUE manche, on
+    /// en choisit deux, neuves (29/09 : "qu'un passif et un clic gauche") :
     ///
-    ///   ACTIVES   une touche chacune (clic gauche, E, R -- 28/09), et un temps de recharge.
-    ///             Trois au plus : la quatrieme remplace la plus ancienne.
-    ///   PASSIVES  toujours la, sans touche.
+    ///   UNE ACTIVE   sur le clic gauche (Reglages > Touche capacite), un temps de recharge ;
+    ///                le don d'un sanctuaire la remplace pour la manche.
+    ///   UNE PASSIVE  toujours la, sans touche.
     ///
     /// Inspirees des jeux qui ont fait leurs preuves : la ruee et le clignement
     /// (Overwatch), le grappin (Apex, Sekiro), le crochet (Overwatch), l'onde et le
@@ -37,7 +37,6 @@ namespace Fief
         /// <summary>La touche pour pousser (clic droit par defaut ; voir Settings.PushBind).</summary>
         public static string PushKey { get { return FiefInput.BindNames[Settings.PushBind]; } }
         public const string UseKey = "E";
-        public const string GiftKey = "V";
 
         public static bool IsActive(Ability a) { return a < Ability.DoubleSaut; }
 
@@ -97,7 +96,7 @@ namespace Fief
                 case Ability.Planeur: return "Des ailes d'or pour toujours : tu voles plus vite et plus loin.";
                 case Ability.Coureur: return "Tu vas quinze pour cent plus vite.";
                 case Ability.Porteur: return "Avec la Couronne, tu n'es plus ralenti et tu peux pousser.";
-                case Ability.Poigne: return "Ta poussée envoie deux fois plus loin.";
+                case Ability.Poigne: return "Ta poussée envoie deux fois plus loin, et revient plus vite.";
                 case Ability.Ancrage: return "On te pousse deux fois moins loin.";
                 case Ability.Flair: return "Tu vois l'invisible : les mines, les joueurs voilés, à travers la fumée.";
                 case Ability.Ombre: return "Les gargouilles mettent deux fois plus de temps à te repérer.";
