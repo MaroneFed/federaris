@@ -292,10 +292,19 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   cloche** — 22 m/s vers l'extérieur, 11 vers le haut, l'élan ne retombe presque pas —
   en faisant des **saltos**, ailes fermées jusqu'au sol (`Seeker.Tumble`) : tu
   t'écrases dans la cour et tu remontes. Jamais au-delà de la muraille. Les coups des
-  joueurs, eux, ne font que projeter :
-  - des **pendules** à pointes qui balaient la rampe du mur vers le vide ;
-  - des **béliers** qui jaillissent du mur (leur rune **rougit** avant) ;
-  - des **balayeurs** : une barre cloutée à hauteur de genou, contre le fût, qui balaie
+  joueurs, eux, ne font que projeter.
+  **Une seule famille** (03/10, v21 — Martin : « rends-les magnifiques, tous, tous, tous »,
+  `World/ObstacleKit.cs`) : **le rouge frappe** (face de frappe crème à cible rouge),
+  l'**ardoise** bleu nuit porte (comme les toits), l'**or mat** bague, la **braise** prévient ;
+  des fûts aux bords ronds, des dômes, des boules — rien de carré qui frappe. Chaque pièce
+  mobile est soudée en un seul dessin.
+  - des **pendules** : un butoir en palet rouge au bout d'un bras d'acier, pendu à une
+    potence d'ardoise sortie d'une platine ronde cerclée d'or, qui balaient la rampe du
+    mur vers le vide ;
+  - des **béliers** : un poing rouge sur un fût d'ardoise, qui jaillit d'un portail rond
+    cerclé d'or dans le fût (leur rune **rougit** avant) ;
+  - des **balayeurs** : une barre à rayures rouges et crèmes à hauteur de genou, sur une
+    perche tournée contre le fût, qui balaie
     la rampe **vers le vide** (on saute par-dessus) ;
   - des **herses** : des pointes qui jaillissent de la rampe (elles piquent tant qu'elles
     sont sorties) ;
@@ -361,7 +370,7 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
   un **cimier** à sa couleur, des épaulières, une ceinture à boucle d'or, une **cape**.
   Il se dandine, s'écrase à l'atterrissage, s'étire en l'air, **fait des saltos** quand
   un obstacle l'éjecte. En première personne, on ne voit toujours que son ombre.
-- **L'image lissée** : anticrénelage x8, filtrage anisotrope, ombres très fines en
+- **L'image lissée** : anticrénelage x4 (x8 jusqu'au 03/10 : « le jeu n'est pas fluide »), filtrage anisotrope, ombres très fines en
   quatre cascades, synchro verticale, et une **sonde de reflets** qui photographie
   l'île et le ciel : l'or et l'acier reflètent le soir.
 - **La Couronne** refaite : or poli, bandeau lisse entre deux joncs, lys à trois

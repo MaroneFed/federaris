@@ -224,18 +224,23 @@ namespace Fief
         /// </summary>
         public static void DangerStripes(Transform parent, int ramp, float u)
         {
-            Proto.BeginVisualOnly();
-            float du = 0.55f / RampLength;
+            // (03/10) De vraies bandes de chantier : ambre qui luit et ardoise, jointives, avec un
+            // liseré d'or de chaque cote -- la meme famille que les obstacles (ObstacleKit).
+            float du = 0.5f / RampLength;
             for (int k = -3; k <= 3; k++)
             {
-                if (k % 2 != 0) continue;
                 float at = u + k * du;
                 Vector3 slope = RampPoint(ramp, at + du * 0.5f) - RampPoint(ramp, at - du * 0.5f);
-                GameObject bar = Proto.Cube(parent, RampPoint(ramp, at) + Vector3.up * 0.06f, new Vector3(RampWidth * 0.8f, 0.04f, 0.45f), Color.white, "Zone de danger");
-                bar.transform.rotation = Quaternion.LookRotation(slope.normalized, Vector3.up);
-                bar.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.55f, 0.12f), 0.7f);
+                ObstacleKit.Slab(parent, RampPoint(ramp, at) + Vector3.up * 0.06f, Quaternion.LookRotation(slope.normalized, Vector3.up),
+                    new Vector3(RampWidth * 0.8f, 0.04f, 0.5f), k % 2 == 0 ? ObstacleKit.Amber : ObstacleKit.SlateDark, "Zone de danger");
             }
-            Proto.EndVisualOnly();
+            for (int e = -1; e <= 1; e += 2)
+            {
+                float at = u + e * du * 3.7f;
+                Vector3 slope = RampPoint(ramp, at + du * 0.5f) - RampPoint(ramp, at - du * 0.5f);
+                ObstacleKit.Slab(parent, RampPoint(ramp, at) + Vector3.up * 0.065f, Quaternion.LookRotation(slope.normalized, Vector3.up),
+                    new Vector3(RampWidth * 0.8f, 0.05f, 0.12f), ObstacleKit.Gold, "Liseré d'or");
+            }
         }
 
         // ================================================================== construction

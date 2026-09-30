@@ -129,6 +129,9 @@ namespace Fief
         public static void CrownChanged(Seeker to)
         {
             if (!Live || to == null) return;
+            // (03/10, le clipper) La Couronne change de mains : un eclair d'or sur la tete du
+            // nouveau porteur, pour tous ceux qui le voient -- dans un clip, on voit OU elle est passee.
+            if (to.Body != null) Fx.Flash(to.Body.position + Vector3.up * 2f, new Color(1f, 0.82f, 0.4f), 9f, 3.2f, 0.25f);
             float now = Time.time;
             crownChanges.Add(now);
             crownChanges.RemoveAll(t => now - t > 15f);
