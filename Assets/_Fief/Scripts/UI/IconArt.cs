@@ -29,7 +29,7 @@ namespace Fief
             "ruee", "grappin", "crochet", "onde", "clignement", "bond", "mur", "nuee", "mine", "gel", "voile",
             "echange", "rappel", "souffle", "double-saut", "planeur", "coureur", "porteur", "poigne", "ancrage",
             "flair", "ombre", "prise-ferme", "recharge", "rebond", "aimant",
-            "etourdi", "chute"
+            "etourdi", "chute", "ko", "clip"
         };
 
         // ================================================================== le rendu
@@ -329,6 +329,17 @@ namespace Fief
                     float orbit = (Math.Abs((float)Math.Sqrt(x * x + yy * yy) - 0.72f) - 0.1f) / 1.6f;
                     float stars = Min(Star(x + 0.66f, y - 0.1f, 0.3f, 0.13f, 5), Min(Star(x - 0.66f, y - 0.1f, 0.3f, 0.13f, 5), Star(x, y + 0.26f, 0.36f, 0.15f, 5)));
                     return Min(orbit, stars);
+                }
+                case "ko":
+                    // (02/10, le clipper) LE KO : une etoile d'explosion a huit branches, un
+                    // eclat au coeur -- celui qu'on a pousse dans les nuages.
+                    return Sub(Star(x, y, 0.98f, 0.5f, 8), Circle(x, y, 0.2f));
+                case "clip":
+                {
+                    // UN MOMENT A CLIPPER : une claquette de cinema (le cadre, la barre qui claque).
+                    float body = Sub(Box(x, y - 0.18f, 0.8f, 0.5f, 0.12f), Box(x, y - 0.18f, 0.62f, 0.32f, 0.06f));
+                    float bar = Box(x, y + 0.56f, 0.8f, 0.12f, 0.06f);
+                    return Min(Min(body, bar), Circle(x, y - 0.18f, 0.16f));
                 }
                 case "chute":
                     // (02/10) LA CHUTE : une fleche qui plonge vers une ligne (avant : l'icone

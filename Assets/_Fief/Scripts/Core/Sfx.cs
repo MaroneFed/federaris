@@ -82,6 +82,67 @@ namespace Fief
         /// <summary>Un coup de poing : quelqu'un est pousse ou frappe (un vrai "pouf", Kenney).</summary>
         public static void Punch() { if (!PlayReal("Poussee", 0.6f)) Thud(); }
 
+        static AudioClip boom, subThump;
+
+        /// <summary>
+        /// LA POUSSEE QUI CLAQUE (02/10 -- Martin : "quand ca pousse, je veux que ca fasse un
+        /// ENORME bruit") : trois couches jouees ensemble -- le coup de poing (Kenney), un
+        /// GRAVE qui cogne dans la poitrine (une note de 70 Hz qui tombe a 35 Hz en un tiers
+        /// de seconde) et le souffle de celui qui part. Pleine puissance quand c'est toi qui
+        /// pousses ou qu'on te pousse ; ailleurs, en 3D (on l'entend de loin, plus doux).
+        /// </summary>
+        public static void BigPush(Vector3 at, bool mine)
+        {
+            if (Muted || source == null) return;
+            if (subThump == null) subThump = Sweep("grave de poussee", 70f, 35f, 0.34f, 0.35f);
+            if (!mine) Begin3D(at);
+            PlayReal("Poussee", mine ? 1f : 0.85f);
+            Play(subThump, mine ? 1f : 0.8f);
+            Whoosh();
+            End3D();
+        }
+
+        /// <summary>
+        /// LE KO (02/10, le clipper) : quelqu'un qu'on vient de pousser tombe dans les nuages --
+        /// un BOUM de canon (55 Hz qui s'effondre, une seconde entiere) et un fracas.
+        /// </summary>
+        public static void KoBoom(Vector3 at, bool mine)
+        {
+            if (Muted || source == null) return;
+            if (boom == null) boom = Sweep("boum du KO", 55f, 24f, 1.1f, 0.6f);
+            if (!mine) Begin3D(at);
+            Play(boom, 1f);
+            PlayReal("Fracas", mine ? 0.9f : 0.7f);
+            End3D();
+        }
+
+        /// <summary>UN MOMENT A CLIPPER : le coup de cymbale d'orchestre (Kenney, un "hit" qui monte).</summary>
+        public static void Moment() { if (!PlayReal("Moment", 0.85f)) Discovery(); }
+
+        /// <summary>
+        /// Une note grave qui glisse de "from" a "to" Hz en "seconds", avec un claquement de bruit
+        /// au debut ("noise" : sa part) : la base des coups sourds.
+        /// </summary>
+        static AudioClip Sweep(string name, float from, float to, float seconds, float noise)
+        {
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(31);
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float k = t / seconds;
+                float f = Mathf.Lerp(from, to, 1f - Mathf.Exp(-5f * k));
+                phase += 2f * Mathf.PI * f / Rate;
+                float body = Mathf.Sin(phase) * Mathf.Exp(-3.2f * k) * Mathf.Min(1f, t * 400f);
+                float crack = ((float)r.NextDouble() * 2f - 1f) * Mathf.Exp(-60f * t) * noise;
+                data[i] = body + crack;
+            }
+            Normalize(data, 0.95f);
+            return FromSamples(name, data);
+        }
+
         /// <summary>
         /// UNE CARTE CHOISIE, UN DON PRIS (02/10 -- "quand tu choisis une carte, on dirait que
         /// c'est nul") : un petit jingle qui MONTE (Kenney PIZZI04 : +9 demi-tons). L'ancien

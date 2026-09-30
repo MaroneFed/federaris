@@ -1462,6 +1462,13 @@ namespace Fief
                 Icons.Number(new Rect(r.x + h * 1.4f, r.y, w - h * 3.4f, h), s.Name, Mathf.RoundToInt(h * 0.46f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleLeft);
                 Icons.Draw(new Rect(r.xMax - h * 1.8f, r.y + h * 0.12f, h * 0.76f, h * 0.76f), "couronne", new Color(1f, 0.86f, 0.35f, a));
                 Icons.Number(new Rect(r.xMax - h * 1.0f, r.y, h * 0.7f, h), s.Wins.ToString(), Mathf.RoundToInt(h * 0.56f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+                // (02/10, le clipper) Ses MOMENTS du match : la claquette et leur nombre.
+                int clips = Highlights.CountOf(s.Index);
+                if (clips > 0)
+                {
+                    Icons.Draw(new Rect(r.xMax - h * 3.3f, r.y + h * 0.16f, h * 0.68f, h * 0.68f), "clip", new Color(1f, 1f, 1f, a));
+                    Icons.Number(new Rect(r.xMax - h * 2.6f, r.y, h * 0.7f, h), clips.ToString(), Mathf.RoundToInt(h * 0.5f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+                }
                 y += h + UiStyle.S(10);
             }
             y += UiStyle.S(20);

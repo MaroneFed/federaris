@@ -103,6 +103,7 @@ namespace Fief
         public static void Begin(int bots, int rounds, int minutes)
         {
             Slots.Clear();
+            Highlights.Reset();
             int total = Mathf.Clamp(bots, 1, MaxPlayers - 1) + 1;
             for (int i = 0; i < total; i++)
             {

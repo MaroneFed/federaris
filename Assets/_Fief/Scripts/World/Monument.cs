@@ -35,6 +35,7 @@ namespace Fief
         Transform fill;                 // le disque d'or qui s'etend pendant le sacre
         float sacre;                    // secondes passees dans le cercle, Couronne en main
         Seeker sacreBy;
+        bool sacreReported;             // le "sacre arrache" n'est annonce qu'une fois
         float lastTick;
         readonly List<Transform> stones = new List<Transform>();
 
@@ -238,13 +239,20 @@ namespace Fief
                 && (!Match.IsTieBreak || Match.TieBreakers.Contains(holder.Index));
             if (inside)
             {
-                if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; Sfx.Alarm(); }
+                if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; sacreReported = false; Sfx.Alarm(); }
                 sacre += dt;
                 if (Mathf.Floor(sacre) > lastTick) { lastTick = Mathf.Floor(sacre); Sfx.SacreTick((int)lastTick, transform.position); Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, new Color(1f, 0.8f, 0.35f)); }
                 if (sacre >= SacreSeconds) TryDeliver(holder);
             }
             else
             {
+                // (02/10, le clipper) Un sacre aux deux tiers qui s'arrete parce que la Couronne
+                // a quitte son porteur : SACRE ARRACHE (une fois).
+                if (sacreBy != null && !sacreReported && Crown.Holder != sacreBy && sacre >= SacreSeconds * 0.66f)
+                {
+                    sacreReported = true;
+                    Highlights.SacreStopped(sacreBy, sacre / SacreSeconds, transform.position);
+                }
                 sacre = Mathf.MoveTowards(sacre, 0f, dt * 2f);
                 if (sacre <= 0f) { sacreBy = null; lastTick = 0f; }
             }
@@ -303,6 +311,7 @@ namespace Fief
             if (beam != null) { beam.targetAlpha = 1f; beam.fadeSpeed = 4f; }
             Sacring = null;
             SacreProgress = 0f;
+            Highlights.Crowned(s);
             if (Game.Menus != null) Game.Menus.EndRound(s.Index);
             return true;
         }

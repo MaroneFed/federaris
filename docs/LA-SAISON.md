@@ -424,7 +424,18 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
     grossit avec ton pseudo, les **trois Monuments** ont leur repère (le plus proche plus
     gros) ; à la prise, une fanfare ; à la perte, la Couronne barrée et un éclair rouge ;
   - **Réglages ▸ Aide écrite** (oui par défaut) : quelques mots sous les icônes aux moments
-    qui comptent.
+    qui comptent ;
+  - **LES MOMENTS À CLIPPER** (v20, 02/10 — Martin : « rajoute plein de trucs à clipper »,
+    `World/Highlights.cs`, `docs/CLIPPER-CHIANT.md`) : le jeu repère douze moments — **KO**
+    (poussé dans les nuages dans les 8 s : une colonne de lumière à sa couleur jaillit des
+    nuages, un boum de canon), double KO, volée en plein ciel (piqué d'aigle), sacre arraché
+    (aux deux tiers), au buzzer (15 dernières secondes), remontada, doublé, revanche, patate
+    chaude, porteur abattu, esquive, viré du sommet (au sommet, la poussée envoie **35 % plus
+    loin**). Pour qui le fait : son icône au centre, un éclair, la caméra qui encaisse, une
+    fanfare ; pour tous : une ligne marquée de la claquette dans le fil ; au classement de
+    fin de manche : la claquette et le nombre de moments du joueur. **Pas d'aura** : ni
+    ralenti ni « +1000 ». **La poussée fait un énorme BOUM** (son Kenney + grosse caisse
+    fabriquée + souffle, `Sfx.BigPush`). **Pas de point de reprise sur la tour** (Martin).
 - **Les menus** : gros boutons ronds avec icône, jaunes quand on les vise ; « FIEF » en
   lettres rondes (Titan One) ; l'intro de manche montre la règle en icônes ; **les
   Commandes en trois colonnes de pastilles** (touche → icône) ; salon, pause, fin de

@@ -467,6 +467,7 @@ namespace Fief
             float reach = Range * 1.2f;
             if (Physics.Raycast(from, dir, out wall, reach, ~0, QueryTriggerInteraction.Ignore)) reach = wall.distance + 0.5f;
             Vector3 end = from + dir * Mathf.Min(reach, Range * 1.2f);
+            bool targetHit = false;
             // BOUM : le jet touche en plein, ou l'explosion a son bout -- et on est projete
             // HORS de la rampe (vers le vide) : on redescend.
             for (int i = 0; i < Game.Seekers.Count; i++)
@@ -482,8 +483,12 @@ namespace Fief
                 // Sur la tour : vers le vide. Ailleurs : dans le sens du jet.
                 push = Tower.On(s.Body.position) && push.sqrMagnitude > 0.01f ? push.normalized : new Vector3(dir.x, 0f, dir.z).normalized;
                 bool graced = s.Graced;
+                bool carried = s.CarriesCrown;
                 Combat.Hit(s, push * 34f + Vector3.up * 11f, 0.6f, true, null);
                 if (graced) continue;       // protege : des etincelles, pas de coup (ni de secousse)
+                if (s == target) targetHit = true;
+                // (02/10, le clipper) Le porteur abattu par une gargouille : un moment.
+                if (carried) Highlights.Sniped(s);
                 s.EyeCalmUntil = Time.time + CalmAfterHit;
                 Fx.Impact(c, Blaze, 1.8f);
                 if (s.IsPlayer)
@@ -492,6 +497,8 @@ namespace Fief
                     if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.5f);
                 }
             }
+            // (02/10, le clipper) Le porteur est sorti de la cible verrouillee : ESQUIVE.
+            if (!targetHit && target != null && target.CarriesCrown && !target.Graced) Highlights.Dodged(target);
             // L'EXPLOSION la ou il frappe : une sphere, un anneau, une gerbe, un eclair.
             Fx.Shock(end, Alarm, BlastRadius + 0.6f, 0.35f);
             Fx.Shock(end, Blaze, 1.8f, 0.25f);

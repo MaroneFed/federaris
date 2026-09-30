@@ -89,7 +89,7 @@ piste · **?** à vérifier en jouant (Claude ne le voit pas).
 
 61. **✔ Manche 1 : sept obstacles par rampe** (2 pendules, 2 béliers, 2 balayeurs, 1 herse) plus deux gargouilles : pour un débutant, c'est déjà beaucoup. Piste : 5 à la première manche. → Cinq par rampe à la manche 1 (un pendule, un bélier), six à la 2, les mêmes nombres qu'avant ensuite.
 62. **→ Manche 8 : quatorze par rampe.** La difficulté monte pour **tout le monde**, y compris celui qui n'a jamais gagné.
-63. **→ Pas de point de reprise** : éjecté au 90e mètre, on repart du pied. C'est le cœur du jeu (Fall Guys), mais un **palier à mi-hauteur** (où l'on réapparaît au sol) rendrait moins cruel.
+63. **✘ Pas de point de reprise** : éjecté au 90e mètre, on repart du pied. **Refusé par Martin le 02/10** (« il n'y a pas de point de reprise, il n'y a rien du tout ») : la chute, c'est le clip (`docs/CLIPPER-CHIANT.md`).
 64. **→ On ne voit pas l'obstacle suivant** dans la courbe de la rampe : le fût cache tout ce qui est à plus de 20 m.
 65. **→ Les bandes ambre « danger »** sont peintes sous les pendules, pas sous les balayeurs.
 66. **✔ Les pendules « boulets à une liane »** : refaits en butoirs rouges à bras rigide (v16).

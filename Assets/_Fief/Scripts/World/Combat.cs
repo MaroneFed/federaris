@@ -18,6 +18,8 @@ namespace Fief
         /// <summary>(01/10 -- "quand ca pousse, que ca pousse bien" : 20 -> 26, et l'elan ne se freine plus en l'air.)</summary>
         public const float ShoveForce = 26f;
         public const float ShoveLift = 10f;
+        /// <summary>Vrai pendant le coup d'une poussee : Hit ne joue pas son petit son, la poussee a le sien.</summary>
+        static bool quietHit;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -48,10 +50,19 @@ namespace Fief
             // PROJETE : il part en cloche d'une quinzaine de metres (Seeker.Launch). Le voleur,
             // lui, garde sa victime pres de lui : elle ne vole qu'a moitie.
             if (!best.Graced) best.Launch(stole ? 0.6f : 1.4f);
+            // (02/10, le clipper) LE HOME RUN : pousse du SOMMET de la tour, on part 35 % plus
+            // loin -- 100 m de vide sous soi, le plus beau vol du jeu (Highlights : "vire du sommet").
+            if (!stole && Tower.Summit(best.Body.position)) force *= 1.35f;
+            quietHit = true;
             Hit(best, push * force * (stole ? 0.7f : 1f) + Vector3.up * ShoveLift, 0.3f, !stole, by);
+            quietHit = false;
             Fx.Impact(best.Body.position + Vector3.up * 1.1f, by.Colour, stole ? 1.4f : 1f);
             Fx.Shock(best.Body.position + Vector3.up * 1.1f, by.Colour, 2.6f, 0.25f);
+            // (02/10 -- "quand ca pousse, je veux un ENORME bruit") : trois couches, pleine
+            // puissance si c'est toi qui pousses ou toi qu'on pousse.
+            if (!best.Graced) Sfx.BigPush(best.Body.position, by.IsPlayer || best.IsPlayer);
             if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.07f); }
+            if (!best.Graced) Highlights.Shoved(by, best, stole);
             return true;
         }
 
@@ -123,10 +134,14 @@ namespace Fief
             Vector3 dir = Flat(target.Body.position - by.Body.position);
             dir = dir.sqrMagnitude > 0.01f ? dir.normalized : by.Body.forward;
             bool stole = target.CarriesCrown && !target.Graced && Crown.TrySteal(by, target);
+            quietHit = true;
             Hit(target, dir * 24f + Vector3.up * 6f, 0.3f, !stole, by);
+            quietHit = false;
             Fx.Impact(target.Body.position + Vector3.up * 1.1f, Wings.Gold, stole ? 1.8f : 1f);
             Fx.Shock(target.Body.position + Vector3.up * 1.1f, Wings.Gold, 3f, 0.3f);
+            Sfx.BigPush(target.Body.position, by.IsPlayer || target.IsPlayer);
             if (by.IsPlayer) Hud.HitStop(0.08f);
+            if (stole) Highlights.AirSteal(by, target);
         }
 
         /// <summary>
@@ -174,7 +189,8 @@ namespace Fief
             }
 
             // Un joueur qui frappe : un coup de poing ; un obstacle : un choc (le sien sonne deja).
-            if (by != null) Sfx.PunchAt(victim.Body.position);
+            if (quietHit) { }                   // la poussee joue son propre gros bruit (BigPush)
+            else if (by != null) Sfx.PunchAt(victim.Body.position);
             else Sfx.ThudAt(victim.Body.position);
             if (victim.IsPlayer)
             {
@@ -473,6 +489,8 @@ namespace Fief
             if (s == null || s.Body == null) return;
             // (02/10 -- Martin : "quand tu meurs, elle respawn a chaque fois au-dessus, c'est
             // horrible de tout remonter") : la Couronne RESTE ou il a quitte le sol.
+            // (02/10, le clipper) Pousse dans les nuages juste avant : c'est un KO.
+            Highlights.Fell(s);
             if (s.CarriesCrown) Crown.FellWith(s);
             s.LastHitBy = null;
             Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;

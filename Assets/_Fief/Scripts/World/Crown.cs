@@ -402,6 +402,7 @@ namespace Fief
             if (s.IsPlayer) { Sfx.Discovery(); if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Kick(8f); }
             Feed.CrownTaken(s, fromPedestal);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
+            Highlights.CrownChanged(s);
             return true;
         }
 
@@ -586,6 +587,7 @@ namespace Fief
             }
             if (victim.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
             Feed.CrownStolen(thief, victim);
+            Highlights.CrownChanged(thief);
             return true;
         }
 
