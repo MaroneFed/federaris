@@ -104,7 +104,7 @@ namespace Fief
             Feed.GiftTaken(s, gift);
             if (s.IsPlayer)
             {
-                Sfx.Discovery();
+                Sfx.CardPick();
                 if (Game.Hud != null) Game.Hud.ShowSplash(Icons.Of(gift), AbilityInfo.Tint(gift), "NOUVEAU POUVOIR : " + AbilityInfo.Name(gift).ToUpperInvariant());
                 Stats.Shrines++;
             }

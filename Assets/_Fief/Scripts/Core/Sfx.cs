@@ -16,7 +16,7 @@ namespace Fief
     ///
     /// LES VRAIS SONS (02/10 -- Martin a envoye les packs Kenney, licence CC0 : libres pour
     /// un jeu vendu) : ranges par role dans Assets/_Fief/Resources/Sons/ (Pop, Choc, Fracas,
-    /// Cloche, Poussee, Voix...). S'il y a des fichiers dans le dossier, on en joue un au
+    /// Cloche, Poussee, Couronne, Carte, Perdue, Voix...). S'il y a des fichiers dans le dossier, on en joue un au
     /// hasard ; sinon, le son fabrique prend le relais. Pour changer un son : remplace les
     /// fichiers du dossier (.ogg, .wav ou .mp3), le code ne bouge pas.
     /// </summary>
@@ -73,12 +73,22 @@ namespace Fief
                 Lines[line] = clip;
             }
             if (clip == null) return false;
-            source.PlayOneShot(clip, 0.9f);
+            source.PlayOneShot(clip, 0.7f);
             return true;
         }
 
         /// <summary>Un coup de poing : quelqu'un est pousse ou frappe (un vrai "pouf", Kenney).</summary>
-        public static void Punch() { if (!PlayReal("Poussee", 0.75f)) Thud(); }
+        public static void Punch() { if (!PlayReal("Poussee", 0.6f)) Thud(); }
+
+        /// <summary>
+        /// UNE CARTE CHOISIE, UN DON PRIS (02/10 -- "quand tu choisis une carte, on dirait que
+        /// c'est nul") : un petit jingle qui MONTE (Kenney PIZZI04 : +9 demi-tons). L'ancien
+        /// (PIZZI07) descendait -- l'oreille entend "rate".
+        /// </summary>
+        public static void CardPick() { if (!PlayReal("Carte", 0.7f)) Pop(); }
+
+        /// <summary>Tu viens de perdre la Couronne : un jingle qui DESCEND (PIZZI05).</summary>
+        public static void Lost() { if (!PlayReal("Perdue", 0.7f)) Deny(); }
 
         /// <summary>La visee passe sur un bouton de menu.</summary>
         public static void Hover() { PlayReal("Survol", 0.35f); }
@@ -563,7 +573,7 @@ namespace Fief
         /// <summary>Un coup qui porte : un choc sourd (48 Hz qui tombe) et un craquement bref.</summary>
         public static void Thud()
         {
-            if (PlayReal("Choc", 0.8f)) return;
+            if (PlayReal("Choc", 0.55f)) return;
             if (thud == null)
             {
                 const float duration = 0.35f;

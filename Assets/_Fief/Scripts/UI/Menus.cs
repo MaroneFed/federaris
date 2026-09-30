@@ -581,7 +581,7 @@ namespace Fief
             if (Match.Draft.TryPick(me, card))
             {
                 CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
-                Sfx.Discovery();
+                Sfx.CardPick();
                 botPickTimer = 0.9f;
                 selected = 0;
             }
@@ -683,29 +683,41 @@ namespace Fief
             if (Current == State.Title || Current == State.Lobby || Current == State.Online) GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
             if (veil > 0.001f) UiStyle.Fill(screen, new Color(0.015f, 0.014f, 0.012f, 0.84f * veil));
 
-            if (showSettings) DrawSettings();
-            else if (showControls) DrawControls();
-            else
+            // (02/10) Un ecran qui plante ne laisse plus la couleur ou le zoom de travers (sinon
+            // "tout se barre") : on remet tout d'aplomb, et l'erreur va une fois dans la Console.
+            try
             {
-                switch (Current)
+                if (showSettings) DrawSettings();
+                else if (showControls) DrawControls();
+                else
                 {
-                    case State.Title: DrawTitle(); break;
-                    case State.Lobby: DrawLobby(); break;
-                    case State.Online: DrawOnline(); break;
-                    case State.Briefing: DrawBriefing(); break;
-                    case State.Paused: DrawPause(); break;
-                    case State.RoundOver: DrawRoundOver(); break;
-                    case State.Draft: DrawDraft(); break;
-                    case State.Ended: DrawEnd(); break;
-                    case State.Playing: DrawCountdown(); break;
+                    switch (Current)
+                    {
+                        case State.Title: DrawTitle(); break;
+                        case State.Lobby: DrawLobby(); break;
+                        case State.Online: DrawOnline(); break;
+                        case State.Briefing: DrawBriefing(); break;
+                        case State.Paused: DrawPause(); break;
+                        case State.RoundOver: DrawRoundOver(); break;
+                        case State.Draft: DrawDraft(); break;
+                        case State.Ended: DrawEnd(); break;
+                        case State.Playing: DrawCountdown(); break;
+                    }
                 }
             }
+            catch (System.Exception e)
+            {
+                if (!menuFailed) { menuFailed = true; Debug.LogError("[FIEF] Menus : l'ecran " + Current + " a plante -- " + e); }
+            }
+            GUI.color = Color.white;
+            GUI.matrix = Matrix4x4.identity;
 
             // Le rideau passe par-dessus tout, y compris le texte.
             if (curtain > 0.001f) UiStyle.Fill(screen, new Color(0f, 0f, 0f, curtain));
         }
 
         bool hoverFollows;
+        bool menuFailed;
 
         // ------------------------------------------------------------------ outils de dessin
 

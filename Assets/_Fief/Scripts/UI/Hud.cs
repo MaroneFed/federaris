@@ -228,22 +228,53 @@ namespace Fief
             UiStyle.Ensure();
             if (Hidden) return;
 
-            DrawVeils();
-            DrawCarrying();
-            DrawNames();
-            DrawCrownMarker();
-            DrawTop();
-            DrawStandings();
-            DrawAbilities();
-            DrawCentre();
-            DrawPrompt();
-            DrawCard();
-            DrawTip();
-            DrawKeys();
-            Toasts.Draw();
-            DrawBuildError();
-            if (showDiagnostic) DrawDiagnostic();
-            if (FiefInput.ScoresHeld) DrawScores();
+            // (02/10 -- "des fois on ne voit plus les touches, des fois tout se barre, on ne
+            // voit plus rien") : chaque morceau du HUD est dessine A PART. Avant, si un seul
+            // plantait (un joueur qui disparait entre deux images...), tout ce qui venait
+            // apres disparaissait -- et s'il plantait en pleine transparence, il laissait
+            // GUI.color a zero : plus rien ne se voyait. Maintenant, un morceau qui plante
+            // ne cache que lui, et la couleur est remise a chaque fois (l'erreur va une seule
+            // fois dans la Console, pour qu'on la corrige).
+            Part(0); Part(1); Part(2); Part(3); Part(4); Part(5); Part(6); Part(7);
+            Part(8); Part(9); Part(10); Part(11); Part(12); Part(13);
+            if (showDiagnostic) Part(14);
+            if (FiefInput.ScoresHeld) Part(15);
+        }
+
+        static readonly string[] PartNames = { "voiles", "porteur", "pseudos", "repere de la Couronne", "haut", "scores", "capacites", "centre",
+                                               "invite", "carte", "astuce", "touches", "fil", "erreur", "diagnostic", "tableau des scores" };
+        readonly bool[] partFailed = new bool[16];
+
+        void Part(int k)
+        {
+            try
+            {
+                switch (k)
+                {
+                    case 0: DrawVeils(); break;
+                    case 1: DrawCarrying(); break;
+                    case 2: DrawNames(); break;
+                    case 3: DrawCrownMarker(); break;
+                    case 4: DrawTop(); break;
+                    case 5: DrawStandings(); break;
+                    case 6: DrawAbilities(); break;
+                    case 7: DrawCentre(); break;
+                    case 8: DrawPrompt(); break;
+                    case 9: DrawCard(); break;
+                    case 10: DrawTip(); break;
+                    case 11: DrawKeys(); break;
+                    case 12: Toasts.Draw(); break;
+                    case 13: DrawBuildError(); break;
+                    case 14: DrawDiagnostic(); break;
+                    case 15: DrawScores(); break;
+                }
+            }
+            catch (System.Exception e)
+            {
+                if (!partFailed[k]) { partFailed[k] = true; Debug.LogError("[FIEF] HUD : « " + PartNames[k] + " » a plante (le reste du HUD continue) -- " + e); }
+            }
+            GUI.color = Color.white;
+            GUI.matrix = Matrix4x4.identity;
         }
 
         // ================================================================== le haut
@@ -833,7 +864,7 @@ namespace Fief
             ShowSplash("couronne", new Color(0.85f, 0.25f, 0.22f), "TU AS PERDU LA COURONNE");
             splashCross = true;
             Flash(new Color(0.9f, 0.15f, 0.1f, 0.55f));
-            Sfx.Deny();
+            Sfx.Lost();
         }
         bool splashCross;
         string splashWords;
