@@ -120,6 +120,9 @@ namespace Fief
             float top = MaxSpeed * (gold ? 1.12f : heavy ? 0.8f : 1f);
             float sink = heavy ? HeavySink : Sink * (gold ? 0.75f : 1f);
 
+            // (03/10) Un anneau de vent traverse : la vitesse remonte d'un coup (voir WindRing).
+            if (s != null) WindRing.Through(s, ref airspeed);
+
             if (look.sqrMagnitude < 0.001f) look = Vector3.forward;
             look.Normalize();
             // On ne vole pas a la verticale : on garde toujours un peu d'avancee.
@@ -147,6 +150,8 @@ namespace Fief
             v += right * side * 6f;
             // Les courants d'air font remonter.
             if (s != null && s.Body != null) v.y += Thermal.LiftAt(s.Body.position);
+            // ... et le souffle d'un anneau de vent, un peu plus d'une seconde.
+            v.y += WindRing.LiftOf(s);
             return v;
         }
 

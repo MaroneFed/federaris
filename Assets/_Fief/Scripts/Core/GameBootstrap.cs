@@ -173,6 +173,7 @@ namespace Fief
             Eye.PlaceAll(folk.transform);
             Ballista.PlaceAll(folk.transform);
             Thermal.PlaceAll(folk.transform);
+            WindRing.PlaceAll(folk.transform);
         }
 
         /// <summary>

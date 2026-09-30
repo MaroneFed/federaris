@@ -46,6 +46,7 @@ namespace Fief
         Mood playing = Mood.End;
         float volume = 0.6f;
         readonly Dictionary<AudioClip, float> resume = new Dictionary<AudioClip, float>();
+        float danceWait;
         readonly Dictionary<Mood, AudioClip> lastOf = new Dictionary<Mood, AudioClip>();
         float calmTimer;
         System.Random rng = new System.Random(5);
@@ -155,7 +156,13 @@ namespace Fief
             mood = Decide();
             float dt = Time.unscaledDeltaTime;
 
-            if (mood != playing || !live.isPlaying && live.volume > 0.01f || live.clip != null && !live.loop && live.time > live.clip.length - 2f)
+            // La danse attend son blanc (voir plus bas) avant de partir.
+            if (danceWait > 0f)
+            {
+                danceWait -= dt;
+                if (danceWait <= 0f && playing == Mood.Dance && live.clip != null) live.Play();
+            }
+            if (mood != playing || danceWait <= 0f && !live.isPlaying && live.volume > 0.01f || live.clip != null && !live.loop && live.time > live.clip.length - 2f)
             {
                 // Changer d'humeur : le morceau en cours s'efface, le nouveau monte.
                 playing = mood;
@@ -183,7 +190,10 @@ namespace Fief
                 next.time = at;
                 // La danse part d'un coup, sur le temps : pas de lent fondu.
                 next.volume = mood == Mood.Dance ? volume : 0f;
-                next.Play();
+                // (03/10 -- "la musique, elle continue") La musique de la manche se TAIT d'un coup
+                // (un quart de seconde), un blanc, la cloche et la voix -- puis la danse part.
+                if (mood == Mood.Dance) danceWait = 0.55f;
+                else { danceWait = 0f; next.Play(); }
                 live = next;
                 danceLoops = 0;
                 danceLast = 0f;
@@ -199,7 +209,7 @@ namespace Fief
             float fade = mood == Mood.Dance ? 3f : 0.25f;
             live.volume = Mathf.MoveTowards(live.volume, wanted, dt * fade);
             AudioSource other = live == a ? b : a;
-            other.volume = Mathf.MoveTowards(other.volume, 0f, dt * fade);
+            other.volume = Mathf.MoveTowards(other.volume, 0f, dt * (mood == Mood.Dance ? 5f : fade));
             if (other.volume <= 0f && other.isPlaying) other.Stop();
         }
 

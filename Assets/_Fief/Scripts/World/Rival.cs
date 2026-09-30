@@ -1075,7 +1075,15 @@ namespace Fief
                     // tomber dans les nuages s'il y a un courant a portee.)
                     Vector3 here = transform.position;
                     bool overLand = Ground.OnIsland(here.x, here.z) && here.y > -5f;
-                    if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard || !overLand) && !Wings.CanReach(here, aimAt, seeker))
+                    // (03/10) Les ANNEAUX DE VENT : le porteur (ou qui file vers un ilot) enfile
+                    // la chaine qui mene a son but -- il vise le prochain anneau.
+                    WindRing ring = goal == Goal.Deliver || !overLand ? WindRing.NextToward(here, aimAt) : null;
+                    if (ring != null && !Wings.CanReach(here, aimAt, seeker))
+                    {
+                        Vector3 toRing = ring.Centre - (here + Vector3.up);
+                        look = toRing.normalized;
+                    }
+                    else if ((goal == Goal.Deliver || goal == Goal.Hunt || goal == Goal.Guard || !overLand) && !Wings.CanReach(here, aimAt, seeker))
                     {
                         Thermal t = Thermal.Nearest(transform.position);
                         if (t != null)

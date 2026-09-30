@@ -151,6 +151,13 @@ namespace Fief
         public float LaunchAt = -99f;
         public bool Launched { get { return Time.time < LaunchUntil; } }
         public void Launch(float seconds) { LaunchAt = Time.time; LaunchUntil = Mathf.Max(LaunchUntil, Time.time + seconds); }
+        /// <summary>
+        /// L'ANNEAU DE VENT (03/10) : traverse en planant, il te propulse -- vers l'avant et vers
+        /// le haut, pendant un peu plus d'une seconde (voir WindRing).
+        /// </summary>
+        public float BoostUntil = -1f;
+        public WindRing LastRing;
+        public float LastRingAt = -99f;
         /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
         public bool CanGlide { get { return !Stunned && !Tumbling; } }
         public bool Graced { get { return Time.time < GraceUntil; } }

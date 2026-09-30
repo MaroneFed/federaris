@@ -546,7 +546,7 @@ namespace Fief
         void Update()
         {
             age += Time.unscaledDeltaTime;
-            bool on = who != null && who.Body != null && Game.Menus != null && Game.Menus.Dancing;
+            bool on = who != null && who.Body != null && Game.Menus != null && Game.Menus.Celebrating;
             if (!on)
             {
                 if (spot != null) spot.intensity = Mathf.MoveTowards(spot.intensity, 0f, Time.unscaledDeltaTime * 8f);

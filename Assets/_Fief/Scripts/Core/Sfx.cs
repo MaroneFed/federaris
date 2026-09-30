@@ -82,7 +82,7 @@ namespace Fief
         /// <summary>Un coup de poing : quelqu'un est pousse ou frappe (un vrai "pouf", Kenney).</summary>
         public static void Punch() { if (!PlayReal("Poussee", 0.6f)) Thud(); }
 
-        static AudioClip boom, subThump;
+        static AudioClip boom, subThump, whoop;
 
         /// <summary>
         /// LA POUSSEE QUI CLAQUE (02/10 -- Martin : "quand ca pousse, je veux que ca fasse un
@@ -113,6 +113,20 @@ namespace Fief
             if (!mine) Begin3D(at);
             Play(boom, 1f);
             PlayReal("Fracas", mine ? 0.9f : 0.7f);
+            End3D();
+        }
+
+        /// <summary>
+        /// UN ANNEAU DE VENT (03/10) : un souffle, et un "whoup" qui MONTE -- on sent qu'on est
+        /// propulse. Le tien en plein, ceux des autres la ou ils passent.
+        /// </summary>
+        public static void Boost(Vector3 at, bool mine)
+        {
+            if (Muted || source == null) return;
+            if (whoop == null) whoop = Sweep("anneau de vent", 260f, 780f, 0.45f, 0.15f);
+            if (!mine) Begin3D(at);
+            Play(whoop, mine ? 0.55f : 0.45f);
+            Whoosh();
             End3D();
         }
 

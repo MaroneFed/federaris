@@ -161,9 +161,13 @@ namespace Fief
                            // (02/10 -- "il n'y a meme plus l'animation quand on gagne") : plus de voile
                            // noir sur la fin de manche -- il recouvrait la danse du vainqueur a 86 % des
                            // 1,3 s. Les deux bandeaux de DrawRoundOver suffisent a lire les mots.
-                           : Current == State.RoundOver ? (roundWinner >= 0 ? 0f : 0.5f)
-                           : Current == State.Draft || Current == State.Ended ? 0.86f : 0f;
-            veil = Mathf.MoveTowards(veil, wantVeil, dt * 3f);
+                           : Current == State.RoundOver ? (roundWinner >= 0 ? 0f : 0.35f)
+                           // (03/10) Le podium du match ne se joue plus dans le noir : un voile
+                           // leger, on voit le champion danser derriere le classement.
+                           : Current == State.Ended ? (roundWinner >= 0 ? 0.3f : 0.6f)
+                           : Current == State.Draft ? 0.86f : 0f;
+            // On entre dans le voile doucement (le choix des cartes ne tombe plus comme un rideau).
+            veil = Mathf.MoveTowards(veil, wantVeil, dt * (wantVeil > veil ? 1.4f : 3f));
         }
 
         void DriveCamera()
@@ -238,7 +242,13 @@ namespace Fief
         /// Vrai pendant que le vainqueur de la manche DANSE (fin de manche, puis le choix des
         /// capacites) : la musique passe a la danse (MusicDirector), il danse dessus.
         /// </summary>
-        public bool Dancing { get { return (Current == State.RoundOver || Current == State.Draft) && roundWinner >= 0 && WinnerBody() != null; } }
+        /// (03/10 -- "la musique, elle continue, c'est vraiment bizarre") : la danse, c'est la fin
+        /// de manche SEULEMENT. Au choix des cartes, la musique du menu revient ; au podium du
+        /// match, sa musique de fin -- et le champion, lui, danse encore (Celebrating).
+        public bool Dancing { get { return Current == State.RoundOver && roundWinner >= 0 && WinnerBody() != null; } }
+
+        /// <summary>Vrai tant qu'on filme le vainqueur : fin de manche, et podium du match.</summary>
+        public bool Celebrating { get { return (Current == State.RoundOver || Current == State.Ended) && roundWinner >= 0 && WinnerBody() != null; } }
 
         /// <summary>
         /// LA FETE DU VAINQUEUR (01/10 -- Martin : "quand je gagne une manche, un effet, avec
@@ -1225,9 +1235,9 @@ namespace Fief
             float a = Mathf.Clamp01((stateTime - 0.8f) / 0.6f);
             float y = Screen.height * 0.07f;
             PlayerSlot w = roundWinner >= 0 && roundWinner < Match.Slots.Count ? Match.Slots[roundWinner] : null;
-            // Un voile en haut et en bas seulement, pour lire les mots.
-            UiStyle.FadeBand(new Rect(0f, 0f, Screen.width, Screen.height * 0.3f), new Color(0f, 0f, 0f, 0.55f * a));
-            UiStyle.FadeBand(new Rect(0f, Screen.height * 0.66f, Screen.width, Screen.height * 0.34f), new Color(0f, 0f, 0f, 0.6f * a));
+            // (03/10 -- Martin : "quand on gagne, c'est tronque, t'as deux trucs noirs qui
+            // arrivent") : plus AUCUN voile, ni en haut ni en bas. Les mots sont cernes (ils se
+            // lisent sur le ciel), le score est dans ses pastilles. L'ecran entier est a la fete.
             float cx = Screen.width * 0.5f;
             if (w != null)
             {
