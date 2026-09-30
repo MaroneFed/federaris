@@ -158,6 +158,8 @@ namespace Fief
         public float BoostUntil = -1f;
         public WindRing LastRing;
         public float LastRingAt = -99f;
+        /// <summary>Combien d'anneaux de la meme chaine il vient d'enfiler d'affilee (4 : l'enfilade).</summary>
+        public int RingChain;
         /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
         public bool CanGlide { get { return !Stunned && !Tumbling; } }
         public bool Graced { get { return Time.time < GraceUntil; } }

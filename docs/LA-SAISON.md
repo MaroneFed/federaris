@@ -133,8 +133,16 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 - **Les courants d'air** : une colonne de vent entre l'île et chaque îlot (filets qui
   montent, anneaux pâles). En planant dedans, **on remonte** (poussée 15 m/s) — jusqu'à
   80 m, jamais jusqu'au sommet de la tour. Le porteur doit **tourner dedans**.
+- **Les anneaux de vent** (03/10, v22 — Martin : « de la tour jusqu'à un îlot, je comprends
+  pas bien ; des boosts en l'air, comme dans Minecraft », `World/WindRing.cs`) : du sommet
+  vers **chaque îlot**, une chaîne de **quatre grands anneaux** qui luisent, posés sur la
+  trajectoire du porteur. On passe dedans en planant : la vitesse remonte d'un coup (20 m/s
+  pour le porteur, 28 pour les autres) et le vent **soulève 1,3 s** (26 m/s au début), avec
+  un « whoup » qui monte. Les quatre d'affilée : **l'enfilade**, un gros éclat d'or.
 - Le **porteur** : 11 m/s, chute de 8 m/s, jamais d'ailes d'or, la vitesse d'un piqué
-  se perd vite. Il remonte dans un courant, pas ailleurs.
+  se perd vite. Il remonte dans un courant — ou **enfile les anneaux** : les quatre, et il
+  atteint l'îlot (simulé : 8 à 9 s) ; un de raté, et il tombe court. Les bots porteurs
+  suivent la chaîne.
 - **Touché en vol** (étourdi) : les ailes se ferment, on tombe, elles se rouvrent.
 - Ce qu'on sent : la caméra **penche** dans les virages, le champ de vision s'ouvre
   avec la vitesse, le vent souffle, des filets d'air filent autour ; l'écran dit

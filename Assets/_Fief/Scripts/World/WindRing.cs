@@ -68,6 +68,9 @@ namespace Fief
                 if (Mathf.Abs(along) > Depth) continue;
                 if ((d - r.axis * along).magnitude > Radius) continue;
                 if (s.LastRing == r && now - s.LastRingAt < 2f) continue;
+                // L'ENFILADE : les anneaux d'une meme chaine, dans l'ordre, sans se poser.
+                bool follows = s.LastRing != null && s.LastRing.Route == r.Route && s.LastRing.Order == r.Order - 1 && now - s.LastRingAt < 12f;
+                s.RingChain = follows ? s.RingChain + 1 : 1;
                 s.LastRing = r;
                 s.LastRingAt = now;
                 s.BoostUntil = now + BoostSeconds;
@@ -96,6 +99,15 @@ namespace Fief
             Fx.Burst(Centre, c, 40, 14f, 0.22f, 0.6f, 0f, axis, 25f);
             Sfx.Boost(Centre, s.IsPlayer);
             if (s.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Kick(5f);
+            // Les quatre d'affilee : un gros eclat d'or, et la fanfare si c'est toi -- le clip.
+            if (s.RingChain >= PerRoute)
+            {
+                Fx.Ring(Centre, Wings.Gold, Radius, Radius * 3.2f, 0.7f, 0.7f, axis);
+                Fx.Burst(Centre, Wings.Gold, 90, 18f, 0.3f, 1f, 0f, Vector3.zero, 0f);
+                Fx.Flash(Centre, Wings.Gold, 25f, 4f, 0.4f);
+                if (s.IsPlayer) Sfx.Moment();
+                s.RingChain = 0;
+            }
         }
 
         // ================================================================== les bots
