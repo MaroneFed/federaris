@@ -96,6 +96,32 @@ TextScriptImporter:
 """
 
 
+AUDIO = """fileFormatVersion: 2
+guid: {guid}
+AudioImporter:
+  externalObjects: {{}}
+  serializedVersion: 8
+  defaultSettings:
+    serializedVersion: 2
+    loadType: 0
+    sampleRateSetting: 0
+    sampleRateOverride: 44100
+    compressionFormat: 1
+    quality: 1
+    conversionMode: 0
+    preloadAudioData: 0
+  platformSettingOverrides: {{}}
+  forceToMono: 0
+  normalize: 1
+  loadInBackground: 0
+  ambisonic: 0
+  3D: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+"""
+
+
 def guid_for(path):
     return hashlib.md5(("fief:" + path.replace(os.sep, "/")).encode("utf-8")).hexdigest()
 
@@ -141,6 +167,10 @@ def main():
                 template = SHADER
             elif name.lower().endswith((".txt", ".json", ".md")):
                 template = TEXT
+            elif name.lower().endswith((".ogg", ".wav", ".mp3")):
+                # (02/10) Un son : l'importeur audio d'Unity (sinon, "DefaultImporter", Unity
+                # n'en ferait pas un AudioClip et Resources.LoadAll ne le trouverait pas).
+                template = AUDIO
             else:
                 template = OTHER
             with open(meta, "w", newline="\n") as out:

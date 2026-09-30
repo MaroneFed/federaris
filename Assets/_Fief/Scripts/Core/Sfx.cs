@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
@@ -12,6 +13,12 @@ namespace Fief
     /// Pourquoi : "une recolte sans tchok ne satisfait pas". Le retour sonore est
     /// ce qui change le plus la sensation, et ca ne coute ni asset ni licence.
     /// On remplacera par de vrais sons plus tard, l'appel ne changera pas.
+    ///
+    /// LES VRAIS SONS (02/10 -- Martin a envoye les packs Kenney, licence CC0 : libres pour
+    /// un jeu vendu) : ranges par role dans Assets/_Fief/Resources/Sons/ (Pop, Choc, Fracas,
+    /// Cloche, Poussee, Voix...). S'il y a des fichiers dans le dossier, on en joue un au
+    /// hasard ; sinon, le son fabrique prend le relais. Pour changer un son : remplace les
+    /// fichiers du dossier (.ogg, .wav ou .mp3), le code ne bouge pas.
     /// </summary>
     public static class Sfx
     {
@@ -31,6 +38,50 @@ namespace Fief
         static AudioClip[] clatter;   // des branches seches qui s'entrechoquent
 
         public static bool Muted;
+
+        static readonly Dictionary<string, AudioClip[]> Real = new Dictionary<string, AudioClip[]>();
+        static readonly Dictionary<string, AudioClip> Lines = new Dictionary<string, AudioClip>();
+
+        /// <summary>Un vrai son du dossier Resources/Sons/"folder", au hasard. Faux s'il n'y en a pas (on fabrique alors le sien).</summary>
+        static bool PlayReal(string folder, float volume)
+        {
+            if (Muted) return true;
+            if (source == null) return false;
+            AudioClip[] clips;
+            if (!Real.TryGetValue(folder, out clips))
+            {
+                clips = Resources.LoadAll<AudioClip>("Sons/" + folder);
+                Real[folder] = clips;
+            }
+            if (clips == null || clips.Length == 0) return false;
+            source.PlayOneShot(clips[rng.Next(clips.Length)], volume);
+            return true;
+        }
+
+        /// <summary>
+        /// LA VOIX DE L'ARENE (Kenney, "voiceover pack fighter") : "3", "2", "1", "fight",
+        /// "round_2", "final_round", "you_win", "winner"... (le nom du fichier dans
+        /// Resources/Sons/Voix). Faux s'il n'existe pas.
+        /// </summary>
+        public static bool Announce(string line)
+        {
+            if (Muted || source == null) return false;
+            AudioClip clip;
+            if (!Lines.TryGetValue(line, out clip))
+            {
+                clip = Resources.Load<AudioClip>("Sons/Voix/" + line);
+                Lines[line] = clip;
+            }
+            if (clip == null) return false;
+            source.PlayOneShot(clip, 0.9f);
+            return true;
+        }
+
+        /// <summary>Un coup de poing : quelqu'un est pousse ou frappe (un vrai "pouf", Kenney).</summary>
+        public static void Punch() { if (!PlayReal("Poussee", 0.75f)) Thud(); }
+
+        /// <summary>La visee passe sur un bouton de menu.</summary>
+        public static void Hover() { PlayReal("Survol", 0.35f); }
 
         public static void Init(GameObject host)
         {
@@ -72,13 +123,13 @@ namespace Fief
         // ------------------------------------------------------------- lecture
 
         /// <summary>Des branches froissees : on grimpe, on se faufile.</summary>
-        public static void Rustle() { Play(Pick(rustle), 0.55f); }
+        public static void Rustle() { if (!PlayReal("Tissu", 0.6f)) Play(Pick(rustle), 0.55f); }
         /// <summary>Le fer contre le fer : une lame qui touche une armure.</summary>
-        public static void Clang() { Play(Pick(clang), 0.45f); }
+        public static void Clang() { if (!PlayReal("Metal", 0.5f)) Play(Pick(clang), 0.45f); }
         /// <summary>Une pierre qu'on frappe.</summary>
-        public static void Chip() { Play(Pick(pick), 0.4f); }
+        public static void Chip() { if (!PlayReal("Pierre", 0.5f)) Play(Pick(pick), 0.4f); }
         /// <summary>Un tronc qui s'abat.</summary>
-        public static void Crash() { Play(Pick(clatter), 0.9f); Play(Pick(pick), 0.65f); }
+        public static void Crash() { if (PlayReal("Fracas", 0.8f)) return; Play(Pick(clatter), 0.9f); Play(Pick(pick), 0.65f); }
 
         static AudioClip beep;
         static AudioSource beeper;
@@ -113,10 +164,10 @@ namespace Fief
             beeper.PlayOneShot(beep, 0.5f);
         }
 
-        public static void Build() { Play(hammer, 0.85f); }
-        public static void Deny() { Play(deny, 0.45f); }
-        public static void Pop() { Play(pop, 0.5f); }
-        public static void Step() { Play(Pick(step), 0.22f); }
+        public static void Build() { if (!PlayReal("Treuil", 0.8f)) Play(hammer, 0.85f); }
+        public static void Deny() { if (!PlayReal("Refus", 0.5f)) Play(deny, 0.45f); }
+        public static void Pop() { if (!PlayReal("Pop", 0.55f)) Play(pop, 0.5f); }
+        public static void Step() { if (!PlayReal("Pas", 0.3f)) Play(Pick(step), 0.22f); }
 
         // ================================================================== outils et grands sons
         //
@@ -141,6 +192,7 @@ namespace Fief
         /// </summary>
         public static void Discovery()
         {
+            if (PlayReal("Couronne", 0.8f)) return;
             if (discovery == null)
             {
                 const float duration = 2.2f;
@@ -174,6 +226,7 @@ namespace Fief
         /// </summary>
         public static void Bell()
         {
+            if (PlayReal("Cloche", 0.6f)) return;
             if (bell == null) BuildBell();
             Play(bell, 1f);
         }
@@ -422,6 +475,7 @@ namespace Fief
         /// <summary>Un pas dans les feuilles mortes : un froissement tres bref.</summary>
         public static void LeafStep()
         {
+            if (PlayReal("PasHerbe", 0.3f)) return;
             if (leaf == null)
             {
                 const float duration = 0.18f;
@@ -509,6 +563,7 @@ namespace Fief
         /// <summary>Un coup qui porte : un choc sourd (48 Hz qui tombe) et un craquement bref.</summary>
         public static void Thud()
         {
+            if (PlayReal("Choc", 0.8f)) return;
             if (thud == null)
             {
                 const float duration = 0.35f;
@@ -532,6 +587,7 @@ namespace Fief
 
         public static void TrapSnap()
         {
+            if (PlayReal("Piege", 0.7f)) return;
             if (trapSnap == null) BuildTrapSnap();
             Play(trapSnap, 1f);
         }

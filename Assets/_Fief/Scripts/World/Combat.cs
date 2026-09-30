@@ -173,7 +173,7 @@ namespace Fief
                 }
             }
 
-            Sfx.Thud();
+            Sfx.Punch();
             if (victim.IsPlayer)
             {
                 if (Game.Hud != null) Game.Hud.Hurt(velocity);

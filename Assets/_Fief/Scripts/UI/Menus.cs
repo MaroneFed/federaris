@@ -81,6 +81,12 @@ namespace Fief
 
         void Go(State s)
         {
+            // La voix de l'arene (Kenney) : "round 2", "final round", "tie breaker" a l'annonce
+            // d'une manche ; "winner" ou "game over" au podium.
+            if (s == State.Briefing && Current != State.Briefing)
+                Sfx.Announce(Match.IsTieBreak ? "tie_breaker" : Match.RoundNumber >= Match.Rounds && Match.Rounds > 1 ? "final_round" : "round_" + Match.RoundNumber);
+            if (s == State.Ended && Current != State.Ended)
+                Sfx.Announce(Match.Champion != null && Match.Local != null && Match.Champion == Match.Local ? "winner" : "game_over");
             Current = s;
             stateTime = 0f;
             showControls = false;
@@ -475,7 +481,7 @@ namespace Fief
             if (countdown <= 0f) return;
             countdown -= dt;
             int n = Mathf.CeilToInt(countdown);
-            if (n != lastCount && n > 0) { lastCount = n; Sfx.Beep(1f); }
+            if (n != lastCount && n > 0) { lastCount = n; if (!Sfx.Announce(n.ToString())) Sfx.Beep(1f); }
             if (countdown > 0f) return;
             countdown = 0f;
             goFlash = 1f;
@@ -483,7 +489,7 @@ namespace Fief
             // Trois secondes de protection au depart : on quitte sa zone sans se faire
             // pousser ni tirer dessus avant d'avoir fait un pas.
             for (int i = 0; i < Game.Seekers.Count; i++) Game.Seekers[i].GraceUntil = Time.time + 3f;
-            Sfx.Bell();
+            if (!Sfx.Announce("fight")) Sfx.Bell();
         }
 
         void DrawCountdown()
@@ -523,6 +529,8 @@ namespace Fief
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
             for (int i = 0; i < Game.Seekers.Count; i++)
                 if (Game.Seekers[i].Index == winner) Celebrate(Game.Seekers[i]);
+            // La voix de l'arene : "you win", "you lose" -- ou "time" quand personne n'a gagne.
+            Sfx.Announce(winner < 0 ? "time" : Match.Local != null && winner == Match.Local.Index ? "you_win" : "you_lose");
             Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();
@@ -708,7 +716,7 @@ namespace Fief
         bool Entry(Rect r, string text, int index, bool primary, float alpha)
         {
             bool hover = r.Contains(Event.current.mousePosition);
-            if (hover && hoverFollows) selected = index;
+            if (hover && hoverFollows && selected != index) { selected = index; Sfx.Hover(); }
             bool on = selected == index;
             // (30/09 -- "plus pro, comme Fall Guys") UN GROS BOUTON ROND : bleu, jaune quand
             // on le vise (il se souleve), une icone a gauche, le mot cerne de sombre.
