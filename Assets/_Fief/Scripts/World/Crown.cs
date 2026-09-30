@@ -451,7 +451,7 @@ namespace Fief
             // apres elle la decalerait d'autant), puis la couronne elle-meme.
             transform.position = new Vector3(at.x, y - 1.05f, at.z);
             visual.position = new Vector3(at.x, groundY, at.z);
-            Sfx.Thud();
+            Sfx.ThudAt(visual.position);
             Ambiance.Burst(null, visual.position, Gold);
             // (02/10 -- "on ne voit pas tres bien quand on perd la Couronne") : une gerbe d'or
             // qui monte haut et un anneau au sol, la ou elle tombe ; le repere a l'ecran de

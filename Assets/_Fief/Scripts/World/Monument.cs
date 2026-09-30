@@ -240,7 +240,7 @@ namespace Fief
             {
                 if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; Sfx.Alarm(); }
                 sacre += dt;
-                if (Mathf.Floor(sacre) > lastTick) { lastTick = Mathf.Floor(sacre); Sfx.Bell(); Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, new Color(1f, 0.8f, 0.35f)); }
+                if (Mathf.Floor(sacre) > lastTick) { lastTick = Mathf.Floor(sacre); Sfx.SacreTick((int)lastTick, transform.position); Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, new Color(1f, 0.8f, 0.35f)); }
                 if (sacre >= SacreSeconds) TryDeliver(holder);
             }
             else

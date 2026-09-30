@@ -41,7 +41,7 @@ namespace Fief
             Proto.EndVisualOnly();
             m.parts = go.GetComponentsInChildren<Renderer>();
             All.Add(m);
-            Sfx.Build();
+            Sfx.BuildAt(go.transform.position);
             return m;
         }
 
@@ -85,7 +85,7 @@ namespace Fief
                 Fx.GroundRing(transform.position, Rune, 5.5f, 0.45f);
                 Fx.Burst(transform.position + Vector3.up * 0.3f, Rune, 80, 12f, 0.2f, 0.8f, 0.6f, Vector3.up, 55f);
                 Fx.Flash(transform.position + Vector3.up, Rune, 14f, 7f, 0.35f);
-                Sfx.TrapSnap();
+                Sfx.SnapAt(transform.position);
                 if (owner != null && owner.IsPlayer) Stats.MineHits++;
                 Destroy(gameObject);
                 return;
@@ -161,7 +161,7 @@ namespace Fief
                 Combat.Hit(s, Vector3.up * 19f + f * 5f, 0.3f, true, by);
             }
             Ambiance.Burst(null, w.up + Vector3.up * 0.5f, new Color(0.5f, 0.45f, 0.4f));
-            Sfx.Crash();
+            Sfx.CrashAt(w.up);
             return true;
         }
 

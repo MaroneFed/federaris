@@ -54,7 +54,9 @@ namespace Fief
                 Real[folder] = clips;
             }
             if (clips == null || clips.Length == 0) return false;
-            source.PlayOneShot(clips[rng.Next(clips.Length)], volume);
+            AudioClip clip = clips[rng.Next(clips.Length)];
+            if (spotOn) Play3D(clip, volume);
+            else source.PlayOneShot(clip, volume);
             return true;
         }
 
@@ -91,7 +93,7 @@ namespace Fief
         public static void Lost() { if (!PlayReal("Perdue", 0.7f)) Deny(); }
 
         /// <summary>La visee passe sur un bouton de menu.</summary>
-        public static void Hover() { PlayReal("Survol", 0.35f); }
+        public static void Hover() { PlayReal("Survol", 0.25f); }
 
         public static void Init(GameObject host)
         {
@@ -272,7 +274,89 @@ namespace Fief
         static void Play(AudioClip clip, float volume)
         {
             if (Muted || source == null || clip == null) return;
+            if (spotOn) { Play3D(clip, volume); return; }
             source.PlayOneShot(clip, volume);
+        }
+
+        // ------------------------------------------------------------- les sons EN 3D
+        //
+        // (02/10 -- Martin : "fais vraiment gaffe au bruitage") : les bruits du monde (un
+        // pendule, une gargouille, une arbaleste, un bot qu'on pousse) etaient joues A PLAT,
+        // dans tes oreilles, qu'ils soient a 2 m ou a 150 m : un vacarme permanent. Ils
+        // partent maintenant de L'ENDROIT ou ils arrivent : plus fort a gauche s'il est a
+        // gauche, et de plus en plus doux avec la distance (plein jusqu'a 6 m, moitie a
+        // 12 m, presque rien a 100 m).
+        //
+        // Concept Unity : une AudioSource avec spatialBlend = 1 est "dans le monde" ; c'est
+        // l'AudioListener (sur la camera, a tes yeux) qui l'entend, avec la distance et le
+        // cote. On en garde seize, qu'on deplace a tour de role (un "pool").
+
+        static AudioSource[] pool;
+        static int poolNext;
+        static bool spotOn;
+        static Vector3 spot;
+
+        static void Play3D(AudioClip clip, float volume) { Play3D(clip, volume, 1f); }
+
+        static void Play3D(AudioClip clip, float volume, float pitch)
+        {
+            if (pool == null)
+            {
+                pool = new AudioSource[16];
+                for (int i = 0; i < pool.Length; i++)
+                {
+                    GameObject go = new GameObject("Son 3D");
+                    go.transform.SetParent(source.transform, false);
+                    AudioSource a = go.AddComponent<AudioSource>();
+                    a.playOnAwake = false;
+                    a.spatialBlend = 1f;
+                    a.rolloffMode = AudioRolloffMode.Logarithmic;
+                    a.minDistance = 6f;
+                    a.maxDistance = 140f;
+                    a.dopplerLevel = 0f;
+                    a.spread = 40f;
+                    pool[i] = a;
+                }
+            }
+            AudioSource p = pool[poolNext];
+            poolNext = (poolNext + 1) % pool.Length;
+            if (p == null) return;
+            p.transform.position = spot;
+            p.pitch = pitch;
+            p.PlayOneShot(clip, volume);
+        }
+
+        static void Begin3D(Vector3 at) { spotOn = true; spot = at; }
+        static void End3D() { spotOn = false; }
+
+        /// <summary>Les bruits du monde, joues LA OU ILS ARRIVENT (voir plus haut).</summary>
+        public static void CrashAt(Vector3 at) { Begin3D(at); Crash(); End3D(); }
+        public static void ThudAt(Vector3 at) { Begin3D(at); Thud(); End3D(); }
+        public static void ClangAt(Vector3 at) { Begin3D(at); Clang(); End3D(); }
+        public static void SnapAt(Vector3 at) { Begin3D(at); TrapSnap(); End3D(); }
+        public static void WhooshAt(Vector3 at) { Begin3D(at); Whoosh(); End3D(); }
+        public static void ChipAt(Vector3 at) { Begin3D(at); Chip(); End3D(); }
+        public static void PunchAt(Vector3 at) { Begin3D(at); Punch(); End3D(); }
+        public static void BuildAt(Vector3 at) { Begin3D(at); Build(); End3D(); }
+        public static void BellAt(Vector3 at) { Begin3D(at); Bell(); End3D(); }
+        public static void LandAt(Vector3 at) { Begin3D(at); Land(); End3D(); }
+
+        /// <summary>Toi, tu retombes : un atterrissage mat (Kenney), plus doux que le "bam" d'un coup.</summary>
+        public static void Land() { if (!PlayReal("Atterrissage", 0.5f)) Thud(); }
+
+        /// <summary>
+        /// LE SACRE, une cloche par seconde qui MONTE d'un ton a chaque fois (02/10) : on
+        /// entend le sacre approcher de sa fin -- do, mi, sol.
+        /// </summary>
+        public static void SacreTick(int second, Vector3 at)
+        {
+            if (Muted || source == null) return;
+            AudioClip[] clips;
+            if (!Real.TryGetValue("Cloche", out clips)) { clips = Resources.LoadAll<AudioClip>("Sons/Cloche"); Real["Cloche"] = clips; }
+            if (clips == null || clips.Length == 0) { BellAt(at); return; }
+            float[] steps = { 1f, 1.26f, 1.5f, 2f };
+            spot = at;
+            Play3D(clips[0], 0.9f, steps[Mathf.Clamp(second - 1, 0, steps.Length - 1)]);
         }
 
         // ------------------------------------------------------------- synthese

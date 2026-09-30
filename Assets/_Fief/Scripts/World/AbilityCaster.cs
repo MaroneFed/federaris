@@ -224,7 +224,7 @@ namespace Fief
                     Fx.Burst(pos + Vector3.up * 0.1f, new Color(0.7f, 0.62f, 0.52f), 70, 10f, 0.5f, 1f, 0.3f, Vector3.up, 80f);
                     Fx.Flash(chest, tint, 22f, 8f, 0.45f);
                     ShakeNear(pos, 0.45f);
-                    Sfx.Crash();
+                    Sfx.CrashAt(pos);
                     break;
 
                 case Ability.Clignement:
@@ -335,11 +335,11 @@ namespace Fief
                     Fx.Burst(chest + dir * 0.6f, tint, 120, 24f, 0.2f, 0.55f, 0f, dir, 32f);
                     Fx.Flash(chest + dir * 2f, tint, 14f, 6f, 0.3f);
                     ShakeNear(pos, 0.3f);
-                    Sfx.Crash();
+                    Sfx.CrashAt(pos);
                     break;
                 }
             }
-            Sfx.Whoosh();
+            Sfx.WhooshAt(pos);
             if (s.IsPlayer) Stats.Casts++;
             return true;
         }
@@ -483,7 +483,7 @@ namespace Fief
             if (!heard && me != null && (me.position - front).magnitude < 18f)
             {
                 heard = true;
-                Sfx.Whoosh();
+                Sfx.WhooshAt(front);
                 AbilityCaster.ShakeNear(front, 0.3f);
             }
 

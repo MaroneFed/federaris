@@ -93,7 +93,7 @@ namespace Fief
             Fx.Trail(by.Body, Wings.Gold, 1.4f, 1.3f);
             Fx.Ring(by.Body.position + Vector3.up * 1.2f, Wings.Gold, 0.5f, 5f, 0.35f, 0.3f, target.Body.position - by.Body.position);
             Fx.Burst(by.Body.position + Vector3.up * 1.2f, Wings.Gold, 50, 12f, 0.2f, 0.5f, 0f, by.Body.position - target.Body.position, 30f);
-            Sfx.Whoosh();
+            Sfx.WhooshAt(by.Body.position);
             return true;
         }
 
@@ -173,7 +173,7 @@ namespace Fief
                 }
             }
 
-            Sfx.Punch();
+            Sfx.PunchAt(victim.Body.position);
             if (victim.IsPlayer)
             {
                 if (Game.Hud != null) Game.Hud.Hurt(velocity);
@@ -208,7 +208,7 @@ namespace Fief
             Vector3 side = Vector3.ClampMagnitude(flat - outward * Vector3.Dot(flat, outward), 8f);
             velocity = outward * 22f + side + Vector3.up * (velocity.y < 0f ? 2f : 11f);
             victim.Tumble(7f);
-            Sfx.Whoosh();
+            Sfx.WhooshAt(victim.Body.position);
             return velocity;
         }
 

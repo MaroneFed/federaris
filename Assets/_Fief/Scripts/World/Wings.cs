@@ -571,7 +571,7 @@ namespace Fief
             }
             Fx.Burst(at, Rune, 70, 11f, 0.2f, 0.6f, 0.2f, away, 60f);
             Fx.Flash(at, Rune, 18f, 6f, 0.35f);
-            Sfx.Thud();
+            Sfx.ThudAt(at);
             if (s != null && s.IsPlayer && Game.Hud != null)
             {
                 Game.Hud.Tip("sceau", "LE SCEAU DE LA CITADELLE : on n'y entre pas par les airs. Pose-toi dehors et passe par une porte.");

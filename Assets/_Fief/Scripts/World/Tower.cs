@@ -628,7 +628,7 @@ namespace Fief
             {
                 lastLow = low;
                 Transform pl = Game.PlayerTransform;
-                if (pl != null && (pl.position - transform.position).magnitude < 16f) Sfx.Whoosh();
+                if (pl != null && (pl.position - transform.position).magnitude < 40f) Sfx.WhooshAt(Head);
             }
             Vector3 head = Head;
             Vector3 velocity = (head - lastHead) / dt;
@@ -646,7 +646,7 @@ namespace Fief
                 Vector3 push = velocity.sqrMagnitude > 1f ? new Vector3(velocity.x, 0f, velocity.z).normalized : transform.right;
                 Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.3f));
-                Sfx.Clang();
+                Sfx.ClangAt(Head);
             }
         }
     }
@@ -779,7 +779,7 @@ namespace Fief
                 lastHit[s] = Time.time;
                 Combat.Hit(s, outward * 32f + Vector3.up * 8f, 0.4f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.4f, 0.25f));
-                Sfx.Crash();
+                Sfx.CrashAt(transform.position);
             }
         }
     }
@@ -910,7 +910,7 @@ namespace Fief
                 if (away.sqrMagnitude < 0.01f) away = moved;
                 Combat.Hit(s, (away.normalized + moved.normalized).normalized * 26f + Vector3.up * 10f, 0.45f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.55f, 0.25f));
-                Sfx.Crash();
+                Sfx.CrashAt(transform.position);
             }
         }
     }

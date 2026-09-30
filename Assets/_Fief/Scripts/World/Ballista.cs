@@ -556,9 +556,9 @@ namespace Fief
             Fx.GroundRing(transform.position + Vector3.up * 0.75f, Rune, 5f, 0.4f);
             Fx.Burst(transform.position + Vector3.up * 0.8f, new Color(0.7f, 0.62f, 0.52f), 40, 7f, 0.4f, 0.9f, 0.3f, Vector3.up, 80f);
             Fx.Trail(who.Body, c, 2.2f, 1.1f);
-            Sfx.Crash();
-            Sfx.Thud();
-            Sfx.Whoosh();
+            Sfx.CrashAt(transform.position);
+            Sfx.ThudAt(transform.position);
+            Sfx.WhooshAt(transform.position);
             if (Game.PlayerTransform != null && Game.Hud != null && Game.Hud.orbitCamera != null)
             {
                 float d = (Game.PlayerTransform.position - transform.position).magnitude;

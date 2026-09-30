@@ -411,6 +411,7 @@ namespace Fief
             state = State.Charge;
             timer = 0f;
             if (target.IsPlayer || NearPlayer(35f)) Sfx.Alarm();
+            Sfx.ChipAt(ball.position);
         }
 
         /// <summary>
@@ -503,9 +504,9 @@ namespace Fief
             beamCore.SetPosition(0, from);
             beamCore.SetPosition(1, end);
             beam.SetPosition(1, end);
-            Sfx.Thud();
+            Sfx.ThudAt(end);
             if (NearPlayer(40f) && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.2f);
-            Sfx.Crash();
+            Sfx.CrashAt(end);
             beam.startWidth = 0.35f;
             beam.endWidth = 0.2f;
             state = State.Rest;

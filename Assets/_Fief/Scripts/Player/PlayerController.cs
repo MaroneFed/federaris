@@ -239,7 +239,7 @@ namespace Fief
             if (grounded)
             {
                 groundedAt = Time.time;
-                if (Gliding) Sfx.Thud();
+                if (Gliding) Sfx.Land();
                 Gliding = false;
                 folded = false;
                 airJumpUsed = false;
@@ -426,7 +426,7 @@ namespace Fief
                 Fx.Shock(transform.position + Vector3.up * 0.5f, AbilityInfo.Tint(Ability.Rebond), 4f, 0.35f);
                 Sfx.Crash();
             }
-            if (fall > 3f) Sfx.Thud();
+            if (fall > 3f) Sfx.Land();
         }
 
         void Remember(float dt)
@@ -459,9 +459,11 @@ namespace Fief
             strideAccumulator += flat.magnitude * Time.deltaTime;
             if (strideAccumulator < 1.9f) return;
             strideAccumulator = 0f;
-            Sfx.Step();
+            // (02/10) UN pas, selon le sol : l'herbe dehors, la pierre dans la citadelle et
+            // sur la tour (avant : la pierre ET l'herbe a chaque pas dehors, deux bruits).
             Vector3 p = transform.position;
-            if (!Castle.Covers(p.x, p.z, 0f)) Sfx.LeafStep();
+            if (Castle.Covers(p.x, p.z, 0f) || Tower.On(p)) Sfx.Step();
+            else Sfx.LeafStep();
         }
 
         /// <summary>

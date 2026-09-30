@@ -1188,6 +1188,8 @@ namespace Fief
             if (fall > 10f && Tower.On(lastGround) && !Tower.On(transform.position)) Feed.FellFromTower(seeker);
             if (PlayerWithin(40f)) Fx.Burst(transform.position + Vector3.up * 0.1f, new Color(0.62f, 0.56f, 0.48f), 18, 3f, 0.3f, 0.8f, 0.2f, Vector3.up, 70f);
             if (fall > 4f && seeker.Has(Ability.Rebond)) Combat.Blast(transform.position, 5f, 13f, 5f, seeker);
+            // (02/10) On l'entend retomber, de la ou il est (doux de loin).
+            if (fall > 3f && PlayerWithin(60f)) Sfx.LandAt(transform.position);
         }
 
         void Remember(float dt)

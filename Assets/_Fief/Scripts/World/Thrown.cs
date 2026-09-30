@@ -34,7 +34,7 @@ namespace Fief
             GameObject ball = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.7f, Frost, "Givre");
             ball.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Frost, 2.5f);
             Proto.EndVisualOnly();
-            Sfx.Whoosh();
+            Sfx.WhooshAt(from);
         }
 
         /// <summary>La vitesse de lancer, pour viser a peu pres "reach" metres devant, en cloche.</summary>
@@ -78,7 +78,7 @@ namespace Fief
             Fx.GroundRing(at, Frost, SlowRadius + 1f, 0.5f);
             Fx.Burst(at + Vector3.up * 0.3f, Frost, 70, 9f, 0.18f, 0.9f, 0.5f, Vector3.zero, 0f);
             Fx.Flash(at + Vector3.up, Frost, 10f, 4f, 0.35f);
-            Sfx.Chip();
+            Sfx.ChipAt(at);
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
@@ -121,7 +121,7 @@ namespace Fief
             c.until = Time.time + Seconds;
             Clouds.Add(c);
             Ambiance.SmokeCloud(c.at, Radius, Seconds);
-            Sfx.Thud();
+            Sfx.ThudAt(at);
         }
 
         public static void Clear() { Clouds.Clear(); }

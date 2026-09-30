@@ -341,7 +341,7 @@ namespace Fief
                 if (wiper) push = (push + transform.forward).normalized;
                 Combat.Hit(s, push * 26f + Vector3.up * 9f, 0.35f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.5f, 0.25f));
-                Sfx.Clang();
+                Sfx.ClangAt(transform.position);
             }
         }
     }
@@ -449,7 +449,7 @@ namespace Fief
             }
             if (fired && !near) return;
             Transform p = Game.PlayerTransform;
-            if (near || p != null && (p.position - transform.position).magnitude < 14f) Sfx.TrapSnap();
+            if (near || p != null && (p.position - transform.position).magnitude < 40f) Sfx.SnapAt(transform.position);
             if (!fired) Fx.Burst(transform.position + Vector3.up * 0.2f, new Color(0.7f, 0.62f, 0.52f), 16, 5f, 0.3f, 0.6f, 0.3f, Vector3.up, 50f);
             fired = true;
         }
@@ -545,7 +545,7 @@ namespace Fief
                 push = push.sqrMagnitude > 1f ? push.normalized : transform.right;
                 Combat.Hit(s, push * 32f + Vector3.up * 12f, 0.45f, true, null);
                 Fx.ObstacleHit(s, new Color(1f, 0.5f, 0.25f));
-                Sfx.Crash();
+                Sfx.CrashAt(transform.position);
             }
         }
     }

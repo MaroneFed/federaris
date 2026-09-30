@@ -536,7 +536,12 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
                 if (Game.Seekers[i].Index == winner) Celebrate(Game.Seekers[i]);
             // La voix de l'arene : "you win", "you lose" -- ou "time" quand personne n'a gagne.
-            Sfx.Announce(winner < 0 ? "time" : Match.Local != null && winner == Match.Local.Index ? "you_win" : "you_lose");
+            // ("you lose" seulement a la derniere manche : l'entendre sept fois de suite, c'est dur.)
+            bool mine = Match.Local != null && winner == Match.Local.Index;
+            bool last = Match.Played + 1 >= Match.Rounds;
+            if (winner < 0) Sfx.Announce("time");
+            else if (mine) Sfx.Announce("you_win");
+            else if (last) Sfx.Announce("you_lose");
             Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();
