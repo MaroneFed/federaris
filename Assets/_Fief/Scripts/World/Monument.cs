@@ -147,6 +147,7 @@ namespace Fief
                 l.intensity = 2f;
                 l.range = 12f;
                 l.shadows = LightShadows.None;
+                l.renderMode = LightRenderMode.ForceVertex;   // (03/10) fluide : jamais une passe de plus pour elle
                 lg.AddComponent<LampFlicker>();
             }
             Proto.Cube(t, new Vector3(0f, 6.6f, 0f), new Vector3(6.6f, 0.9f, 1.3f), Stone, "Linteau");

@@ -83,9 +83,20 @@ namespace Fief
         /// Concept Unity : QualitySettings, ce sont les reglages de Edit > Project Settings >
         /// Quality ; on les force ici par le code pour qu'ils soient les memes chez tout le monde.
         /// </summary>
+        ///
+        /// FLUIDE (03/10, Martin : "le jeu n'est pas fluide du tout") : l'anticrenelage passe
+        /// de x8 a x4 (a l'oeil, la meme image ; pour la carte graphique, moitie moins de
+        /// travail sur chaque pixel, la mer de nuages surtout) ; deux lumieres "au pixel" au
+        /// plus sur chaque objet (le soleil et la plus proche) -- les autres (lanternes des
+        /// bots, sanctuaires, gargouilles) eclairent quand meme, mais sans redessiner
+        /// l'objet une fois de plus pour chacune ; les ombres jusqu'a 130 m au lieu de 160.
+        /// Concept Unity : en rendu "Forward", chaque lumiere au pixel qui touche un objet
+        /// le fait redessiner EN ENTIER. Vingt lumieres sur le chateau, c'etaient vingt
+        /// chateaux par image.
         static void Smooth(Camera view)
         {
-            QualitySettings.antiAliasing = 8;
+            QualitySettings.antiAliasing = 4;
+            QualitySettings.pixelLightCount = 2;
             QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
             QualitySettings.shadowResolution = ShadowResolution.VeryHigh;
             QualitySettings.shadowCascades = 4;
@@ -135,7 +146,7 @@ namespace Fief
             Sun.shadowStrength = 0.75f;
             Sun.shadowNearPlane = 0.2f;
             RenderSettings.sun = Sun;
-            QualitySettings.shadowDistance = 160f;
+            QualitySettings.shadowDistance = 130f;
         }
 
         static void ApplyLamp(GameConfig cfg, Transform player)
@@ -154,6 +165,8 @@ namespace Fief
             Lamp.intensity = cfg != null ? cfg.lampIntensity : 0.5f;
             Lamp.range = cfg != null ? cfg.lampRange : 10f;
             Lamp.shadows = LightShadows.None;
+            // La tienne, toujours au pixel (c'est elle qu'on voit de pres) ; les autres se partagent le reste.
+            Lamp.renderMode = LightRenderMode.ForcePixel;
         }
     }
 

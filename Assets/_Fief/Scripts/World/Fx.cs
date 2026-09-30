@@ -25,9 +25,22 @@ namespace Fief
     {
         // ================================================================== les briques
 
+        /// <summary>
+        /// (03/10 -- "le jeu n'est pas fluide du tout") Un eclat a plus de 110 m de la camera
+        /// ne se voit pas : on ne le fabrique pas (chaque eclat, c'est un objet et un systeme
+        /// de particules crees puis detruits). Les colonnes de KO, faites pour se voir de
+        /// loin, ne passent pas par ici.
+        /// </summary>
+        static bool Far(Vector3 at)
+        {
+            Camera c = Camera.main;
+            return c != null && (c.transform.position - at).sqrMagnitude > 110f * 110f;
+        }
+
         /// <summary>Un anneau qui s'elargit de "from" a "to" metres en "seconds", couche sur le plan de normale "normal".</summary>
         public static void Ring(Vector3 centre, Color c, float from, float to, float seconds, float width, Vector3 normal)
         {
+            if (Far(centre)) return;
             Material m = Ambiance.Additive;
             if (m == null) return;
             GameObject go = new GameObject("Fx anneau");
@@ -64,6 +77,7 @@ namespace Fief
         /// </summary>
         public static void Shock(Vector3 at, Color c, float radius, float seconds)
         {
+            if (Far(at)) return;
             Material source = Ambiance.Additive;
             if (source == null) return;
             if (!ondeLooked) { ondeLooked = true; onde = Shader.Find("Fief/Onde"); }
@@ -88,6 +102,7 @@ namespace Fief
         /// <summary>Une lumiere qui eclate et s'eteint : elle eclaire tout ce qui est autour.</summary>
         public static void Flash(Vector3 at, Color c, float range, float intensity, float seconds)
         {
+            if (Far(at)) return;
             GameObject go = new GameObject("Fx eclair");
             go.transform.position = at;
             Light l = go.AddComponent<Light>();
@@ -108,6 +123,7 @@ namespace Fief
         /// </summary>
         public static void Burst(Vector3 at, Color c, int count, float speed, float size, float life, float gravity, Vector3 direction, float spread)
         {
+            if (Far(at)) return;
             Material m = Ambiance.Additive;
             if (m == null) return;
             ParticleSystem ps = Ambiance.NewSystem("Fx gerbe", null, at, m);

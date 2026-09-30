@@ -1289,6 +1289,7 @@ namespace Fief
             lantern.intensity = 1.1f;
             lantern.range = 8f;
             lantern.shadows = LightShadows.None;
+            lantern.renderMode = LightRenderMode.ForceVertex;   // (03/10) fluide : jamais une passe de plus pour elle
             lightGo.AddComponent<LampFlicker>();
 
             // (02/10) Plus de halo au-dessus de la tete : le pseudo, a sa couleur, dit deja

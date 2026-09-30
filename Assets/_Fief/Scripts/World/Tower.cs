@@ -520,6 +520,7 @@ namespace Fief
             glow.intensity = 0.8f;
             glow.range = 22f;
             glow.shadows = LightShadows.None;
+            glow.renderMode = LightRenderMode.ForceVertex;   // (03/10) fluide : jamais une passe de plus pour elle
         }
     }
 

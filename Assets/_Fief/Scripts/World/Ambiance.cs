@@ -153,13 +153,13 @@ namespace Fief
                 main.prewarm = true;
                 main.startLifetime = new ParticleSystem.MinMaxCurve(50f, 70f);
                 main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.8f);
-                main.startSize = new ParticleSystem.MinMaxCurve(layer == 0 ? 70f : 45f, layer == 0 ? 130f : 80f);
+                main.startSize = new ParticleSystem.MinMaxCurve(layer == 0 ? 80f : 50f, layer == 0 ? 145f : 90f);
                 main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
                 Color warm = layer == 0 ? new Color(1f, 0.97f, 0.97f, 0.8f) : new Color(1f, 0.95f, 0.93f, 0.45f);
                 main.startColor = new ParticleSystem.MinMaxGradient(warm, new Color(0.96f, 0.88f, 0.96f, warm.a));
-                main.maxParticles = layer == 0 ? 220 : 120;
+                main.maxParticles = layer == 0 ? 160 : 80;   // (03/10) fluide : moins de nappes superposees, un peu plus grandes
                 ParticleSystem.EmissionModule emission = ps.emission;
-                emission.rateOverTime = layer == 0 ? 3.6f : 1.8f;
+                emission.rateOverTime = layer == 0 ? 2.6f : 1.2f;
                 ParticleSystem.ShapeModule shape = ps.shape;
                 shape.shapeType = ParticleSystemShapeType.Box;
                 shape.scale = new Vector3(1100f, 6f, 1100f);
