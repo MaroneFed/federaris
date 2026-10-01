@@ -1663,6 +1663,7 @@ namespace Fief
         }
 
         float controlsScroll, controlsScrollShown;
+        bool draggingBar;
 
         /// <summary>Les lignes qu'on peut viser au clavier (les rubriques, non), puis Retour.</summary>
         static int ControlRows(ControlLine[] lines)
@@ -1796,14 +1797,32 @@ namespace Fief
             }
             GUI.EndGroup();
 
-            // La barre de defilement, fine, a droite : on voit qu'il y a une suite.
+            // LA BARRE DE DEFILEMENT, fine, a droite (04/10 -- Martin : "le truc a droite pour
+            // defiler, il est enorme et on capte rien") : elle etait dessinee avec la pastille des
+            // boutons, faite pour des formes larges -- haute et fine, son liseré noir faisait
+            // 50 pixels d'epaisseur. Maintenant : un rail sombre de 10 pixels, un curseur d'or, et
+            // on peut l'ATTRAPER a la souris (cliquer ou glisser sur le rail fait defiler).
             if (maxScroll > 0f)
             {
                 float track = view.height;
-                float thumb = Mathf.Max(UiStyle.S(40), track * view.height / (content + UiStyle.S(10)));
-                float ty = view.y + (track - thumb) * (scroll / maxScroll);
-                Icons.Pill(new Rect(view.xMax + UiStyle.S(6), view.y, UiStyle.S(8), track), new Color(1f, 1f, 1f, 0.12f));
-                Icons.Pill(new Rect(view.xMax + UiStyle.S(6), Mathf.Round(ty), UiStyle.S(8), Mathf.Round(thumb)), new Color(1f, 0.84f, 0.3f, 0.9f));
+                float bar = Mathf.Round(UiStyle.S(10));
+                float thumb = Mathf.Round(Mathf.Max(UiStyle.S(48), track * view.height / (content + UiStyle.S(10))));
+                Rect rail = new Rect(Mathf.Round(view.xMax + UiStyle.S(10)), view.y, bar, track);
+                // La zone qu'on peut attraper est plus large que le rail (on vise sans peine).
+                Rect grab = new Rect(rail.x - UiStyle.S(12), rail.y, rail.width + UiStyle.S(24), rail.height);
+                if ((e.type == EventType.MouseDown || e.type == EventType.MouseDrag) && e.button == 0 && (grab.Contains(e.mousePosition) || draggingBar && e.type == EventType.MouseDrag))
+                {
+                    draggingBar = true;
+                    float k = Mathf.Clamp01((e.mousePosition.y - rail.y - thumb * 0.5f) / Mathf.Max(1f, track - thumb));
+                    controlsScroll = controlsScrollShown = k * maxScroll;
+                    e.Use();
+                }
+                if (e.type == EventType.MouseUp) draggingBar = false;
+                float ty = Mathf.Round(rail.y + (track - thumb) * (Mathf.Round(controlsScrollShown) / maxScroll));
+                UiStyle.Fill(new Rect(rail.x - 2f, rail.y - 2f, rail.width + 4f, rail.height + 4f), new Color(0f, 0f, 0f, 0.45f));
+                UiStyle.Fill(rail, new Color(1f, 1f, 1f, 0.14f));
+                bool hot = draggingBar || grab.Contains(e.mousePosition);
+                UiStyle.Fill(new Rect(rail.x, ty, rail.width, thumb), hot ? new Color(1f, 0.92f, 0.55f) : new Color(1f, 0.82f, 0.3f));
             }
             if (Entry(new Rect(x, Screen.height - UiStyle.S(90), UiStyle.S(300), UiStyle.S(50)), "Retour", rows - 1, false, 1f)) { showControls = false; selected = 0; }
         }

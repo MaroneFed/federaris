@@ -252,8 +252,11 @@ namespace Fief
             if (!Painting || alpha <= 0.003f) return;
             r = Snap(r);
             if (r.height < 2f || r.width < 2f) return;
-            int e = Mathf.Max(2, Mathf.RoundToInt(r.height * 0.07f));
-            int drop = Mathf.Max(2, Mathf.RoundToInt(r.height * 0.09f));
+            // (04/10) Le liseré et l'ombre suivent le PETIT cote : une pastille haute et fine
+            // (une barre de defilement) avait un liseré de 50 pixels.
+            float side = Mathf.Min(r.width, r.height);
+            int e = Mathf.Max(2, Mathf.RoundToInt(side * 0.07f));
+            int drop = Mathf.Max(2, Mathf.RoundToInt(side * 0.09f));
             // L'ombre franche (pas floue : decalee vers le bas), le liseré, le corps.
             Shape(new Rect(r.x - e, r.y - e + drop, r.width + e * 2f, r.height + e * 2f), new Color(Ink.r, Ink.g, Ink.b, 0.45f * alpha));
             Shape(new Rect(r.x - e, r.y - e, r.width + e * 2f, r.height + e * 2f), new Color(Ink.r, Ink.g, Ink.b, alpha));
