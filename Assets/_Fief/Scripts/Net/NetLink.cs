@@ -27,7 +27,7 @@ namespace Fief.Net
     /// </summary>
     public sealed class NetLink : IDisposable
     {
-        public const int Version = 1;
+        public const int Version = 2;     // 2 (04/10) : les messages du jeu (le match en ligne)
         public const int DefaultPort = 7777;
         const uint Magic = 0x46494546;           // "FIEF"
         const float PingEvery = 1f;
@@ -38,7 +38,39 @@ namespace Fief.Net
         public enum State { Idle, Hosting, Connecting, Connected, Refused, Lost, Closed }
         public enum Refusal : byte { None = 0, Full = 1, BadVersion = 2, Started = 3 }
 
-        enum Msg : byte { Hello = 1, Welcome = 2, Roster = 3, Ping = 4, Pong = 5, Bye = 6, Refused = 7 }
+        enum Msg : byte { Hello = 1, Welcome = 2, Roster = 3, Ping = 4, Pong = 5, Bye = 6, Refused = 7, Data = 8, Reliable = 9, Ack = 10 }
+
+        /// <summary>
+        /// UN MESSAGE DU JEU recu (etape 2) : qui l'envoie (sa place ; 0 = l'hote) et son contenu.
+        /// NetLink ne sait pas ce qu'il y a dedans : c'est NetGame qui l'ecrit et le lit.
+        /// </summary>
+        public struct Incoming
+        {
+            public int From;
+            public byte[] Data;
+        }
+
+        /// <summary>Les messages du jeu arrives, dans l'ordre d'arrivee (NetGame les vide a chaque image).</summary>
+        public readonly Queue<Incoming> Inbox = new Queue<Incoming>();
+
+        /// <summary>
+        /// Un message FIABLE en attente de son accuse de reception : on le renvoie toutes les
+        /// 0,2 s jusqu'a ce que l'autre dise "recu" (un coup, un choix de carte ne doit pas se perdre).
+        /// </summary>
+        sealed class Pending
+        {
+            public EndPoint To;
+            public uint Seq;
+            public byte[] Data;
+            public float SentAt;
+            public float FirstAt;
+        }
+        readonly List<Pending> pending = new List<Pending>();
+        uint nextSeq = 1;
+        const float ResendEvery = 0.2f;
+        // Les numeros deja recus (par expediteur) : un message renvoye n'est traite qu'une fois.
+        readonly Dictionary<string, HashSet<uint>> seen = new Dictionary<string, HashSet<uint>>();
+        readonly Dictionary<string, Queue<uint>> seenOrder = new Dictionary<string, Queue<uint>>();
 
         /// <summary>Un joueur dans le salon : sa place (0 : l'hote) et son pseudo.</summary>
         public sealed class Member
@@ -80,6 +112,9 @@ namespace Fief.Net
         public int RosterVersion { get; private set; }
 
         NetLink() { Status = State.Idle; }
+
+        /// <summary>L'heure du dernier Poll (les messages fiables s'en servent pour savoir quand renvoyer).</summary>
+        float lastClock;
 
         // ================================================================== ouvrir
 
@@ -159,9 +194,23 @@ namespace Fief.Net
         public void Poll(float now)
         {
             if (socket == null) return;
+            lastClock = now;
             Receive(now);
             if (IsHost) HostTick(now);
             else ClientTick(now);
+            Resend(now);
+        }
+
+        void Resend(float now)
+        {
+            for (int i = pending.Count - 1; i >= 0; i--)
+            {
+                Pending p = pending[i];
+                if (now - p.FirstAt > Timeout) { pending.RemoveAt(i); continue; }
+                if (now - p.SentAt < ResendEvery) continue;
+                p.SentAt = now;
+                SendRaw(p.To, Msg.Reliable, p.Seq, p.Data);
+            }
         }
 
         void HostTick(float now)
@@ -293,7 +342,51 @@ namespace Fief.Net
                 case Msg.Bye:
                     if (p != null) { peers.Remove(p); RebuildRoster(); lastRoster = -99f; }
                     break;
+                case Msg.Data:
+                case Msg.Reliable:
+                case Msg.Ack:
+                    if (p != null) ReceiveData(type, r, from, p.Slot);
+                    break;
             }
+        }
+
+        /// <summary>Un message du jeu : on le range dans la boite (un fiable : on accuse reception, une fois).</summary>
+        void ReceiveData(Msg type, BinaryReader r, EndPoint from, int fromSlot)
+        {
+            if (type == Msg.Ack)
+            {
+                uint acked = r.ReadUInt32();
+                for (int i = pending.Count - 1; i >= 0; i--)
+                    if (pending[i].Seq == acked && SameAddress(pending[i].To, from)) pending.RemoveAt(i);
+                return;
+            }
+            if (type == Msg.Reliable)
+            {
+                uint seq = r.ReadUInt32();
+                Send(from, Msg.Ack, w => w.Write(seq));
+                if (!FirstTime(from, seq)) return;
+            }
+            int length = r.ReadUInt16();
+            byte[] data = r.ReadBytes(length);
+            if (data.Length != length) return;
+            Incoming m;
+            m.From = fromSlot;
+            m.Data = data;
+            Inbox.Enqueue(m);
+        }
+
+        bool FirstTime(EndPoint from, uint seq)
+        {
+            string key = from.ToString();
+            HashSet<uint> set;
+            Queue<uint> order;
+            if (!seen.TryGetValue(key, out set)) { set = new HashSet<uint>(); seen[key] = set; seenOrder[key] = new Queue<uint>(); }
+            order = seenOrder[key];
+            if (set.Contains(seq)) return false;
+            set.Add(seq);
+            order.Enqueue(seq);
+            while (order.Count > 2048) set.Remove(order.Dequeue());
+            return true;
         }
 
         void ClientReceive(Msg type, BinaryReader r, float now)
@@ -325,6 +418,11 @@ namespace Fief.Net
                     break;
                 case Msg.Bye:
                     Status = State.Lost;
+                    break;
+                case Msg.Data:
+                case Msg.Reliable:
+                case Msg.Ack:
+                    ReceiveData(type, r, host, 0);
                     break;
             }
         }
@@ -411,6 +509,68 @@ namespace Fief.Net
             if (changed) RosterVersion++;
         }
 
+        // ================================================================== les messages du jeu
+
+        /// <summary>
+        /// Envoyer un message du jeu a la place "toSlot" (cote invite : toujours a l'hote, "toSlot"
+        /// est ignore). "reliable" : renvoye jusqu'a l'accuse de reception. 1200 octets au plus.
+        /// </summary>
+        public void Send(int toSlot, byte[] data, bool reliable)
+        {
+            if (data == null || data.Length > 1200) return;
+            EndPoint to = null;
+            if (!IsHost) to = host;
+            else for (int i = 0; i < peers.Count; i++) if (peers[i].Slot == toSlot) to = peers[i].Address;
+            if (to == null) return;
+            SendTo(to, data, reliable);
+        }
+
+        /// <summary>Hote : envoyer a tous les invites (sauf "exceptSlot").</summary>
+        public void Broadcast(byte[] data, bool reliable, int exceptSlot = -1)
+        {
+            if (!IsHost || data == null || data.Length > 1200) return;
+            for (int i = 0; i < peers.Count; i++) if (peers[i].Slot != exceptSlot) SendTo(peers[i].Address, data, reliable);
+        }
+
+        /// <summary>Vrai si la place "slot" est tenue par un invite encore la (cote hote).</summary>
+        public bool HasPeer(int slot)
+        {
+            for (int i = 0; i < peers.Count; i++) if (peers[i].Slot == slot) return true;
+            return false;
+        }
+
+        /// <summary>Combien de messages fiables attendent encore leur accuse (pour les essais).</summary>
+        public int PendingCount { get { return pending.Count; } }
+
+        /// <summary>Pour les essais : perdre volontairement une partie des paquets envoyes (0 a 1).</summary>
+        public double DropForTests;
+        readonly Random lossRng = new Random(7);
+
+        void SendTo(EndPoint to, byte[] data, bool reliable)
+        {
+            if (!reliable) { SendRaw(to, Msg.Data, 0, data); return; }
+            Pending p = new Pending();
+            p.To = to;
+            p.Seq = nextSeq++;
+            p.Data = data;
+            p.SentAt = -99f;
+            p.FirstAt = lastClock;
+            pending.Add(p);
+            // Parti tout de suite (le renvoi, lui, attend 0,2 s).
+            p.SentAt = lastClock;
+            SendRaw(to, Msg.Reliable, p.Seq, data);
+        }
+
+        void SendRaw(EndPoint to, Msg type, uint seq, byte[] data)
+        {
+            Send(to, type, w =>
+            {
+                if (type == Msg.Reliable) w.Write(seq);
+                w.Write((ushort)data.Length);
+                w.Write(data);
+            });
+        }
+
         // ================================================================== envoyer
 
         void Send(EndPoint to, Msg type, Action<BinaryWriter> body)
@@ -425,6 +585,7 @@ namespace Fief.Net
                     w.Write((byte)type);
                     if (body != null) body.Invoke(w);
                     w.Flush();
+                    if (DropForTests > 0 && (type == Msg.Data || type == Msg.Reliable || type == Msg.Ack) && lossRng.NextDouble() < DropForTests) return;
                     socket.SendTo(ms.GetBuffer(), 0, (int)ms.Length, SocketFlags.None, to);
                 }
             }

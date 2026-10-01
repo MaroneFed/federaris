@@ -16,6 +16,13 @@ namespace Fief
         public bool IsBot;
         /// <summary>Tenu par cette machine (toi). En ligne, une seule place par machine.</summary>
         public bool IsLocal;
+        /// <summary>
+        /// (04/10, en ligne) Joue par une AUTRE machine : un joueur en ligne, ou un bot quand on
+        /// est invite (les bots vivent chez l'hote). Ici, une marionnette.
+        /// </summary>
+        public bool IsRemote;
+        /// <summary>En ligne : la place reseau du joueur qui la tient (0 : l'hote), -1 pour un bot.</summary>
+        public int NetOwner = -1;
         public int Wins;
         /// <summary>Les capacites choisies, dans l'ordre (les actives prennent les touches dans cet ordre).</summary>
         public readonly List<Ability> Abilities = new List<Ability>();
@@ -124,6 +131,7 @@ namespace Fief
             Draft.Clear();
             RoundSeed = System.Environment.TickCount;
             MatchId++;
+            Online = false;
             Active = true;
             Launched = false;
         }
@@ -140,8 +148,64 @@ namespace Fief
             if (Active) Launched = true;
         }
 
+        /// <summary>
+        /// (04/10) LE MATCH EN LIGNE : les joueurs du salon (l'hote d'abord), puis "bots" bots.
+        /// Chaque machine le cree pareil ; "mySlot" dit laquelle est la sienne (sa place reseau).
+        /// Les bots vivent chez l'hote : chez un invite, ce sont des marionnettes.
+        /// </summary>
+        public static void BeginOnline(List<string> names, List<int> owners, int mySlot, bool host, int rounds, int minutes, int seed, int matchId)
+        {
+            Slots.Clear();
+            Highlights.Reset();
+            for (int i = 0; i < names.Count && i < MaxPlayers; i++)
+            {
+                PlayerSlot s = new PlayerSlot();
+                s.Index = i;
+                s.NetOwner = owners[i];
+                s.IsBot = owners[i] < 0;
+                s.IsLocal = owners[i] == mySlot && owners[i] >= 0;
+                s.IsRemote = !s.IsLocal && (owners[i] >= 0 || !host);
+                s.Name = names[i];
+                s.Colour = Colours[i];
+                Slots.Add(s);
+            }
+            Rounds = Mathf.Max(1, rounds);
+            RoundSeconds = Mathf.Max(60f, minutes * 60f);
+            Played = 0;
+            LastWinner = -1;
+            History.Clear();
+            TieBreakers.Clear();
+            Draft.Clear();
+            RoundSeed = seed;
+            MatchId = matchId;
+            Online = true;
+            Active = true;
+            Launched = false;
+        }
+
+        /// <summary>Vrai pendant un match en ligne (NetGame le tient).</summary>
+        public static bool Online { get; private set; }
+
+        /// <summary>
+        /// (04/10) L'INVITE RECOPIE LE MATCH DE L'HOTE (NetGame) : les manches jouees, la graine,
+        /// les victoires, l'historique. L'hote seul les fait avancer.
+        /// </summary>
+        public static void Mirror(int rounds, float roundSeconds, int played, int seed, int lastWinner, List<int> history, List<int> tieBreakers)
+        {
+            Rounds = rounds;
+            RoundSeconds = roundSeconds;
+            Played = played;
+            RoundSeed = seed;
+            LastWinner = lastWinner;
+            History.Clear();
+            History.AddRange(history);
+            TieBreakers.Clear();
+            TieBreakers.AddRange(tieBreakers);
+        }
+
         public static void Abandon()
         {
+            Online = false;
             Active = false;
             Launched = false;
             Slots.Clear();
@@ -240,6 +304,17 @@ namespace Fief
 
             public static bool Done { get { return Turn >= Order.Count; } }
             public static int Current { get { return Done ? -1 : Order[Turn]; } }
+
+            /// <summary>(04/10) L'invite recopie le choix en cours chez l'hote.</summary>
+            public static void Mirror(int stage, int turn, List<Ability> offer, List<int> order, List<int> pickedBy, List<Ability> picked)
+            {
+                Stage = stage;
+                Turn = turn;
+                Offer.Clear(); Offer.AddRange(offer);
+                Order.Clear(); Order.AddRange(order);
+                PickedBy.Clear(); PickedBy.AddRange(pickedBy);
+                Picked.Clear(); Picked.AddRange(picked);
+            }
 
             public static void Clear()
             {

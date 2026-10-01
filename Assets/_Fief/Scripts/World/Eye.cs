@@ -586,7 +586,8 @@ namespace Fief
         /// <summary>Qui l'interesse : quiconque est dans la citadelle, et le porteur de la Couronne jusqu'a 40 m.</summary>
         bool Interested(Seeker s)
         {
-            if (s == null || s.Body == null || s.Hidden || s.Graced) return false;
+            // (04/10, en ligne) Un joueur d'une autre machine : SES gargouilles le visent, chez lui.
+            if (s == null || s.Remote || s.Body == null || s.Hidden || s.Graced) return false;
             if (Time.time < s.EyeCalmUntil || TakenByOther(s)) return false;
             Vector3 p = s.Body.position;
             if (s.CarriesCrown) return (p - transform.position).magnitude < 45f;

@@ -9,8 +9,8 @@ namespace Fief
     /// a chaque image, fait lire au lien ce qui est arrive.
     ///
     /// Etape 1 (04/10) : HEBERGER, REJOINDRE, et voir le meme SALON (les pseudos de tous).
-    /// Etape 2 : lancer le match ensemble et se voir bouger. Etape 3 : l'hote decide de tout
-    /// (Couronne, coups, fin de manche). Voir docs/RESEAU.md.
+    /// Etape 2 (04/10, NetGame) : lancer le match ensemble, se voir bouger, se pousser ; l'hote
+    /// decide de la Couronne et de la fin de manche. Voir docs/RESEAU.md.
     ///
     /// Concept Unity : un MonoBehaviour vit sur un GameObject de la scene ; "DontDestroyOnLoad"
     /// le sort de la scene : il reste quand on en charge une autre (comme la musique).
@@ -85,12 +85,20 @@ namespace Fief
         {
             if (Link != null) Link.Dispose();
             Link = null;
+            NetGame.LocalPhase = NetGame.Phase.Lobby;
+            if (Match.Online) Match.Abandon();
         }
 
         void Update()
         {
-            if (Link != null) Link.Poll(Time.unscaledTime);
+            if (Link == null) return;
+            Link.Poll(Time.unscaledTime);
+            // (04/10, etape 2) Les messages du jeu : l'etat du match, les positions, les coups.
+            NetGame.Tick(Time.unscaledDeltaTime);
         }
+
+        /// <summary>Dire au salon ce qui ne va pas (l'hote est parti...).</summary>
+        public static void Report(string problem) { Problem = problem; }
 
         void OnApplicationQuit() { Leave(); }
     }

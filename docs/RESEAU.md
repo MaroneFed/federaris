@@ -2,7 +2,8 @@
 
 > **04/10/2026 — Martin : « Tout est parfait. Donc, on peut faire le en ligne. » La Phase 3
 > commence.** Ce qui suit la ligne « ÉTAPE 1 » est l'état réel ; la suite du document est
-> le plan d'origine (26/09), toujours valable pour l'architecture.
+> le plan d'origine (26/09), toujours valable pour l'architecture. **L'étape 2 (04/10) : on lance
+> le match ensemble** (voir plus bas).
 
 ## ÉTAPE 1 (04/10) : héberger, rejoindre, le même salon — FAIT
 
@@ -29,11 +30,43 @@ salon, départs, refus, ping) — « RESEAU OK ». Elle parle **UDP** (le protoc
 4. Sur deux PC de la maison : l'hôte lit son adresse (affichée en haut du salon, du genre
    `192.168.1.23`), l'autre la tape et rejoint.
 
-**Étape 2 (la prochaine)** : l'hôte lance le match, tout le monde charge la même île (la
-graine), chacun voit les autres **bouger** (positions 20 fois par seconde, un `RemotePlayer`
-au lieu d'un bot). **Étape 3** : l'hôte décide de tout (Couronne, coups, sacre, fin de
-manche, choix des capacités). **Étape 4** : Steam (invitations, Internet). **Porte 3** : un
-match de 30-45 min à plusieurs sans plantage ni désynchronisation.
+## ÉTAPE 2 (04/10, v25) : lancer le match ensemble — FAIT
+
+> Martin, après le premier essai : « on arrive à se connecter, sauf qu'après, on ne peut pas
+> lancer de game. On est juste dans le truc. »
+
+- **L'hôte règle et lance** : dans son salon, *Bots* (en plus des amis), *Niveau*, *Manches*,
+  *Durée max*, puis **Lancer**. Le salon se ferme (`NetLink.Locked`).
+- **Le choix des cartes** : chacun choisit **chez lui**, à son tour (`NetGame.SendPick` →
+  l'hôte fait `Match.Draft.TryPick`). L'hôte fait choisir les bots ; un ami qui ne choisit pas
+  en 30 s se voit choisir une carte.
+- **La même île** : l'hôte envoie l'état du match 4 fois par seconde (graine, manches, victoires,
+  capacités, cartes) ; quand il charge une manche, il augmente le **numéro de l'île**
+  (`NetGame.RoundToken`) et les invités chargent la même.
+- **Se voir bouger** : 20 fois par seconde, chaque invité dit où il est ; l'hôte dit à tous où
+  sont tous les joueurs (lui, ses bots, les invités) et la Couronne. Chez chacun, les autres sont
+  des **marionnettes** (`Rival` en mode `Remote` : il suit, il ne pense pas).
+- **Chacun joue SON joueur chez lui** (aucune latence pour bouger, sauter, planer). **Les coups**
+  sur un ami partent chez lui, par l'hôte (`Combat.Hit` → `NetGame.RemoteHit`) ; c'est sa
+  machine qui le projette. Les obstacles et les gargouilles, chacun a les siens.
+- **L'hôte décide de la Couronne** (prise, vol, chute) et **de la fin de manche** (le sacre,
+  le chrono). Un invité **demande** (`NetGame.AskCrown`) ; l'hôte passe par les mêmes portes que
+  tout le monde (`Crown.TryTakeFor`, `TrySteal`, `KnockOff`…) et le dit à tous (`Crown.Mirror`).
+- **Un ami part en plein match** : sa place devient un bot, là où il était. **L'hôte part** :
+  retour à l'écran En ligne, avec la raison. **Pas la même version** des deux côtés : refusé, et
+  le jeu le dit (`NetLink.Version` = 2).
+- Testé hors d'Unity : `sh Tools/reseau.sh` (messages fiables avec 30 % de paquets perdus exprès).
+
+**Ce qui n'est pas encore partagé** (à voir en jouant) : les **effets** d'une capacité lancée
+par un autre (tu en subis le coup, tu ne vois pas toujours l'éclair), le **Mur** et les **mines**
+d'un autre (ils n'existent que chez lui), un **sanctuaire** pris par un autre (il reste allumé
+chez toi), le **piqué d'aigle** d'un autre sur toi (pas d'alerte), le moment exact des
+**obstacles** (chacun voit les siens). Rien de tout ça ne change qui gagne : la Couronne et la
+fin de manche sont à l'hôte.
+
+**Étape 3** : partager ce qui manque ci-dessus, si ça gêne en jouant. **Étape 4** : Steam
+(invitations, Internet). **Porte 3** : un match de 30-45 min à plusieurs sans plantage ni
+désynchronisation.
 
 ---
 

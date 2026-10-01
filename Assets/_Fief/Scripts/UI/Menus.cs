@@ -40,6 +40,8 @@ namespace Fief
 
         /// <summary>Apres "Nouveau match" : on rouvre directement le salon au rechargement.</summary>
         static bool openLobby;
+        /// <summary>(04/10, en ligne) Apres un match en ligne (ou l'hote parti) : on rouvre l'ecran En ligne.</summary>
+        static bool openOnline;
 
         bool showControls;
         float appear;           // 0 -> 1 : apparition du titre
@@ -76,8 +78,9 @@ namespace Fief
             appear = 0f;
             curtain = 1f;       // on ouvre sur du noir, l'ile apparait en fondu
             if (Match.Launched) Go(State.Briefing);
-            else Go(openLobby ? State.Lobby : State.Title);
+            else Go(openOnline ? State.Online : openLobby ? State.Lobby : State.Title);
             openLobby = false;
+            openOnline = false;
         }
 
         void OnDestroy()
@@ -115,19 +118,24 @@ namespace Fief
                 Time.timeScale = slowMotion > 0f ? Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(slowMotion / 0.8f)) : 1f;
             }
 
+            // (04/10, en ligne) L'invite suit l'hote ; l'hote dit ou il en est.
+            if (NetSession.Link != null && !NetSession.Link.IsHost) FollowHost();
+            NetGame.LocalPhase = PhaseNow();
+
             Season season = Game.Season;
             if (Current == State.Playing && season != null)
             {
                 WarnOfTime(season);
                 // Le temps est ecoule : PERSONNE ne gagne (01/10 -- Martin : "la victoire, il ne
                 // faut pas la donner s'il a la couronne a la fin"). On gagne au Monument, point.
-                if (season.Over) EndRound(-1);
+                // (En ligne, c'est l'hote qui le dit.)
+                if (season.Over && !NetGame.IsClient) EndRound(-1);
             }
             if (Current == State.Briefing && stateTime > BriefingLength && !leaving) Enter();
             if (Current == State.Draft) TickDraft(dt);
             if (Current == State.Playing) TickCountdown(dt);
             if (goFlash > 0f) goFlash = Mathf.Max(0f, goFlash - dt * 1.2f);
-            if (Current == State.RoundOver && stateTime > 9f && !leaving) AfterRound();
+            if (Current == State.RoundOver && stateTime > 9f && !leaving && !NetGame.IsClient) AfterRound();
 
             if (!leaving) Keyboard();
             DriveCamera();
@@ -340,7 +348,7 @@ namespace Fief
                     if (FiefInput.RightPressed) { selected = (selected + 1) % cards; Sfx.Pop(); }
                     if (FiefInput.ConfirmPressed) PickCard(selected);
                 }
-                else if (Match.Draft.Done && FiefInput.ConfirmPressed) FinishDraft();
+                else if (Match.Draft.Done && FiefInput.ConfirmPressed && !NetGame.IsClient) FinishDraft();
                 return;
             }
 
@@ -352,6 +360,11 @@ namespace Fief
             {
                 if (FiefInput.LeftPressed) Adjust(selected, -1);
                 if (FiefInput.RightPressed) Adjust(selected, 1);
+            }
+            if (Current == State.Online && HostingSalon && selected < OnlineRows)
+            {
+                if (FiefInput.LeftPressed) AdjustOnline(selected, -1);
+                if (FiefInput.RightPressed) AdjustOnline(selected, 1);
             }
             // (04/10) Entree en tapant l'adresse : on rejoint (pas "Heberger", vise par defaut).
             if (FiefInput.ConfirmPressed && Current == State.Online && addressFocused && NetSession.Link == null) { Activate(1); return; }
@@ -367,7 +380,7 @@ namespace Fief
             {
                 case State.Title: return TitleItems.Length;
                 case State.Lobby: return LobbyRows + 2;
-                case State.Online: return NetSession.Link == null ? 3 : 1;
+                case State.Online: return NetSession.Link == null ? 3 : HostingSalon ? OnlineRows + 2 : 1;
                 case State.Paused: return PauseItems.Length;
                 case State.RoundOver: return stateTime > 3f ? 1 : 0;
                 case State.Ended: return stateTime > 1.5f ? EndItems.Length : 0;
@@ -378,6 +391,7 @@ namespace Fief
         static readonly string[] TitleItems = { "Jouer", "En ligne", "Réglages", "Commandes", "Quitter" };
         static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
         static readonly string[] EndItems = { "Nouveau match", "Quitter" };
+        static readonly string[] ClientEndItems = { "Quitter le salon", "Quitter" };
 
         /// <summary>Le salon : les lignes a regler (joueurs, bots, manches, duree), puis Commencer et Retour.</summary>
         const int LobbyRows = 4;
@@ -408,6 +422,13 @@ namespace Fief
                 case State.Online:
                     // (04/10, le jeu en ligne, etape 1) Heberger, Rejoindre (l'adresse tapee au-dessus),
                     // Retour ; une fois dans un salon : le quitter.
+                    if (HostingSalon)
+                    {
+                        if (i < OnlineRows) AdjustOnline(i, 1);
+                        else if (i == OnlineRows) StartOnlineMatch();
+                        else NetSession.Leave();
+                        break;
+                    }
                     if (NetSession.Link != null) { NetSession.Leave(); break; }
                     if (i == 0) NetSession.Host();
                     else if (i == 1) NetSession.Join(joinAddress);
@@ -421,16 +442,18 @@ namespace Fief
                     {
                         if (!confirmAbandon) { confirmAbandon = true; break; }
                         confirmAbandon = false;
+                        LeaveOnlineMatch();
                         Match.Abandon();
                         Curtain(Reload);
                     }
                     else Quit();
                     break;
                 case State.RoundOver:
-                    AfterRound();
+                    if (!NetGame.IsClient) AfterRound();
                     break;
                 case State.Ended:
-                    if (i == 0) { Match.Abandon(); openLobby = true; Curtain(Reload); }
+                    if (i == 0 && Match.Online) { LeaveOnlineMatch(); Match.Abandon(); Curtain(Reload); }
+                    else if (i == 0) { Match.Abandon(); openLobby = true; Curtain(Reload); }
                     else Quit();
                     break;
             }
@@ -558,12 +581,12 @@ namespace Fief
         /// </summary>
         public void EndRound(int winner)
         {
-            if (Current != State.Playing && Current != State.Paused) return;
+            if (Current != State.Playing && Current != State.Paused && !(NetGame.IsClient && Current == State.Briefing)) return;
             if (Game.Season != null) { roundTime = Game.Season.Elapsed; Game.Season.Stop(); }
             // (30/09 : plus de ralenti -- la fete du vainqueur se joue a vitesse normale.)
             Time.timeScale = 1f;
             slowMotion = 0f;
-            if (Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
+            if (!NetGame.IsClient && Match.IsTieBreak && winner >= 0 && !Match.TieBreakers.Contains(winner)) winner = -1;
             roundWinner = winner;
             if (winner >= 0 && Match.Local != null && winner == Match.Local.Index) Stats.Delivered++;
             for (int i = 0; i < Game.Seekers.Count; i++)
@@ -574,11 +597,12 @@ namespace Fief
             // La voix de l'arene : "you win", "you lose" -- ou "time" quand personne n'a gagne.
             // ("you lose" seulement a la derniere manche : l'entendre sept fois de suite, c'est dur.)
             bool mine = Match.Local != null && winner == Match.Local.Index;
-            bool last = Match.Played + 1 >= Match.Rounds;
+            bool last = (NetGame.IsClient ? Match.Played : Match.Played + 1) >= Match.Rounds;
             if (winner < 0) Sfx.Announce("time");
             else if (mine) Sfx.Announce("you_win");
             else if (last) Sfx.Announce("you_lose");
-            Match.EndRound(winner);
+            // (En ligne, l'invite a deja recopie le score de l'hote.)
+            if (!NetGame.IsClient) Match.EndRound(winner);
             Go(State.RoundOver);
             Sfx.Bell();
             // La foule exulte (une manche gagnee) -- rien quand le temps s'est ecoule.
@@ -599,13 +623,15 @@ namespace Fief
 
         void NextRound()
         {
+            // En ligne : une nouvelle ile -- les invites chargent la meme (NetGame).
+            if (NetGame.IsHost) NetGame.HostNewRound();
             Curtain(Reload);
         }
 
         /// <summary>Le choix est fini : la manche suivante (ou la premiere : le match part).</summary>
         void FinishDraft()
         {
-            if (leaving) return;
+            if (leaving || NetGame.IsClient) return;
             // Apres la passive, le tour des actives (a chaque manche).
             if (Match.Draft.SecondStageNext)
             {
@@ -627,6 +653,14 @@ namespace Fief
             if (Match.Draft.Done || Match.Draft.Current != me) return;
             if (card < 0 || card >= Match.Draft.Offer.Count || Match.Local.Has(Match.Draft.Offer[card])) { Sfx.Deny(); return; }
             Ability chosen = Match.Draft.Offer[card];
+            // (04/10, en ligne) L'invite dit son choix a l'hote, qui le pose (et le dit a tous).
+            if (NetGame.IsClient)
+            {
+                NetGame.SendPick(me, card);
+                CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
+                Sfx.CardPick();
+                return;
+            }
             if (Match.Draft.TryPick(me, card))
             {
                 CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
@@ -638,6 +672,15 @@ namespace Fief
 
         void TickDraft(float dt)
         {
+            // (04/10, en ligne) L'invite ne fait que regarder : l'hote fait choisir les bots.
+            if (NetGame.IsClient) return;
+            int turnKey = Match.Draft.Stage * 100 + Match.Draft.Turn;
+            if (turnKey != draftTurnKey)
+            {
+                draftTurnKey = turnKey;
+                draftWait = 0f;
+                if (botPickTimer < BotPickDelay) botPickTimer = BotPickDelay;
+            }
             if (Match.Draft.Done)
             {
                 // Tout le monde a choisi : on part tout seul apres un temps de lecture.
@@ -646,7 +689,14 @@ namespace Fief
                 return;
             }
             int slot = Match.Draft.Current;
-            if (slot < 0 || slot >= Match.Slots.Count || !Match.Slots[slot].IsBot) return;
+            if (slot < 0 || slot >= Match.Slots.Count) return;
+            // Un ami en ligne choisit chez lui : on l'attend (30 s au plus, puis on choisit pour lui).
+            if (Match.Slots[slot].IsRemote && !Match.Slots[slot].IsBot)
+            {
+                draftWait += dt;
+                if (draftWait < 30f) return;
+            }
+            else if (!Match.Slots[slot].IsBot) return;
             botPickTimer -= dt;
             if (botPickTimer > 0f) return;
             botPickTimer = BotPickDelay;
@@ -663,6 +713,130 @@ namespace Fief
             selected = Mathf.Clamp(selected, 0, Mathf.Max(0, Match.Draft.Offer.Count - 1));
         }
 
+        int draftTurnKey = -1;
+        float draftWait;
+
+        // ================================================================== en ligne (04/10)
+
+        /// <summary>Vrai dans le salon en ligne, quand c'est nous qui hebergeons (et que le match n'a pas commence).</summary>
+        bool HostingSalon { get { return NetSession.Link != null && NetSession.Link.IsHost && !Match.Online; } }
+
+        /// <summary>Le salon en ligne : les bots, leur niveau, les manches, la duree.</summary>
+        const int OnlineRows = 4;
+        int onlineBots;
+
+        void AdjustOnline(int row, int step)
+        {
+            int humans = NetSession.Link != null ? NetSession.Link.Roster.Count : 1;
+            if (row == 0) onlineBots = Mathf.Clamp(onlineBots + step, 0, Match.MaxPlayers - humans);
+            else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
+            else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
+            else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
+            else return;
+            Sfx.Pop();
+        }
+
+        /// <summary>
+        /// L'HOTE LANCE LE MATCH EN LIGNE (04/10 -- "on peut rien faire, on est juste dans le truc") :
+        /// les joueurs du salon et les bots choisis, puis le choix des cartes -- chacun choisit chez
+        /// lui, a son tour. Les invites suivent tout seuls (FollowHost).
+        /// </summary>
+        void StartOnlineMatch()
+        {
+            if (!NetGame.HostBegin(onlineBots, lobbyRounds, lobbyMinutes)) { Sfx.Deny(); return; }
+            Stats.Reset();
+            Match.Draft.Prepare();
+            botPickTimer = 0.8f;
+            draftTurnKey = -1;
+            Go(State.Draft);
+        }
+
+        /// <summary>On quitte un match en ligne : l'hote rouvre le salon (les invites y reviennent), l'invite s'en va.</summary>
+        static void LeaveOnlineMatch()
+        {
+            if (!Match.Online) return;
+            if (NetSession.Link != null && NetSession.Link.IsHost) NetGame.HostReopen();
+            else NetSession.Leave();
+            openOnline = true;
+        }
+
+        /// <summary>Ou en est le match, pour l'envoyer aux invites.</summary>
+        NetGame.Phase PhaseNow()
+        {
+            if (!Match.Online) return NetGame.Phase.Lobby;
+            switch (Current)
+            {
+                case State.Draft: return NetGame.Phase.Draft;
+                case State.RoundOver: return NetGame.Phase.RoundOver;
+                case State.Ended: return NetGame.Phase.Ended;
+            }
+            return Match.Launched ? NetGame.Phase.Round : NetGame.Phase.Draft;
+        }
+
+        int followDraftKey = -1;
+
+        /// <summary>
+        /// L'INVITE SUIT L'HOTE (04/10) : il charge la meme ile quand l'hote en charge une, il passe
+        /// a la fin de manche, au choix des cartes, au podium en meme temps que lui. Si l'hote part,
+        /// retour a l'ecran En ligne.
+        /// </summary>
+        void FollowHost()
+        {
+            if (leaving) return;
+            if (NetGame.HostLost)
+            {
+                bool inMatch = Match.Online;
+                Fief.Net.NetLink link = NetSession.Link;
+                // Dire POURQUOI (la cause n°1 : pas la meme version du jeu des deux cotes).
+                string why = "L'hôte a quitté la partie.";
+                if (link.Status == Fief.Net.NetLink.State.Refused)
+                    why = link.RefusedFor == Fief.Net.NetLink.Refusal.BadVersion ? "Pas la même version du jeu que l'hôte : refaites le Build tous les deux."
+                        : link.RefusedFor == Fief.Net.NetLink.Refusal.Full ? "Le salon est plein."
+                        : "Le match a déjà commencé.";
+                else if (link.Roster.Count == 0) why = "Pas de réponse de l'hôte : vérifie l'adresse, et que son pare-feu autorise le jeu.";
+                NetSession.Leave();
+                NetSession.Report(why);
+                if (inMatch || Current != State.Online) { openOnline = true; Curtain(Reload); }
+                return;
+            }
+            if (!Match.Online) return;      // le salon : on attend que l'hote lance
+            NetGame.Phase phase = NetGame.HostPhase;
+            if (phase == NetGame.Phase.Lobby)
+            {
+                // L'hote a rouvert le salon (nouveau match, abandon) : on y retourne.
+                Match.Abandon();
+                openOnline = true;
+                Curtain(Reload);
+                return;
+            }
+            // L'hote charge une nouvelle ile : on charge la meme (meme graine, meme manche).
+            if (NetGame.HostLaunched && NetGame.HostToken != NetGame.RoundToken)
+            {
+                NetGame.RoundToken = NetGame.HostToken;
+                Match.Launch();
+                Curtain(Reload);
+                return;
+            }
+            bool inRound = Current == State.Briefing || Current == State.Playing || Current == State.Paused;
+            if ((phase == NetGame.Phase.RoundOver || phase == NetGame.Phase.Ended) && inRound) { ClientRoundOver(); return; }
+            if (phase == NetGame.Phase.Ended && Current == State.RoundOver && stateTime > 3f) { Go(State.Ended); return; }
+            int key = Match.Draft.Stage + Match.Played * 10;
+            if (phase == NetGame.Phase.Draft && !inRound && (Current != State.Draft || key != followDraftKey) && (Current != State.RoundOver || stateTime > 3f))
+            {
+                followDraftKey = key;
+                Go(State.Draft);
+            }
+        }
+
+        /// <summary>L'hote a dit "fin de manche" : chez l'invite, le meme vainqueur, la meme fete.</summary>
+        void ClientRoundOver()
+        {
+            int w = Match.LastWinner;
+            Seeker ws = w >= 0 ? Game.SeekerOf(w) : null;
+            if (ws != null) Monument.MirrorWinner(ws);
+            EndRound(w);
+        }
+
         /// <summary>Trois rappels : a une minute, trente secondes, dix secondes.</summary>
         void WarnOfTime(Season season)
         {
@@ -675,7 +849,8 @@ namespace Fief
         public void Pause()
         {
             Go(State.Paused);
-            Time.timeScale = 0f;
+            // En ligne, le monde ne s'arrete pas pour un seul joueur.
+            Time.timeScale = Match.Online ? 1f : 0f;
         }
 
         public void Resume()
@@ -1081,6 +1256,8 @@ namespace Fief
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(220);
+            // Le salon de l'hote est plus haut (les reglages et Lancer) : centre sur sa vraie hauteur.
+            if (HostingSalon) y = Mathf.Round(Mathf.Max(UiStyle.S(24), (Screen.height - UiStyle.S(510 + 52 * NetSession.Link.Roster.Count)) * 0.5f));
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "EN LIGNE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(74);
             Fief.Net.NetLink link = NetSession.Link;
@@ -1144,6 +1321,35 @@ namespace Fief
                 y += ph + UiStyle.S(8);
             }
             y += UiStyle.S(18);
+            if (HostingSalon)
+            {
+                // (04/10, etape 2) L'HOTE REGLE ET LANCE : les bots en plus des amis, leur niveau,
+                // les manches, la duree. Puis "Lancer" : tout le monde passe au choix des cartes.
+                string[] labels = { "Bots", "Niveau", "Manches", "Durée max" };
+                string[] values = { onlineBots.ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min" };
+                for (int i = 0; i < OnlineRows; i++)
+                {
+                    int row = i;
+                    ValueRow(x, y, labels[i], values[i], i, step => AdjustOnline(row, step));
+                    y += UiStyle.S(54);
+                }
+                y += UiStyle.S(10);
+                if (Entry(new Rect(x, y, bw, UiStyle.S(50)), "Lancer", OnlineRows, true, 1f)) Activate(OnlineRows);
+                y += UiStyle.S(56);
+                if (Entry(new Rect(x, y, bw, bh), "Quitter le salon", OnlineRows + 1, false, 1f)) Activate(OnlineRows + 1);
+                return;
+            }
+            if (link.Status == Fief.Net.NetLink.State.Connected)
+            {
+                // L'invite attend que l'hote lance : un sablier qui bat.
+                float ph2 = UiStyle.S(44);
+                Rect wait = new Rect(x, y, UiStyle.S(420), ph2);
+                Icons.Pill(wait, new Color(0.14f, 0.16f, 0.36f));
+                float beat = 0.8f + 0.2f * Mathf.Sin(Time.unscaledTime * 6f);
+                Icons.Draw(new Rect(wait.x + ph2 * 0.14f, wait.y + ph2 * 0.12f, ph2 * 0.76f * beat, ph2 * 0.76f * beat), "chrono", Color.white);
+                Icons.Number(new Rect(wait.x + ph2, wait.y, wait.width - ph2 * 1.2f, ph2), "L'hôte va lancer", Mathf.RoundToInt(ph2 * 0.42f), Color.white, TextAnchor.MiddleCenter);
+                y += ph2 + UiStyle.S(14);
+            }
             if (Entry(new Rect(x, y, bw, bh), "Quitter le salon", 0, false, 1f)) Activate(0);
         }
 
@@ -1603,11 +1809,12 @@ namespace Fief
             if (stateTime > 1.5f)
             {
                 float bw = UiStyle.S(320);
-                for (int i = 0; i < EndItems.Length; i++)
+                string[] items = NetGame.IsClient ? ClientEndItems : EndItems;
+                for (int i = 0; i < items.Length; i++)
                 {
                     bool primary = i == 0;
                     float h = UiStyle.S(primary ? 48 : 38);
-                    if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, h), EndItems[i], i, primary, a)) Activate(i);
+                    if (Entry(new Rect((Screen.width - bw) * 0.5f, y, bw, h), items[i], i, primary, a)) Activate(i);
                     y += h + UiStyle.S(4);
                 }            }
         }

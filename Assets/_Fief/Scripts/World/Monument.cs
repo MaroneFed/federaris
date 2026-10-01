@@ -299,6 +299,8 @@ namespace Fief
         /// </summary>
         public bool TryDeliver(Seeker s)
         {
+            // (04/10, en ligne) Chez un invite, la barre monte pareil -- mais c'est l'hote qui sacre.
+            if (NetGame.IsClient) return false;
             if (s == null || !s.CarriesCrown || !Within(s.Body.position, 4.5f)) return false;
             if (sacreBy != s || sacre < SacreSeconds) return false;
             if (Game.Season == null || !Game.Season.Running) return false;
@@ -315,6 +317,19 @@ namespace Fief
             Highlights.Crowned(s);
             if (Game.Menus != null) Game.Menus.EndRound(s.Index);
             return true;
+        }
+
+        /// <summary>(04/10, en ligne) L'hote a sacre "s" : chez l'invite, le Monument le plus proche de lui est le bon.</summary>
+        public static void MirrorWinner(Seeker s)
+        {
+            Sacring = null;
+            SacreProgress = 0f;
+            if (s == null || s.Body == null) return;
+            Monument m = Nearest(s.Body.position);
+            if (m == null) return;
+            Winner = m;
+            if (m.beam != null) { m.beam.targetAlpha = 1f; m.beam.fadeSpeed = 4f; }
+            Sfx.Discovery();
         }
 
         // ================================================================== IInteractable

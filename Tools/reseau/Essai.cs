@@ -22,6 +22,26 @@ static class Essai
         Check(a.Roster.Count == 3 && b.Roster.Count == 3, "les invites voient 3 joueurs");
         Check(a.MySlot != b.MySlot && a.MySlot > 0 && b.MySlot > 0, "places differentes (" + a.MySlot + ", " + b.MySlot + ")");
         Check(host.Roster.Exists(m => m.Name == "Martin 2"), "le second Martin devient Martin 2");
+        // LES MESSAGES DU JEU (etape 2) : 30 % des paquets perdus expres. Les fiables arrivent
+        // tous, une seule fois ; les autres, a peu pres 70 %.
+        host.DropForTests = 0.3; a.DropForTests = 0.3;
+        for (int i = 0; i < 40; i++)
+        {
+            a.Send(0, new byte[] { 1, (byte)i }, true);
+            host.Send(a.MySlot, new byte[] { 2, (byte)i }, true);
+            a.Send(0, new byte[] { 3, (byte)i }, false);
+        }
+        host.Broadcast(new byte[] { 4, 99 }, true);
+        Loop(now, 3f, host, a, b);
+        int[] gotHost = Count(host), gotA = Count(a), gotB = Count(b);
+        Check(gotHost[1] == 40, "l'hote recoit les 40 fiables de A, une fois chacun (" + gotHost[1] + ")");
+        Check(gotA[2] == 40, "A recoit les 40 fiables de l'hote (" + gotA[2] + ")");
+        Check(gotHost[3] > 10 && gotHost[3] < 40, "des non fiables se perdent (" + gotHost[3] + "/40)");
+        Check(gotA[4] == 1 && gotB[4] == 1, "le message a tous arrive chez A et B");
+        Check(host.PendingCount == 0 && a.PendingCount == 0, "plus rien en attente d'accuse");
+        host.DropForTests = 0; a.DropForTests = 0;
+        Check(host.HasPeer(a.MySlot) && !host.HasPeer(7), "l'hote sait qui est la");
+
         // Un invite part : l'hote et l'autre invite le voient.
         a.Dispose();
         Loop(now, 1.5f, host, b);
@@ -44,6 +64,18 @@ static class Essai
 
     static int failures;
     static void Check(bool ok, string what) { Console.WriteLine((ok ? "  ok   " : "  ECHEC ") + what); if (!ok) failures++; }
+
+    /// <summary>Vide la boite : combien de messages de chaque sorte (le premier octet).</summary>
+    static int[] Count(NetLink l)
+    {
+        int[] n = new int[8];
+        while (l.Inbox.Count > 0)
+        {
+            NetLink.Incoming m = l.Inbox.Dequeue();
+            n[m.Data[0]]++;
+        }
+        return n;
+    }
 
     static void Loop(Func<float> now, float seconds, params NetLink[] links)
     {

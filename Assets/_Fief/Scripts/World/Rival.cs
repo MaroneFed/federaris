@@ -157,9 +157,99 @@ namespace Fief
             r.lantern = PlayerLook.Dress(rig, root.transform, colour);
             r.wings = WingsOnBack.Attach(root.transform, seeker);
             GraceShell.Attach(root.transform, seeker);
+            if (slot.IsRemote) r.BecomePuppet();
 
             All.Add(r);
             return r;
+        }
+
+        // ================================================================== en ligne : la marionnette
+
+        /// <summary>
+        /// (04/10, en ligne) UNE MARIONNETTE : ce joueur est joue sur une autre machine (un ami, ou
+        /// un bot de l'hote quand on est invite). Il ne pense plus, il ne marche plus : il SUIT ce
+        /// que le reseau dit, 20 fois par seconde (NetGame), en glissant d'une position a l'autre.
+        /// On se cogne quand meme dedans (une capsule), et on le voit planer, briller, tomber.
+        /// </summary>
+        CapsuleCollider puppetShape;
+        Vector3 netPos, netVel;
+        float netYaw;
+        int netFlags;
+        float netAt = -1f;
+
+        void BecomePuppet()
+        {
+            body.enabled = false;
+            puppetShape = gameObject.AddComponent<CapsuleCollider>();
+            puppetShape.height = 1.8f;
+            puppetShape.radius = 0.35f;
+            puppetShape.center = new Vector3(0f, 0.9f, 0f);
+        }
+
+        /// <summary>Son ami est parti : la place redevient un bot, la ou il est (chez l'hote).</summary>
+        void BecomeBot()
+        {
+            if (puppetShape != null) Destroy(puppetShape);
+            puppetShape = null;
+            Teleport(transform.position + Vector3.up * 0.2f);
+            body.enabled = true;
+            think = 0f;
+        }
+
+        /// <summary>Ce que le reseau dit de lui : ou il est, ou il regarde, et ce qu'il fait (NetGame.Flag...).</summary>
+        public void NetState(Vector3 position, float yaw, int flags)
+        {
+            if (netAt >= 0f)
+            {
+                float gap = Time.time - netAt;
+                if (gap > 0.01f) netVel = Vector3.ClampMagnitude((position - netPos) / gap, 70f);
+            }
+            if (netAt < 0f || (position - transform.position).sqrMagnitude > 64f)
+            {
+                // Premier message, ou un saut de plus de 8 m (il est reapparu) : on le pose la.
+                transform.position = position;
+                lastPosition = position;
+                netVel = Vector3.zero;
+            }
+            netPos = position;
+            netYaw = yaw;
+            netFlags = flags;
+            netAt = Time.time;
+        }
+
+        void FollowNet(float dt)
+        {
+            if (netAt >= 0f && dt > 0f)
+            {
+                float age = Mathf.Min(Time.time - netAt, 0.2f);
+                Vector3 want = netPos + netVel * age;
+                transform.position = Vector3.Lerp(transform.position, want, 1f - Mathf.Exp(-16f * dt));
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, netYaw, 0f), 1f - Mathf.Exp(-14f * dt));
+                // Ce qu'il fait, recopie sur son Seeker (ses ailes, son halo, l'ecran s'en servent).
+                float soon = Time.time + 0.3f;
+                gliding = (netFlags & NetGame.FlagGliding) != 0;
+                if ((netFlags & NetGame.FlagGraced) != 0) seeker.GraceUntil = soon;
+                if ((netFlags & NetGame.FlagHidden) != 0) seeker.HiddenUntil = soon;
+                if ((netFlags & NetGame.FlagStunned) != 0) seeker.StunnedUntil = soon;
+                if ((netFlags & NetGame.FlagTumbling) != 0) seeker.TumbleUntil = soon;
+                if ((netFlags & NetGame.FlagSlowed) != 0) seeker.SlowUntil = soon;
+                seeker.HasWings = (netFlags & NetGame.FlagGoldWings) != 0;
+                if ((netFlags & NetGame.FlagGrounded) != 0) lastGround = transform.position;
+            }
+            if (wings != null) wings.Flying = gliding;
+            Animate(dt);
+        }
+
+        /// <summary>Ce qu'il fait, en bits (pour l'envoyer : l'hote le dit de ses bots).</summary>
+        public int NetFlags
+        {
+            get
+            {
+                int f = 0;
+                if (body.enabled && body.isGrounded || mounted) f |= NetGame.FlagGrounded;
+                if (gliding) f |= NetGame.FlagGliding;
+                return f | NetGame.CommonFlags(seeker);
+            }
         }
 
         void OnDestroy() { All.Remove(this); }
@@ -178,6 +268,7 @@ namespace Fief
 
         public void Push(Vector3 velocity)
         {
+            if (seeker.Remote) return;      // une marionnette : les coups partent chez lui (NetGame)
             knock += new Vector3(velocity.x, 0f, velocity.z);
             if (velocity.y > 0f) fallSpeed = Mathf.Max(fallSpeed, velocity.y);
             // Lance par un courant : il monte droit, sans marcher, jusqu'a passer le trou.
@@ -188,6 +279,7 @@ namespace Fief
 
         public void Dash(Vector3 direction, float speed, float seconds)
         {
+            if (seeker.Remote) return;
             dashVelocity = direction.normalized * speed;
             dashTime = seconds;
             if (fallSpeed < 1f) fallSpeed = 1f;
@@ -195,6 +287,7 @@ namespace Fief
 
         public void PullTo(Vector3 point, float speed)
         {
+            if (seeker.Remote) return;
             pullPoint = point;
             pullSpeed = speed;
             pullTime = 1.4f;
@@ -206,6 +299,7 @@ namespace Fief
 
         public void Dive(Seeker target)
         {
+            if (seeker.Remote) return;
             diveTarget = target;
             diveTime = Combat.DiveSeconds;
             gliding = false;
@@ -217,6 +311,7 @@ namespace Fief
 
         public void Launch(Vector3 velocity)
         {
+            if (seeker.Remote) return;
             ballistic = true;
             launchAge = 0f;
             flight = new Vector3(velocity.x, 0f, velocity.z);
@@ -230,7 +325,12 @@ namespace Fief
             path.Clear();
         }
 
-        public void Blink(Vector3 position) { Teleport(position); }
+        public void Blink(Vector3 position)
+        {
+            // Une marionnette qu'on echange : c'est chez lui qu'il change de place.
+            if (seeker.Remote) { NetGame.RemoteBlink(seeker, position); transform.position = position; return; }
+            Teleport(position);
+        }
 
         public Vector3 LastGround { get { return lastGround; } }
 
@@ -289,6 +389,8 @@ namespace Fief
 
         void Update()
         {
+            if (seeker.Remote) { FollowNet(Time.deltaTime); return; }
+            if (puppetShape != null) BecomeBot();
             Season season = Game.Season;
             if (season == null || !season.Running || Time.deltaTime <= 0f) return;
             float dt = Time.deltaTime;
@@ -1231,7 +1333,7 @@ namespace Fief
             if (rig != null)
             {
                 rig.Speed = gliding || mounted ? 0f : Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
-                rig.Grounded = body.enabled && body.isGrounded || mounted;
+                rig.Grounded = seeker.Remote ? (netFlags & NetGame.FlagGrounded) != 0 : body.enabled && body.isGrounded || mounted;
                 rig.Tumbling = seeker.Tumbling || seeker.Launched;
             }
         }

@@ -48,6 +48,13 @@ namespace Fief
             }
         }
 
+        /// <summary>(04/10, en ligne) L'invite se cale sur l'horloge de l'hote (s'il derive de plus d'une demi-seconde).</summary>
+        public void Sync(float hostElapsed)
+        {
+            if (Over) return;
+            if (Mathf.Abs(hostElapsed - Elapsed) > 0.5f) Elapsed = Mathf.Clamp(hostElapsed, 0f, Duration);
+        }
+
         public float Remaining
         {
             get { return Mathf.Max(0f, Duration - Elapsed); }

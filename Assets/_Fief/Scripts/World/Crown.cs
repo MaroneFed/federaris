@@ -277,9 +277,12 @@ namespace Fief
         void Update()
         {
             if (visual == null) return;
+            // (04/10, en ligne) Chez un invite, la Couronne RECOPIE celle de l'hote (Mirror) : elle
+            // ne decide de rien -- ni de tomber, ni de rentrer, ni de qui la prend.
+            bool mirror = NetGame.IsClient;
             if (state == State.Carried)
             {
-                if (Holder == null || Holder.Body == null) { Drop(visual.position); return; }
+                if (Holder == null || Holder.Body == null) { if (!mirror) Drop(visual.position); return; }
                 // Au-dessus de sa tete : tout le monde la voit briller.
                 visual.position = Holder.Body.position + Vector3.up * 2.6f + Vector3.up * Mathf.Sin(Time.time * 3f) * 0.05f;
             }
@@ -296,10 +299,10 @@ namespace Fief
             if (beam != null && state != State.Delivered) { beam.targetAlpha = mine ? 0f : 0.7f; beam.fadeSpeed = mine ? 30f : 0.5f; }
             // (02/10) A terre, elle RESTE : plus de retour au sommet au bout de 20 s. Seul filet :
             // si par malheur elle est passee sous l'ile, elle rentre au socle.
-            if (state == State.Dropped && visual.position.y < Ground.FallLine)
+            if (!mirror && state == State.Dropped && visual.position.y < Ground.FallLine)
                 ReturnHome();
             // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
-            if (state == State.Dropped) Attract();
+            if (!mirror && state == State.Dropped) Attract();
             // (01/10) Sur son socle comme a terre : on la prend EN PASSANT DESSUS.
             if (state == State.Dropped || state == State.OnPedestal) PickUpByTouch();
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
@@ -340,8 +343,14 @@ namespace Fief
         /// </summary>
         public static void FellWith(Seeker s)
         {
+            if (s != null) FellWith(s, LastGroundOf(s));
+        }
+
+        /// <summary>Pareil, en disant ou etait son dernier sol (un invite le dit a l'hote).</summary>
+        public static void FellWith(Seeker s, Vector3 ground)
+        {
             if (Instance == null || Holder != s || s == null) return;
-            Vector3 ground = LastGroundOf(s);
+            if (NetGame.IsClient) { NetGame.AskCrown(NetGame.Ask.FellWith, s, ground); return; }
             Instance.Drop(ground, ground);
             Feed.CrownKnocked(s, null);
         }
@@ -389,6 +398,8 @@ namespace Fief
             if (s == null || s.Body == null || s.Stunned || state == State.Carried || state == State.Delivered) return false;
             if (Game.Season == null || !Game.Season.Running) return false;
             if (Time.time < s.CrownLockUntil) return false;
+            // (04/10, en ligne) Un invite DEMANDE a l'hote ; c'est sa reponse (Mirror) qui la lui donne.
+            if (NetGame.IsClient) { if (!s.Remote) NetGame.AskCrown(NetGame.Ask.Take, s, s.Body.position); return false; }
             bool fromPedestal = state == State.OnPedestal;
             state = State.Carried;
             Holder = s;
@@ -492,6 +503,7 @@ namespace Fief
         public static void Slip(Seeker holder, Vector3 lastGround)
         {
             if (Instance == null || Holder != holder) return;
+            if (NetGame.IsClient) { NetGame.AskCrown(NetGame.Ask.Slip, holder, lastGround); return; }
             Instance.Drop(lastGround);
             Feed.CrownSlipped(holder);
         }
@@ -532,6 +544,8 @@ namespace Fief
             {
                 Seeker s = Game.Seekers[i];
                 if (s.Body == null || s.Stunned || Time.time < s.CrownLockUntil) continue;
+                // Chez un invite, seul SON joueur la touche (les autres, l'hote les voit).
+                if (NetGame.IsClient && s.Remote) continue;
                 float d;
                 if (onPedestal)
                 {
@@ -567,6 +581,7 @@ namespace Fief
         public static bool TrySteal(Seeker thief, Seeker victim)
         {
             if (Instance == null || Holder != victim || thief == null || thief.Body == null) return false;
+            if (NetGame.IsClient) return false;         // l'hote decide du vol (NetGame.RemoteHit)
             if (Time.time < thief.CrownLockUntil || thief.Stunned) return false;
             if (victim.Has(Ability.PriseFerme) && !victim.GripUsed) return false;       // Combat.Hit s'en charge
             Holder = thief;
@@ -594,8 +609,92 @@ namespace Fief
         public static void KnockOff(Seeker victim, Vector3 direction)
         {
             if (Instance == null || Holder != victim || victim.Body == null) return;
+            if (NetGame.IsClient) { NetGame.AskCrown(NetGame.Ask.KnockOff, victim, direction); return; }
             Vector3 flat = new Vector3(direction.x, 0f, direction.z).normalized;
             Instance.Drop(victim.Body.position + flat * 2.2f, victim.Body.position);
+        }
+
+        // ================================================================== en ligne : le miroir
+
+        /// <summary>Ou elle est posee (a terre, sur son socle, sur l'autel) : l'hote l'envoie.</summary>
+        public Vector3 RestingPosition { get { return visual != null ? new Vector3(visual.position.x, BaseHeight(), visual.position.z) : transform.position; } }
+
+        /// <summary>
+        /// (04/10) CHEZ UN INVITE : la Couronne devient ce que l'hote dit -- qui la porte, ou elle
+        /// est tombee. Avec ce qu'il faut de bruit et de lumiere quand ca change (la fanfare si
+        /// c'est toi qui l'as, le cadre d'or qui s'eteint si on te l'a prise).
+        /// </summary>
+        public void Mirror(State st, Seeker holder, Vector3 at)
+        {
+            if (visual == null || showOff != null) return;
+            Seeker was = Holder;
+            if (st == State.Carried)
+            {
+                if (holder == null || holder == was) return;
+                bool fromPedestal = state == State.OnPedestal;
+                state = State.Carried;
+                Holder = holder;
+                Sfx.Bell();
+                if (holder.IsPlayer)
+                {
+                    Stats.CrownsTaken++;
+                    Sfx.Discovery();
+                    if (Game.Hud != null)
+                    {
+                        Game.Hud.ShowSplash("couronne", Gold, was != null ? "TU AS VOLÉ LA COURONNE !" : "LA COURONNE EST À TOI !");
+                        Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f));
+                        if (Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Kick(8f);
+                    }
+                }
+                else if (fromPedestal) Sfx.Alarm();
+                if (was != null)
+                {
+                    if (was.IsPlayer) LostIt(was);
+                    if (was.Body != null && holder.Body != null) Tether.Show(was.Body, holder.Body, Vector3.zero, 0.5f, Gold);
+                    Feed.CrownStolen(holder, was);
+                }
+                else Feed.CrownTaken(holder, fromPedestal);
+                Highlights.CrownChanged(holder);
+                return;
+            }
+            Holder = null;
+            if (was != null && was.IsPlayer) LostIt(was);
+            if (st == State.Dropped)
+            {
+                bool fell = state == State.Carried || state != State.Dropped;
+                state = State.Dropped;
+                groundY = at.y;
+                transform.position = new Vector3(at.x, at.y - 1.4f, at.z);
+                visual.position = new Vector3(at.x, at.y, at.z);
+                if (fell && was != null)
+                {
+                    DroppedAt = Time.time;
+                    Sfx.ThudAt(visual.position);
+                    Fx.Column(visual.position, Gold, 16f, 0.5f, 1.2f);
+                    Fx.Shock(visual.position, Gold, 4f, 0.45f);
+                }
+            }
+            else if (st == State.OnPedestal && state != State.OnPedestal)
+            {
+                state = State.OnPedestal;
+                transform.position = pedestal;
+                visual.position = home;
+            }
+            else if (st == State.Delivered && state != State.Delivered)
+            {
+                state = State.Delivered;
+                deliveredY = at.y;
+                transform.position = at - Vector3.up * 1.3f;
+                visual.position = at;
+                if (beam != null) { beam.color = Monument.Blue; beam.targetAlpha = 1f; }
+            }
+        }
+
+        /// <summary>On te l'a prise (ou tu l'as lachee) : tu ne la reprends pas tout de suite.</summary>
+        static void LostIt(Seeker me)
+        {
+            me.CrownLockUntil = Time.time + LockSeconds;
+            if (Game.Hud != null) Game.Hud.CrownLost();
         }
 
         // ================================================================== IInteractable

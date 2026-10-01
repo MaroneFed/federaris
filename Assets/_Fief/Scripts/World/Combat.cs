@@ -20,6 +20,8 @@ namespace Fief
         public const float ShoveLift = 10f;
         /// <summary>Vrai pendant le coup d'une poussee : Hit ne joue pas son petit son, la poussee a le sien.</summary>
         static bool quietHit;
+        /// <summary>(04/10, en ligne) Vrai pendant une poussee ou un pique d'invite sur le porteur : l'hote decidera du vol.</summary>
+        static bool stealAttempt;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -54,7 +56,9 @@ namespace Fief
             // loin -- 100 m de vide sous soi, le plus beau vol du jeu (Highlights : "vire du sommet").
             if (!stole && Tower.Summit(best.Body.position)) force *= 1.35f;
             quietHit = true;
+            stealAttempt = NetGame.IsClient && best.Remote && best.CarriesCrown;
             Hit(best, push * force * (stole ? 0.7f : 1f) + Vector3.up * ShoveLift, 0.3f, !stole, by);
+            stealAttempt = false;
             quietHit = false;
             Fx.Impact(best.Body.position + Vector3.up * 1.1f, by.Colour, stole ? 1.4f : 1f);
             Fx.Shock(best.Body.position + Vector3.up * 1.1f, by.Colour, 2.6f, 0.25f);
@@ -138,7 +142,9 @@ namespace Fief
             dir = dir.sqrMagnitude > 0.01f ? dir.normalized : by.Body.forward;
             bool stole = target.CarriesCrown && !target.Graced && Crown.TrySteal(by, target);
             quietHit = true;
+            stealAttempt = NetGame.IsClient && target.Remote && target.CarriesCrown;
             Hit(target, dir * 24f + Vector3.up * 6f, 0.3f, !stole, by);
+            stealAttempt = false;
             quietHit = false;
             Fx.Impact(target.Body.position + Vector3.up * 1.1f, Wings.Gold, stole ? 1.8f : 1f);
             Fx.Shock(target.Body.position + Vector3.up * 1.1f, Wings.Gold, 3f, 0.3f);
@@ -154,6 +160,9 @@ namespace Fief
         public static void Hit(Seeker victim, Vector3 velocity, float stun, bool dropsCrown, Seeker by)
         {
             if (victim == null || victim.Body == null) return;
+            // (04/10, en ligne) LE JOUEUR D'UNE AUTRE MACHINE : le coup part chez lui (par l'hote,
+            // qui decide de la Couronne). Ici, on n'en montre que le choc.
+            if (victim.Remote) { HitElsewhere(victim, velocity, stun, dropsCrown, by); return; }
             // Protege (au depart, apres un respawn, juste apres un vol) : rien ne le touche.
             if (victim.Graced)
             {
@@ -215,6 +224,26 @@ namespace Fief
                     if (by != null && by.Body != null) Punch.Apply(r.Figure, by.Body.position);
                     r.OnHit(by);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Un coup sur une marionnette (un joueur en ligne, ou un bot de l'hote chez un invite).
+        /// Seuls les coups des joueurs joues ICI partent : un obstacle, une gargouille d'ici ne
+        /// touchent pas un ami -- il a les siens, chez lui, au bon endroit.
+        /// </summary>
+        static void HitElsewhere(Seeker victim, Vector3 velocity, float stun, bool dropsCrown, Seeker by)
+        {
+            if (by == null || by.Remote || victim.Graced) return;
+            NetGame.RemoteHit(victim, velocity, stun, dropsCrown, by, stealAttempt);
+            if (!quietHit) Sfx.PunchAt(victim.Body.position);
+            Ambiance.Burst(null, victim.Body.position + Vector3.up * 1.2f, victim.Colour);
+            Rival r = Rival.Of(victim);
+            if (r != null && by.Body != null) Punch.Apply(r.Figure, by.Body.position);
+            if (by.IsPlayer)
+            {
+                Hud.HitStop(0.06f);
+                if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Shake(0.12f);
             }
         }
 

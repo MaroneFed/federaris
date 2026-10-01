@@ -35,6 +35,13 @@ namespace Fief
         }
 
         public int Index { get { return Slot.Index; } }
+
+        /// <summary>
+        /// (04/10, en ligne) Joue par UNE AUTRE MACHINE : ici, ce n'est qu'une marionnette qui suit
+        /// ce que le reseau dit (Rival en mode Remote). Les coups qu'on lui donne partent chez
+        /// lui (NetGame.RemoteHit) ; les obstacles d'ici l'ignorent (il a les siens).
+        /// </summary>
+        public bool Remote { get { return Slot.IsRemote; } }
         public bool Has(Ability a) { return Slot.Has(a) || HasGift && Gift == a; }
 
         // ------------------------------------------------------------------ les capacites

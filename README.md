@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v24.2 · en ligne (étape 1) · 04/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v25 · en ligne (étape 2) · 04/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -204,15 +204,21 @@ Le jeu en ligne (Phase 3 — l'architecture est prête : `docs/RESEAU.md`), l'ar
 d'autres pièges et capacités (Phase 2), l'équilibrage fin (Phase 4).
 → Voir `docs/v2-ideas.md`.
 
-## Jouer en ligne (étape 1, 04/10)
+## Jouer en ligne (étape 2, 04/10)
 
-Pour l'instant : **se connecter et voir le même salon** (lancer le match ensemble, c'est l'étape 2).
+**On lance le match ensemble** : l'hôte règle (bots en plus, niveau, manches, durée) et appuie sur
+**Lancer** ; tout le monde passe au choix des cartes (chacun choisit chez lui, à son tour), puis
+à la même île. On se voit, on se pousse, on se vole la Couronne ; l'hôte décide de la Couronne et
+de la fin de manche.
 
-1. **File ▸ Build Profiles ▸ Windows ▸ Build And Run** : le jeu s'ouvre dans sa propre fenêtre
-   (Windows demande d'autoriser le réseau la première fois : *Autoriser*).
-2. Dans Unity, **Play** : deux jeux ouverts.
-3. L'un : **En ligne ▸ Héberger**. L'autre : **En ligne**, tape `127.0.0.1`, **Rejoindre**.
-4. Sur deux PC de la maison : l'adresse à taper est affichée en haut du salon de l'hôte.
+1. L'hôte : **En ligne ▸ Héberger**. Son adresse s'affiche en haut du salon (du genre `192.168.1.23`).
+2. L'autre : **En ligne**, tape cette adresse à côté de **Rejoindre**, puis **Rejoindre**.
+3. Les deux pseudos sont dans le salon : l'hôte appuie sur **Lancer**.
+4. Pour essayer seul sur ton PC : **File ▸ Build Profiles ▸ Windows ▸ Build And Run** (un jeu
+   dans sa fenêtre) + **Play** dans Unity (un deuxième), et rejoindre `127.0.0.1`.
+
+**Les deux jeux doivent être la même version** (en bas de l'écran-titre) : sinon le salon refuse,
+et le jeu le dit.
 
 **Donner le jeu à quelqu'un** (pas besoin d'Unity chez lui) :
 1. **File ▸ Build Profiles ▸ Windows ▸ Build** (pas *Build And Run*), choisir un dossier
