@@ -214,5 +214,19 @@ Pour l'instant : **se connecter et voir le même salon** (lancer le match ensemb
 3. L'un : **En ligne ▸ Héberger**. L'autre : **En ligne**, tape `127.0.0.1`, **Rejoindre**.
 4. Sur deux PC de la maison : l'adresse à taper est affichée en haut du salon de l'hôte.
 
+**Donner le jeu à quelqu'un** (pas besoin d'Unity chez lui) :
+1. **File ▸ Build Profiles ▸ Windows ▸ Build** (pas *Build And Run*), choisir un dossier
+   vide hors du projet (ex. `Bureau/FIEF-Build`).
+2. Clic droit sur ce dossier ▸ **Compresser dans un fichier ZIP**. Tout le dossier, pas
+   seulement le `.exe` (il a besoin de `…_Data`, `UnityPlayer.dll`, etc.).
+3. L'envoyer (Google Drive, WeTransfer). Lui : **Extraire tout**, double-clic sur le `.exe`.
+   Windows dit « Windows a protégé votre ordinateur » ▸ **Informations complémentaires ▸
+   Exécuter quand même** (normal : le jeu n'est pas signé). Au pare-feu : **Autoriser**.
+4. À chaque nouvelle version : refaire le build et le renvoyer — les deux doivent avoir
+   **la même version** (en bas de l'écran-titre).
+5. **Pas dans la même maison** : installer tous les deux **Radmin VPN** (gratuit), créer un
+   réseau, l'autre le rejoint ; l'invité tape l'adresse de l'hôte affichée dans la fenêtre Radmin (`26.x.x.x`).
+   (En attendant Steam, étape 4.)
+
 Détails et étapes suivantes : `docs/RESEAU.md`. (Claude teste le réseau sans Unity :
 `sh Tools/reseau.sh`.)
