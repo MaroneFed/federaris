@@ -78,7 +78,7 @@ namespace Fief
                 if (!s.HasWings) Grant(s, true);
                 return;
             }
-            if (grounded && s.HasWings && Time.time - s.WingsAt > 0.6f) s.HasWings = false;
+            if (grounded && s.HasWings && Time.time - s.WingsAt > 0.6f) { s.HasWings = false; s.FreeFlight = false; }
         }
 
         /// <summary>Des ailes d'or (au sommet, ou tire par une arbaleste).</summary>
@@ -112,8 +112,13 @@ namespace Fief
         /// transforme la vitesse en hauteur, l'air freine vers la vitesse de croisiere, et
         /// plus on va lentement, plus on s'enfonce.
         /// </summary>
+        /// <summary>Le vol libre : sa vitesse de croisiere (le porteur, lourd, va moins vite).</summary>
+        public const float FreeCruise = 24f;
+        public const float FreeHeavyCruise = 16f;
+
         public static Vector3 Fly(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
         {
+            if (s != null && s.FreeFlight) return FlyFree(ref airspeed, look, side, brake, s, dt);
             bool heavy = s != null && s.CarriesCrown;
             bool gold = !heavy && s != null && (s.HasWings || s.Has(Ability.Planeur));
             float cruise = heavy ? HeavyCruise : Cruise * (gold ? 1.25f : 1f);
@@ -151,6 +156,38 @@ namespace Fief
             // Les courants d'air font remonter.
             if (s != null && s.Body != null) v.y += Thermal.LiftAt(s.Body.position);
             // ... et le souffle d'un anneau de vent, un peu plus d'une seconde.
+            v.y += WindRing.LiftOf(s);
+            return v;
+        }
+
+        /// <summary>
+        /// LE VOL LIBRE (apres une arbaleste) : on va EXACTEMENT ou l'on regarde, a vitesse
+        /// constante -- vers le haut on monte, vers le bas on descend, sans rien perdre, sans
+        /// tomber. S freine, Q/D glissent. Les anneaux de vent et les courants poussent encore.
+        /// </summary>
+        static Vector3 FlyFree(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
+        {
+            WindRing.Through(s, ref airspeed);
+            float cruise = s.CarriesCrown ? FreeHeavyCruise : FreeCruise;
+            float want = brake ? cruise * 0.45f : cruise;
+            // Les anneaux donnent un elan au-dessus de la croisiere, qui retombe doucement.
+            airspeed = Mathf.MoveTowards(airspeed, want, (airspeed > want ? 6f : 18f) * dt);
+            if (look.sqrMagnitude < 0.001f) look = Vector3.forward;
+            look.Normalize();
+            Vector3 dir = new Vector3(look.x, Mathf.Clamp(look.y, -0.95f, 0.95f), look.z).normalized;
+            Vector3 v = dir * airspeed;
+            Vector3 flat = new Vector3(dir.x, 0f, dir.z);
+            if (flat.sqrMagnitude > 0.001f)
+            {
+                flat.Normalize();
+                v += new Vector3(flat.z, 0f, -flat.x) * side * 7f;
+            }
+            if (s.Body != null)
+            {
+                v.y += Thermal.LiftAt(s.Body.position) * 0.5f;
+                // Pas plus haut que le ciel de l'ile (au-dessus, rien a faire : on redescend).
+                if (s.Body.position.y > 140f && v.y > 0f) v.y = 0f;
+            }
             v.y += WindRing.LiftOf(s);
             return v;
         }

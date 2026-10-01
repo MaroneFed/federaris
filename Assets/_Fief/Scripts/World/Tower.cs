@@ -256,8 +256,13 @@ namespace Fief
             Proto.BeginVisualOnly();
             GameObject core = Proto.Cylinder(t, new Vector3(0f, Height * 0.5f, 0f), new Vector3(Radius * 2f, Height * 0.5f, Radius * 2f), Stone, "Fût");
             Proto.EndVisualOnly();
-            MeshCollider mc = core.AddComponent<MeshCollider>();
-            mc.sharedMesh = Proto.SharedMesh(PrimitiveType.Cylinder);
+            // (04/10 -- Martin : "quand tu montes colle au mur a gauche, c'est un peu bugue") Le
+            // collider du fut etait le cylindre d'Unity : un polygone a VINGT faces. Colle au mur,
+            // on butait contre une arete tous les quatre metres. Il est maintenant lisse (128
+            // faces, au rayon exact), avec son couvercle (le sol du sommet).
+            GameObject wall = new GameObject("Fût (collision lisse)");
+            wall.transform.SetParent(t, false);
+            wall.AddComponent<MeshCollider>().sharedMesh = SmoothCore(Radius, Height, 128);
 
             Proto.BeginVisualOnly();
             // Un soubassement plus large, un bandeau d'or entre deux bandes de couleur.
@@ -317,6 +322,38 @@ namespace Fief
                 }
             }
             BoulderChute.Build(t);
+        }
+
+        /// <summary>Le fut pour les collisions : un cylindre a "sides" faces, ferme en haut, ouvert en bas.</summary>
+        static Mesh SmoothCore(float radius, float height, int sides)
+        {
+            Vector3[] v = new Vector3[sides * 2 + 1];
+            int[] tris = new int[sides * 9];
+            for (int i = 0; i < sides; i++)
+            {
+                float a = i / (float)sides * Mathf.PI * 2f;
+                v[i] = new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius);
+                v[sides + i] = new Vector3(v[i].x, height, v[i].z);
+            }
+            int top = sides * 2;
+            v[top] = new Vector3(0f, height, 0f);
+            int n = 0;
+            for (int i = 0; i < sides; i++)
+            {
+                int j = (i + 1) % sides;
+                // Vus de dehors (Unity : sens des aiguilles d'une montre).
+                tris[n++] = i; tris[n++] = sides + i; tris[n++] = j;
+                tris[n++] = j; tris[n++] = sides + i; tris[n++] = sides + j;
+                // Le couvercle, tourne vers le haut.
+                tris[n++] = top; tris[n++] = sides + j; tris[n++] = sides + i;
+            }
+            Mesh m = new Mesh();
+            m.name = "Fût lisse";
+            m.vertices = v;
+            m.triangles = tris;
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
         }
 
         /// <summary>La rampe "ramp" : une dalle par pas, inclinee dans la pente, bordee de la couleur de sa hauteur.</summary>
@@ -866,7 +903,11 @@ namespace Fief
     {
         public float Lane { get; private set; }
         int ramp;
-        float u = 1f;
+        // (04/10 -- Martin : "tout en haut, une boule dans la tete qui sort de nulle part") : ils
+        // partent un peu SOUS le sommet (jamais sur la plate-forme de la Couronne), et ils
+        // s'ANNONCENT : 1,8 s poses, qui tremblent et luisent rouge, en grondant, avant de rouler.
+        float u = 0.975f;
+        float wait = 1.8f;
         Transform ball;
         readonly Dictionary<Seeker, float> lastHit = new Dictionary<Seeker, float>();
 
@@ -893,6 +934,7 @@ namespace Fief
             Proto.Weld(b.ball, "Boulet soudé", null);
             b.Place();
             BoulderChute.Rolling.Add(b);
+            Sfx.RattleAt(go.transform.position);
             Fx.Sparks(go.transform.position, new Color(1f, 0.55f, 0.25f), 30, 6f);
         }
 
@@ -907,6 +949,18 @@ namespace Fief
         {
             float dt = Time.deltaTime;
             if (dt <= 0f || Game.Season == null || !Game.Season.Running) return;
+            if (wait > 0f)
+            {
+                // L'ANNONCE : il tremble sur place, de plus en plus fort, et gronde deux fois.
+                float was = wait;
+                wait -= dt;
+                float k = 1f - wait / 1.8f;
+                Place();
+                transform.position += new Vector3(Mathf.Sin(Time.time * 47f), 0f, Mathf.Cos(Time.time * 53f)) * 0.08f * k;
+                if (was > 0.9f && wait <= 0.9f || wait <= 0f) Sfx.ThudAt(transform.position);
+                if (wait <= 0f) Fx.Sparks(transform.position, new Color(1f, 0.4f, 0.25f), 30, 6f);
+                return;
+            }
             Vector3 before = transform.position;
             u -= Speed * Mathf.Sqrt(Tower.Hardness) / Tower.RampLength * dt;
             if (u <= 0f) { Fx.Sparks(transform.position, new Color(1f, 0.55f, 0.25f), 40, 7f); Destroy(gameObject); return; }
@@ -921,7 +975,7 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s.Body == null) continue;
+                if (s.Body == null || Tower.Summit(s.Body.position)) continue;
                 Vector3 d = s.Body.position + Vector3.up - transform.position;
                 if (Mathf.Abs(d.y) > 2f || new Vector2(d.x, d.z).magnitude > BallRadius + 0.5f) continue;
                 float last;

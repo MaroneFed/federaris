@@ -275,6 +275,11 @@ namespace Fief
                          && (!ballistic || launchAge > 3.6f)
                          && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
                     OpenWings(me);
+                // (04/10) LE VOL LIBRE : tire par une arbaleste, les ailes s'ouvrent des le haut de
+                // la courbe (plus besoin d'attendre le grand vide) -- et on vole.
+                else if (!Gliding && !folded && me != null && me.FreeFlight && me.CanGlide && launchAge > 0.6f && verticalVelocity < 4f
+                         && Wings.VoidBelow(transform.position, 3f))
+                    OpenWings(me);
                 // Etourdi en plein vol : les ailes se ferment (on tombe), elles se rouvriront.
                 if (Gliding && me != null && !me.CanGlide) Gliding = false;
             }
@@ -390,8 +395,13 @@ namespace Fief
             Color c = me != null && (me.HasWings || me.Has(Ability.Planeur)) ? Wings.Gold : Wings.Glow;
             Fx.Ring(transform.position + Vector3.up * 1.2f, c, 0.5f, 4f, 0.35f, 0.18f, Vector3.up);
             if (orbitCamera != null) orbitCamera.Kick(6f);
+            // (04/10) Cette astuce n'avait pas d'icones : elle ne s'affichait jamais -- d'ou "je n'ai
+            // toujours rien capte au vol". Elle s'affiche maintenant (et celle du vol libre).
             if (me != null && Game.Hud != null)
-                Game.Hud.Tip("vol", "TU VOLES ! Regarde en bas pour piquer et prendre de la vitesse, en haut pour remonter. Espace replie les ailes.");
+            {
+                if (me.FreeFlight) Game.Hud.Tip("vollibre", "VOL LIBRE ! Tu voles où tu regardes, sans tomber, jusqu'à te poser. S pour freiner.");
+                else Game.Hud.Tip("vol", "TU VOLES ! Regarde en bas pour piquer et prendre de la vitesse, en haut pour remonter. Espace replie les ailes.");
+            }
         }
 
         /// <summary>

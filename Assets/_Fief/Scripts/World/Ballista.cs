@@ -529,6 +529,8 @@ namespace Fief
             Vector3 from = Launcher;
             Seeker who = rider;
             Wings.Grant(who, false);
+            // (04/10) LE VOL LIBRE jusqu'a ce qu'il se pose.
+            who.FreeFlight = true;
             if (who.IsPlayer && Game.Player != null)
             {
                 Game.Player.EndScripted(from);

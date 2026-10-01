@@ -132,6 +132,13 @@ namespace Fief
         /// <summary>Quand il les a prises (on ne les perd pas en touchant le socle de l'arbaleste au depart).</summary>
         public float WingsAt = -99f;
         /// <summary>
+        /// LE VOL LIBRE (04/10 -- Martin : "j'aimerais qu'on puisse voler a fond, comme on veut,
+        /// mais seulement si on part d'une arbalete") : tire par une arbaleste, on VOLE pour de
+        /// vrai -- on va ou l'on regarde, on monte comme on descend, sans tomber -- jusqu'a ce
+        /// qu'on se pose. (Le sceau de la citadelle tient toujours : pas de raccourci vers la tour.)
+        /// </summary>
+        public bool FreeFlight;
+        /// <summary>
         /// LA CHUTE (29/09 -- "les obstacles doivent nous faire retomber en bas de la
         /// tour") : frappe par un obstacle ou une gargouille sur la tour, on est jete
         /// hors de la rampe et les ailes restent FERMEES jusqu'a ce qu'on touche le sol.

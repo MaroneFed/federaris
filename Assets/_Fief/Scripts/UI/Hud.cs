@@ -185,6 +185,10 @@ namespace Fief
             { "porte", new[] { "couronne", "courant", "monument", "sacre" } },
             { "don", new[] { "don", "k:active" } },
             { "sceau", new[] { "ailes", "croix" } },
+            // (04/10 -- Martin : "les elytres, je n'ai toujours rien capte") : le vol explique
+            // au moment ou il arrive -- la premiere fois que les ailes s'ouvrent, et au vol libre.
+            { "vol", new[] { "ailes", "vue" } },
+            { "vollibre", new[] { "arbaleste", "ailes", "vue" } },
         };
         /// <summary>Les memes astuces en quelques mots (sous les icones, si l'aide ecrite est la).</summary>
         static readonly Dictionary<string, string> TipWords = new Dictionary<string, string>
@@ -196,6 +200,8 @@ namespace Fief
             { "porte", "VA À UN MONUMENT (COLONNE BLEUE) ET RESTES-Y 3 S" },
             { "don", "TON CLIC GAUCHE A CHANGÉ POUR CETTE MANCHE" },
             { "sceau", "ON N'ENTRE PAS EN VOLANT : PASSE PAR UNE PORTE" },
+            { "vol", "TES AILES S'OUVRENT SEULES : REGARDE EN BAS POUR PIQUER, EN HAUT POUR REMONTER" },
+            { "vollibre", "VOL LIBRE : TU VAS OÙ TU REGARDES, JUSQU'À TE POSER" },
         };
         const float TipSeconds = 5f;
         string tipWords;
