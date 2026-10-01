@@ -115,8 +115,10 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
   48 m/s ; au contact, c'est un **vol**. Recharge 3 s. (Choisi parmi : une poussée à
   plus grande portée en l'air, un vol au simple contact, un aimant… Le piqué est le
   plus lisible et le plus spectaculaire, et il récompense la visée.)
-- **Replier ses ailes** (Espace en vol) avec la Couronne et tomber comme une pierre :
-  elle **reste là où tu as quitté le sol**. Tomber dans les nuages avec : pareil, elle
+- **Replier ses ailes** (Espace en vol) avec la Couronne, sortir d'une arbaleste, tomber :
+  elle **reste dans tes mains** (04/10, v24.2 : « hop, elle s'enlève, tout le temps »).
+  Seul un porteur **assommé** en l'air (étourdi, éjecté) la lâche, là où il a quitté le
+  sol. Tomber dans les nuages avec : elle
   **reste au dernier endroit où tu touchais le sol** (02/10, Martin : « c'est horrible de
   tout remonter à chaque fois ») — on ne refait plus toute la tour.
 

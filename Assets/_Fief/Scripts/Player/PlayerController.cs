@@ -16,8 +16,8 @@ namespace Fief
     ///   - LE VOL PLANE (28/09) : les ailes s'ouvrent seules au-dessus du vide, on
     ///     dirige a la souris (voir World/Wings.cs) ; Espace les replie ou les rouvre ;
     ///   - l'ETOURDISSEMENT (on ne bouge plus), le GIVRE (moitie moins vite) ;
-    ///   - la COURONNE : si son porteur tombe (sans planer), elle reste la ou il a
-    ///     quitte le sol (Crown.Slip). On ne redescend pas la tour d'un saut.
+    ///   - la COURONNE : si son porteur tombe assomme (etourdi, ejecte), elle reste la ou
+    ///     il a quitte le sol (Crown.Slip). Replier ses ailes ne la fait plus lacher (04/10).
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour, IMover
@@ -298,8 +298,12 @@ namespace Fief
             else verticalVelocity += cfg.gravity * dt;
             FlightFeel(input, dt);
 
-            // --- la Couronne glisse des mains de qui tombe (sans planer)
-            if (me != null && me.CarriesCrown && !grounded && !Gliding && verticalVelocity < -13f)
+            // --- la Couronne glisse des mains de qui tombe ASSOMME (etourdi, ejecte de la tour).
+            // (04/10, Martin : "quand j'appuie sur espace, quand je vole, hop, elle s'enleve") :
+            // avant, elle glissait des qu'on tombait sans ailes -- Espace en vol, ou la descente
+            // apres une arbaleste avant que les ailes s'ouvrent. Replier ses ailes, sauter,
+            // tomber : elle reste dans tes mains. Seul un coup la fait lacher.
+            if (me != null && me.CarriesCrown && !grounded && !me.CanGlide && !ballistic && verticalVelocity < -13f)
                 Crown.Slip(me, lastGround);
 
             // --- les mouvements imposes : ruee, grappin, poussee

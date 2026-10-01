@@ -486,8 +486,8 @@ namespace Fief
 
         /// <summary>Pousse : le porteur la lache, elle roule dans la direction du coup.</summary>
         /// <summary>
-        /// LA COURONNE GLISSE : son porteur tombe (sans planer). Elle reste la ou il a
-        /// quitte le sol -- on ne redescend pas la tour d'un saut.
+        /// LA COURONNE GLISSE : son porteur tombe assomme (etourdi, ejecte). Elle reste la
+        /// ou il a quitte le sol. (04/10 : plus quand il replie ses ailes ou sort d'une arbaleste.)
         /// </summary>
         public static void Slip(Seeker holder, Vector3 lastGround)
         {

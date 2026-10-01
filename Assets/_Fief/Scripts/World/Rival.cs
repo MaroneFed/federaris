@@ -1124,8 +1124,8 @@ namespace Fief
                 airJumped = true;
                 fallSpeed = 7.3f;
             }
-            // La Couronne glisse s'il tombe (sans planer).
-            if (seeker.CarriesCrown && !grounded && !gliding && fallSpeed < -13f) Crown.Slip(seeker, lastGround);
+            // La Couronne glisse s'il tombe assomme (les memes regles que toi, 04/10).
+            if (seeker.CarriesCrown && !grounded && !seeker.CanGlide && !ballistic && fallSpeed < -13f) Crown.Slip(seeker, lastGround);
 
             // Le pique d'aigle : en vol, il fond sur le porteur qu'il a dans le viseur.
             if (diveTime <= 0f && gliding && prey != null && prey.CarriesCrown && Match.BotLevel > 0)
