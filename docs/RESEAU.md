@@ -1,5 +1,43 @@
 # Le jeu en ligne — ce qui est prêt, ce qui reste (Phase 3)
 
+> **04/10/2026 — Martin : « Tout est parfait. Donc, on peut faire le en ligne. » La Phase 3
+> commence.** Ce qui suit la ligne « ÉTAPE 1 » est l'état réel ; la suite du document est
+> le plan d'origine (26/09), toujours valable pour l'architecture.
+
+## ÉTAPE 1 (04/10) : héberger, rejoindre, le même salon — FAIT
+
+**Le choix technique, franchement** : le plan disait *Netcode for GameObjects* + Steam. Claude
+ne peut ni installer ni compiler ces paquets, donc il aurait codé à l'aveugle la partie la plus
+risquée du projet. À la place, **une couche réseau maison, petite, en C# pur**
+(`Scripts/Net/NetLink.cs`, ~400 lignes) que Claude **teste vraiment** hors d'Unity :
+`sh Tools/reseau.sh` fait parler un hôte et deux invités sur la même machine (connexion,
+salon, départs, refus, ping) — « RESEAU OK ». Elle parle **UDP** (le protocole des jeux).
+
+- **Ce que ça permet aujourd'hui** : jouer sur **le même PC** (deux fenêtres) ou **le même
+  réseau** (la box de la maison). **Pas encore par Internet** : il faudrait ouvrir un port
+  sur la box. C'est le rôle de **Steam** (ses serveurs relais traversent les box) : à
+  l'étape « Steam », seul le *tuyau* de `NetLink` change, pas le jeu.
+- **Le modèle reste** : un hôte (listen-server), jusqu'à **sept invités** (8 joueurs),
+  autorité absolue de l'hôte.
+
+**Comment tester (Martin)** :
+1. **File ▸ Build Profiles ▸ Windows ▸ Build And Run** : le jeu s'exporte et se lance dans
+   sa propre fenêtre. (La première fois, Windows demande d'autoriser le réseau : *Autoriser*.)
+2. Dans Unity, **Play** : tu as deux jeux ouverts.
+3. Dans l'un : **En ligne ▸ Héberger**. Dans l'autre : **En ligne**, tape `127.0.0.1` à côté
+   de **Rejoindre**, puis **Rejoindre**. Les deux salons montrent les deux pseudos.
+4. Sur deux PC de la maison : l'hôte lit son adresse (affichée en haut du salon, du genre
+   `192.168.1.23`), l'autre la tape et rejoint.
+
+**Étape 2 (la prochaine)** : l'hôte lance le match, tout le monde charge la même île (la
+graine), chacun voit les autres **bouger** (positions 20 fois par seconde, un `RemotePlayer`
+au lieu d'un bot). **Étape 3** : l'hôte décide de tout (Couronne, coups, sacre, fin de
+manche, choix des capacités). **Étape 4** : Steam (invitations, Internet). **Porte 3** : un
+match de 30-45 min à plusieurs sans plantage ni désynchronisation.
+
+---
+
+
 > Écrit le 26/09/2026 au soir, avec la refonte « La Couronne ». Martin : « il faut
 > commencer que tu fasses le mode en ligne, pour prévoir déjà. 4 joueurs max. »
 
@@ -109,4 +147,4 @@ la brume sans marqueur d'interface. En ligne, rien à ajouter.
 - **Pas de serveur dédié** (loi n° 2 du projet) : c'est toujours l'un des joueurs qui
   héberge.
 - **Pas de persistance** entre deux matchs : rien n'est sauvegardé.
-- **Pas plus de quatre** joueurs.
+- **Pas plus de huit** joueurs (27/09 : 2 à 8).

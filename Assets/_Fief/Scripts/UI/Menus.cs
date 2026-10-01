@@ -299,6 +299,7 @@ namespace Fief
                 confirmAbandon = false;
                 if (showSettings) { showSettings = false; selected = Current == State.Title ? 2 : 1; }
                 else if (showControls) { showControls = false; selected = 0; }
+                else if (Current == State.Online && NetSession.Link != null) NetSession.Leave();
                 else if (Current == State.Lobby || Current == State.Online) Go(State.Title);
                 else if (Current == State.Briefing) Enter();
                 else if (Current == State.Playing && countdown <= 0f) Pause();
@@ -352,8 +353,12 @@ namespace Fief
                 if (FiefInput.LeftPressed) Adjust(selected, -1);
                 if (FiefInput.RightPressed) Adjust(selected, 1);
             }
+            // (04/10) Entree en tapant l'adresse : on rejoint (pas "Heberger", vise par defaut).
+            if (FiefInput.ConfirmPressed && Current == State.Online && addressFocused && NetSession.Link == null) { Activate(1); return; }
             if (FiefInput.ConfirmPressed) Activate(selected);
         }
+
+        bool addressFocused;
 
         /// <summary>Combien d'entrees dans l'ecran courant.</summary>
         int Entries()
@@ -362,7 +367,7 @@ namespace Fief
             {
                 case State.Title: return TitleItems.Length;
                 case State.Lobby: return LobbyRows + 2;
-                case State.Online: return 1;
+                case State.Online: return NetSession.Link == null ? 3 : 1;
                 case State.Paused: return PauseItems.Length;
                 case State.RoundOver: return stateTime > 3f ? 1 : 0;
                 case State.Ended: return stateTime > 1.5f ? EndItems.Length : 0;
@@ -401,7 +406,12 @@ namespace Fief
                     else Go(State.Title);
                     break;
                 case State.Online:
-                    Go(State.Title);
+                    // (04/10, le jeu en ligne, etape 1) Heberger, Rejoindre (l'adresse tapee au-dessus),
+                    // Retour ; une fois dans un salon : le quitter.
+                    if (NetSession.Link != null) { NetSession.Leave(); break; }
+                    if (i == 0) NetSession.Host();
+                    else if (i == 1) NetSession.Join(joinAddress);
+                    else Go(State.Title);
                     break;
                 case State.Paused:
                     if (i == 0) Resume();
@@ -794,7 +804,9 @@ namespace Fief
         static string IconFor(string text)
         {
             if (text.StartsWith("Jouer") || text.StartsWith("Commencer") || text.StartsWith("Reprendre") || text.StartsWith("Nouveau")) return "jouer";
-            if (text.StartsWith("En ligne")) return "en-ligne";
+            if (text.StartsWith("En ligne") || text.StartsWith("Héberger")) return "en-ligne";
+            if (text.StartsWith("Rejoindre")) return "joueur";
+            if (text.StartsWith("Quitter le salon")) return "retour";
             if (text.StartsWith("Réglages")) return "reglages";
             if (text.StartsWith("Commandes")) return "commandes";
             if (text.StartsWith("Quitter")) return "quitter";
@@ -1056,23 +1068,84 @@ namespace Fief
         /// (Match.Slots) et tout passe par des methodes que l'hote appellera -- mais
         /// le transport (Steam) vient en Phase 3. On le dit franchement.
         /// </summary>
+        string joinAddress;
+        GUIStyle addressStyle;
+
+        /// <summary>
+        /// EN LIGNE (04/10 -- Martin : "on peut faire le en ligne"). ETAPE 1 : heberger une
+        /// partie, la rejoindre par son adresse, et voir le meme SALON (les pseudos de tous, leur
+        /// ping). Lancer le match ensemble, c'est l'etape 2 (docs/RESEAU.md).
+        /// </summary>
         void DrawOnline()
         {
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
             float x = Left;
-            float y = Screen.height * 0.5f - UiStyle.S(140);
+            float y = Screen.height * 0.5f - UiStyle.S(220);
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "EN LIGNE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
-            y += UiStyle.S(70);
-            // Pas encore branche : l'icone "en ligne" barree, et "BIENTOT". Les bots, eux, jouent deja.
-            float s = UiStyle.S(84);
-            Rect r = new Rect(x, y, s * 2.4f, s);
-            Icons.Pill(r, new Color(0.14f, 0.16f, 0.36f));
-            Icons.Draw(new Rect(r.x + s * 0.12f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), "en-ligne", Color.white);
-            Icons.Draw(new Rect(r.x + s * 0.55f, r.y + s * 0.45f, s * 0.46f, s * 0.46f), "chrono", Wings.Gold);
-            Icons.Draw(new Rect(r.xMax - s * 0.95f, r.y + s * 0.1f, s * 0.8f, s * 0.8f), "bot", new Color(0.6f, 0.9f, 1f));
-            Icons.Number(new Rect(r.xMax + UiStyle.S(20), r.y, UiStyle.S(400), s), "BIENTÔT", UiStyle.S(40), Wings.Gold, TextAnchor.MiddleLeft);
-            y += s + UiStyle.S(50);
-            if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(40)), "Retour", 0, false, 1f)) Activate(0);        }
+            y += UiStyle.S(74);
+            Fief.Net.NetLink link = NetSession.Link;
+            float bw = UiStyle.S(420), bh = UiStyle.S(46);
+
+            if (link == null)
+            {
+                if (joinAddress == null) joinAddress = NetSession.LastAddress;
+                if (Entry(new Rect(x, y, bw, bh), "Héberger", 0, true, 1f)) Activate(0);
+                y += bh + UiStyle.S(16);
+                if (Entry(new Rect(x, y, bw, bh), "Rejoindre", 1, true, 1f)) Activate(1);
+                // L'adresse de l'hote, a taper (elle est gardee d'une fois sur l'autre).
+                if (addressStyle == null)
+                {
+                    addressStyle = new GUIStyle(GUI.skin.textField);
+                    addressStyle.alignment = TextAnchor.MiddleCenter;
+                }
+                addressStyle.fontSize = Mathf.RoundToInt(UiStyle.S(24));
+                Rect field = new Rect(x + bw + UiStyle.S(14), y + UiStyle.S(4), UiStyle.S(260), bh - UiStyle.S(8));
+                Icons.Pill(new Rect(field.x - UiStyle.S(6), field.y - UiStyle.S(4), field.width + UiStyle.S(12), field.height + UiStyle.S(8)), new Color(0.14f, 0.16f, 0.36f));
+                GUI.SetNextControlName("adresse");
+                joinAddress = GUI.TextField(field, joinAddress ?? "", 64, addressStyle);
+                addressFocused = GUI.GetNameOfFocusedControl() == "adresse";
+                y += bh + UiStyle.S(16);
+                if (Entry(new Rect(x, y, bw, bh), "Retour", 2, false, 1f)) Activate(2);
+                y += bh + UiStyle.S(24);
+                if (!string.IsNullOrEmpty(NetSession.Problem))
+                    Icons.Text(new Rect(x, y, UiStyle.S(700), UiStyle.S(40)), NetSession.Problem, Mathf.RoundToInt(UiStyle.S(22)), new Color(1f, 0.5f, 0.42f), TextAnchor.MiddleLeft, true);
+                return;
+            }
+
+            // --- dans un salon : l'etat (icones), l'adresse a donner si l'on heberge, les joueurs.
+            float s = UiStyle.S(64);
+            Rect state = new Rect(x, y, s, s);
+            bool ok = link.Status == Fief.Net.NetLink.State.Hosting || link.Status == Fief.Net.NetLink.State.Connected;
+            bool waiting = link.Status == Fief.Net.NetLink.State.Connecting;
+            Icons.Pill(state, ok ? new Color(0.2f, 0.62f, 0.32f) : waiting ? new Color(0.3f, 0.36f, 0.7f) : new Color(0.72f, 0.2f, 0.2f));
+            Icons.Draw(new Rect(state.x + s * 0.15f, state.y + s * 0.15f, s * 0.7f, s * 0.7f), ok ? "coche" : waiting ? "chrono" : "croix", Color.white);
+            if (link.IsHost)
+            {
+                // L'adresse a donner a l'ami (sur le meme reseau : la box, le wifi de la maison).
+                string all = string.Join("   ", Fief.Net.NetLink.LocalAddresses().ToArray());
+                Icons.Text(new Rect(state.xMax + UiStyle.S(16), y, UiStyle.S(700), s), all, Mathf.RoundToInt(UiStyle.S(30)), Color.white, TextAnchor.MiddleLeft, true);
+            }
+            else if (link.Status == Fief.Net.NetLink.State.Connected)
+                Icons.Number(new Rect(state.xMax + UiStyle.S(16), y, UiStyle.S(300), s), Mathf.RoundToInt(link.PingToHost) + " ms", Mathf.RoundToInt(UiStyle.S(30)), Color.white, TextAnchor.MiddleLeft);
+            y += s + UiStyle.S(24);
+
+            // Les joueurs du salon, une pastille chacun, a la couleur de sa place.
+            float pw = UiStyle.S(420), ph = UiStyle.S(44);
+            for (int i = 0; i < link.Roster.Count; i++)
+            {
+                Fief.Net.NetLink.Member m = link.Roster[i];
+                Rect r = new Rect(x, y, pw, ph);
+                if (m.Slot == link.MySlot) Icons.Pill(new Rect(r.x - UiStyle.S(4), r.y - UiStyle.S(4), r.width + UiStyle.S(8), r.height + UiStyle.S(8)), Wings.Gold);
+                Icons.Pill(r, Match.ColourOf(m.Slot));
+                Icons.Draw(new Rect(r.x + ph * 0.18f, r.y + ph * 0.14f, ph * 0.72f, ph * 0.72f), m.Slot == 0 ? "couronne" : "joueur", Color.white);
+                Icons.Number(new Rect(r.x + ph * 1.1f, r.y, pw - ph * 2.6f, ph), m.Name, Mathf.RoundToInt(ph * 0.46f), Color.white, TextAnchor.MiddleLeft);
+                if (m.Slot != 0 && m.Ping > 0f)
+                    Icons.Number(new Rect(r.xMax - ph * 1.6f, r.y, ph * 1.5f, ph), Mathf.RoundToInt(m.Ping) + "", Mathf.RoundToInt(ph * 0.4f), new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
+                y += ph + UiStyle.S(8);
+            }
+            y += UiStyle.S(18);
+            if (Entry(new Rect(x, y, bw, bh), "Quitter le salon", 0, false, 1f)) Activate(0);
+        }
 
         // ------------------------------------------------------------------ l'intro de manche
 

@@ -139,6 +139,11 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
   trajectoire du porteur. On passe dedans en planant : la vitesse remonte d'un coup (20 m/s
   pour le porteur, 28 pour les autres) et le vent **soulève 1,3 s** (26 m/s au début), avec
   un « whoup » qui monte. Les quatre d'affilée : **l'enfilade**, un gros éclat d'or.
+- **LE VOL LIBRE** (04/10 — Martin : « voler à fond comme on veut, mais seulement si on part
+  d'une arbalète ») : **tiré par une arbaleste**, les ailes s'ouvrent dès le haut de la
+  courbe et l'on **vole pour de vrai** : on va où l'on regarde (vers le haut, on monte),
+  sans tomber, à 24 m/s (16 avec la Couronne), S freine, jusqu'à **se poser**. Le sceau de
+  la citadelle tient toujours (pas de raccourci vers la tour).
 - Le **porteur** : 11 m/s, chute de 8 m/s, jamais d'ailes d'or, la vitesse d'un piqué
   se perd vite. Il remonte dans un courant — ou **enfile les anneaux** : les quatre, et il
   atteint l'îlot (simulé : 8 à 9 s) ; un de raté, et il tombe court. Les bots porteurs
@@ -318,7 +323,9 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
     sont sorties) ;
   - des **boulets** : une **volée** — un boulet sur **chaque** rampe, du même côté pour
     toutes (le mur, puis le vide, en alternance) — toutes les 34 s, moins aux manches
-    suivantes ;
+    suivantes ; (04/10) ils partent **un peu sous le sommet**, **s'annoncent** 1,8 s (ils
+    tremblent, grondent deux fois) avant de rouler, et ne touchent **jamais** quelqu'un sur
+    la plate-forme de la Couronne ;
   - les **gargouilles** (ci-dessous) ;
   - **plus de courants** sur la rampe (« ça c'est n'importe quoi »).
 - **Le saut** (30/09 : « le saut bug ») : on colle à la pente en la descendant, un appui

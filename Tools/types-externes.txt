@@ -155,3 +155,12 @@ ShadowProjection
 StaticBatchingUtility
 CombineInstance
 LightRenderMode
+ArgumentException
+BinaryReader
+BinaryWriter
+EndPoint
+IPAddress
+IPEndPoint
+MemoryStream
+Socket
+SocketException

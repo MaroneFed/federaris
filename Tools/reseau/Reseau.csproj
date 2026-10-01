@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- LE BANC D'ESSAI DU RESEAU : compile Assets/_Fief/Scripts/Net/NetLink.cs (du C# pur) avec
+       un petit programme qui fait parler un hote et deux invites sur cette machine. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/_Fief/Scripts/Net/NetLink.cs" />
+    <Compile Include="Essai.cs" />
+  </ItemGroup>
+</Project>

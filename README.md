@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v23 · 03/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v24 · en ligne (étape 1) · 04/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -203,3 +203,16 @@ docs/
 Le jeu en ligne (Phase 3 — l'architecture est prête : `docs/RESEAU.md`), l'arc,
 d'autres pièges et capacités (Phase 2), l'équilibrage fin (Phase 4).
 → Voir `docs/v2-ideas.md`.
+
+## Jouer en ligne (étape 1, 04/10)
+
+Pour l'instant : **se connecter et voir le même salon** (lancer le match ensemble, c'est l'étape 2).
+
+1. **File ▸ Build Profiles ▸ Windows ▸ Build And Run** : le jeu s'ouvre dans sa propre fenêtre
+   (Windows demande d'autoriser le réseau la première fois : *Autoriser*).
+2. Dans Unity, **Play** : deux jeux ouverts.
+3. L'un : **En ligne ▸ Héberger**. L'autre : **En ligne**, tape `127.0.0.1`, **Rejoindre**.
+4. Sur deux PC de la maison : l'adresse à taper est affichée en haut du salon de l'hôte.
+
+Détails et étapes suivantes : `docs/RESEAU.md`. (Claude teste le réseau sans Unity :
+`sh Tools/reseau.sh`.)
