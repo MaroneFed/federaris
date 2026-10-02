@@ -24,15 +24,21 @@ namespace Fief
         Ruee, Grappin, Crochet, Onde, Clignement, Bond, Mur, Nuee, Mine, Gel, Voile, Echange, Rappel, Souffle,
         // (05/10 -- "des capacites de malade mental") les actives neuves
         Meteore, Tornade, TrouNoir, Boulet, Geant, Fusee, Ressort, Foudre,
+        // (06/10 -- "une prison qui t'enchaine au sol dix secondes, plein de conneries comme ca,
+        // des trucs de fou, il m'en faut une vingtaine") les actives de fou
+        Prison, Bombe, Inversion, Mini, Glu, Banane, Ballon, Seisme, Gant, Fantome, Taupe, Deluge, Toupie, Encre,
         // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
-        DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond, Aimant,
+        DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond,
         // (05/10) les passives neuves
-        Riposte, Vampire, TeteDure, SecondSouffle, Plume
+        Riposte, Vampire, TeteDure, SecondSouffle, Plume,
+        // (06/10) et encore -- l'AIMANT est parti (Martin : "un truc qui TP la couronne vers toi,
+        // c'est n'importe quoi, il faut quand meme monter la tour")
+        BrasLongs, Kangourou, Kamikaze, AngeGardien, Rage, Ninja
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 39;
+        public const int Count = 58;
         /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
         public const int MaxActives = 1;
 
@@ -86,7 +92,26 @@ namespace Fief
                 case Ability.TeteDure: return "Tête dure";
                 case Ability.SecondSouffle: return "Second souffle";
                 case Ability.Plume: return "Plume";
-                default: return "Aimant";
+                case Ability.Prison: return "Prison";
+                case Ability.Bombe: return "Bombe collante";
+                case Ability.Inversion: return "Tête à l'envers";
+                case Ability.Mini: return "Mini";
+                case Ability.Glu: return "Glu";
+                case Ability.Banane: return "Peau de banane";
+                case Ability.Ballon: return "Ballon";
+                case Ability.Seisme: return "Séisme";
+                case Ability.Gant: return "Gant de boxe";
+                case Ability.Fantome: return "Fantôme";
+                case Ability.Taupe: return "Taupe";
+                case Ability.Deluge: return "Déluge";
+                case Ability.Toupie: return "Toupie";
+                case Ability.Encre: return "Encre";
+                case Ability.BrasLongs: return "Bras longs";
+                case Ability.Kangourou: return "Kangourou";
+                case Ability.Kamikaze: return "Kamikaze";
+                case Ability.AngeGardien: return "Ange gardien";
+                case Ability.Rage: return "Rage";
+                default: return "Ninja";
             }
         }
 
@@ -133,7 +158,26 @@ namespace Fief
                 case Ability.TeteDure: return "Les pièges ne t'éjectent plus de la tour : ils te bousculent, c'est tout.";
                 case Ability.SecondSouffle: return "Tombé dans les nuages ? Tu repars avec des ailes d'or, protégé six secondes.";
                 case Ability.Plume: return "Avec la Couronne, tu voles aussi vite que les autres.";
-                default: return "La Couronne à terre vole jusqu'à toi.";
+                case Ability.Prison: return "Vise un joueur : une cage l'enchaîne au sol dix secondes. Un coup le libère.";
+                case Ability.Bombe: return "Vise un joueur : une bombe se colle à lui et explose deux secondes après.";
+                case Ability.Inversion: return "Vise un joueur : ses commandes sont inversées pendant six secondes.";
+                case Ability.Mini: return "Vise un joueur : il devient minuscule, lent, et part deux fois plus loin.";
+                case Ability.Glu: return "Une flaque de glu devant toi : qui marche dedans est englué.";
+                case Ability.Banane: return "Trois peaux de banane derrière toi : qui marche dessus fait un salto.";
+                case Ability.Ballon: return "Vise un joueur : il gonfle, s'envole dans le ciel, puis éclate.";
+                case Ability.Seisme: return "Tu frappes le sol : tous ceux qui sont debout à 25 m décollent.";
+                case Ability.Gant: return "Un gant de boxe géant frappe devant toi : un coup monstrueux.";
+                case Ability.Fantome: return "Quatre secondes fantôme : plus rien ne te touche. Pas avec la Couronne.";
+                case Ability.Taupe: return "Tu plonges sous terre et ressors vingt mètres plus loin, en éjectant tout.";
+                case Ability.Deluge: return "Une pluie de météores tombe là où tu vises.";
+                case Ability.Toupie: return "Tu tournes comme une toupie, plus vite : qui te touche est éjecté.";
+                case Ability.Encre: return "Vise un joueur : de l'encre lui couvre les yeux cinq secondes.";
+                case Ability.BrasLongs: return "Ta poussée porte bien plus loin : cinq mètres.";
+                case Ability.Kangourou: return "Tu sautes une fois et demie plus haut.";
+                case Ability.Kamikaze: return "Quand on te pousse, tu exploses : tout le monde autour s'envole.";
+                case Ability.AngeGardien: return "Une fois par manche, tomber dans les nuages te ramène où tu étais.";
+                case Ability.Rage: return "Chaque coup reçu rend ta prochaine poussée plus forte.";
+                default: return "Immobile une seconde, tu deviens invisible.";
             }
         }
 
@@ -164,6 +208,20 @@ namespace Fief
                 case Ability.Fusee: return 15f;
                 case Ability.Ressort: return 10f;
                 case Ability.Foudre: return 11f;
+                case Ability.Prison: return 16f;
+                case Ability.Bombe: return 12f;
+                case Ability.Inversion: return 13f;
+                case Ability.Mini: return 13f;
+                case Ability.Glu: return 12f;
+                case Ability.Banane: return 8f;
+                case Ability.Ballon: return 14f;
+                case Ability.Seisme: return 12f;
+                case Ability.Gant: return 8f;
+                case Ability.Fantome: return 16f;
+                case Ability.Taupe: return 9f;
+                case Ability.Deluge: return 14f;
+                case Ability.Toupie: return 13f;
+                case Ability.Encre: return 12f;
                 default: return 0f;
             }
         }
@@ -174,7 +232,7 @@ namespace Fief
             switch (a)
             {
                 case Ability.Ruee: case Ability.Clignement: case Ability.Coureur: return new Color(1f, 0.62f, 0.3f);
-                case Ability.Grappin: case Ability.Crochet: case Ability.Aimant: return new Color(0.95f, 0.85f, 0.45f);
+                case Ability.Grappin: case Ability.Crochet: case Ability.BrasLongs: return new Color(0.95f, 0.85f, 0.45f);
                 case Ability.Onde: case Ability.Souffle: case Ability.Poigne: case Ability.Rebond: return new Color(0.95f, 0.4f, 0.35f);
                 case Ability.Bond: case Ability.DoubleSaut: case Ability.Planeur: return new Color(0.55f, 0.82f, 1f);
                 case Ability.Mur: case Ability.Ancrage: case Ability.PriseFerme: case Ability.Porteur: return new Color(0.8f, 0.72f, 0.6f);
@@ -188,7 +246,17 @@ namespace Fief
                 case Ability.Geant: case Ability.TeteDure: return new Color(0.95f, 0.62f, 0.4f);
                 case Ability.Fusee: case Ability.Ressort: return new Color(1f, 0.38f, 0.55f);
                 case Ability.Foudre: return new Color(1f, 0.95f, 0.45f);
-                case Ability.Riposte: case Ability.Vampire: return new Color(0.95f, 0.25f, 0.3f);
+                case Ability.Riposte: case Ability.Vampire: case Ability.Rage: case Ability.Gant: return new Color(0.95f, 0.25f, 0.3f);
+                case Ability.Prison: return new Color(0.72f, 0.74f, 0.82f);
+                case Ability.Bombe: case Ability.Kamikaze: case Ability.Deluge: return new Color(1f, 0.52f, 0.22f);
+                case Ability.Inversion: case Ability.Toupie: return new Color(0.98f, 0.5f, 0.85f);
+                case Ability.Mini: case Ability.Kangourou: return new Color(0.55f, 0.95f, 0.5f);
+                case Ability.Glu: return new Color(0.6f, 0.95f, 0.35f);
+                case Ability.Banane: return new Color(1f, 0.9f, 0.3f);
+                case Ability.Ballon: return new Color(1f, 0.45f, 0.6f);
+                case Ability.Seisme: case Ability.Taupe: return new Color(0.82f, 0.62f, 0.42f);
+                case Ability.Fantome: case Ability.AngeGardien: return new Color(0.85f, 0.95f, 1f);
+                case Ability.Encre: case Ability.Ninja: return new Color(0.45f, 0.42f, 0.7f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

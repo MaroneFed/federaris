@@ -301,8 +301,6 @@ namespace Fief
             // si par malheur elle est passee sous l'ile, elle rentre au socle.
             if (!mirror && state == State.Dropped && visual.position.y < Ground.FallLine)
                 ReturnHome();
-            // L'AIMANT : la Couronne a terre vole vers celui qui a la capacite (8 m).
-            if (!mirror && state == State.Dropped) Attract();
             // (01/10) Sur son socle comme a terre : on la prend EN PASSANT DESSUS.
             if (state == State.Dropped || state == State.OnPedestal) PickUpByTouch();
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
@@ -404,6 +402,8 @@ namespace Fief
             state = State.Carried;
             Holder = s;
             s.GripUsed = false;
+            // (06/10) Pas d'immunite qui dure avec la Couronne (le Fantome) : 1,5 s au plus.
+            s.GraceUntil = Mathf.Min(s.GraceUntil, Time.time + 1.5f);
             Sfx.Bell();
             if (s.IsPlayer) Stats.CrownsTaken++;
             if (fromPedestal) Sfx.Alarm();
@@ -519,26 +519,6 @@ namespace Fief
             if (NetGame.IsClient) { NetGame.AskCrown(NetGame.Ask.Slip, holder, lastGround); return; }
             Instance.Drop(lastGround);
             Feed.CrownSlipped(holder);
-        }
-
-        void Attract()
-        {
-            Seeker best = null;
-            float bestD = 8f;
-            for (int i = 0; i < Game.Seekers.Count; i++)
-            {
-                Seeker s = Game.Seekers[i];
-                if (s.Body == null || s.Stunned || !s.Has(Ability.Aimant)) continue;
-                float d = (s.Body.position + Vector3.up - visual.position).magnitude;
-                if (d < bestD) { bestD = d; best = s; }
-            }
-            if (best == null) return;
-            if (bestD < 1.4f) { TryTakeFor(best); return; }
-            Vector3 to = best.Body.position + Vector3.up - visual.position;
-            Vector3 step = to.normalized * Mathf.Min(to.magnitude, 9f * Time.deltaTime);
-            visual.position += step;
-            transform.position += step;
-            groundY = visual.position.y;
         }
 
         /// <summary>

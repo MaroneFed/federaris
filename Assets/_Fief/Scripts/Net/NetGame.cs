@@ -42,7 +42,7 @@ namespace Fief
         public const int FlagGoldWings = 64;
         public const int FlagSlowed = 128;
 
-        enum Kind : byte { State = 1, Snapshot = 2, Self = 3, Hit = 4, Blink = 5, CrownAsk = 6, Pick = 7 }
+        enum Kind : byte { State = 1, Snapshot = 2, Self = 3, Hit = 4, Blink = 5, CrownAsk = 6, Pick = 7, Afflict = 8 }
 
         /// <summary>Ou en est le match chez l'hote.</summary>
         public enum Phase : byte { Lobby = 0, Draft = 1, Round = 2, RoundOver = 3, Ended = 4 }
@@ -540,6 +540,40 @@ namespace Fief
             else Link.Send(0, data, true);
         }
 
+        /// <summary>
+        /// (06/10) UN SORT DE FOU sur la marionnette d'un ami (prison, glu, tete a l'envers, mini,
+        /// encre, ballon) : c'est chez lui qu'il est enchaine, retreci... (Combat.Afflict).
+        /// </summary>
+        public static void RemoteAfflict(Seeker victim, Combat.Affliction what, float seconds, Seeker by)
+        {
+            if (!Active || victim == null || !victim.Remote || by == null || by.Remote) return;
+            byte[] data = Pack(w =>
+            {
+                w.Write((byte)Kind.Afflict);
+                w.Write(RoundToken);
+                w.Write((byte)victim.Index);
+                w.Write((byte)by.Index);
+                w.Write((byte)what);
+                w.Write(seconds);
+            });
+            if (IsHost) { if (victim.Slot.NetOwner > 0) Link.Send(victim.Slot.NetOwner, data, true); }
+            else Link.Send(0, data, true);
+        }
+
+        static void ReadAfflict(int from, BinaryReader r, byte[] raw)
+        {
+            int token = r.ReadInt32();
+            Seeker v = Game.SeekerOf(r.ReadByte());
+            Seeker by = Game.SeekerOf(r.ReadByte());
+            Combat.Affliction what = (Combat.Affliction)r.ReadByte();
+            float seconds = Mathf.Clamp(r.ReadSingle(), 0f, 12f);
+            if (token != RoundToken || !InRound || v == null) return;
+            // Un invite ne lance de sort qu'avec SON joueur.
+            if (Link.IsHost && from > 0 && (by == null || by.Slot.NetOwner != from)) return;
+            if (!v.Remote) Combat.Afflict(v, what, seconds, by);
+            else if (Link.IsHost && v.Slot.NetOwner > 0) Link.Send(v.Slot.NetOwner, raw, true);
+        }
+
         static void ReadBlink(int from, BinaryReader r, byte[] raw)
         {
             int token = r.ReadInt32();
@@ -650,6 +684,7 @@ namespace Fief
                     case Kind.Self: if (host) ReadSelf(from, r); break;
                     case Kind.Hit: ReadHit(from, r); break;
                     case Kind.Blink: ReadBlink(from, r, data); break;
+                    case Kind.Afflict: ReadAfflict(from, r, data); break;
                     case Kind.CrownAsk: ReadCrownAsk(from, r); break;
                     case Kind.Pick: ReadPick(from, r); break;
                 }

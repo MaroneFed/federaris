@@ -34,7 +34,7 @@ namespace Fief
         /// mots SOUS les icones aux moments qui comptent (la Couronne prise ou perdue, la
         /// regle de la manche, les astuces). Non : zero texte, comme le veut Martin (30/09).
         /// </summary>
-        public static bool Help = true;
+        public static bool Help = false;
         /// <summary>TON PSEUDO (29/09 : "il faut mettre le pseudo, les persos c'est quasi tous les memes").</summary>
         public static string Pseudo = "Joueur";
         public const int PseudoLength = 16;
@@ -70,7 +70,9 @@ namespace Fief
             PushBind = Mathf.Clamp(PlayerPrefs.GetInt("fief.touchePousser", oldLeft ? 0 : 1), 0, FiefInput.BindNames.Length - 1);
             if (PushBind == ActiveBind) { ActiveBind = 0; PushBind = 1; }
             Pseudo = PlayerPrefs.GetString("fief.pseudo", "Joueur");
-            Help = PlayerPrefs.GetInt("fief.aide", 1) == 1;
+            // (06/10 -- Martin : "trop d'infos, ca doit etre hyper intuitif") : NON par defaut. Une
+            // nouvelle cle, pour que l'ancien "oui" enregistre ne revienne pas.
+            Help = PlayerPrefs.GetInt("fief.aide2", 0) == 1;
         }
 
         public static void Save()
@@ -84,7 +86,7 @@ namespace Fief
             PlayerPrefs.SetInt("fief.toucheCapacite", ActiveBind);
             PlayerPrefs.SetInt("fief.touchePousser", PushBind);
             PlayerPrefs.SetString("fief.pseudo", Pseudo);
-            PlayerPrefs.SetInt("fief.aide", Help ? 1 : 0);
+            PlayerPrefs.SetInt("fief.aide2", Help ? 1 : 0);
             PlayerPrefs.Save();
         }
 

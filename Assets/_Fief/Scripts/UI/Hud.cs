@@ -155,7 +155,6 @@ namespace Fief
 
         /// <summary>Les astuces deja montrees pendant ce match (une seule fois chacune).</summary>
         static readonly HashSet<string> tipsShown = new HashSet<string>();
-        static int tipsMatch = -1;
 
         /// <summary>Une astuce, une seule fois par match, au moment ou elle sert.</summary>
         public void Tip(string key, string text)
@@ -215,7 +214,8 @@ namespace Fief
         /// </summary>
         void WatchTips()
         {
-            if (tipsMatch != Match.MatchId) { tipsMatch = Match.MatchId; tipsShown.Clear(); }
+            // (06/10 -- "trop d'infos") : chaque astuce UNE fois par partie lancee (plus une
+            // fois par match) : au deuxieme match, on sait.
             Seeker me = Game.Me;
             if (me == null || me.Body == null) return;
             // Le panneau des touches est la : une chose a la fois a l'ecran.
@@ -248,14 +248,15 @@ namespace Fief
             // ne cache que lui, et la couleur est remise a chaque fois (l'erreur va une seule
             // fois dans la Console, pour qu'on la corrige).
             Part(0); Part(1); Part(2); Part(3); Part(4); Part(5); Part(6); Part(7);
+            Part(17);
             Part(8); Part(9); Part(10); Part(11); Part(12); Part(13); Part(16);
             if (showDiagnostic) Part(14);
             if (FiefInput.ScoresHeld) Part(15);
         }
 
         static readonly string[] PartNames = { "voiles", "porteur", "pseudos", "repere de la Couronne", "haut", "scores", "capacites", "centre",
-                                               "invite", "carte", "astuce", "touches", "fil", "erreur", "diagnostic", "tableau des scores", "cris" };
-        readonly bool[] partFailed = new bool[17];
+                                               "invite", "carte", "astuce", "touches", "fil", "erreur", "diagnostic", "tableau des scores", "cris", "encre" };
+        readonly bool[] partFailed = new bool[18];
 
         void Part(int k)
         {
@@ -280,6 +281,7 @@ namespace Fief
                     case 14: DrawDiagnostic(); break;
                     case 15: DrawScores(); break;
                     case 16: Shouts.Draw(); break;
+                    case 17: DrawInk(); break;
                 }
             }
             catch (System.Exception e)
@@ -418,7 +420,9 @@ namespace Fief
             }
             Rect right = new Rect(crownIcon.xMax + UiStyle.S(8), r.y, inner, h);
             if (name != null) Icons.Text(right, name, fs, Color.white, TextAnchor.MiddleLeft, true);
-            if (mine) Caption(cx, r.yMax + UiStyle.S(10), "TU AS LA COURONNE : VA À UN MONUMENT", UiStyle.S(22), CrownGold);
+            // (06/10 -- "on me dit ramene-la au Monument, alors qu'on le sait tres bien") : plus
+            // de phrase sous la pastille du porteur. Le cadre d'or et les Monuments reperes suffisent.
+            if (mine) { }
             else if (number != null) Icons.Number(right, number, fs, Color.white, TextAnchor.MiddleLeft);
             else Icons.Draw(new Rect(right.x, r.y + (h - ic) * 0.5f, ic, ic), second, Color.white);
         }
@@ -531,6 +535,12 @@ namespace Fief
             if (me.Slowed) { states.Add("gel"); tints.Add(AbilityInfo.Tint(Ability.Gel)); }
             if (me.Hidden) { states.Add("voile"); tints.Add(AbilityInfo.Tint(Ability.Voile)); }
             if (me.Graced) { states.Add("bouclier"); tints.Add(new Color(0.7f, 0.85f, 1f)); }
+            // (06/10) Les sorts des capacites de fou.
+            if (me.Rooted) { states.Add("prison"); tints.Add(AbilityInfo.Tint(Ability.Prison)); }
+            if (me.Glued) { states.Add("glu"); tints.Add(AbilityInfo.Tint(Ability.Glu)); }
+            if (me.Inverted) { states.Add("inversion"); tints.Add(AbilityInfo.Tint(Ability.Inversion)); }
+            if (me.Tiny) { states.Add("mini"); tints.Add(AbilityInfo.Tint(Ability.Mini)); }
+            if (me.Ballooned) { states.Add("ballon"); tints.Add(AbilityInfo.Tint(Ability.Ballon)); }
             if (Game.Player != null && Game.Player.Gliding && Thermal.LiftAt(me.Body.position) > 0.5f) { states.Add("courant"); tints.Add(new Color(0.75f, 0.92f, 1f)); }
             else if (me.HasWings || me.Has(Ability.Planeur)) { states.Add("ailes"); tints.Add(Wings.Gold); }
             if (me.CarriesCrown) { states.Add("couronne"); tints.Add(new Color(1f, 0.86f, 0.35f)); }
@@ -545,6 +555,28 @@ namespace Fief
             // En vol : la vitesse, en chiffres, a droite des pastilles.
             if (Game.Player != null && Game.Player.Gliding)
                 Icons.Number(new Rect(cx + UiStyle.S(140), y - st - UiStyle.S(18), UiStyle.S(160), st), Mathf.RoundToInt(Game.Player.Airspeed * 3.6f) + " km/h", UiStyle.S(26), Wings.Glow, TextAnchor.MiddleLeft);
+        }
+
+        /// <summary>
+        /// L'ENCRE (06/10) : de grosses taches sombres sur l'ecran, cinq secondes ; elles
+        /// s'eclaircissent a la fin. On voit encore un peu au travers (et le bord reste libre).
+        /// </summary>
+        void DrawInk()
+        {
+            Seeker me = Game.Me;
+            if (me == null || !me.Inked) return;
+            float left = me.InkUntil - Time.time;
+            float a = Mathf.Clamp01(left / 1.2f) * 0.93f;
+            float w = Screen.width, h = Screen.height;
+            System.Random r = new System.Random(me.Index * 7919 + Mathf.FloorToInt(me.InkUntil * 10f));
+            for (int i = 0; i < 14; i++)
+            {
+                float d = (float)(0.18 + r.NextDouble() * 0.3) * h;
+                float x = (float)(0.12 + r.NextDouble() * 0.76) * w - d * 0.5f;
+                float y = (float)(0.1 + r.NextDouble() * 0.8) * h - d * 0.5f;
+                float wob = Mathf.Sin(Time.time * 1.7f + i) * d * 0.03f;
+                Icons.Pill(Icons.Snap(new Rect(x - wob, y + wob, d + wob * 2f, d - wob)), new Color(0.06f, 0.04f, 0.12f, a));
+            }
         }
 
         /// <summary>Le gros rond de ta capacite active.</summary>

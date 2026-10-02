@@ -409,7 +409,12 @@ namespace Fief
                                     Ability.Vampire, Ability.Foudre, Ability.Echange, Ability.Bond, Ability.Porteur, Ability.TrouNoir, Ability.Ancrage,
                                     Ability.Poigne, Ability.Geant, Ability.Mine, Ability.Gel, Ability.Plume, Ability.Voile, Ability.Riposte,
                                     Ability.Nuee, Ability.PriseFerme, Ability.Fusee, Ability.Recharge, Ability.SecondSouffle, Ability.Mur,
-                                    Ability.Rappel, Ability.Ressort, Ability.Rebond, Ability.Aimant, Ability.Flair, Ability.Ombre };
+                                    Ability.Rappel, Ability.Ressort, Ability.Rebond, Ability.Flair, Ability.Ombre,
+                                    // (06/10) les capacites de fou
+                                    Ability.Prison, Ability.Gant, Ability.Bombe, Ability.BrasLongs, Ability.Seisme, Ability.Ballon,
+                                    Ability.Rage, Ability.Taupe, Ability.Kangourou, Ability.Mini, Ability.Deluge, Ability.Kamikaze,
+                                    Ability.Inversion, Ability.Toupie, Ability.Glu, Ability.AngeGardien, Ability.Banane, Ability.Encre,
+                                    Ability.Fantome, Ability.Ninja };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

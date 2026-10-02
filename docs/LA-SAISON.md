@@ -190,7 +190,7 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 
 ---
 
-## Les 39 capacités
+## Les 58 capacités
 
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le
@@ -240,6 +240,33 @@ capacités de malade mental, qu'on pousse un peu plus loin » ; `World/Powers.cs
 | **Trampoline** | Un trampoline à tes pieds (14 s, deux au plus) : boing, 26 m/s vers le ciel — pour tout le monde. | 10 s |
 | **Foudre** | Vise un joueur (60 m) : la foudre tombe là où il était, un instant après (0,8 s) ; qui court s'en sort. | 11 s |
 
+**Les capacités de fou** (06/10, v27 — Martin : « une prison où tu restes, ça t'enchaîne au
+sol pendant dix secondes, plein de conneries comme ça, des trucs de fou, il m'en faut une
+vingtaine » ; `World/Mayhem.cs`). Les **sorts** (prison, tête à l'envers, mini, ballon,
+encre, glu) passent tous par `Combat.Afflict` : un protégé n'est pas touché, et en ligne ils
+frappent l'ami **chez lui**. C'est la seule exception à « on n'est jamais étourdi plus de
+0,7 s » — voulue par Martin :
+
+| Capacité | Ce que ça fait | Recharge |
+|---|---|---|
+| **Prison** | Vise un joueur (40 m) : une cage l'**enchaîne au sol dix secondes** (il ne bouge plus, ne saute plus, ne vole plus, ne lance rien — il peut encore pousser). **Le premier coup reçu le libère.** Sur le porteur : tout le monde vient la lui voler. | 16 s |
+| **Bombe collante** | Vise un joueur : une bombe se colle à lui, sa mèche crépite plus vite… BOUM 2 s après (il part très loin, et ceux collés à lui aussi). | 12 s |
+| **Tête à l'envers** | Vise un joueur : ses commandes sont inversées six secondes. | 13 s |
+| **Mini** | Vise un joueur : minuscule sept secondes — 25 % plus lent, et poussé deux fois plus loin. | 13 s |
+| **Glu** | Une flaque de glu de 7 m devant toi, dix secondes : qui marche dedans est englué (très lent, ne saute plus). | 12 s |
+| **Peau de banane** | Trois peaux en éventail derrière toi : qui marche dessus glisse et fait un salto. | 8 s |
+| **Ballon** | Vise un joueur : il gonfle, s'envole (3,5 s) en dérivant loin de toi, puis POP — il retombe, assommé. | 14 s |
+| **Séisme** | Tu frappes le sol : tous ceux qui sont debout à 25 m décollent. | 12 s |
+| **Gant de boxe** | Un gant géant jaillit devant toi (8 m) : le plus gros coup du jeu. | 8 s |
+| **Fantôme** | Quatre secondes : plus rien ne te touche, ni coups ni pièges. Pas avec la Couronne (et qui la ramasse fantôme ne garde qu'1,5 s de protection). | 16 s |
+| **Taupe** | Tu plonges sous terre et ressors vingt mètres plus loin en éjectant tout ce qui est au-dessus. | 9 s |
+| **Déluge** | Sept météores tombent en 2,5 s autour de là où tu vises (une cible au sol les annonce). | 14 s |
+| **Toupie** | Quatre secondes : tu tournes, tu cours plus vite, et qui te touche est éjecté. | 13 s |
+| **Encre** | Vise un joueur : de l'encre lui couvre l'écran cinq secondes (un bot avance au hasard). | 12 s |
+
+Interdites au porteur (« mains prises », sauf Porteur) : toutes, sauf la Glu et la Peau de
+banane (pour semer ses poursuivants) ; le Fantôme, jamais (« trop lourd »).
+
 ### Passives (toujours là)
 
 | Capacité | Ce que ça fait |
@@ -255,12 +282,20 @@ capacités de malade mental, qu'on pousse un peu plus loin » ; `World/Powers.cs
 | **Prise ferme** | Le premier coup ne te fait pas lâcher la Couronne. |
 | **Recharge** | Tes capacités reviennent un tiers plus vite. |
 | **Rebond** | Retomber de haut fait une onde de choc autour de toi. |
-| **Aimant** | La Couronne à terre vole jusqu'à toi. |
 | **Riposte** | Qui te pousse se prend un retour de bâton. |
 | **Vampire** | Chaque coup que tu donnes te fait courir 30 % plus vite, trois secondes. |
 | **Tête dure** | Les pièges ne t'éjectent plus de la tour : ils te bousculent, c'est tout. |
 | **Second souffle** | Tombé dans les nuages ? Tu repars avec des ailes d'or, protégé six secondes. |
 | **Plume** | Avec la Couronne, tu voles aussi vite que les autres (13 m/s au lieu de 11, 24 en vol libre au lieu de 16). Elle pèse toujours : tu descends d'autant, et du sommet tu ne vas pas droit aux Monuments. |
+| **Bras longs** | Ta poussée porte à 5 m (au lieu de 3,2). |
+| **Kangourou** | Tu sautes une fois et demie plus haut. |
+| **Kamikaze** | Quand on te pousse, tu exploses : tout le monde à 7 m s'envole (sauf toi). |
+| **Ange gardien** | Une fois par manche, tomber dans les nuages te ramène là où tu touchais le sol — jamais sur la tour (pas de point de reprise sur la tour). |
+| **Rage** | Chaque coup reçu rend ta prochaine poussée plus forte (+25 % par coup, ×2,5 au plus). |
+| **Ninja** | Immobile une seconde au sol (sans la Couronne), tu deviens invisible. |
+
+(06/10 : **l'Aimant est retiré** — Martin : « un truc qui TP la couronne vers toi, c'est
+n'importe quoi, il faut quand même monter la tour ».)
 
 (Le code : `Match/Abilities.cs` pour la liste, `World/AbilityCaster.cs` pour les effets.)
 
@@ -485,8 +520,15 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
   - **QUAND TU LA PORTES** : l'écran se borde d'or tant que tu l'as, la pastille du haut
     grossit avec ton pseudo, les **trois Monuments** ont leur repère (le plus proche plus
     gros) ; à la prise, une fanfare ; à la perte, la Couronne barrée et un éclair rouge ;
-  - **Réglages ▸ Aide écrite** (oui par défaut) : quelques mots sous les icônes aux moments
-    qui comptent ;
+  - **Réglages ▸ Aide écrite** (**non par défaut** depuis le 06/10 — Martin : « il y a trop
+    d'infos ; je chope la Couronne, on me dit ramène-la au Monument, alors qu'on le sait très
+    bien ; ça doit être hyper intuitif ») : quelques mots sous les icônes aux moments qui
+    comptent, pour qui les veut. Et dans tous les cas, **l'écran s'est vidé** : plus de phrase
+    sous la pastille du porteur, le fil ne raconte plus que **la Couronne** (prise, volée,
+    tombée — plus les chutes ni les dons des autres, trois lignes au plus), les moments à
+    clipper ne s'affichent que **les tiens** (ou ceux qu'on te fait), **un seul cri** à la
+    fois (une simple poussée ne crie que si rien n'a crié depuis 4 s), chaque astuce **une
+    seule fois par partie lancée** ;
   - **v23, les dix priorités du clipper fou** (`docs/CLIPPER-FOU-500.md`) : chaque obstacle a
     **sa voix** (le butoir fait « boing », le poing du bélier et les barres « paf », le
     maillet « gong », la herse **cliquette** avant de sortir) ; frôler un anneau de vent sans
@@ -546,7 +588,11 @@ poussent plus entre eux** (ils s'éjectaient de la tour les uns les autres) : il
 poussent que toi ou le porteur, et rarement. Coincés, ils montent d'un cran (05/10) : un pas de
 côté et un saut (2 s), le repère suivant (4,5 s), un nouveau chemin (7,5 s) et, à 12 s,
 hors de ta vue, ils sont reposés sur leur chemin ; poussés hors de l'île, ils cherchent un
-courant d'air. Ils se servent de toutes leurs capacités — mais plus de Souffle lancé de
+courant d'air. **Ils réfléchissent avant de lancer un sort** (06/10) : la prison, l'encre,
+le ballon, le mini visent le porteur — ou, si la Couronne est à terre, **celui qui va la
+prendre avant eux** ; ils deviennent fantômes devant un obstacle qui les fait attendre, le
+porteur poursuivi sème glu et bananes derrière lui, et un bot enchaîné ou aveuglé n'est pas
+« coincé » (il ne se fait pas replacer). Ils se servent de toutes leurs capacités — mais plus de Souffle lancé de
 l'autre bout de l'île (45 m au plus) ni d'Échange à tout bout de champ (05/10 : « des
 fois, les bots sont vraiment trop forts »).
 

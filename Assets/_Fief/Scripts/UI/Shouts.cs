@@ -14,7 +14,7 @@ namespace Fief
     ///     GOTAGA  t'a pique la Couronne !       (le vol)
     ///
     /// Le pseudo a SA couleur, le reste en blanc. Un mot different a chaque fois (une liste par
-    /// situation, tiree au hasard) : c'est le vocabulaire du jeu. Deux bandeaux au plus a la fois.
+    /// situation, tiree au hasard) : c'est le vocabulaire du jeu. Un bandeau a la fois (06/10).
     /// C'est une exception assumee au "zero texte" : c'est Martin qui l'a demandee.
     /// </summary>
     public static class Shouts
@@ -48,9 +48,18 @@ namespace Fief
 
         static string Pick(string[] list) { return list[rng.Next(list.Length)]; }
 
-        static void Add(string before, Seeker who, string after)
+        // (06/10 -- Martin : "Gotaga pour Squeezie, ca joue bien, mais pas trop non plus, sinon
+        // c'est horrible") : UN bandeau a la fois ; une simple poussee n'en fait un que si rien
+        // n'a crie depuis 4 s. Le KO et la Couronne volee passent toujours.
+        static float lastAt = -99f;
+
+        static void Add(string before, Seeker who, string after) { Add(before, who, after, true); }
+
+        static void Add(string before, Seeker who, string after, bool major)
         {
             if (who == null) return;
+            if (!major && Time.unscaledTime - lastAt < 4f) return;
+            lastAt = Time.unscaledTime;
             // Le meme joueur a l'instant (le vol ET la poussee du meme coup) : un seul bandeau.
             if (lines.Count > 0 && lines[0].Name == who.Name.ToUpperInvariant() && Time.unscaledTime - lines[0].At < 0.5f) return;
             ShoutLine l = new ShoutLine();
@@ -60,14 +69,14 @@ namespace Fief
             l.After = after;
             l.At = Time.unscaledTime;
             lines.Insert(0, l);
-            while (lines.Count > 2) lines.RemoveAt(lines.Count - 1);
+            while (lines.Count > 1) lines.RemoveAt(lines.Count - 1);
         }
 
         /// <summary>"by" t'a pousse (ou un coup d'une capacite).</summary>
-        public static void PushedMe(Seeker by) { Add(null, by, Pick(PushedYou)); }
+        public static void PushedMe(Seeker by) { Add(null, by, Pick(PushedYou), false); }
 
         /// <summary>Tu as pousse "victim".</summary>
-        public static void IPushed(Seeker victim) { Add(Pick(YouPushed), victim, "!"); }
+        public static void IPushed(Seeker victim) { Add(Pick(YouPushed), victim, "!", false); }
 
         /// <summary>Le KO : "by" t'a fait tomber dans les nuages (ou toi, lui).</summary>
         public static void Ko(Seeker by, Seeker victim)
@@ -81,6 +90,22 @@ namespace Fief
         {
             if (victim != null && victim.IsPlayer) Add(null, thief, "t'a piqué la Couronne !");
             else if (thief != null && thief.IsPlayer) Add("Tu as piqué la Couronne à", victim, "!");
+        }
+
+        /// <summary>(06/10) Un sort des capacites de fou sur toi : la prison crie toujours, le reste si c'est calme.</summary>
+        public static void Cursed(Seeker by, Combat.Affliction what)
+        {
+            string after;
+            switch (what)
+            {
+                case Combat.Affliction.Prison: after = "t'a mis en prison !"; break;
+                case Combat.Affliction.Inverted: after = "t'a retourné le cerveau !"; break;
+                case Combat.Affliction.Tiny: after = "t'a rétréci !"; break;
+                case Combat.Affliction.Ink: after = "t'a aveuglé !"; break;
+                case Combat.Affliction.Balloon: after = "t'a gonflé comme un ballon !"; break;
+                default: return;
+            }
+            Add(null, by, after, what == Combat.Affliction.Prison);
         }
 
         public static void Clear() { lines.Clear(); }

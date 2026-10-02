@@ -182,7 +182,7 @@ namespace Fief
         /// <summary>Le dernier anneau qu'il a frole sans y entrer (le "pfff").</summary>
         public WindRing MissedRing;
         /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
-        public bool CanGlide { get { return !Stunned && !Tumbling; } }
+        public bool CanGlide { get { return !Stunned && !Tumbling && !Rooted && !Ballooned; } }
         public bool Graced { get { return Time.time < GraceUntil; } }
         /// <summary>
         /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant
@@ -197,6 +197,34 @@ namespace Fief
         public bool Giant { get { return Time.time < GiantUntil; } }
         /// <summary>(05/10) VAMPIRE : il court plus vite jusqu'a cet instant (chaque coup donne).</summary>
         public float RushUntil = -1f;
+
+        // (06/10 -- "une prison qui t'enchaine au sol dix secondes, des trucs de fou") : ce que
+        // les capacites de fou font a leur cible. Poses par Combat.Afflict, jamais ailleurs.
+        /// <summary>PRISON : enchaine au sol (ne bouge plus, ne saute plus, ne vole plus). Un coup le libere.</summary>
+        public float RootedUntil = -1f;
+        /// <summary>GLU : englue (tres lent, ne saute plus).</summary>
+        public float GluedUntil = -1f;
+        /// <summary>TETE A L'ENVERS : ses commandes sont inversees.</summary>
+        public float InvertedUntil = -1f;
+        /// <summary>MINI : minuscule, lent, et pousse deux fois plus loin.</summary>
+        public float TinyUntil = -1f;
+        /// <summary>ENCRE : l'ecran couvert d'encre (un bot, lui, avance au hasard).</summary>
+        public float InkUntil = -1f;
+        /// <summary>BALLON : il gonfle et s'envole, puis eclate.</summary>
+        public float BalloonUntil = -1f;
+        /// <summary>RAGE : combien de coups recus depuis sa derniere poussee (0 a 6).</summary>
+        public int Rage;
+        /// <summary>ANGE GARDIEN : deja servi cette manche.</summary>
+        public bool AngelUsed;
+
+        public bool Rooted { get { return Time.time < RootedUntil; } }
+        public bool Glued { get { return Time.time < GluedUntil; } }
+        public bool Inverted { get { return Time.time < InvertedUntil; } }
+        public bool Tiny { get { return Time.time < TinyUntil; } }
+        public bool Inked { get { return Time.time < InkUntil; } }
+        public bool Ballooned { get { return Time.time < BalloonUntil; } }
+        /// <summary>Ni saut ni second saut (enchaine, englue, en ballon).</summary>
+        public bool NoJump { get { return Rooted || Glued || Ballooned; } }
 
         public bool Stunned { get { return Time.time < StunnedUntil; } }
         public bool Hidden { get { return Time.time < HiddenUntil; } }
@@ -215,7 +243,9 @@ namespace Fief
                 if (CarriesCrown && !Has(Ability.Porteur)) f *= 0.85f;
                 if (Time.time < RushUntil) f *= 1.3f;
                 if (Slowed) f *= 0.5f;
-                if (Stunned) f = 0f;
+                if (Tiny) f *= 0.75f;
+                if (Glued) f *= 0.3f;
+                if (Stunned || Rooted) f = 0f;
                 return f;
             }
         }

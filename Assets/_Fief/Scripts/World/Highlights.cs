@@ -265,18 +265,22 @@ namespace Fief
             if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal || k == Kind.SacreStopped || k == Kind.HotPotato || k == Kind.Summit)
                 Sfx.Crowd(k == Kind.DoubleKO || k == Kind.AirSteal ? 0.8f : 0.55f);
             Color gold = new Color(1f, 0.82f, 0.4f);
+            bool mine = actor != null && actor.IsPlayer;
+            bool against = !mine && victim != null && victim.IsPlayer;
+            // (06/10 -- "trop d'infos") : les moments des AUTRES ne s'affichent plus ; seulement
+            // les tiens, et ceux qu'on te fait.
+            if (!mine && !against) return;
             if (actor != null)
                 Toasts.Show(true, actor.IsPlayer ? gold : actor.Colour, actor.Name, new[] { "clip", icon }, new[] { Color.white, tint },
                             victim != null, victim != null ? (victim.IsPlayer ? gold : victim.Colour) : Color.white, victim != null ? victim.Name : null);
             else if (victim != null)
                 Toasts.Show(true, victim.IsPlayer ? gold : victim.Colour, victim.Name, new[] { "clip", icon }, new[] { Color.white, tint }, false, Color.white, null);
 
-            bool mine = actor != null && actor.IsPlayer;
-            bool against = !mine && victim != null && victim.IsPlayer;
-            if (!mine && !against) return;
             if (Game.Hud != null)
             {
-                Game.Hud.ShowSplash(icon, tint, WordsOf(k));
+                // Le KO et le vol en l'air ont deja leur CRI en haut (Shouts) : pas d'icone en plus.
+                bool shouted = k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal;
+                if (!shouted) Game.Hud.ShowSplash(icon, tint, WordsOf(k));
                 if (mine) Game.Hud.Flash(new Color(tint.r, tint.g, tint.b, 0.35f));
                 if (Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Kick(mine ? 12f : 6f);
             }

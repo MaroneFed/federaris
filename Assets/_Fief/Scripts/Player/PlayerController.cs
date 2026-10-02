@@ -197,6 +197,8 @@ namespace Fief
             if (dt <= 0f) return;
 
             Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
+            // (06/10) TETE A L'ENVERS : avant/arriere, gauche/droite, tout s'inverse.
+            if (me != null && me.Inverted) input = -input;
             Vector3 forward = Vector3.forward, right = Vector3.right;
             if (cameraTransform != null)
             {
@@ -235,7 +237,16 @@ namespace Fief
             // SAUTE quand meme (le "coyote time"). Et Espace n'ouvre plus les ailes au
             // ras de la rampe : seulement s'il y a du vide dessous.
             bool canAct = !InputLocked && factor > 0f;
+            // (06/10) Enchaine, englue ou en ballon : pas de saut.
+            if (me != null && me.NoJump) canAct = false;
             if (canAct && FiefInput.JumpPressed) jumpPressedAt = Time.time;
+            // (06/10) LE NINJA : immobile une seconde au sol (sans la Couronne), il disparait.
+            if (me != null && me.Has(Ability.Ninja) && grounded && CurrentSpeed < 0.3f && !me.CarriesCrown)
+            {
+                stillFor += dt;
+                if (stillFor > 1f) me.HiddenUntil = Mathf.Max(me.HiddenUntil, Time.time + 0.15f);
+            }
+            else stillFor = 0f;
             if (grounded)
             {
                 groundedAt = Time.time;
@@ -387,9 +398,13 @@ namespace Fief
         float groundedAt = -9f;
         float jumpPressedAt = -9f;
 
+        float stillFor;
+
         void Jump(GameConfig cfg)
         {
-            verticalVelocity = cfg.jumpSpeed;
+            // (06/10) LE KANGOUROU saute une fois et demie plus haut (x1,22 en vitesse).
+            Seeker me = Game.Me;
+            verticalVelocity = cfg.jumpSpeed * (me != null && me.Has(Ability.Kangourou) ? 1.22f : 1f);
             jumpPressedAt = -9f;
             groundedAt = -9f;
         }

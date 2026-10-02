@@ -18,11 +18,15 @@ namespace Fief
         /// <summary>(01/10 -- "quand ca pousse, que ca pousse bien" : 20 -> 26, et l'elan ne se freine plus en l'air.)</summary>
         public const float ShoveForce = 26f;
         public const float ShoveLift = 10f;
+
+        /// <summary>La portee de la poussee de "s" (06/10 : les BRAS LONGS portent a 5 m).</summary>
+        public static float ReachOf(Seeker s) { return s != null && s.Has(Ability.BrasLongs) ? 5f : ShoveReach; }
         /// <summary>Vrai pendant le coup d'une poussee : Hit ne joue pas son petit son, la poussee a le sien.</summary>
         static bool quietHit;
         /// <summary>(04/10, en ligne) Vrai pendant une poussee ou un pique d'invite sur le porteur : l'hote decidera du vol.</summary>
         static bool stealAttempt;
         static bool riposting;
+        static bool exploding;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -34,12 +38,15 @@ namespace Fief
             Vector3 f = Flat(forward).normalized;
             float force = by.Has(Ability.Poigne) ? ShoveForce * 2f : ShoveForce;
             if (by.Giant) force *= 1.6f;
+            // (06/10) RAGE : chaque coup recu depuis ta derniere poussee la rend plus forte (x2,5 au plus).
+            if (by.Rage > 0) { force *= 1f + 0.25f * by.Rage; by.Rage = 0; }
+            float reach = ReachOf(by);
             Seeker best = null;
             float bestD = float.MaxValue;
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s == by || s.Body == null || !InArc(by.Body.position, f, s.Body.position, ShoveReach, 65f)) continue;
+                if (s == by || s.Body == null || !InArc(by.Body.position, f, s.Body.position, reach, 65f)) continue;
                 float d = Flat(s.Body.position - by.Body.position).magnitude;
                 if (d < bestD) { bestD = d; best = s; }
             }
@@ -175,6 +182,12 @@ namespace Fief
             if (victim.Has(Ability.Ancrage)) velocity = new Vector3(velocity.x * 0.5f, velocity.y * 0.7f, velocity.z * 0.5f);
             // (05/10) Le GEANT ne bouge presque pas.
             if (victim.Giant) velocity *= 0.3f;
+            // (06/10) Le MINI part deux fois plus loin.
+            if (victim.Tiny) velocity = new Vector3(velocity.x * 2f, velocity.y * 1.3f, velocity.z * 2f);
+            // La PRISON : le premier coup brise la cage (sinon dix secondes, c'est horrible).
+            if (victim.Rooted) victim.RootedUntil = -1f;
+            // La RAGE monte a chaque coup recu d'un joueur.
+            if (by != null && by != victim && victim.Has(Ability.Rage)) victim.Rage = Mathf.Min(6, victim.Rage + 1);
             // TETE DURE : les pieges ne t'ejectent plus de la tour, ils te bousculent.
             if (by == null && victim.Has(Ability.TeteDure)) velocity *= 0.6f;
             // UN OBSTACLE SUR LA TOUR TE RENVOIE EN BAS (29/09) : jete hors de la rampe,
@@ -193,11 +206,24 @@ namespace Fief
                 riposting = false;
                 Fx.Ring(victim.Body.position + Vector3.up * 1.1f, AbilityInfo.Tint(Ability.Riposte), 0.4f, 2.6f, 0.3f, 0.2f, back);
             }
+            // KAMIKAZE : on le pousse, il explose (tout le monde autour, sauf lui ; pas en cascade).
+            if (by != null && by != victim && victim.Has(Ability.Kamikaze) && !exploding)
+            {
+                exploding = true;
+                Vector3 c = victim.Body.position;
+                Blast(c, 7f, 26f, 12f, victim);
+                Color k = AbilityInfo.Tint(Ability.Kamikaze);
+                Fx.Shock(c + Vector3.up, k, 7f, 0.45f);
+                Fx.Burst(c + Vector3.up, k, 120, 18f, 0.25f, 0.8f, 0f, Vector3.zero, 0f);
+                Fx.Flash(c + Vector3.up, k, 20f, 8f, 0.4f);
+                Sfx.KoBoom(c, victim.IsPlayer || by.IsPlayer);
+                exploding = false;
+            }
             Knockback(victim, velocity);
             victim.LastHurt = Time.time;
             if (by != null && by != victim) { victim.LastHitBy = by; victim.LastHitByAt = Time.time; }
             // (05/10) "GOTAGA T'A DEGAGE !" -- en toutes lettres, en haut (Shouts).
-            if (victim.IsPlayer && by != null && by != victim) Shouts.PushedMe(by);
+            if (victim.IsPlayer && by != null && by != victim && velocity.magnitude > 18f) Shouts.PushedMe(by);
             // Un gros coup sur TOI : la tete se tourne vers d'ou il vient (OrbitCamera.Glance).
             if (victim.IsPlayer && velocity.magnitude > 18f && Game.Hud != null && Game.Hud.orbitCamera != null)
             {
@@ -253,9 +279,40 @@ namespace Fief
         /// Seuls les coups des joueurs joues ICI partent : un obstacle, une gargouille d'ici ne
         /// touchent pas un ami -- il a les siens, chez lui, au bon endroit.
         /// </summary>
+        /// <summary>Ce que les capacites de fou font a leur cible (06/10).</summary>
+        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6 }
+
+        /// <summary>
+        /// LES SORTS DES CAPACITES DE FOU (06/10 -- Martin : "une prison qui t'enchaine au sol
+        /// pendant dix secondes, plein de conneries comme ca") : la prison, la glu, la tete a
+        /// l'envers, le mini, l'encre, le ballon. Une seule porte, comme Combat.Hit : un protege
+        /// n'est pas touche ; le joueur d'une autre machine l'est CHEZ LUI (NetGame.RemoteAfflict).
+        /// </summary>
+        public static bool Afflict(Seeker victim, Affliction what, float seconds, Seeker by)
+        {
+            if (victim == null || victim.Body == null || victim.Graced) return false;
+            seconds = Mathf.Clamp(seconds, 0f, 12f);
+            float until = Time.time + seconds;
+            switch (what)
+            {
+                case Affliction.Prison: victim.RootedUntil = Mathf.Max(victim.RootedUntil, until); break;
+                case Affliction.Glue: victim.GluedUntil = Mathf.Max(victim.GluedUntil, until); break;
+                case Affliction.Inverted: victim.InvertedUntil = Mathf.Max(victim.InvertedUntil, until); break;
+                case Affliction.Tiny: victim.TinyUntil = Mathf.Max(victim.TinyUntil, until); break;
+                case Affliction.Ink: victim.InkUntil = Mathf.Max(victim.InkUntil, until); break;
+                case Affliction.Balloon: victim.BalloonUntil = Mathf.Max(victim.BalloonUntil, until); break;
+            }
+            Mayhem.Show(victim, what, by);
+            if (victim.Remote && by != null && !by.Remote) NetGame.RemoteAfflict(victim, what, seconds, by);
+            if (victim.IsPlayer && by != null && what != Affliction.Glue) Shouts.Cursed(by, what);
+            return true;
+        }
+
         static void HitElsewhere(Seeker victim, Vector3 velocity, float stun, bool dropsCrown, Seeker by)
         {
             if (by == null || by.Remote || victim.Graced) return;
+            // (06/10) La cage de sa marionnette se brise ici aussi (chez lui, le coup la brise).
+            victim.RootedUntil = -1f;
             NetGame.RemoteHit(victim, velocity, stun, dropsCrown, by, stealAttempt);
             if (!quietHit) Sfx.PunchAt(victim.Body.position);
             Ambiance.Burst(null, victim.Body.position + Vector3.up * 1.2f, victim.Colour);
@@ -378,7 +435,7 @@ namespace Fief
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
-                if (s != me && s.Body != null && InArc(me.Body.position, f, s.Body.position, ShoveReach, 65f)) return true;
+                if (s != me && s.Body != null && InArc(me.Body.position, f, s.Body.position, ReachOf(me), 65f)) return true;
             }
             return false;
         }
@@ -553,7 +610,21 @@ namespace Fief
             if (s.CarriesCrown) Crown.FellWith(s);
             s.LastHitBy = null;
             Vector3 at = Spawns.Of(s.Index, Spawns.PadOf(s.Index)) + Vector3.up * 0.1f;
-            float yaw = Spawns.YawOf(s.Index);
+            // (06/10) L'ANGE GARDIEN : une fois par manche, on revient la ou l'on touchait le sol
+            // (jamais sur la tour : pas de point de reprise sur la tour, refuse le 02/10).
+            IMover mover = AbilityCaster.MoverOf(s);
+            bool angel = false;
+            if (s.Has(Ability.AngeGardien) && !s.AngelUsed && mover != null)
+            {
+                Vector3 g = mover.LastGround;
+                if (g.y > Ground.FallLine + 2f && !Tower.On(g))
+                {
+                    s.AngelUsed = true;
+                    angel = true;
+                    at = g + Vector3.up * 0.3f;
+                }
+            }
+            float yaw = angel && s.Body != null ? s.Body.eulerAngles.y : Spawns.YawOf(s.Index);
             if (s.IsPlayer && Game.Player != null) { Game.Player.Teleport(at, yaw); Game.Player.Forget(); }
             else
             {
@@ -568,6 +639,9 @@ namespace Fief
             if (s.Has(Ability.SecondSouffle)) { s.GraceUntil = Time.time + 6f; Wings.Grant(s, true); }
             s.StunnedUntil = -1f;
             s.SlowUntil = -1f;
+            // Les sorts des capacites de fou ne survivent pas au plongeon.
+            s.RootedUntil = s.GluedUntil = s.InvertedUntil = s.TinyUntil = s.InkUntil = s.BalloonUntil = -1f;
+            if (angel) Fx.Column(at, AbilityInfo.Tint(Ability.AngeGardien), 30f, 0.6f, 1.2f);
             Fx.Respawn(at, s.Colour);
             Feed.FellIntoClouds(s);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(s.Colour.r, s.Colour.g, s.Colour.b, 0.6f));

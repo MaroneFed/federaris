@@ -31,6 +31,8 @@ namespace Fief
             "flair", "ombre", "prise-ferme", "recharge", "rebond", "aimant",
             "meteore", "tornade", "trou-noir", "boulet", "geant", "fusee", "ressort", "foudre",
             "riposte", "vampire", "tete-dure", "second-souffle", "plume",
+            "prison", "bombe", "inversion", "mini", "glu", "banane", "ballon", "seisme", "gant", "fantome",
+            "taupe", "deluge", "toupie", "encre", "bras-longs", "kangourou", "kamikaze", "ange", "rage", "ninja",
             "etourdi", "chute", "ko", "clip"
         };
 
@@ -539,6 +541,143 @@ namespace Fief
                     float u = (x + y) * 0.7071f, v = (y - x) * 0.7071f;
                     float leaf = ((float)Math.Sqrt(u * u + v * v * 5.5f) - 0.8f) * 0.5f;
                     return Sub(Min(leaf, Seg(x, y, 0.5f, 0.5f, 0.88f, 0.88f, 0.05f)), Seg(x, y, -0.5f, -0.5f, 0.5f, 0.5f, 0.025f));
+                }
+                // ============================================ les capacites de fou (06/10)
+                case "prison":
+                {
+                    // Une cage : un cadre arrondi et trois barreaux.
+                    float frame = Sub(Box(x, y, 0.7f, 0.82f, 0.14f), Box(x, y, 0.54f, 0.66f, 0.06f));
+                    float bars = Min(Box(x - 0.2f, y, 0.065f, 0.7f, 0f), Box(x + 0.2f, y, 0.065f, 0.7f, 0f));
+                    return Min(frame, bars);
+                }
+                case "bombe":
+                {
+                    float body = Sub(Circle(x + 0.1f, y - 0.15f, 0.6f), Circle(x - 0.1f, y + 0.02f, 0.12f));
+                    float fuse = Seg(x, y, 0.45f, -0.5f, 0.62f, -0.72f, 0.08f);
+                    float spark = Star(x - 0.72f, y + 0.82f, 0.24f, 0.09f, 5);
+                    return Min(Min(body, fuse), spark);
+                }
+                case "inversion":
+                    // Une fleche monte, l'autre descend.
+                    return Min(ArrowUp(x + 0.42f, y, 0.55f), ArrowUp(x - 0.42f, -y, 0.55f));
+                case "mini":
+                {
+                    // Un tout petit bonhomme, et deux fleches qui le pressent.
+                    float man = Min(Circle(x, y - 0.1f, 0.17f), Box(x, y - 0.55f, 0.2f, 0.25f, 0.14f));
+                    float a1 = Min(Seg(x, y, -0.9f, -0.85f, -0.42f, -0.37f, 0.08f), Poly(x, y, -0.3f, -0.25f, -0.62f, -0.3f, -0.35f, -0.57f));
+                    float a2 = Min(Seg(x, y, 0.9f, -0.85f, 0.42f, -0.37f, 0.08f), Poly(x, y, 0.3f, -0.25f, 0.62f, -0.3f, 0.35f, -0.57f));
+                    return Min(man, Min(a1, a2));
+                }
+                case "glu":
+                {
+                    float drop = Min(Circle(x, y - 0.1f, 0.46f), Poly(x, y, -0.34f, -0.05f, 0.34f, -0.05f, 0f, -0.85f));
+                    float pool = Box(x, y - 0.76f, 0.88f, 0.11f, 0.1f);
+                    return Sub(Min(drop, pool), Circle(x + 0.16f, y + 0.02f, 0.1f));
+                }
+                case "banane":
+                {
+                    float c = Sub(Circle(x - 0.05f, y + 0.05f, 0.82f), Circle(x - 0.38f, y - 0.32f, 0.82f));
+                    return Min(Max(c, Box(x, y, 0.95f, 0.95f, 0f)), Box(x + 0.7f, y - 0.62f, 0.09f, 0.14f, 0.04f));
+                }
+                case "ballon":
+                {
+                    float ball = Sub(Circle(x, y + 0.2f, 0.58f), Circle(x - 0.22f, y + 0.44f, 0.13f));
+                    float knot = Poly(x, y, -0.12f, 0.46f, 0.12f, 0.46f, 0f, 0.32f);
+                    float line = Min(Seg(x, y, 0f, 0.44f, 0.12f, 0.68f, 0.045f), Seg(x, y, 0.12f, 0.68f, -0.05f, 0.95f, 0.045f));
+                    return Min(Min(ball, knot), line);
+                }
+                case "seisme":
+                {
+                    float ground = Box(x, y - 0.72f, 0.92f, 0.08f, 0.04f);
+                    float wave = Seg(x, y, -0.92f, 0.1f, -0.55f, 0.1f, 0.08f);
+                    wave = Min(wave, Seg(x, y, -0.55f, 0.1f, -0.32f, -0.55f, 0.08f));
+                    wave = Min(wave, Seg(x, y, -0.32f, -0.55f, -0.02f, 0.5f, 0.08f));
+                    wave = Min(wave, Seg(x, y, -0.02f, 0.5f, 0.28f, -0.35f, 0.08f));
+                    wave = Min(wave, Seg(x, y, 0.28f, -0.35f, 0.52f, 0.1f, 0.08f));
+                    wave = Min(wave, Seg(x, y, 0.52f, 0.1f, 0.92f, 0.1f, 0.08f));
+                    return Min(ground, wave);
+                }
+                case "gant":
+                {
+                    float fist = Min(Circle(x + 0.05f, y + 0.2f, 0.55f), Circle(x - 0.47f, y - 0.08f, 0.24f));
+                    float cuff = Box(x + 0.05f, y - 0.62f, 0.36f, 0.2f, 0.07f);
+                    return Sub(Min(fist, cuff), Box(x + 0.05f, y - 0.4f, 0.46f, 0.035f, 0f));
+                }
+                case "fantome":
+                {
+                    float body = Min(Circle(x, y + 0.22f, 0.56f), Box(x, y - 0.25f, 0.56f, 0.47f, 0f));
+                    body = Sub(body, Circle(x - 0.28f, y - 0.76f, 0.17f));
+                    body = Sub(body, Circle(x + 0.28f, y - 0.76f, 0.17f));
+                    return Sub(Sub(body, Circle(x - 0.2f, y + 0.25f, 0.1f)), Circle(x + 0.2f, y + 0.25f, 0.1f));
+                }
+                case "taupe":
+                {
+                    float mound = Max(Circle(x, y - 0.95f, 0.75f), y - 0.82f);
+                    return Min(mound, ArrowUp(x, y + 0.3f, 0.45f));
+                }
+                case "deluge":
+                {
+                    // Trois meteores, leur trainee vers le haut a droite.
+                    float d = Min(Circle(x + 0.5f, y - 0.5f, 0.2f), Seg(x, y, -0.5f, 0.5f, -0.15f, 0.15f, 0.07f));
+                    d = Min(d, Min(Circle(x - 0.35f, y - 0.2f, 0.2f), Seg(x, y, 0.35f, 0.2f, 0.7f, -0.15f, 0.07f)));
+                    return Min(d, Min(Circle(x + 0.15f, y + 0.35f, 0.18f), Seg(x, y, -0.15f, -0.35f, 0.18f, -0.68f, 0.06f)));
+                }
+                case "toupie":
+                {
+                    float cone = Poly(x, y, -0.62f, -0.12f, 0.62f, -0.12f, 0f, 0.85f);
+                    float rim = Box(x, y + 0.2f, 0.64f, 0.11f, 0.1f);
+                    float handle = Box(x, y + 0.55f, 0.08f, 0.22f, 0.04f);
+                    float swirl = Max(Ring(x, y - 0.15f, 0.82f, 0.05f), -(y + 0.3f));
+                    return Min(Min(cone, rim), Min(handle, swirl));
+                }
+                case "encre":
+                {
+                    float d = Circle(x, y, 0.46f);
+                    d = Min(d, Circle(x - 0.62f, y + 0.3f, 0.15f));
+                    d = Min(d, Circle(x + 0.55f, y - 0.42f, 0.18f));
+                    d = Min(d, Circle(x + 0.42f, y + 0.62f, 0.12f));
+                    d = Min(d, Circle(x - 0.55f, y - 0.5f, 0.1f));
+                    d = Min(d, Circle(x + 0.05f, y - 0.75f, 0.13f));
+                    return Min(d, Seg(x, y, -0.2f, 0.3f, -0.25f, 0.8f, 0.08f));
+                }
+                case "bras-longs":
+                {
+                    float arm = Seg(x, y, -0.92f, 0.5f, 0.32f, -0.08f, 0.12f);
+                    float hand = Circle(x - 0.55f, y + 0.22f, 0.28f);
+                    float sleeve = Seg(x, y, -0.92f, 0.5f, -0.6f, 0.35f, 0.2f);
+                    return Min(Min(arm, hand), sleeve);
+                }
+                case "kangourou":
+                {
+                    // Deux grands bonds vers le haut, au-dessus du sol.
+                    float ground = Box(x, y - 0.82f, 0.9f, 0.07f, 0.04f);
+                    return Min(ground, Min(Chevron2(x, y - 0.3f), Chevron2(x, y + 0.28f)));
+                }
+                case "kamikaze":
+                    return Sub(Star(x, y, 0.92f, 0.42f, 8), Circle(x, y, 0.18f));
+                case "ange":
+                {
+                    float halo = Ring(x, (y + 0.74f) * 2.6f, 0.36f, 0.11f) / 2.6f;
+                    float head = Circle(x, y + 0.15f, 0.22f);
+                    float body = Box(x, y - 0.5f, 0.22f, 0.28f, 0.16f);
+                    float wl = Sub(Circle(x + 0.52f, y - 0.1f, 0.34f), Circle(x + 0.2f, y + 0.12f, 0.26f));
+                    float wr = Sub(Circle(x - 0.52f, y - 0.1f, 0.34f), Circle(x - 0.2f, y + 0.12f, 0.26f));
+                    return Min(Min(halo, head), Min(body, Min(wl, wr)));
+                }
+                case "rage":
+                {
+                    // Une flamme.
+                    float f = Min(Circle(x, y - 0.3f, 0.52f), Poly(x, y, -0.5f, 0.2f, 0.5f, 0.2f, 0.1f, -0.92f));
+                    f = Min(f, Poly(x, y, -0.52f, 0.25f, -0.15f, 0.05f, -0.58f, -0.5f));
+                    return Sub(f, Min(Circle(x, y - 0.42f, 0.2f), Poly(x, y, -0.18f, 0.38f, 0.18f, 0.38f, 0.04f, -0.02f)));
+                }
+                case "ninja":
+                {
+                    float head = Circle(x, y + 0.05f, 0.7f);
+                    float band = Box(x, y - 0.08f, 0.62f, 0.17f, 0.12f);
+                    float eyes = Min(Circle(x - 0.25f, y + 0.08f, 0.09f), Circle(x + 0.25f, y + 0.08f, 0.09f));
+                    float tails = Min(Seg(x, y, 0.62f, -0.12f, 0.95f, -0.45f, 0.07f), Seg(x, y, 0.62f, -0.05f, 0.98f, 0.05f, 0.07f));
+                    return Min(Min(Sub(head, band), eyes), tails);
                 }
                 default: return Circle(x, y, 0.6f);
             }

@@ -26,7 +26,7 @@ namespace Fief
         }
 
         const float Lifetime = 5f;
-        const int MaxVisible = 5;
+        const int MaxVisible = 3;   // (06/10 : 5 -> 3, "pas trop d'infos")
 
         static readonly List<Entry> entries = new List<Entry>();
 

@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v26 · capacités de malade · 05/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v27 · capacités de fou · 06/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -153,7 +153,7 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 |---|---|
 | Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
 | Les manches, le départage, le choix des capacités | `Scripts/Match/Match.cs` |
-| Les 39 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; les treize neuves : `Scripts/World/Powers.cs` |
+| Les 58 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » (prison, bombe, ballon...) : `Scripts/World/Mayhem.cs` |
 | Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
 | Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
 | La Couronne (et le vol), le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |

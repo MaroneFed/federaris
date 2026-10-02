@@ -49,6 +49,9 @@ namespace Fief
         public const float OndeRadius = 11f;
         public const float BouletReach = 30f;
         public const float FoudreRange = 60f;
+        /// <summary>(06/10) La portee des sorts qu'on vise sur un joueur (prison, bombe, ballon...).</summary>
+        public const float CurseRange = 40f;
+        public const float TaupeReach = 20f;
         public const float WallAhead = 4.5f;
         public const float FrostReach = 26f;
 
@@ -92,9 +95,9 @@ namespace Fief
         public static string AimedAt(Seeker s, Ability a, Vector3 eye, Vector3 aim)
         {
             if (s == null || s.Body == null) return null;
-            if (a == Ability.Crochet || a == Ability.Echange || a == Ability.Foudre)
+            if (a == Ability.Crochet || a == Ability.Echange || a == Ability.Foudre || Curses(a))
             {
-                Seeker t = Combat.Aimed(s, eye, aim, a == Ability.Crochet ? CrochetRange : a == Ability.Foudre ? FoudreRange : EchangeRange, AimAngle);
+                Seeker t = Combat.Aimed(s, eye, aim, a == Ability.Crochet ? CrochetRange : a == Ability.Foudre ? FoudreRange : Curses(a) ? CurseRange : EchangeRange, AimAngle);
                 return t != null ? t.Name : null;
             }
             if (a == Ability.Grappin)
@@ -106,7 +109,13 @@ namespace Fief
         }
 
         /// <summary>Vrai pour les capacites qui visent quelque chose (le HUD dit si la visee est bonne).</summary>
-        public static bool Aims(Ability a) { return a == Ability.Crochet || a == Ability.Echange || a == Ability.Grappin || a == Ability.Foudre; }
+        public static bool Aims(Ability a) { return a == Ability.Crochet || a == Ability.Echange || a == Ability.Grappin || a == Ability.Foudre || Curses(a); }
+
+        /// <summary>(06/10) Les sorts qu'on vise sur un joueur : la prison, la bombe, la tete a l'envers, le mini, le ballon, l'encre.</summary>
+        public static bool Curses(Ability a)
+        {
+            return a == Ability.Prison || a == Ability.Bombe || a == Ability.Inversion || a == Ability.Mini || a == Ability.Ballon || a == Ability.Encre;
+        }
 
         public static IMover MoverOf(Seeker s)
         {
@@ -120,7 +129,8 @@ namespace Fief
         {
             return a == Ability.Crochet || a == Ability.Onde || a == Ability.Souffle || a == Ability.Gel
                 || a == Ability.Meteore || a == Ability.Tornade || a == Ability.TrouNoir || a == Ability.Foudre
-                || a == Ability.Boulet;
+                || a == Ability.Boulet || Curses(a) || a == Ability.Seisme || a == Ability.Gant || a == Ability.Deluge
+                || a == Ability.Toupie || a == Ability.Taupe;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -132,6 +142,9 @@ namespace Fief
             // La Fusee : la Couronne est trop lourde pour elle, et pas de raccourci dans la citadelle.
             if (a == Ability.Fusee && s.CarriesCrown) return "Trop lourd";
             if (a == Ability.Fusee && Castle.Inside(s.Body.position)) return "Pas ici";
+            // (06/10) Le Fantome : avec la Couronne, il gagnerait au Monument sans qu'on puisse rien faire.
+            if (a == Ability.Fantome && s.CarriesCrown) return "Trop lourd";
+            if (s.Rooted) return "Enchaîné";
             if (!s.Ready(a, Time.time)) return "Recharge";
             return null;
         }
@@ -407,6 +420,116 @@ namespace Fief
                     Sfx.BoingAt(pos);
                     break;
                 }
+
+                // ---- les capacites de fou (06/10)
+                case Ability.Prison:
+                case Ability.Inversion:
+                case Ability.Mini:
+                case Ability.Ballon:
+                case Ability.Encre:
+                case Ability.Bombe:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, CurseRange, AimAngle);
+                    if (t == null || t.Graced) { s.Refund(a); return false; }
+                    Tether.Show(s.Body, t.Body, Vector3.zero, 0.3f, tint);
+                    Fx.Flash(chest, tint, 8f, 3f, 0.2f);
+                    if (a == Ability.Bombe) StickyBomb.Stick(s, t);
+                    else
+                    {
+                        Combat.Affliction what = a == Ability.Prison ? Combat.Affliction.Prison : a == Ability.Inversion ? Combat.Affliction.Inverted
+                            : a == Ability.Mini ? Combat.Affliction.Tiny : a == Ability.Ballon ? Combat.Affliction.Balloon : Combat.Affliction.Ink;
+                        float secs = a == Ability.Prison ? 10f : a == Ability.Inversion ? 6f : a == Ability.Mini ? 7f : a == Ability.Ballon ? 3.5f : 5f;
+                        Combat.Afflict(t, what, secs, s);
+                    }
+                    break;
+                }
+
+                case Ability.Glu:
+                    if (!GluePuddle.Pour(s, pos + flat * 6f)) { s.Refund(a); return false; }
+                    break;
+
+                case Ability.Banane:
+                {
+                    // Trois peaux en eventail DERRIERE toi : pour qui te court apres.
+                    Vector3 side = new Vector3(flat.z, 0f, -flat.x);
+                    for (int k = -1; k <= 1; k++) BananaPeel.Drop(s, pos - flat * 2.5f + side * (k * 1.6f));
+                    Sfx.PafAt(pos);
+                    break;
+                }
+
+                case Ability.Seisme:
+                {
+                    // Tous ceux qui sont DEBOUT a 25 m (pas ceux qui volent) decollent.
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null) continue;
+                        Vector3 d = o.Body.position - pos;
+                        if (Mathf.Abs(d.y) > 4f || Combat.Flat(d).magnitude > 25f) continue;
+                        Vector3 away = Combat.Flat(d).sqrMagnitude > 0.01f ? Combat.Flat(d).normalized : Vector3.forward;
+                        Combat.Hit(o, Vector3.up * 17f + away * 4f, 0.5f, true, s);
+                    }
+                    Fx.GroundRing(pos, tint, 25f, 0.7f);
+                    Fx.GroundRing(pos, Color.white, 14f, 0.45f);
+                    Fx.Burst(pos + Vector3.up * 0.2f, new Color(0.6f, 0.5f, 0.4f), 120, 10f, 0.35f, 1f, 0.6f, Vector3.up, 80f);
+                    ShakeNear(pos, 0.7f);
+                    Sfx.KoBoom(pos, s.IsPlayer);
+                    break;
+                }
+
+                case Ability.Gant:
+                {
+                    // UN COUP MONSTRUEUX : tout ce qui est devant, a 8 m, dans un cone de 50 degres.
+                    BoxingGlove.Throw(chest + flat * 0.8f, flat);
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || !Combat.InArc(pos, flat, o.Body.position, 8f, 50f)) continue;
+                        Combat.Hit(o, flat * 38f + Vector3.up * 13f, 0.4f, true, s);
+                    }
+                    Fx.Shock(chest + flat * 4f, tint, 3f, 0.25f);
+                    ShakeNear(pos, 0.35f);
+                    Sfx.BigPush(pos + flat * 3f, s.IsPlayer);
+                    break;
+                }
+
+                case Ability.Fantome:
+                    // Quatre secondes : plus rien ne le touche (Combat.Hit le saute, comme un protege).
+                    s.GraceUntil = Mathf.Max(s.GraceUntil, now + 4f);
+                    Fx.Burst(chest, new Color(0.85f, 0.95f, 1f), 70, 5f, 0.3f, 1f, -0.3f, Vector3.zero, 0f);
+                    Fx.Shock(chest, tint, 2.5f, 0.35f);
+                    Sfx.WhooshAt(pos);
+                    break;
+
+                case Ability.Taupe:
+                {
+                    // Sous terre (un nuage de terre), puis on ressort 20 m plus loin et tout s'envole.
+                    Vector3 dest = DashEnd(s, flat, TaupeReach);
+                    RaycastHit g;
+                    if (Physics.Raycast(dest + Vector3.up * 2.5f, Vector3.down, out g, 6f, ~0, QueryTriggerInteraction.Ignore)) dest.y = g.point.y + 0.05f;
+                    else dest = BlinkDestination(s, flat);
+                    Color dirt = new Color(0.55f, 0.42f, 0.3f);
+                    Fx.Burst(pos + Vector3.up * 0.2f, dirt, 70, 7f, 0.35f, 0.8f, 0.6f, Vector3.up, 70f);
+                    m.Blink(dest);
+                    Combat.Blast(dest, 5f, 24f, 16f, s);
+                    Fx.Burst(dest + Vector3.up * 0.2f, dirt, 110, 12f, 0.4f, 1f, 0.7f, Vector3.up, 60f);
+                    Fx.GroundRing(dest, tint, 5f, 0.4f);
+                    Sfx.CrashAt(dest);
+                    break;
+                }
+
+                case Ability.Deluge:
+                {
+                    RaycastHit hit;
+                    Vector3 where = RayFrom(s, eye, aim, 45f, out hit) ? hit.point : pos + flat * 18f;
+                    MeteorShower.Rain(s, where);
+                    Fx.Flash(chest, tint, 8f, 3f, 0.2f);
+                    break;
+                }
+
+                case Ability.Toupie:
+                    SpinAura.Spin(s);
+                    break;
 
                 case Ability.Foudre:
                 {

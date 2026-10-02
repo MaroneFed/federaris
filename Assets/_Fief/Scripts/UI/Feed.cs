@@ -53,22 +53,15 @@ namespace Fief
             Toasts.Show(false, White, new[] { "couronne", "tour" }, new[] { Crown, White }, false, White);
         }
 
-        public static void GiftTaken(Seeker s, Ability a)
-        {
-            if (s == null || !Live || s.IsPlayer) return;     // le sien, on le voit en grand
-            Toasts.Show(true, Of(s), N(s), new[] { "don", Icons.Of(a) }, new[] { new Color(0.7f, 0.95f, 1f), AbilityInfo.Tint(a) }, false, White, null);
-        }
+        // (06/10 -- Martin : "il y a trop d'infos, juste les trucs simples") : le fil ne raconte
+        // plus que la COURONNE (qui la prend, qui la vole, qui la fait tomber). Les dons des
+        // autres, chaque chute de la tour, chaque plongeon dans les nuages : c'etait un defile
+        // permanent avec sept bots. Les fonctions restent (on les appelle encore), muettes.
+        public static void GiftTaken(Seeker s, Ability a) { }
 
-        public static void FellFromTower(Seeker s)
-        {
-            if (s == null || !Live) return;
-            Toasts.Show(true, Of(s), N(s), new[] { "tour", "chute" }, new[] { White, Loss }, false, White, null);
-        }
+        public static void FellFromTower(Seeker s) { }
 
-        public static void FellIntoClouds(Seeker s)
-        {
-            if (s == null || !Live) return;
-            Toasts.Show(true, Of(s), N(s), new[] { "chute" }, new[] { Loss }, false, White, null);
-        }
+        /// <summary>Seulement quand c'est TOI qui tombes (sinon, rien).</summary>
+        public static void FellIntoClouds(Seeker s) { }
     }
 }

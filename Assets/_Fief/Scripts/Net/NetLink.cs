@@ -27,7 +27,7 @@ namespace Fief.Net
     /// </summary>
     public sealed class NetLink : IDisposable
     {
-        public const int Version = 3;     // 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
+        public const int Version = 4;     // 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
         public const int DefaultPort = 7777;
         const uint Magic = 0x46494546;           // "FIEF"
         const float PingEvery = 1f;

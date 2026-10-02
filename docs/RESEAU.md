@@ -54,8 +54,9 @@ salon, départs, refus, ping) — « RESEAU OK ». Elle parle **UDP** (le protoc
   tout le monde (`Crown.TryTakeFor`, `TrySteal`, `KnockOff`…) et le dit à tous (`Crown.Mirror`).
 - **Un ami part en plein match** : sa place devient un bot, là où il était. **L'hôte part** :
   retour à l'écran En ligne, avec la raison. **Pas la même version** des deux côtés : refusé, et
-  le jeu le dit (`NetLink.Version` = 3 depuis v26 : les capacités sont passées de 26 à 39, une
-  v25 et une v26 ne se comprendraient plus).
+  le jeu le dit (`NetLink.Version` = 4 depuis v27 : 58 capacités et un message neuf, le
+  **sort** — prison, glu, tête à l'envers, mini, encre, ballon — qui part chez la victime par
+  l'hôte, `NetGame.RemoteAfflict`, comme un coup).
 - Testé hors d'Unity : `sh Tools/reseau.sh` (messages fiables avec 30 % de paquets perdus exprès).
 
 **Ce qui n'est pas encore partagé** (à voir en jouant) : les **effets** d'une capacité lancée
@@ -64,7 +65,9 @@ d'un autre (ils n'existent que chez lui), un **sanctuaire** pris par un autre (i
 chez toi), le **piqué d'aigle** d'un autre sur toi (pas d'alerte), le moment exact des
 **obstacles** (chacun voit les siens). Depuis v26 : la **Tornade**, le **Trou noir**, le
 **Trampoline** et la **Foudre** d'un autre n'existent que chez lui (leurs coups, eux, arrivent
-bien chez toi), et un **Géant** n'est grand que chez lui. Rien de tout ça ne change qui gagne : la Couronne et la
+bien chez toi), et un **Géant** n'est grand que chez lui. Depuis v27 : la **Bombe**, la **Glu**, les **Peaux
+de banane**, le **Déluge**, le **Gant** et la **Toupie** d'un autre ne se voient que chez lui
+(les coups, eux, arrivent) ; les **sorts** (prison, encre…) frappent bien l'ami chez lui. Rien de tout ça ne change qui gagne : la Couronne et la
 fin de manche sont à l'hôte.
 
 **Étape 3** : partager ce qui manque ci-dessus, si ça gêne en jouant. **Étape 4** : Steam

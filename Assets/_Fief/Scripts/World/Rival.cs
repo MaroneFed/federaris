@@ -1073,6 +1073,8 @@ namespace Fief
             // chemin -- et en dernier recours, s'il est coince depuis 12 s la ou personne ne le
             // voit, il est remis sur son chemin (comme tous les jeux le font avec leurs bots).
             if (!body.enabled || gliding || ballistic || leaping || mounted) { noProgress = 0f; unstick = 0; return; }
+            // (06/10) Enchaine, englue, aveugle, a l'envers : ce n'est pas etre coince.
+            if (seeker.Rooted || seeker.Glued || seeker.Inverted || seeker.Inked || seeker.Ballooned || seeker.Stunned) { noProgress = 0f; return; }
             float remaining = path.Count * 1000f + Flat(step - transform.position).magnitude;
             if (remaining < progressBest - 0.8f) { progressBest = remaining; noProgress = 0f; unstick = 0; return; }
             // Attendre que le pendule passe, ce n'est pas etre coince.
@@ -1153,6 +1155,26 @@ namespace Fief
             int near = 0;
             for (int i = 0; i < Game.Seekers.Count; i++)
                 if (Game.Seekers[i] != seeker && Game.Seekers[i].Body != null && (Game.Seekers[i].Body.position - me).magnitude < 5.5f) near++;
+            // (06/10 -- "faut que les bots reflechissent encore plus") : la Couronne est a terre (ou
+            // sur son socle) et quelqu'un est en train d'y arriver AVANT lui : c'est sur LUI qu'on
+            // lance la prison, l'encre, le mini...
+            Seeker contender = null;
+            if (holder == null && Crown.Instance != null && !carrying)
+            {
+                Vector3 cp = Crown.Instance.RestingPosition;
+                float best = (cp - me).magnitude - 3f;
+                for (int i = 0; i < Game.Seekers.Count; i++)
+                {
+                    Seeker o = Game.Seekers[i];
+                    if (o == seeker || o.Body == null || o.Graced || o.Hidden) continue;
+                    float d = (o.Body.position - cp).magnitude;
+                    if (d < best && d < 25f && (o.Body.position - me).magnitude < AbilityCaster.CurseRange - 3f) { best = d; contender = o; }
+                }
+            }
+            // La cible d'un sort : le porteur s'il est a portee, sinon celui qui va prendre la Couronne.
+            Seeker victim = prey != null && prey.CarriesCrown && prey.Body != null && !prey.Graced
+                            && (prey.Body.position - me).magnitude < AbilityCaster.CurseRange - 3f ? prey : contender;
+            Vector3 toVictim = victim != null ? victim.Body.position + Vector3.up - eye : Vector3.zero;
 
             for (int i = 0; i < list.Count; i++)
             {
@@ -1255,6 +1277,60 @@ namespace Fief
                         go = prey != null && prey.CarriesCrown && preyD < AbilityCaster.FoudreRange - 5f;
                         aim = toPrey;
                         break;
+                    // ---- les capacites de fou (06/10) : les sorts sur le porteur, ou sur qui va prendre la Couronne
+                    case Ability.Prison:
+                    case Ability.Ballon:
+                    case Ability.Encre:
+                        go = victim != null;
+                        aim = toVictim;
+                        break;
+                    case Ability.Inversion:
+                    case Ability.Mini:
+                        // Le plus utile pres du but : le porteur pres d'un Monument, ou qui touche presque la Couronne.
+                        go = victim != null && (victim != prey || Monument.NearestDistance(victim.Body.position) < 70f || Tower.On(victim.Body.position));
+                        aim = toVictim;
+                        break;
+                    case Ability.Bombe:
+                        go = victim != null || prey != null && goal == Goal.Fight && preyD < 15f && (!Tower.On(me) || prey.IsPlayer);
+                        aim = victim != null ? toVictim : toPrey;
+                        break;
+                    case Ability.Deluge:
+                        go = prey != null && prey.CarriesCrown && preyD < 42f;
+                        aim = toPrey;
+                        break;
+                    case Ability.Glu:
+                        // Le porteur poursuivi verse la glu DERRIERE lui ; le chasseur, devant le porteur a pied.
+                        if (carrying) { go = Chasers(12f) > 0 && body.isGrounded && !gliding; aim = -Flat(transform.forward); }
+                        else { go = prey != null && prey.CarriesCrown && OnFoot(prey.Body.position) && preyD > 4f && preyD < 9f && body.isGrounded; aim = Flat(toPrey); }
+                        break;
+                    case Ability.Banane:
+                        go = carrying && Chasers(12f) > 0 && body.isGrounded && !gliding;
+                        aim = Flat(transform.forward);
+                        break;
+                    case Ability.Seisme:
+                        go = body.isGrounded && (!Tower.On(me) && near >= 2 || prey != null && prey.CarriesCrown && preyD < 22f && Mathf.Abs(toPrey.y) < 3.5f);
+                        break;
+                    case Ability.Gant:
+                        // Sur la rampe, jamais un autre bot (sinon ils s'ejectent tous de la tour).
+                        go = prey != null && preyD < 7f && Mathf.Abs(toPrey.y) < 2.5f && (prey.CarriesCrown || goal == Goal.Fight)
+                             && (!Tower.On(me) || prey.IsPlayer || prey.CarriesCrown);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.Fantome:
+                        // Devant un obstacle qui le fait attendre, il devient fantome et passe ; ou dans la melee.
+                        go = Tower.On(me) && hazardWait > 0.8f || near >= 3;
+                        break;
+                    case Ability.Taupe:
+                    {
+                        Vector3 land = me + Flat(toWaypoint).normalized * 18f;
+                        go = !Tower.On(me) && body.isGrounded && Ground.OnIsland(land.x, land.z) && !gliding && !ballistic
+                             && farToGo > 22f && (goal == Goal.Hunt || goal == Goal.Grab || goal == Goal.Deliver || goal == Goal.Raid);
+                        aim = Flat(toWaypoint);
+                        break;
+                    }
+                    case Ability.Toupie:
+                        go = !Tower.On(me) && (near >= 1 && (goal == Goal.Hunt || goal == Goal.Fight) || prey != null && prey.CarriesCrown && preyD < 8f);
+                        break;
                 }
                 if (!go) continue;
                 if (aim.sqrMagnitude < 0.01f) aim = transform.forward;
@@ -1297,6 +1373,9 @@ namespace Fief
         // ================================================================== marcher, voler
 
         float hazardWait;
+        float stillFor;
+        /// <summary>(06/10) Le KANGOUROU saute plus haut.</summary>
+        float JumpBoost { get { return seeker.Has(Ability.Kangourou) ? 1.22f : 1f; } }
         /// <summary>Combien de temps il attend son tour devant un obstacle, au plus (puis il passe).</summary>
         const float HazardPatience = 4f;
 
@@ -1340,7 +1419,8 @@ namespace Fief
                 // ils s'engageaient sous un pendule qui revenait, et la tour les rejetait en bas.
                 float look = Match.BotLevel == 0 ? 0.4f : Match.BotLevel == 1 ? 0.9f : 1.1f;
                 bool ahead = Hazards.Danger(transform.position + dir * 1.6f, look) || Match.BotLevel > 0 && Hazards.Danger(transform.position + dir * 3.2f, look * 0.8f);
-                if (ahead && !Hazards.Danger(transform.position, 0.25f))
+                // (06/10) Fantome (ou protege) : les obstacles ne le touchent pas, il passe.
+                if (ahead && !seeker.Graced && !Hazards.Danger(transform.position, 0.25f))
                 {
                     hazardWait += dt;
                     if (hazardWait < HazardPatience) speed = 0f;
@@ -1374,6 +1454,16 @@ namespace Fief
             if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
             Wings.Tick(seeker, grounded);
             if (grounded || !seeker.CanGlide) gliding = false;
+            // (06/10) TETE A L'ENVERS : il part a reculons ; ENCRE : il avance au hasard, en zigzag.
+            if (seeker.Inverted) dir = -dir;
+            else if (seeker.Inked) dir = Quaternion.Euler(0f, Mathf.Sin(Time.time * 2.3f + seeker.Index) * 80f, 0f) * dir;
+            // LE NINJA : immobile une seconde au sol (sans la Couronne), il disparait.
+            if (seeker.Has(Ability.Ninja) && grounded && speed < 0.3f && !seeker.CarriesCrown)
+            {
+                stillFor += dt;
+                if (stillFor > 1f) seeker.HiddenUntil = Mathf.Max(seeker.HiddenUntil, Time.time + 0.15f);
+            }
+            else stillFor = 0f;
             Vector3 walk = dir * speed;
             // Ejecte : il ne remonte pas l'elan a la marche (comme toi, presque plus de controle).
             if (seeker.Tumbling) walk *= 0.15f;
@@ -1468,10 +1558,10 @@ namespace Fief
                 walk = (Flat(walk).normalized + inward * 1.2f).normalized * speed;
             }
             // Une barre (moulinet, balayeur) arrive : il saute par-dessus.
-            else if (grounded && speed > 0f && Sweeper.Threat(transform.position + dir * 1.2f)) fallSpeed = 7.5f;
+            else if (grounded && speed > 0f && !seeker.NoJump && Sweeper.Threat(transform.position + dir * 1.2f)) fallSpeed = 7.5f * JumpBoost;
             // Bloque : il saute. Deux fois, s'il sait.
-            else if (grounded && speed > 0f && !leaping && (stuck > 0.25f || !Tower.On(transform.position) && EdgeAhead(dir))) fallSpeed = 7f;
-            else if (!grounded && !gliding && !ballistic && !airJumped && speed > 0f && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
+            else if (grounded && speed > 0f && !leaping && !seeker.NoJump && (stuck > 0.25f || !Tower.On(transform.position) && EdgeAhead(dir))) fallSpeed = 7f * JumpBoost;
+            else if (!grounded && !gliding && !ballistic && !airJumped && speed > 0f && !seeker.NoJump && seeker.Has(Ability.DoubleSaut) && fallSpeed < 0f && (stuck > 0.2f || EdgeAhead(dir)))
             {
                 airJumped = true;
                 fallSpeed = 7.3f;

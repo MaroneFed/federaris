@@ -480,7 +480,26 @@ namespace Fief
                 case Ability.TeteDure: return "tete-dure";
                 case Ability.SecondSouffle: return "second-souffle";
                 case Ability.Plume: return "plume";
-                default: return "aimant";
+                case Ability.Prison: return "prison";
+                case Ability.Bombe: return "bombe";
+                case Ability.Inversion: return "inversion";
+                case Ability.Mini: return "mini";
+                case Ability.Glu: return "glu";
+                case Ability.Banane: return "banane";
+                case Ability.Ballon: return "ballon";
+                case Ability.Seisme: return "seisme";
+                case Ability.Gant: return "gant";
+                case Ability.Fantome: return "fantome";
+                case Ability.Taupe: return "taupe";
+                case Ability.Deluge: return "deluge";
+                case Ability.Toupie: return "toupie";
+                case Ability.Encre: return "encre";
+                case Ability.BrasLongs: return "bras-longs";
+                case Ability.Kangourou: return "kangourou";
+                case Ability.Kamikaze: return "kamikaze";
+                case Ability.AngeGardien: return "ange";
+                case Ability.Rage: return "rage";
+                default: return "ninja";
             }
         }
     }
