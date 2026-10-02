@@ -73,6 +73,10 @@ namespace Fief
             if (s == null || s.Body == null) return;
             if (grounded) s.Landed();
             Vector3 p = s.Body.position;
+            // (05/10 -- le beta-testeur : "il entre par la porte en volant et il remonte la tour a
+            // cote des obstacles") : le vol libre s'arrete A LA MURAILLE. Dans la citadelle, on
+            // marche et on monte la tour a pied.
+            if (s.FreeFlight && Castle.Inside(p)) s.FreeFlight = false;
             if (Tower.Summit(p))
             {
                 if (!s.HasWings) Grant(s, true);
@@ -118,7 +122,8 @@ namespace Fief
 
         public static Vector3 Fly(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
         {
-            if (s != null && s.FreeFlight) return FlyFree(ref airspeed, look, side, brake, s, dt);
+            if (s != null && s.FreeFlight && s.Body != null && Castle.Inside(s.Body.position)) s.FreeFlight = false;
+            if (s != null && s.FreeFlight) return NoClimbInside(FlyFree(ref airspeed, look, side, brake, s, dt), s);
             bool heavy = s != null && s.CarriesCrown;
             bool gold = !heavy && s != null && (s.HasWings || s.Has(Ability.Planeur));
             float cruise = heavy ? HeavyCruise : Cruise * (gold ? 1.25f : 1f);
@@ -157,6 +162,20 @@ namespace Fief
             if (s != null && s.Body != null) v.y += Thermal.LiftAt(s.Body.position);
             // ... et le souffle d'un anneau de vent, un peu plus d'une seconde.
             v.y += WindRing.LiftOf(s);
+            return NoClimbInside(v, s);
+        }
+
+        /// <summary>
+        /// (05/10 -- "je passais par la porte en volant, et je remontais : normalement, le mur
+        /// invisible m'en empeche") : DANS LA CITADELLE, ON NE REMONTE PLUS EN VOLANT. On y
+        /// plane en descendant (du sommet vers la porte), jamais vers le haut -- la tour se
+        /// monte a pied, par sa rampe et ses obstacles. (Seul le souffle d'un anneau de vent,
+        /// une seconde, souleve encore.)
+        /// </summary>
+        static Vector3 NoClimbInside(Vector3 v, Seeker s)
+        {
+            if (s == null || s.Body == null || v.y <= 0f || Time.time < s.BoostUntil) return v;
+            if (Castle.Inside(s.Body.position)) v.y = 0f;
             return v;
         }
 
@@ -593,8 +612,16 @@ namespace Fief
             return Castle.Inside(p) && p.y > Castle.WallHeight + 1.5f && !Tower.On(p);
         }
 
-        /// <summary>Vrai si l'on passe de dehors a dedans entre "from" et "to".</summary>
-        public static bool Crossing(Vector3 from, Vector3 to) { return !In(from) && In(to); }
+        /// <summary>
+        /// Vrai si l'on passe de DEHORS (hors de l'enceinte) a dedans, au-dessus des murailles,
+        /// entre "from" et "to". (05/10 : avant, on comparait "au-dessus de la cour" avant/apres
+        /// -- quitter la tour en planant comptait comme une entree, et un rebord de tour comme
+        /// une sortie. Seule compte l'enceinte, vue de dehors.)
+        /// </summary>
+        public static bool Crossing(Vector3 from, Vector3 to)
+        {
+            return !Castle.Inside(from) && Castle.Inside(to) && to.y > Castle.WallHeight + 1.5f;
+        }
 
         /// <summary>LE RENVOI : un eclair de runes la ou il frappe ; renvoie la poussee a donner (dehors, un peu vers le haut).</summary>
         public static Vector3 Repel(Seeker s, Vector3 at)

@@ -721,7 +721,8 @@ namespace Fief
                 int down = Tower.RampOf(from);
                 path.AddRange(Tower.Path(down, Tower.Progress(from), 0f));
                 path.Add(Tower.FootOf(down));
-                from = Tower.FootOf(down);
+                path.Add(Tower.ApproachOf(down));
+                from = Tower.ApproachOf(down);
             }
             bool fromIn = Castle.Inside(from), toIn = Castle.Inside(to);
             if (fromIn && !toIn)
@@ -741,6 +742,8 @@ namespace Fief
             {
                 // La rampe qui fait face a sa porte (29/09 : quatre rampes, une par porte).
                 int up = Tower.RampFacing(path.Count > 0 ? path[path.Count - 1] : from);
+                // Par l'approche, puis derriere le pied, dans l'axe : sous l'arc, et on monte.
+                if (Flat(transform.position - Tower.FootOf(up)).magnitude > 3f) path.Add(Tower.ApproachOf(up));
                 path.Add(Tower.FootOf(up));
                 path.AddRange(Climb(up, 0f, Tower.Progress(to)));
             }
@@ -838,6 +841,15 @@ namespace Fief
             if (goal == Goal.Grab) target = Crown.Position;
             if (goal == Goal.Deliver && aimMonument != null && (gliding || ballistic || IsletAt(transform.position) >= 0))
                 target = aimMonument.transform.position;
+            // (05/10 -- "les bots ne peuvent pas prendre la Couronne") : a deux pas d'elle, il la
+            // prend, ou que le mene son chemin (avant : il fallait finir le chemin, au metre pres).
+            if ((goal == Goal.Raid || goal == Goal.Grab) && Crown.Instance != null && Crown.Where != Crown.State.Carried
+                && Flat(Crown.Position - transform.position).magnitude < 2.6f && Mathf.Abs(Crown.Position.y - transform.position.y) < 3.5f
+                && Crown.Instance.TryTakeFor(seeker))
+            {
+                Bark("À moi !");
+                think = 0f;
+            }
             Vector3 step = Waypoint();
             float distance = Flat(target - transform.position).magnitude;
             float dy = Mathf.Abs(target.y - transform.position.y);
@@ -1199,6 +1211,15 @@ namespace Fief
                             }
                             else if (off.magnitude < 140f) look = Flat(c - transform.position).normalized;
                         }
+                    }
+                    // (05/10 -- "le porteur vole au-dessus du Monument sans jamais s'y poser") : en
+                    // VOL LIBRE (apres une arbaleste), on ne tombe pas -- viser "juste ce qu'il faut
+                    // de pique" le faisait filer a plat au-dessus du cercle. Il vise droit sur sa
+                    // cible, et pique dessus a l'arrivee.
+                    if (seeker.FreeFlight)
+                    {
+                        Vector3 toAim = aimAt + Vector3.up * 1.2f - here;
+                        look = Flat(toAim).magnitude < 5f && toAim.y < -1f ? Vector3.down : toAim.normalized;
                     }
                     Vector3 v = Wings.Fly(ref airspeed, look, 0f, false, seeker, dt);
                     fallSpeed = v.y;

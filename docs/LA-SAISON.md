@@ -145,7 +145,11 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
   d'une arbalète ») : **tiré par une arbaleste**, les ailes s'ouvrent dès le haut de la
   courbe et l'on **vole pour de vrai** : on va où l'on regarde (vers le haut, on monte),
   sans tomber, à 24 m/s (16 avec la Couronne), S freine, jusqu'à **se poser**. Le sceau de
-  la citadelle tient toujours (pas de raccourci vers la tour).
+  la citadelle tient toujours (pas de raccourci vers la tour), et **le vol libre s'arrête à
+  la muraille** : entrer en volant par une porte, c'est se poser (05/10, v25.1).
+- **Dans la citadelle, on ne remonte jamais en volant** (05/10 : on remontait la tour à côté
+  des obstacles) : on y plane en descendant, la tour se monte à pied. Seul le souffle d'un
+  anneau de vent soulève encore, une seconde.
 - Le **porteur** : 11 m/s, chute de 8 m/s, jamais d'ailes d'or, la vitesse d'un piqué
   se perd vite. Il remonte dans un courant — ou **enfile les anneaux** : les quatre, et il
   atteint l'îlot (simulé : 8 à 9 s) ; un de raté, et il tombe court. Les bots porteurs
@@ -274,7 +278,8 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
   (il te renverra) ; pas d'anneau : la ligne file dans le vide, tu planeras. On part
   avec des **ailes d'or**. Les bots montent sur leur **carreau qui vole**.
 - **Le sceau de la citadelle** : qui entre dans l'enceinte **par les airs** (en planant,
-  tiré, en piqué) est renvoyé dehors dans un éclair de runes. On en sort en volant sans
+  tiré, en piqué, ailes repliées, ou en l'air depuis plus d'une seconde — 05/10 : on le
+  passait en spammant Espace) est renvoyé dehors dans un éclair de runes. On en sort en volant sans
   souci.
 - **Le parcours des portes** (tiré au hasard à chaque manche, **le même devant les quatre
   portes** — v13 : personne n'a le couloir facile) : devant chaque porte, un

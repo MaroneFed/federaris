@@ -186,12 +186,25 @@ namespace Fief
             return p;
         }
 
-        /// <summary>Le point au sol, devant le pied de la rampe "ramp".</summary>
+        /// <summary>
+        /// Le point au sol, JUSTE DERRIERE le pied de la rampe "ramp", dans son axe : de la, on
+        /// passe sous l'arc, entre les deux colonnes, et on monte.
+        /// (05/10 -- "les bots, en bas de l'escalier, ils deconnent" : avant, ce point etait a 6 m
+        /// sur le cote, et le chemin coupait vers le premier repere de la rampe... deja a 1,4 m de
+        /// haut : le bot butait contre le bord de la dalle, ou contre la colonne exterieure.)
+        /// </summary>
         public static Vector3 FootOf(int ramp)
         {
             Vector3 start = RampPoint(ramp, 0f);
-            Vector3 outward = new Vector3(start.x, 0f, start.z).normalized;
-            return start + outward * 6f;
+            return start - Tangent(ramp, 0.004f) * 4.5f;
+        }
+
+        /// <summary>Le point d'approche, dans la cour, 5,5 m en dehors du pied (on y arrive sans croiser la rampe).</summary>
+        public static Vector3 ApproachOf(int ramp)
+        {
+            Vector3 foot = FootOf(ramp);
+            Vector3 outward = new Vector3(foot.x, 0f, foot.z).normalized;
+            return foot + outward * 5.5f;
         }
 
         /// <summary>Le pied de la rampe la plus proche de "p" (celle qui fait face a sa porte).</summary>

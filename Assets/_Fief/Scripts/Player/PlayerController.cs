@@ -359,7 +359,13 @@ namespace Fief
             // La tete cogne : on redescend tout de suite (sinon on restait colle au plafond).
             if ((controller.collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
             // Le sceau de la citadelle : on n'y entre pas par les airs.
-            if ((Gliding || ballistic || diveTime > 0f) && Ward.Crossing(before, transform.position))
+            // (05/10 -- "il spamme Espace et il passe a travers le mur invisible") : avant, le sceau
+            // ne regardait que celui qui PLANE ; ailes repliees d'un appui sur Espace, on passait.
+            // Maintenant : quiconque vole, tombe ailes repliees, ou est en l'air depuis plus d'une
+            // seconde (un simple saut dure moins).
+            bool airborne = Gliding || ballistic || diveTime > 0f || folded || (me != null && me.FreeFlight)
+                            || !controller.isGrounded && Time.time - groundedAt > 1.1f;
+            if (airborne && Ward.Crossing(before, transform.position))
             {
                 diveTime = 0f;
                 Vector3 push = Ward.Repel(me, transform.position);
