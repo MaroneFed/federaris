@@ -547,6 +547,20 @@ namespace Fief
                     Leap(direct || lift == null ? m : lift.transform.position);
                     return;
                 }
+                // (05/10 -- "ils n'arrivent pas a gagner") : la Couronne est lourde, aucun Monument
+                // n'est a portee de planee depuis le sommet... SAUF par les anneaux de vent. Avant,
+                // il ne le savait pas : il restait plante au sommet, la Couronne sur la tete, toute
+                // la manche. Il saute vers le Monument dont la chaine d'anneaux part d'ici : en
+                // vol, il enfile les anneaux (voir plus bas, "les anneaux de vent").
+                Monument ringed = RingedMonument(me);
+                if (ringed != null)
+                {
+                    aimMonument = ringed;
+                    goal = Goal.Deliver;
+                    target = ringed.transform.position;
+                    Leap(WindRing.NextToward(me, target) != null ? WindRing.NextToward(me, target).Centre : target);
+                    return;
+                }
             }
             if ((Ground.OnIsland(me.x, me.z) || IsletAt(me) >= 0) && !Tower.On(me))
             {
@@ -562,6 +576,21 @@ namespace Fief
             // Sinon : au sommet, chercher des ailes.
             SetGoal(Goal.Deliver, Tower.CrownSpot, was);
             PlanPath(Tower.CrownSpot);
+        }
+
+        /// <summary>Le Monument (le plus proche) dont une chaine d'anneaux de vent part d'ici.</summary>
+        Monument RingedMonument(Vector3 me)
+        {
+            Monument best = null;
+            float bestD = float.MaxValue;
+            for (int i = 0; i < Monument.All.Count; i++)
+            {
+                Monument mo = Monument.All[i];
+                if (mo == null || WindRing.NextToward(me, mo.transform.position) == null) continue;
+                float d = Flat(mo.transform.position - me).magnitude + (mo == aimMonument ? -40f : 0f);
+                if (d < bestD) { bestD = d; best = mo; }
+            }
+            return best;
         }
 
         /// <summary>
@@ -743,8 +772,16 @@ namespace Fief
                 // La rampe qui fait face a sa porte (29/09 : quatre rampes, une par porte).
                 int up = Tower.RampFacing(path.Count > 0 ? path[path.Count - 1] : from);
                 // Par l'approche, puis derriere le pied, dans l'axe : sous l'arc, et on monte.
-                if (Flat(transform.position - Tower.FootOf(up)).magnitude > 3f) path.Add(Tower.ApproachOf(up));
-                path.Add(Tower.FootOf(up));
+                // (05/10) Deja sur le bas de la rampe (moins de 1,2 m : la tour ne le compte pas
+                // encore) : on continue de monter -- avant, il redescendait faire le tour par
+                // l'approche, remontait, redescendait... "en bas de l'escalier, ils deconnent".
+                Vector3 last = path.Count > 0 ? path[path.Count - 1] : from;
+                bool onStart = path.Count == 0 && Flat(from - Tower.RampPoint(up, 0f)).magnitude < 6f;
+                if (!onStart)
+                {
+                    if (Flat(last - Tower.FootOf(up)).magnitude > 3f) path.Add(Tower.ApproachOf(up));
+                    path.Add(Tower.FootOf(up));
+                }
                 path.AddRange(Climb(up, 0f, Tower.Progress(to)));
             }
         }
@@ -948,17 +985,72 @@ namespace Fief
         /// </summary>
         void WatchProgress(Vector3 step, float dt)
         {
-            if (!body.enabled || !body.isGrounded || gliding || ballistic || leaping) { noProgress = 0f; return; }
+            // (05/10 -- Martin : "ils sont bloques a chaque fois, ils font les cons") : avant, un
+            // bot coince SAUTAIT (toutes les 0,25 s)... et chaque saut, le pied hors du sol, remettait
+            // le chien de garde a zero : il pouvait sautiller contre le meme mur toute la manche.
+            // Desormais le temps compte, en l'air comme au sol, et la reponse monte d'un cran a
+            // chaque palier : un pas de cote et un saut, puis le repere suivant, puis un nouveau
+            // chemin -- et en dernier recours, s'il est coince depuis 12 s la ou personne ne le
+            // voit, il est remis sur son chemin (comme tous les jeux le font avec leurs bots).
+            if (!body.enabled || gliding || ballistic || leaping || mounted) { noProgress = 0f; unstick = 0; return; }
             float remaining = path.Count * 1000f + Flat(step - transform.position).magnitude;
-            if (remaining < progressBest - 1f) { progressBest = remaining; noProgress = 0f; return; }
+            if (remaining < progressBest - 0.8f) { progressBest = remaining; noProgress = 0f; unstick = 0; return; }
+            // Attendre que le pendule passe, ce n'est pas etre coince.
+            if (hazardWait > 0f && hazardWait < HazardPatience) return;
             noProgress += dt;
-            if (noProgress < 5f) return;
-            noProgress = 0f;
-            progressBest = float.MaxValue;
-            PlanPath(target);
-            detourTimer = 1.2f;
-            detourSign = rng.NextDouble() < 0.5 ? -1f : 1f;
-            fallSpeed = 7.5f;
+            if (unstick == 0 && noProgress > 2f)
+            {
+                unstick = 1;
+                detourTimer = 0.9f;
+                detourSign = rng.NextDouble() < 0.5 ? -1f : 1f;
+                if (body.isGrounded) fallSpeed = 7.5f;
+            }
+            else if (unstick == 1 && noProgress > 4.5f)
+            {
+                unstick = 2;
+                // Le repere est peut-etre dans un mur, ou derriere un obstacle : le suivant.
+                if (path.Count > 1) path.RemoveAt(0);
+                progressBest = float.MaxValue;
+                if (body.isGrounded) fallSpeed = 7.5f;
+            }
+            else if (unstick == 2 && noProgress > 7.5f)
+            {
+                unstick = 3;
+                PlanPath(target);
+                progressBest = float.MaxValue;
+                detourTimer = 1.2f;
+                detourSign = -detourSign;
+            }
+            else if (noProgress > 12f)
+            {
+                noProgress = 0f;
+                unstick = 0;
+                progressBest = float.MaxValue;
+                if (!SeenByPlayer()) Nudge(step);
+                else PlanPath(target);
+            }
+        }
+
+        int unstick;
+
+        /// <summary>Vrai si le joueur le voit (a l'ecran, a moins de 70 m) : on ne le replace jamais sous ses yeux.</summary>
+        bool SeenByPlayer()
+        {
+            Camera cam = Camera.main;
+            if (cam == null) return false;
+            Vector3 p = transform.position + Vector3.up;
+            if ((p - cam.transform.position).magnitude > 70f) return false;
+            Vector3 v = cam.WorldToViewportPoint(p);
+            return v.z > 0f && v.x > -0.15f && v.x < 1.15f && v.y > -0.15f && v.y < 1.15f;
+        }
+
+        /// <summary>Le dernier recours : le reposer sur son chemin, un peu plus loin (12 m au plus).</summary>
+        void Nudge(Vector3 step)
+        {
+            Vector3 to = step;
+            if ((to - transform.position).magnitude > 12f) to = transform.position + (to - transform.position).normalized * 12f;
+            if (!OnFoot(to) && IsletAt(to) < 0) return;
+            Teleport(to + Vector3.up * 0.4f);
         }
 
         // ================================================================== les capacites
@@ -1089,6 +1181,8 @@ namespace Fief
         // ================================================================== marcher, voler
 
         float hazardWait;
+        /// <summary>Combien de temps il attend son tour devant un obstacle, au plus (puis il passe).</summary>
+        const float HazardPatience = 4f;
 
         void Walk(Vector3 destination, float speed, float dt)
         {
@@ -1100,7 +1194,15 @@ namespace Fief
             if (detourTimer > 0f)
             {
                 detourTimer -= dt;
-                dir = Quaternion.Euler(0f, 70f * detourSign, 0f) * dir;
+                // Sur la rampe, un ecart de 70 degres, c'est le vide (ou le mur) : il change de
+                // couloir -- vers le fut s'il est cote vide, vers le bord s'il est cote mur.
+                if (Tower.On(transform.position))
+                {
+                    Vector3 radial = Flat(transform.position).normalized;
+                    float lane = Flat(transform.position).magnitude - Tower.Centre;
+                    dir = (dir + radial * (lane > 0f ? -1f : 0.7f)).normalized;
+                }
+                else dir = Quaternion.Euler(0f, 70f * detourSign, 0f) * dir;
             }
             // Un boulet arrive dans son couloir : il passe de l'autre cote de la rampe.
             float boulderLane;
@@ -1118,11 +1220,14 @@ namespace Fief
             // dans la zone, il file. Les faciles regardent moins loin (ils se font avoir).
             if (speed > 0f && body.isGrounded && !leaping && !seeker.Tumbling && Time.time >= launchedUntil)
             {
-                float look = Match.BotLevel == 0 ? 0.35f : Match.BotLevel == 1 ? 0.65f : 0.8f;
-                if (Hazards.Danger(transform.position + dir * 1.9f, look) && !Hazards.Danger(transform.position, 0.2f))
+                // (05/10) Ils regardent plus loin (deux pas devant, une seconde a l'avance) : avant,
+                // ils s'engageaient sous un pendule qui revenait, et la tour les rejetait en bas.
+                float look = Match.BotLevel == 0 ? 0.4f : Match.BotLevel == 1 ? 0.9f : 1.1f;
+                bool ahead = Hazards.Danger(transform.position + dir * 1.6f, look) || Match.BotLevel > 0 && Hazards.Danger(transform.position + dir * 3.2f, look * 0.8f);
+                if (ahead && !Hazards.Danger(transform.position, 0.25f))
                 {
                     hazardWait += dt;
-                    if (hazardWait < 3.5f) speed = 0f;
+                    if (hazardWait < HazardPatience) speed = 0f;
                 }
                 else hazardWait = 0f;
             }
@@ -1271,7 +1376,7 @@ namespace Fief
             Vector3 before = transform.position;
             body.Move((walk + extra + knock + Vector3.up * fallSpeed) * dt);
             // Le sceau de la citadelle : renvoye dehors s'il y entre par les airs.
-            if ((gliding || ballistic || diveTime > 0f) && Ward.Crossing(before, transform.position))
+            if (Ward.Crossing(before, transform.position))
             {
                 diveTime = 0f;
                 Vector3 push = Ward.Repel(seeker, transform.position);

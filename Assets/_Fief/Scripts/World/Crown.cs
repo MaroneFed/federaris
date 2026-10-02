@@ -446,8 +446,21 @@ namespace Fief
             Holder = null;
             // Par terre, un peu devant : on la voit rouler.
             at = SafeSpot(at, fallback);
-            float y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 30f, ~0, QueryTriggerInteraction.Ignore)
-                ? hit.point.y : Ground.Sample(at.x, at.z);
+            // (05/10 -- Martin : "la couronne, des fois elle spawn je sais pas ou ; normalement
+            // elle tombe a cote") : A COTE, au meme niveau. Avant, on cherchait le sol jusqu'a
+            // 30 m plus bas : pousse au bord de la rampe, elle tombait sur la rampe d'en dessous,
+            // dans la cour, introuvable. Desormais : a cote (4 m plus bas au plus), sinon sous
+            // ses pieds, sinon son dernier sol.
+            RaycastHit hit;
+            float y;
+            if (Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 5.5f, ~0, QueryTriggerInteraction.Ignore)) y = hit.point.y;
+            else if (Physics.Raycast(fallback + Vector3.up * 1.5f, Vector3.down, out hit, 5.5f, ~0, QueryTriggerInteraction.Ignore)) { at = fallback; y = hit.point.y; }
+            else if (was != null && AbilityCaster.MoverOf(was) != null)
+            {
+                at = LastGroundOf(was);
+                y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : at.y;
+            }
+            else y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 30f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : Ground.Sample(at.x, at.z);
             // (02/10) Au-dessus du vide, sur un toit, hors d'atteinte : elle se pose la ou son
             // porteur a touche le sol pour la derniere fois (elle ne rentre plus au sommet).
             if (!Reachable(new Vector3(at.x, y, at.z)) && was != null)
@@ -565,7 +578,7 @@ namespace Fief
 
         /// <summary>A quelle distance on ramasse la Couronne en passant : a terre, et sur son socle (du centre).</summary>
         public const float TouchGround = 2.3f;
-        public const float TouchPedestal = 2.1f;
+        public const float TouchPedestal = 2.6f;
 
         /// <summary>Qui vient de perdre (ou de se faire voler) la Couronne ne peut pas la reprendre avant...</summary>
         public const float LockSeconds = 3f;
@@ -700,7 +713,11 @@ namespace Fief
         // ================================================================== IInteractable
 
         public Transform Anchor { get { return visual != null ? visual : transform; } }
-        public bool CanInteract { get { return state != State.Carried && state != State.Delivered && Game.Season != null && Game.Season.Running && Game.Me != null && !Game.Me.Stunned; } }
+        /// <summary>
+        /// (05/10 -- Martin : "il est marque E, c'est chiant, et quand tu fais E des fois tu montes
+        /// dans l'arbaleste") : plus de touche du tout. On la prend EN PASSANT DESSUS, point.
+        /// </summary>
+        public bool CanInteract { get { return false; } }
         public string Prompt { get { return state == State.OnPedestal ? "Prendre la Couronne" : "Ramasser la Couronne"; } }
         /// <summary>(01/10 -- "il ne faut pas appuyer longtemps, juste appuyer sur E") : un simple appui.</summary>
         public float HoldDuration { get { return 0f; } }

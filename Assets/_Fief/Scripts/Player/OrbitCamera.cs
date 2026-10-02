@@ -224,7 +224,13 @@ namespace Fief
 
             // Si un obstacle est entre le joueur et la camera, on rapproche la camera.
             float wanted = distance;
-            float blocked = wide ? distance : SweepDistance(pivot, direction, distance);
+            // (05/10 -- Martin : "quand c'est EUX qui gagnent, c'est beau ; quand c'est NOUS, c'est
+            // horrible") : la camera qui tourne autour du vainqueur se rapprochait des qu'un mur
+            // passait derriere -- l'autel, la colonne du Monument, le rocher de l'ilot -- et se
+            // collait a TA tete (a 60 cm). Pour un bot, elle ne voyait rien : elle ignorait tout
+            // ce qui avait la meme racine que lui... c'est-a-dire toute l'ile. En plan de cinema
+            // (victoire, choix des cartes), elle garde sa distance, pour tout le monde.
+            float blocked = wide || cinematic ? distance : SweepDistance(pivot, direction, distance);
             if (blocked < wanted) wanted = blocked;
 
             currentDistance = Mathf.Lerp(currentDistance, wanted, 1f - Mathf.Exp(-14f * dt));

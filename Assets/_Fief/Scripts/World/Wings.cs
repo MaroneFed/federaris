@@ -620,7 +620,8 @@ namespace Fief
         /// </summary>
         public static bool Crossing(Vector3 from, Vector3 to)
         {
-            return !Castle.Inside(from) && Castle.Inside(to) && to.y > Castle.WallHeight + 1.5f;
+            // (05/10) Par en dessous de l'ile aussi : on n'entre pas dans l'enceinte par sous la carte.
+            return !Castle.Inside(from) && Castle.Inside(to) && (to.y > Castle.WallHeight + 1.5f || to.y < -1.5f);
         }
 
         /// <summary>LE RENVOI : un eclair de runes la ou il frappe ; renvoie la poussee a donner (dehors, un peu vers le haut).</summary>

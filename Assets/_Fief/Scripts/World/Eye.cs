@@ -81,6 +81,13 @@ namespace Fief
             return false;
         }
 
+        /// <summary>La gargouille qui charge sur "s" (null : aucune) -- l'ecran montre d'ou elle tire.</summary>
+        public static Transform ChargerAt(Seeker s)
+        {
+            for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].state == State.Charge && All[i].target == s) return All[i].transform;
+            return null;
+        }
+
         /// <summary>Vrai si une gargouille a VERROUILLE son tir sur "s" (la derniere demi-seconde : il faut bouger).</summary>
         public static bool LockedOn(Seeker s)
         {
@@ -410,8 +417,10 @@ namespace Fief
             suspicion = 0f;
             state = State.Charge;
             timer = 0f;
-            if (target.IsPlayer || NearPlayer(35f)) Sfx.Alarm();
-            Sfx.ChipAt(ball.position);
+            // (05/10 -- Martin : "ce son te donne envie de peter ton ecran, et tu l'entends meme
+            // quand c'est un autre qu'elle vise") : plus d'alarme stridente pour tout le monde.
+            // Un avertissement doux, et SEULEMENT si c'est toi qu'elle vise.
+            if (target.IsPlayer) Sfx.Warn();
         }
 
         /// <summary>

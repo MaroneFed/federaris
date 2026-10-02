@@ -1850,7 +1850,7 @@ namespace Fief
                 Line("joueur", "Avancer, reculer, aller à gauche ou à droite", "Z Q S D", -1),
                 Line("coureur", "Courir", "Maj", -1),
                 Line("haut", "Sauter", "Espace", -1),
-                Line("couronne", "Prendre (arbaleste, sanctuaire, Couronne)", "E", -1),
+                Line("arbaleste", "Monter sur une arbaleste, prendre un sanctuaire", "E", -1),
                 Head("cible", "SE BATTRE"),
                 Line("cible", "Ta capacité", act, 5),
                 Line("pousser", "Pousser (sur le porteur : tu lui voles la Couronne)", push, 6),

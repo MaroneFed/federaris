@@ -767,6 +767,35 @@ namespace Fief
         static AudioClip alarm, leaf;
 
         /// <summary>L'ALARME : trois tintements aigus et rapides -- rien a voir avec la cloche.</summary>
+        /// <summary>
+        /// (05/10) UNE GARGOUILLE TE VISE : deux notes douces qui montent (un "hm-hm ?"), bas et
+        /// court -- elle previent, elle ne crie pas. (Avant : l'alarme aigue a trois coups.)
+        /// </summary>
+        public static void Warn()
+        {
+            if (warn == null)
+            {
+                const float duration = 0.42f;
+                int count = Mathf.RoundToInt(Rate * duration);
+                float[] data = new float[count];
+                float[] notes = { 392f, 523.25f };
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    int start = Mathf.RoundToInt(Rate * n * 0.13f);
+                    for (int i = start; i < count; i++)
+                    {
+                        float t = (float)(i - start) / Rate;
+                        float env = Mathf.Min(1f, t * 60f) * Mathf.Exp(-11f * t);
+                        data[i] += (Mathf.Sin(2f * Mathf.PI * notes[n] * t) + Mathf.Sin(2f * Mathf.PI * notes[n] * 2f * t) * 0.15f) * env;
+                    }
+                }
+                Normalize(data, 0.6f);
+                warn = FromSamples("vise", data);
+            }
+            Play(warn, 0.32f);
+        }
+        static AudioClip warn;
+
         public static void Alarm()
         {
             Play(AlarmClip(), 0.9f);

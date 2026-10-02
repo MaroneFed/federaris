@@ -955,14 +955,32 @@ namespace Fief
                 if (hitSide.y < -0.4f) UiStyle.FadeBand(new Rect(0f, Screen.height - e, Screen.width, e), red);
             }
 
-            // Un Oeil charge sur toi : les bords battent en rouge, de plus en plus vite.
-            if (Eye.ChargingAt(me))
+            // UNE GARGOUILLE CHARGE SUR TOI (05/10 -- Martin : "c'est des fleches qu'il faut, pas
+            // un oeil") : une FLECHE autour du viseur montre D'OU elle tire (en haut : devant toi,
+            // en bas : derriere, sur les cotes : a gauche, a droite). Rouge pendant la charge,
+            // BLANCHE quand elle a verrouille : c'est le moment de bouger. Les bords battent doucement.
+            Transform charger = Eye.ChargerAt(me);
+            if (charger != null)
             {
-                float beat = Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.unscaledTime * 9f)), 3f);
-                Color c = new Color(0.8f, 0.05f, 0.03f, 0.25f + 0.3f * beat);
-                Edges(UiStyle.S(70), c);
-                float s = UiStyle.S(54) * (1f + 0.12f * beat);
-                Icons.Draw(new Rect(Screen.width * 0.5f - s * 0.5f, Screen.height * 0.5f - UiStyle.S(70) - s * 0.5f, s, s), "oeil", new Color(1f, 0.35f, 0.25f, 0.7f + 0.3f * beat));
+                bool locked = Eye.LockedOn(me);
+                float beat = Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.unscaledTime * (locked ? 12f : 6f))), 3f);
+                Edges(UiStyle.S(50), new Color(0.8f, 0.05f, 0.03f, 0.12f + 0.16f * beat));
+                Camera cam = viewCamera != null ? viewCamera : Camera.main;
+                if (cam != null)
+                {
+                    Vector3 local = cam.transform.InverseTransformDirection(charger.position - cam.transform.position);
+                    float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+                    float radius = UiStyle.S(120);
+                    Vector2 centre = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+                    Vector2 at = centre + new Vector2(Mathf.Sin(angle * Mathf.Deg2Rad), -Mathf.Cos(angle * Mathf.Deg2Rad)) * radius;
+                    float s = Mathf.Round(UiStyle.S(46) * (1f + 0.15f * beat));
+                    Rect r = new Rect(Mathf.Round(at.x - s * 0.5f), Mathf.Round(at.y - s * 0.5f), s, s);
+                    Color arrow = locked ? new Color(1f, 1f, 1f, 0.95f) : new Color(1f, 0.3f, 0.2f, 0.75f + 0.25f * beat);
+                    Matrix4x4 keep = GUI.matrix;
+                    GUIUtility.RotateAroundPivot(angle, r.center);
+                    Icons.Draw(r, "haut", arrow);
+                    GUI.matrix = keep;
+                }
             }
             else if (Rival.HuntingPlayer && me.CarriesCrown)
             {
@@ -1011,7 +1029,7 @@ namespace Fief
             for (int k = 0; k < me.Slot.Abilities.Count; k++)
                 if (!AbilityInfo.IsActive(me.Slot.Abilities[k])) passive = Icons.Of(me.Slot.Abilities[k]);
             string[] moveKeys = { "Z", "Maj", "Espace", "E", "E" };
-            string[] moveIcons = { "joueur", "coureur", "haut", "couronne", "arbaleste" };
+            string[] moveIcons = { "joueur", "coureur", "haut", "don", "arbaleste" };
             string[] powerKeys = { AbilityInfo.Keys[0], AbilityInfo.PushKey, AbilityInfo.PushKey, "", "Tab" };
             string[] powerIcons = { me.HasActive ? Icons.Of(me.CurrentActive) : "cible", "pousser", "couronne", passive ?? "", "manches" };
             string[] flyKeys = { "", "", "Espace", AbilityInfo.PushKey, "" };
