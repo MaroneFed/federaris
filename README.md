@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v25.2 · en ligne (étape 2) · 05/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v26 · capacités de malade · 05/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -153,7 +153,7 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 |---|---|
 | Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
 | Les manches, le départage, le choix des capacités | `Scripts/Match/Match.cs` |
-| Les 26 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` |
+| Les 39 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; les treize neuves : `Scripts/World/Powers.cs` |
 | Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
 | Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
 | La Couronne (et le vol), le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |
@@ -164,13 +164,13 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 | Les arbalestes géantes | `Scripts/World/Ballista.cs` |
 | Le vol plané, les courants d'air, le sceau de la citadelle | `Scripts/World/Wings.cs` |
 | Le parcours des portes (chicanes, moulinets, herses, marteaux) | `Scripts/World/Course.cs` |
-| L'aura (moments, flammes, phonk) | `Scripts/World/Aura.cs` |
 | Les gargouilles | `Scripts/World/Eye.cs` |
 | Les cartes du choix | `Scripts/UI/CardArt.cs` |
 | Les effets spéciaux | `Scripts/World/Fx.cs` |
 | La ligne de départ, le respawn | `Scripts/World/Combat.cs` (Spawns, Respawn) |
 | Les bots | `Scripts/World/Rival.cs` |
 | L'écran de jeu | `Scripts/UI/Hud.cs` |
+| Les cris (« GOTAGA t'a envoyé valser ! ») | `Scripts/UI/Shouts.cs` |
 | Titre, salon, pause, fin de manche, choix des capacités, podium | `Scripts/UI/Menus.cs` |
 | Les sons (synthétisés par le code) | `Scripts/Core/Sfx.cs` |
 | Les couleurs du jeu | `Scripts/Core/Palette.cs` |

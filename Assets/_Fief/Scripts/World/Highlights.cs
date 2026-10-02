@@ -127,6 +127,7 @@ namespace Fief
             Fx.Burst(exit + Vector3.up * 3f, victim.Colour, 160, 30f, 0.5f, 1.2f, -0.4f, Vector3.up, 55f);
             Fx.Flash(exit + Vector3.up * 6f, victim.Colour, 60f, 8f, 0.6f);
             Sfx.KoBoom(exit, by.IsPlayer || victim.IsPlayer);
+            Shouts.Ko(by, victim);
             float last;
             bool twice = lastKoAt.TryGetValue(by, out last) && Time.time - last < 12f;
             lastKoAt[by] = Time.time;

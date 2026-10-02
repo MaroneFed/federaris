@@ -22,13 +22,17 @@ namespace Fief
     {
         // --- actives
         Ruee, Grappin, Crochet, Onde, Clignement, Bond, Mur, Nuee, Mine, Gel, Voile, Echange, Rappel, Souffle,
-        // --- passives
-        DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond, Aimant
+        // (05/10 -- "des capacites de malade mental") les actives neuves
+        Meteore, Tornade, TrouNoir, Boulet, Geant, Fusee, Ressort, Foudre,
+        // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
+        DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond, Aimant,
+        // (05/10) les passives neuves
+        Riposte, Vampire, TeteDure, SecondSouffle, Plume
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 26;
+        public const int Count = 39;
         /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
         public const int MaxActives = 1;
 
@@ -69,6 +73,19 @@ namespace Fief
                 case Ability.PriseFerme: return "Prise ferme";
                 case Ability.Recharge: return "Recharge";
                 case Ability.Rebond: return "Rebond";
+                case Ability.Meteore: return "Météore";
+                case Ability.Tornade: return "Tornade";
+                case Ability.TrouNoir: return "Trou noir";
+                case Ability.Boulet: return "Boulet de canon";
+                case Ability.Geant: return "Géant";
+                case Ability.Fusee: return "Fusée";
+                case Ability.Ressort: return "Trampoline";
+                case Ability.Foudre: return "Foudre";
+                case Ability.Riposte: return "Riposte";
+                case Ability.Vampire: return "Vampire";
+                case Ability.TeteDure: return "Tête dure";
+                case Ability.SecondSouffle: return "Second souffle";
+                case Ability.Plume: return "Plume";
                 default: return "Aimant";
             }
         }
@@ -78,11 +95,11 @@ namespace Fief
         {
             switch (a)
             {
-                case Ability.Ruee: return "Douze mètres d'un trait : qui est sur ta route est bousculé.";
-                case Ability.Grappin: return "Vise un mur, un rebord, la tour (48 m) : le grappin t'y tire.";
-                case Ability.Crochet: return "Vise un joueur, jusqu'à 32 m : il est tiré jusqu'à toi.";
-                case Ability.Onde: return "Une explosion : tout le monde à neuf mètres s'envole.";
-                case Ability.Clignement: return "Tu disparais et réapparais quinze mètres plus loin.";
+                case Ability.Ruee: return "Quinze mètres d'un trait : qui est sur ta route est bousculé.";
+                case Ability.Grappin: return "Vise un mur, un rebord, la tour (60 m) : le grappin t'y tire.";
+                case Ability.Crochet: return "Vise un joueur, jusqu'à 40 m : il est tiré jusqu'à toi.";
+                case Ability.Onde: return "Une explosion : tout le monde à onze mètres s'envole.";
+                case Ability.Clignement: return "Tu disparais et réapparais vingt mètres plus loin.";
                 case Ability.Bond: return "Un saut immense vers le ciel ; le souffle repousse ceux qui sont tout près.";
                 case Ability.Mur: return "Un mur de dix mètres surgit devant toi ; qui est dessus s'envole.";
                 case Ability.Nuee: return "Un nuage de fumée : les gargouilles et les autres ne voient plus rien.";
@@ -103,6 +120,19 @@ namespace Fief
                 case Ability.PriseFerme: return "Le premier coup ne te fait pas lâcher la Couronne.";
                 case Ability.Recharge: return "Tes capacités reviennent un tiers plus vite.";
                 case Ability.Rebond: return "Retomber de haut fait une onde de choc autour de toi.";
+                case Ability.Meteore: return "Tu bondis, puis tu t'écrases comme une météorite : tout s'envole à dix mètres.";
+                case Ability.Tornade: return "Une tornade file devant toi et jette tout le monde vers le ciel.";
+                case Ability.TrouNoir: return "Un trou noir s'ouvre devant toi, aspire tout le monde, puis explose.";
+                case Ability.Boulet: return "Tu deviens un boulet de canon : trente mètres, et qui est sur ta route décolle.";
+                case Ability.Geant: return "Géant pendant sept secondes : on ne te bouge plus, et tu écrases tout.";
+                case Ability.Fusee: return "Tu décolles comme une fusée, puis tu voles où tu veux (pas dans la citadelle).";
+                case Ability.Ressort: return "Un trampoline à tes pieds : boing ! Et tout le monde peut s'en servir.";
+                case Ability.Foudre: return "Vise un joueur : la foudre tombe là où il était, un instant après.";
+                case Ability.Riposte: return "Qui te pousse se prend un retour de bâton.";
+                case Ability.Vampire: return "Chaque coup que tu donnes te fait courir plus vite trois secondes.";
+                case Ability.TeteDure: return "Les pièges ne t'éjectent plus de la tour : ils te bousculent, c'est tout.";
+                case Ability.SecondSouffle: return "Tombé dans les nuages ? Tu repars avec des ailes d'or, protégé six secondes.";
+                case Ability.Plume: return "Avec la Couronne, tu voles aussi vite que les autres.";
                 default: return "La Couronne à terre vole jusqu'à toi.";
             }
         }
@@ -126,6 +156,14 @@ namespace Fief
                 case Ability.Echange: return 14f;
                 case Ability.Rappel: return 10f;
                 case Ability.Souffle: return 9f;
+                case Ability.Meteore: return 10f;
+                case Ability.Tornade: return 12f;
+                case Ability.TrouNoir: return 13f;
+                case Ability.Boulet: return 9f;
+                case Ability.Geant: return 18f;
+                case Ability.Fusee: return 15f;
+                case Ability.Ressort: return 10f;
+                case Ability.Foudre: return 11f;
                 default: return 0f;
             }
         }
@@ -144,6 +182,13 @@ namespace Fief
                 case Ability.Mine: return new Color(1f, 0.5f, 0.2f);
                 case Ability.Gel: return new Color(0.6f, 0.9f, 1f);
                 case Ability.Echange: case Ability.Rappel: case Ability.Recharge: return new Color(0.6f, 1f, 0.7f);
+                case Ability.Meteore: case Ability.Boulet: return new Color(1f, 0.45f, 0.18f);
+                case Ability.Tornade: case Ability.Plume: case Ability.SecondSouffle: return new Color(0.7f, 0.92f, 1f);
+                case Ability.TrouNoir: return new Color(0.62f, 0.32f, 1f);
+                case Ability.Geant: case Ability.TeteDure: return new Color(0.95f, 0.62f, 0.4f);
+                case Ability.Fusee: case Ability.Ressort: return new Color(1f, 0.38f, 0.55f);
+                case Ability.Foudre: return new Color(1f, 0.95f, 0.45f);
+                case Ability.Riposte: case Ability.Vampire: return new Color(0.95f, 0.25f, 0.3f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

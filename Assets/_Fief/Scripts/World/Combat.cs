@@ -22,6 +22,7 @@ namespace Fief
         static bool quietHit;
         /// <summary>(04/10, en ligne) Vrai pendant une poussee ou un pique d'invite sur le porteur : l'hote decidera du vol.</summary>
         static bool stealAttempt;
+        static bool riposting;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -32,6 +33,7 @@ namespace Fief
             if (by == null || by.Body == null || !by.CanShove) return false;
             Vector3 f = Flat(forward).normalized;
             float force = by.Has(Ability.Poigne) ? ShoveForce * 2f : ShoveForce;
+            if (by.Giant) force *= 1.6f;
             Seeker best = null;
             float bestD = float.MaxValue;
             for (int i = 0; i < Game.Seekers.Count; i++)
@@ -66,6 +68,7 @@ namespace Fief
             // puissance si c'est toi qui pousses ou toi qu'on pousse.
             if (!best.Graced) Sfx.BigPush(best.Body.position, by.IsPlayer || best.IsPlayer);
             if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.07f); }
+            if (by.IsPlayer && !best.Graced && !stole) Shouts.IPushed(best);
             if (!best.Graced) Highlights.Shoved(by, best, stole);
             return true;
         }
@@ -170,13 +173,31 @@ namespace Fief
                 return;
             }
             if (victim.Has(Ability.Ancrage)) velocity = new Vector3(velocity.x * 0.5f, velocity.y * 0.7f, velocity.z * 0.5f);
+            // (05/10) Le GEANT ne bouge presque pas.
+            if (victim.Giant) velocity *= 0.3f;
+            // TETE DURE : les pieges ne t'ejectent plus de la tour, ils te bousculent.
+            if (by == null && victim.Has(Ability.TeteDure)) velocity *= 0.6f;
             // UN OBSTACLE SUR LA TOUR TE RENVOIE EN BAS (29/09) : jete hors de la rampe,
             // ailes fermees jusqu'au sol. (Les coups des joueurs, eux, ne font que projeter.)
-            if (by == null && Tower.On(victim.Body.position) && !Tower.Summit(victim.Body.position))
+            else if (by == null && Tower.On(victim.Body.position) && !Tower.Summit(victim.Body.position))
                 velocity = Tumble(victim, velocity);
+            // VAMPIRE : chaque coup donne fait courir plus vite.
+            if (by != null && by != victim && by.Has(Ability.Vampire)) by.RushUntil = Time.time + 3f;
+            // RIPOSTE : qui te frappe se prend un retour de baton (pas en cascade).
+            if (by != null && by != victim && by.Body != null && victim.Has(Ability.Riposte) && !riposting)
+            {
+                Vector3 back = Flat(by.Body.position - victim.Body.position);
+                back = back.sqrMagnitude > 0.01f ? back.normalized : -Flat(velocity).normalized;
+                riposting = true;
+                Hit(by, back * 16f + Vector3.up * 6f, 0.25f, true, victim);
+                riposting = false;
+                Fx.Ring(victim.Body.position + Vector3.up * 1.1f, AbilityInfo.Tint(Ability.Riposte), 0.4f, 2.6f, 0.3f, 0.2f, back);
+            }
             Knockback(victim, velocity);
             victim.LastHurt = Time.time;
             if (by != null && by != victim) { victim.LastHitBy = by; victim.LastHitByAt = Time.time; }
+            // (05/10) "GOTAGA T'A DEGAGE !" -- en toutes lettres, en haut (Shouts).
+            if (victim.IsPlayer && by != null && by != victim) Shouts.PushedMe(by);
             // Un gros coup sur TOI : la tete se tourne vers d'ou il vient (OrbitCamera.Glance).
             if (victim.IsPlayer && velocity.magnitude > 18f && Game.Hud != null && Game.Hud.orbitCamera != null)
             {
@@ -543,6 +564,8 @@ namespace Fief
                 r.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             }
             s.GraceUntil = Time.time + Grace;
+            // (05/10) SECOND SOUFFLE : on repart protege six secondes, avec des ailes d'or.
+            if (s.Has(Ability.SecondSouffle)) { s.GraceUntil = Time.time + 6f; Wings.Grant(s, true); }
             s.StunnedUntil = -1f;
             s.SlowUntil = -1f;
             Fx.Respawn(at, s.Colour);

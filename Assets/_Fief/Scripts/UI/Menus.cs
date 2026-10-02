@@ -302,6 +302,13 @@ namespace Fief
         /// </summary>
         void Keyboard()
         {
+            // La fenetre du pseudo : on tape ; Entree valide, Echap annule.
+            if (editingPseudo)
+            {
+                if (FiefInput.CancelPressed) { editingPseudo = false; Sfx.Pop(); }
+                else if (FiefInput.ConfirmPressed) ValidatePseudo();
+                return;
+            }
             if (FiefInput.CancelPressed)
             {
                 confirmAbandon = false;
@@ -346,6 +353,13 @@ namespace Fief
                 {
                     if (FiefInput.LeftPressed) { selected = (selected + cards - 1) % cards; Sfx.Pop(); }
                     if (FiefInput.RightPressed) { selected = (selected + 1) % cards; Sfx.Pop(); }
+                    // Deux rangees (plus de six cartes) : haut et bas changent de rangee.
+                    int perRow = DraftPerRow(cards);
+                    if (cards > perRow && (FiefInput.UpPressed || FiefInput.DownPressed))
+                    {
+                        selected = Mathf.Clamp(selected < perRow ? selected + perRow : selected - perRow, 0, cards - 1);
+                        Sfx.Pop();
+                    }
                     if (FiefInput.ConfirmPressed) PickCard(selected);
                 }
                 else if (Match.Draft.Done && FiefInput.ConfirmPressed && !NetGame.IsClient) FinishDraft();
@@ -657,13 +671,13 @@ namespace Fief
             if (NetGame.IsClient)
             {
                 NetGame.SendPick(me, card);
-                CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
+                if (card < cardRects.Length) CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
                 Sfx.CardPick();
                 return;
             }
             if (Match.Draft.TryPick(me, card))
             {
-                CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
+                if (card < cardRects.Length) CardArt.Taken(cardRects[card], AbilityInfo.Tint(chosen), true);
                 Sfx.CardPick();
                 botPickTimer = BotPickDelay;
                 selected = 0;
@@ -911,7 +925,8 @@ namespace Fief
             // "tout se barre") : on remet tout d'aplomb, et l'erreur va une fois dans la Console.
             try
             {
-                if (showSettings) DrawSettings();
+                if (editingPseudo) DrawPseudoEditor();
+                else if (showSettings) DrawSettings();
                 else if (showControls) DrawControls();
                 else
                 {
@@ -1095,9 +1110,90 @@ namespace Fief
                 y += h + UiStyle.S(10);
             }
 
+            PseudoBadge(late);
+
             // La version, en bas a droite : c'est elle qui dit quel code tourne.
             UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(30), Screen.width - UiStyle.S(24), UiStyle.S(20)), Game.Version,
                            Style(UiStyle.Tiny, 0, TextAnchor.MiddleRight), new Color(UiStyle.InkFaint.r, UiStyle.InkFaint.g, UiStyle.InkFaint.b, late));
+        }
+
+        // ------------------------------------------------------------------ le pseudo
+
+        // (05/10 -- Martin : "j'aimerais bien qu'on puisse mieux modifier notre pseudo") : avant,
+        // il etait cache au fond des Reglages, une ligne parmi d'autres. Desormais il est EN HAUT
+        // A DROITE de l'ecran-titre, du salon et de l'ecran En ligne : un clic, une grande
+        // fenetre, on tape, Entree.
+        bool editingPseudo;
+        string pseudoDraft;
+        GUIStyle pseudoEditStyle;
+
+        /// <summary>Ton pseudo, en haut a droite : cliquer dessus pour le changer.</summary>
+        void PseudoBadge(float alpha)
+        {
+            if (alpha < 0.05f) return;
+            Settings.Load();
+            string name = Settings.Shown;
+            int fs = Mathf.RoundToInt(UiStyle.S(24));
+            float h = Mathf.Round(UiStyle.S(52));
+            float w = Mathf.Round(Icons.Width(name, fs) + h * 2.3f);
+            Rect r = new Rect(Mathf.Round(Screen.width - w - UiStyle.S(28)), Mathf.Round(UiStyle.S(26)), w, h);
+            bool hover = r.Contains(Event.current.mousePosition);
+            Icons.Pill(r, hover ? new Color(0.35f, 0.4f, 0.9f, alpha) : new Color(0.16f, 0.18f, 0.42f, alpha));
+            Icons.Draw(new Rect(r.x + h * 0.18f, r.y + h * 0.16f, h * 0.68f, h * 0.68f), "pseudo", new Color(1f, 1f, 1f, alpha));
+            Icons.Text(new Rect(r.x + h, r.y, Icons.Width(name, fs) + UiStyle.S(4), h), name, fs, new Color(1f, 0.86f, 0.4f, alpha), TextAnchor.MiddleLeft, true);
+            Icons.Draw(new Rect(r.xMax - h * 0.95f, r.y + h * 0.22f, h * 0.56f, h * 0.56f), "reglages", new Color(1f, 1f, 1f, 0.8f * alpha));
+            if (GUI.Button(r, GUIContent.none, GUIStyle.none)) OpenPseudo();
+        }
+
+        void OpenPseudo()
+        {
+            Settings.Load();
+            pseudoDraft = Settings.Pseudo;
+            editingPseudo = true;
+            Sfx.Pop();
+        }
+
+        void ValidatePseudo()
+        {
+            string clean = (pseudoDraft ?? "").Trim();
+            if (clean.Length == 0) { Sfx.Deny(); return; }
+            Settings.SetPseudo(clean);
+            editingPseudo = false;
+            Sfx.CardPick();
+        }
+
+        /// <summary>LA FENETRE DU PSEUDO : un grand champ ou l'on tape (16 lettres), Valider, Annuler.</summary>
+        void DrawPseudoEditor()
+        {
+            Rect screen = new Rect(0f, 0f, Screen.width, Screen.height);
+            UiStyle.Fill(screen, new Color(0f, 0f, 0f, 0.55f));
+            float w = Mathf.Round(Mathf.Min(UiStyle.S(680), Screen.width - UiStyle.S(40)));
+            float h = Mathf.Round(UiStyle.S(330));
+            Rect panel = new Rect(Mathf.Round((Screen.width - w) * 0.5f), Mathf.Round((Screen.height - h) * 0.5f), w, h);
+            Icons.Pill(panel, new Color(0.12f, 0.14f, 0.32f, 0.97f));
+            float y = panel.y + UiStyle.S(26);
+            Icons.Number(new Rect(panel.x, y, w, UiStyle.S(50)), "TON PSEUDO", UiStyle.S(40), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleCenter);
+            y += UiStyle.S(70);
+            if (pseudoEditStyle == null || pseudoEditStyle.fontSize != Mathf.RoundToInt(UiStyle.S(40)))
+            {
+                pseudoEditStyle = new GUIStyle(UiStyle.Head);
+                pseudoEditStyle.fontSize = Mathf.RoundToInt(UiStyle.S(40));
+                pseudoEditStyle.alignment = TextAnchor.MiddleCenter;
+                pseudoEditStyle.normal.textColor = Color.white;
+                pseudoEditStyle.focused.textColor = Color.white;
+            }
+            Rect field = new Rect(panel.x + UiStyle.S(40), y, w - UiStyle.S(80), UiStyle.S(70));
+            Icons.Pill(field, new Color(0.3f, 0.34f, 0.72f));
+            GUI.SetNextControlName("pseudoEdit");
+            pseudoDraft = GUI.TextField(field, pseudoDraft ?? "", Settings.PseudoLength, pseudoEditStyle);
+            if (GUI.GetNameOfFocusedControl() != "pseudoEdit") GUI.FocusControl("pseudoEdit");
+            y += UiStyle.S(80);
+            string count = (pseudoDraft ?? "").Length + " / " + Settings.PseudoLength;
+            Icons.Text(new Rect(panel.x, y, w, UiStyle.S(26)), count, Mathf.RoundToInt(UiStyle.S(18)), new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter, true);
+            y += UiStyle.S(40);
+            float bw = Mathf.Round((w - UiStyle.S(100)) * 0.5f);
+            if (Entry(new Rect(panel.x + UiStyle.S(40), y, bw, UiStyle.S(50)), "Valider", 0, true, 1f)) ValidatePseudo();
+            if (Entry(new Rect(panel.xMax - UiStyle.S(40) - bw, y, bw, UiStyle.S(50)), "Annuler", 1, false, 1f)) { editingPseudo = false; Sfx.Pop(); }
         }
 
         // ------------------------------------------------------------------ le salon
@@ -1156,6 +1252,7 @@ namespace Fief
             if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(50)), "Commencer", LobbyRows, true, 1f)) Activate(LobbyRows);
             y += UiStyle.S(56);
             if (Entry(new Rect(x, y, UiStyle.S(420), UiStyle.S(38)), "Retour", LobbyRows + 1, false, 1f)) Activate(LobbyRows + 1);
+            PseudoBadge(1f);
         }
 
         /// <summary>Une ligne a regler : "Joueurs   ‹ 4 ›". Les fleches se cliquent ; au clavier, gauche/droite.</summary>
@@ -1283,6 +1380,7 @@ namespace Fief
                 addressFocused = GUI.GetNameOfFocusedControl() == "adresse";
                 y += bh + UiStyle.S(16);
                 if (Entry(new Rect(x, y, bw, bh), "Retour", 2, false, 1f)) Activate(2);
+                PseudoBadge(1f);
                 y += bh + UiStyle.S(24);
                 if (!string.IsNullOrEmpty(NetSession.Problem))
                     Icons.Text(new Rect(x, y, UiStyle.S(700), UiStyle.S(40)), NetSession.Problem, Mathf.RoundToInt(UiStyle.S(22)), new Color(1f, 0.5f, 0.42f), TextAnchor.MiddleLeft, true);
@@ -1608,19 +1706,30 @@ namespace Fief
             List<Ability> offer = Match.Draft.Offer;
             int me = Match.Local != null ? Match.Local.Index : 0;
             bool myTurn = !Match.Draft.Done && Match.Draft.Current == me;
+            // (05/10, v26 -- "ouvre le choix beaucoup plus large") Jusqu'a onze cartes : au-dela
+            // de six, deux rangees, pour qu'elles restent grandes et lisibles.
             int n2 = Mathf.Max(1, offer.Count);
+            int perRow = DraftPerRow(n2);
+            int rows = (n2 + perRow - 1) / perRow;
             float gap = UiStyle.S(18);
-            float cw = Mathf.Min(UiStyle.S(250), (Screen.width - UiStyle.S(60) - gap * (n2 - 1)) / n2);
+            float cw = Mathf.Min(UiStyle.S(250), (Screen.width - UiStyle.S(60) - gap * (perRow - 1)) / perRow);
             float ch = Mathf.Min(cw * 1.45f, Screen.height * 0.46f);
-            float cx = (Screen.width - (cw * n2 + gap * (n2 - 1))) * 0.5f;
-            if (cardLift.Length < n2) cardLift = new float[Match.MaxPlayers + 2];
+            if (rows > 1)
+            {
+                ch = Mathf.Min(ch, (Screen.height - y - UiStyle.S(190) - gap * (rows - 1)) / rows);
+                cw = Mathf.Min(cw, ch / 1.1f);   // une carte reste une carte : plus haute que large
+            }
+            if (cardLift.Length < n2) cardLift = new float[n2];
             for (int i = 0; i < offer.Count; i++)
             {
                 Ability p = offer[i];
                 // Elles arrivent face cachee, puis se retournent une a une.
                 float enter = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((stateTime - 0.25f - i * 0.16f) / 0.5f));
                 bool owned = Match.Local != null && Match.Local.Has(p);
-                Rect hit = new Rect(cx + i * (cw + gap), y, cw, ch);
+                int row = i / perRow, col = i % perRow;
+                int inRow = Mathf.Min(perRow, n2 - row * perRow);
+                float cx = (Screen.width - (cw * inRow + gap * (inRow - 1))) * 0.5f;
+                Rect hit = new Rect(cx + col * (cw + gap), y + row * (ch + gap), cw, ch);
                 bool hover = hit.Contains(Event.current.mousePosition);
                 if (hover && hoverFollows && myTurn) selected = i;
                 bool on = myTurn && selected == i && !owned;
@@ -1632,7 +1741,7 @@ namespace Fief
                 Card(card, p, owned, on, lift, enter, me);
                 if (myTurn && enter > 0.9f && GUI.Button(hit, GUIContent.none, GUIStyle.none)) { selected = i; PickCard(i); }
             }
-            y += ch + UiStyle.S(26);
+            y += ch * rows + gap * (rows - 1) + UiStyle.S(26);
 
             if (myTurn)
             {
@@ -1676,8 +1785,12 @@ namespace Fief
             }            CardArt.Sparks();
         }
 
-        float[] cardLift = new float[Match.MaxPlayers + 2];
-        readonly Rect[] cardRects = new Rect[Match.MaxPlayers + 2];
+        // (v26) Jusqu'a onze cartes (joueurs + 3) : de la place pour seize.
+        float[] cardLift = new float[16];
+        readonly Rect[] cardRects = new Rect[16];
+
+        /// <summary>Combien de cartes par rangee : toutes sur une ligne jusqu'a six, puis deux rangees.</summary>
+        static int DraftPerRow(int cards) { return cards > 6 ? (cards + 1) / 2 : Mathf.Max(1, cards); }
 
         /// <summary>La file des joueurs : une pastille par joueur, a sa couleur ; sous celles qui ont choisi, ce qu'elles ont pris.</summary>
         float DrawDraftOrder(float y)

@@ -192,6 +192,12 @@ namespace Fief
         /// <summary>La Prise ferme a deja servi pour ce port de Couronne.</summary>
         public bool GripUsed;
 
+        /// <summary>(05/10) GEANT jusqu'a cet instant (GiantAura) : on ne le bouge presque plus.</summary>
+        public float GiantUntil = -1f;
+        public bool Giant { get { return Time.time < GiantUntil; } }
+        /// <summary>(05/10) VAMPIRE : il court plus vite jusqu'a cet instant (chaque coup donne).</summary>
+        public float RushUntil = -1f;
+
         public bool Stunned { get { return Time.time < StunnedUntil; } }
         public bool Hidden { get { return Time.time < HiddenUntil; } }
         public bool Slowed { get { return Time.time < SlowUntil; } }
@@ -207,6 +213,7 @@ namespace Fief
             {
                 float f = Has(Ability.Coureur) ? 1.15f : 1f;
                 if (CarriesCrown && !Has(Ability.Porteur)) f *= 0.85f;
+                if (Time.time < RushUntil) f *= 1.3f;
                 if (Slowed) f *= 0.5f;
                 if (Stunned) f = 0f;
                 return f;

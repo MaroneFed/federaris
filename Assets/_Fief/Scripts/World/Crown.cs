@@ -614,6 +614,7 @@ namespace Fief
                 if (Game.Hud != null) { Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f)); Game.Hud.ShowSplash("couronne", Gold, "TU AS VOLÉ LA COURONNE !"); }
             }
             if (victim.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
+            Shouts.Stolen(thief, victim);
             Feed.CrownStolen(thief, victim);
             Highlights.CrownChanged(thief);
             return true;
@@ -665,6 +666,7 @@ namespace Fief
                     if (was.IsPlayer) LostIt(was);
                     if (was.Body != null && holder.Body != null) Tether.Show(was.Body, holder.Body, Vector3.zero, 0.5f, Gold);
                     Feed.CrownStolen(holder, was);
+                    Shouts.Stolen(holder, was);
                 }
                 else Feed.CrownTaken(holder, fromPedestal);
                 Highlights.CrownChanged(holder);

@@ -345,7 +345,9 @@ namespace Fief
                 for (int i = 0; i < AbilityInfo.Count; i++) pool.Add((Ability)i);
                 // Une capacite que TOUT LE MONDE a deja ne sert a rien sur la table.
                 pool.RemoveAll(p => { for (int k = 0; k < Slots.Count; k++) if (!Slots[k].Has(p)) return false; return true; });
-                int cards = Mathf.Min(pool.Count, Slots.Count + 1);
+                // (05/10 -- Martin : "ouvre le choix des capacites beaucoup, beaucoup plus large") :
+                // trois cartes de plus que de joueurs (avant : une de plus), jamais moins de six.
+                int cards = Mathf.Min(pool.Count, Mathf.Max(6, Slots.Count + 3));
                 for (int i = 0; i < cards; i++)
                 {
                     // D'abord que des passives, puis que des actives.
@@ -402,10 +404,12 @@ namespace Fief
             /// <summary>Un bot choisit : ce qu'il n'a pas, dans son ordre de preference.</summary>
             public static int BotChoice(int slot)
             {
-                Ability[] taste = { Ability.Grappin, Ability.Ruee, Ability.Crochet, Ability.Onde, Ability.DoubleSaut, Ability.Planeur,
-                                    Ability.Clignement, Ability.Souffle, Ability.Coureur, Ability.Echange, Ability.Bond, Ability.Porteur,
-                                    Ability.Ancrage, Ability.Poigne, Ability.Mine, Ability.Gel, Ability.Voile, Ability.Nuee, Ability.PriseFerme,
-                                    Ability.Recharge, Ability.Mur, Ability.Rappel, Ability.Rebond, Ability.Aimant, Ability.Flair, Ability.Ombre };
+                Ability[] taste = { Ability.Grappin, Ability.Boulet, Ability.Ruee, Ability.TeteDure, Ability.Crochet, Ability.Tornade, Ability.Onde,
+                                    Ability.DoubleSaut, Ability.Planeur, Ability.Meteore, Ability.Clignement, Ability.Souffle, Ability.Coureur,
+                                    Ability.Vampire, Ability.Foudre, Ability.Echange, Ability.Bond, Ability.Porteur, Ability.TrouNoir, Ability.Ancrage,
+                                    Ability.Poigne, Ability.Geant, Ability.Mine, Ability.Gel, Ability.Plume, Ability.Voile, Ability.Riposte,
+                                    Ability.Nuee, Ability.PriseFerme, Ability.Fusee, Ability.Recharge, Ability.SecondSouffle, Ability.Mur,
+                                    Ability.Rappel, Ability.Ressort, Ability.Rebond, Ability.Aimant, Ability.Flair, Ability.Ombre };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

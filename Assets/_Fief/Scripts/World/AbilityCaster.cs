@@ -39,13 +39,16 @@ namespace Fief
     {
         // Les portees (28/09 : tout plus fort -- Martin : "des pouvoirs beaucoup plus mieux").
         // Le HUD et l'apercu de visee s'en servent.
-        public const float GrappinRange = 48f;
-        public const float CrochetRange = 32f;
+        // (05/10 -- "qu'on pousse un peu plus loin") : tout encore un cran au-dessus.
+        public const float GrappinRange = 60f;
+        public const float CrochetRange = 40f;
         public const float EchangeRange = 45f;
         public const float AimAngle = 12f;
-        public const float RueeReach = 12f;
-        public const float BlinkReach = 15f;
-        public const float OndeRadius = 9f;
+        public const float RueeReach = 15f;
+        public const float BlinkReach = 20f;
+        public const float OndeRadius = 11f;
+        public const float BouletReach = 30f;
+        public const float FoudreRange = 60f;
         public const float WallAhead = 4.5f;
         public const float FrostReach = 26f;
 
@@ -60,10 +63,12 @@ namespace Fief
         }
 
         /// <summary>Ou la Ruee s'arrete (un mur la coupe).</summary>
-        public static Vector3 RueeEnd(Seeker s, Vector3 flat)
+        public static Vector3 RueeEnd(Seeker s, Vector3 flat) { return DashEnd(s, flat, RueeReach); }
+
+        /// <summary>Ou s'arrete un elan de "reach" metres (un mur le coupe).</summary>
+        public static Vector3 DashEnd(Seeker s, Vector3 flat, float reach)
         {
             Vector3 pos = s.Body.position;
-            float reach = RueeReach;
             RaycastHit hit;
             if (Physics.Raycast(pos + Vector3.up * 1f, flat, out hit, reach, ~0, QueryTriggerInteraction.Ignore) && !hit.collider.transform.IsChildOf(s.Body))
                 reach = Mathf.Max(0f, hit.distance - 0.6f);
@@ -87,9 +92,9 @@ namespace Fief
         public static string AimedAt(Seeker s, Ability a, Vector3 eye, Vector3 aim)
         {
             if (s == null || s.Body == null) return null;
-            if (a == Ability.Crochet || a == Ability.Echange)
+            if (a == Ability.Crochet || a == Ability.Echange || a == Ability.Foudre)
             {
-                Seeker t = Combat.Aimed(s, eye, aim, a == Ability.Crochet ? CrochetRange : EchangeRange, AimAngle);
+                Seeker t = Combat.Aimed(s, eye, aim, a == Ability.Crochet ? CrochetRange : a == Ability.Foudre ? FoudreRange : EchangeRange, AimAngle);
                 return t != null ? t.Name : null;
             }
             if (a == Ability.Grappin)
@@ -101,7 +106,7 @@ namespace Fief
         }
 
         /// <summary>Vrai pour les capacites qui visent quelque chose (le HUD dit si la visee est bonne).</summary>
-        public static bool Aims(Ability a) { return a == Ability.Crochet || a == Ability.Echange || a == Ability.Grappin; }
+        public static bool Aims(Ability a) { return a == Ability.Crochet || a == Ability.Echange || a == Ability.Grappin || a == Ability.Foudre; }
 
         public static IMover MoverOf(Seeker s)
         {
@@ -113,7 +118,9 @@ namespace Fief
         /// <summary>Une capacite offensive (interdite au porteur de la Couronne, sauf Porteur).</summary>
         public static bool Offensive(Ability a)
         {
-            return a == Ability.Crochet || a == Ability.Onde || a == Ability.Souffle || a == Ability.Gel;
+            return a == Ability.Crochet || a == Ability.Onde || a == Ability.Souffle || a == Ability.Gel
+                || a == Ability.Meteore || a == Ability.Tornade || a == Ability.TrouNoir || a == Ability.Foudre
+                || a == Ability.Boulet;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -122,6 +129,9 @@ namespace Fief
             if (s == null || s.Body == null) return "";
             if (s.Stunned) return "Étourdi";
             if (s.CarriesCrown && Offensive(a) && !s.Has(Ability.Porteur)) return "Mains prises";
+            // La Fusee : la Couronne est trop lourde pour elle, et pas de raccourci dans la citadelle.
+            if (a == Ability.Fusee && s.CarriesCrown) return "Trop lourd";
+            if (a == Ability.Fusee && Castle.Inside(s.Body.position)) return "Pas ici";
             if (!s.Ready(a, Time.time)) return "Recharge";
             return null;
         }
@@ -147,7 +157,7 @@ namespace Fief
                     // BOUSCULE sur le cote (une trainee, un anneau qui claque, des etincelles).
                     Vector3 end = RueeEnd(s, flat);
                     float length = (end - pos).magnitude;
-                    m.Dash(flat, 36f, Mathf.Max(0.05f, length / 36f));
+                    m.Dash(flat, 40f, Mathf.Max(0.05f, length / 40f));
                     Vector3 side = new Vector3(flat.z, 0f, -flat.x);
                     for (int i = 0; i < Game.Seekers.Count; i++)
                     {
@@ -159,7 +169,7 @@ namespace Fief
                         float lateral = Vector3.Dot(Combat.Flat(rel), side);
                         if (Mathf.Abs(lateral) > 1.8f) continue;
                         Vector3 away = side * (lateral >= 0f ? 1f : -1f);
-                        Combat.Hit(o, (away * 1.2f + flat).normalized * 18f + Vector3.up * 6f, 0.3f, true, s);
+                        Combat.Hit(o, (away * 1.2f + flat).normalized * 22f + Vector3.up * 7f, 0.3f, true, s);
                         Fx.Impact(o.Body.position + Vector3.up * 1.1f, tint, 1f);
                     }
                     Fx.Trail(s.Body, tint, 0.45f, 1.1f);
@@ -213,7 +223,7 @@ namespace Fief
                 case Ability.Onde:
                     // L'ONDE DE CHOC : une sphere qui gonfle, trois anneaux au sol, la poussiere
                     // qui part en couronne, un eclair qui illumine tout autour.
-                    int blasted = Combat.Blast(pos, OndeRadius, 24f, 10f, s);
+                    int blasted = Combat.Blast(pos, OndeRadius, 30f, 12f, s);
                     Fx.Shock(chest, tint, OndeRadius, 0.5f);
                     Fx.Shock(chest, Color.white, OndeRadius * 0.5f, 0.3f);
                     Fx.GroundRing(pos, tint, OndeRadius + 1f, 0.5f);
@@ -244,8 +254,8 @@ namespace Fief
                 case Ability.Bond:
                     // UN SAUT IMMENSE : on s'arrache du sol, et le souffle du depart
                     // repousse ceux qui sont tout pres.
-                    m.Push(Vector3.up * 22f + flat * 5f);
-                    Combat.Blast(pos, 4f, 12f, 4f, s);
+                    m.Push(Vector3.up * 26f + flat * 6f);
+                    Combat.Blast(pos, 5f, 16f, 6f, s);
                     Fx.GroundRing(pos, tint, 6f, 0.45f);
                     Fx.Shock(pos + Vector3.up * 0.3f, tint, 3.5f, 0.3f);
                     Fx.Column(pos, tint, 20f, 0.3f, 0.7f);
@@ -318,6 +328,92 @@ namespace Fief
                     m.Blink(back);
                     Fx.Shock(back + Vector3.up * 1.1f, tint, 1.5f, 0.3f);
                     Fx.Flash(back + Vector3.up, tint, 9f, 4f, 0.3f);
+                    break;
+                }
+
+                // ================================================ les capacites de malade (05/10)
+                case Ability.Meteore:
+                    MeteorStrike.Begin(s, m, flat);
+                    Fx.GroundRing(pos, tint, 5f, 0.35f);
+                    break;
+
+                case Ability.Tornade:
+                    Twister.Launch(s, pos + flat * 3f, flat);
+                    Fx.Ring(chest + flat * 2f, tint, 0.5f, 3f, 0.3f, 0.25f, flat);
+                    Fx.Burst(pos + Vector3.up * 0.2f, new Color(0.65f, 0.58f, 0.5f), 40, 8f, 0.4f, 0.8f, 0.3f, flat + Vector3.up, 50f);
+                    break;
+
+                case Ability.TrouNoir:
+                {
+                    // Au sol, la ou l'on regarde (24 m au plus) ; sinon seize metres devant.
+                    RaycastHit hit;
+                    Vector3 at = RayFrom(s, eye, aim, 24f, out hit) ? hit.point : pos + flat * 16f;
+                    if (Physics.Raycast(at + Vector3.up * 2f, Vector3.down, out hit, 10f, ~0, QueryTriggerInteraction.Ignore)) at = hit.point;
+                    Vortex.Open(s, at);
+                    Tether.Show(s.Body, null, at + Vector3.up * 1.2f, 0.4f, tint);
+                    break;
+                }
+
+                case Ability.Boulet:
+                {
+                    // LE BOULET DE CANON : trente metres d'un coup, un peu en l'air ; qui est sur la
+                    // route DECOLLE (bien plus fort que la Ruee).
+                    Vector3 end = DashEnd(s, flat, BouletReach);
+                    float length = (end - pos).magnitude;
+                    m.Dash(flat + Vector3.up * 0.08f, 48f, Mathf.Max(0.05f, length / 48f));
+                    Vector3 side = new Vector3(flat.z, 0f, -flat.x);
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null) continue;
+                        Vector3 rel = o.Body.position - pos;
+                        float along = Vector3.Dot(Combat.Flat(rel), flat);
+                        if (along < 0f || along > length + 1.5f || Mathf.Abs(rel.y) > 2.5f) continue;
+                        float lateral = Vector3.Dot(Combat.Flat(rel), side);
+                        if (Mathf.Abs(lateral) > 2.2f) continue;
+                        Vector3 away = side * (lateral >= 0f ? 1f : -1f);
+                        Combat.Hit(o, (away * 0.7f + flat).normalized * 30f + Vector3.up * 12f, 0.45f, true, s);
+                        Fx.Impact(o.Body.position + Vector3.up * 1.1f, tint, 1.6f);
+                    }
+                    Fx.Trail(s.Body, tint, 0.7f, 1.6f);
+                    Fx.Shock(chest, tint, 3f, 0.3f);
+                    Fx.Burst(chest, tint, 70, 14f, 0.25f, 0.6f, 0f, -flat, 30f);
+                    Fx.Flash(chest, tint, 14f, 5f, 0.3f);
+                    Sfx.KoBoom(pos, s.IsPlayer);
+                    break;
+                }
+
+                case Ability.Geant:
+                    GiantAura.Grow(s);
+                    break;
+
+                case Ability.Fusee:
+                    // LA FUSEE : on decolle tout droit (une vingtaine de metres), et la-haut, les
+                    // ailes d'or s'ouvrent en VOL LIBRE (comme apres une arbaleste).
+                    m.Push(Vector3.up * 32f + flat * 3f);
+                    Wings.Grant(s, false);
+                    s.FreeFlight = true;
+                    Fx.Column(pos, tint, 30f, 0.4f, 0.9f);
+                    Fx.Burst(pos + Vector3.up * 0.2f, new Color(1f, 0.6f, 0.25f), 90, 10f, 0.35f, 0.8f, 0.4f, Vector3.down, 40f);
+                    Fx.Trail(s.Body, tint, 1.5f, 1f);
+                    Sfx.KoBoom(pos, s.IsPlayer);
+                    break;
+
+                case Ability.Ressort:
+                {
+                    // Le trampoline a tes pieds -- et tu rebondis dessus tout de suite.
+                    if (Spring.Place(s, pos) == null) { s.Refund(a); return false; }
+                    m.Push(Vector3.up * 26f + flat * 4f);
+                    Sfx.BoingAt(pos);
+                    break;
+                }
+
+                case Ability.Foudre:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, FoudreRange, AimAngle);
+                    if (t == null) { s.Refund(a); return false; }
+                    Lightning.Call(s, t.Body.position);
+                    Fx.Flash(chest, tint, 8f, 3f, 0.2f);
                     break;
                 }
 
@@ -474,7 +570,7 @@ namespace Fief
                 if (rel.y < -3.5f || rel.y > Height) continue;
                 struck.Add(s);
                 Vector3 push = new Vector3(dir.x, 0f, dir.z).normalized;
-                Combat.Hit(s, push * 30f + Vector3.up * 9f, 0.35f, true, by);
+                Combat.Hit(s, push * 34f + Vector3.up * 10f, 0.35f, true, by);
                 Fx.Impact(s.Body.position + Vector3.up * 1.1f, tint, 1.2f);
             }
 

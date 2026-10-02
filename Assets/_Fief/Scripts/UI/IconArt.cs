@@ -29,6 +29,8 @@ namespace Fief
             "ruee", "grappin", "crochet", "onde", "clignement", "bond", "mur", "nuee", "mine", "gel", "voile",
             "echange", "rappel", "souffle", "double-saut", "planeur", "coureur", "porteur", "poigne", "ancrage",
             "flair", "ombre", "prise-ferme", "recharge", "rebond", "aimant",
+            "meteore", "tornade", "trou-noir", "boulet", "geant", "fusee", "ressort", "foudre",
+            "riposte", "vampire", "tete-dure", "second-souffle", "plume",
             "etourdi", "chute", "ko", "clip"
         };
 
@@ -446,6 +448,97 @@ namespace Fief
                     float u = Max(Ring(x, y - 0.05f, 0.5f, 0.2f), -(y - 0.05f));
                     float legs = Min(Box(x - 0.5f, y + 0.3f, 0.2f, 0.36f, 0f), Box(x + 0.5f, y + 0.3f, 0.2f, 0.36f, 0f));
                     return Sub(Min(u, legs), Box(x, y + 0.42f, 1f, 0.03f, 0f));
+                }
+                // ============================================ les capacites de malade (05/10)
+                case "meteore":
+                {
+                    // Une boule de feu qui plonge en bas a droite, trois trainees derriere elle.
+                    float ball = Circle(x - 0.28f, y - 0.28f, 0.36f);
+                    float t1 = Seg(x, y, -0.92f, -0.42f, -0.2f, 0.3f, 0.08f);
+                    float t2 = Seg(x, y, -0.62f, -0.88f, 0.1f, -0.15f, 0.08f);
+                    float t3 = Seg(x, y, -0.95f, -0.95f, -0.3f, -0.3f, 0.11f);
+                    return Min(ball, Min(t1, Min(t2, t3)));
+                }
+                case "tornade":
+                {
+                    float d = Seg(x, y, -0.82f, -0.66f, 0.82f, -0.66f, 0.1f);
+                    d = Min(d, Seg(x, y, -0.58f, -0.3f, 0.66f, -0.3f, 0.09f));
+                    d = Min(d, Seg(x, y, -0.32f, 0.06f, 0.48f, 0.06f, 0.085f));
+                    d = Min(d, Seg(x, y, -0.12f, 0.4f, 0.32f, 0.4f, 0.08f));
+                    return Min(d, Seg(x, y, 0.02f, 0.72f, 0.18f, 0.72f, 0.075f));
+                }
+                case "trou-noir":
+                {
+                    float core = Circle(x, y, 0.24f);
+                    float a1 = Max(Ring(x, y, 0.52f, 0.08f), -x);
+                    float a2 = Max(Ring(x, y, 0.8f, 0.07f), x);
+                    float a3 = Max(Ring(x, y + 0.04f, 0.52f, 0.06f), x + 0.6f);
+                    return Min(core, Min(a1, Min(a2, a3)));
+                }
+                case "boulet":
+                {
+                    float ball = Circle(x - 0.28f, y, 0.46f);
+                    float lines = Min(Seg(x, y, 0.32f, -0.32f, 0.92f, -0.32f, 0.07f), Min(Seg(x, y, 0.36f, 0f, 0.95f, 0f, 0.07f), Seg(x, y, 0.32f, 0.32f, 0.92f, 0.32f, 0.07f)));
+                    return Min(Sub(ball, Circle(x - 0.42f, y - 0.16f, 0.1f)), lines);
+                }
+                case "geant":
+                {
+                    float head = Circle(x, y + 0.62f, 0.24f);
+                    float body = Box(x, y - 0.25f, 0.48f, 0.5f, 0.3f);
+                    float up = Min(ArrowUp(x - 0.8f, y + 0.1f, 0.3f), ArrowUp(x + 0.8f, y + 0.1f, 0.3f));
+                    return Min(Min(head, body), up);
+                }
+                case "fusee":
+                {
+                    float body = Box(x, y - 0.05f, 0.22f, 0.5f, 0.2f);
+                    float nose = Poly(x, y, -0.22f, -0.45f, 0.22f, -0.45f, 0f, -0.92f);
+                    float fins = Min(Poly(x, y, -0.22f, 0.2f, -0.52f, 0.6f, -0.22f, 0.45f), Poly(x, y, 0.22f, 0.2f, 0.52f, 0.6f, 0.22f, 0.45f));
+                    float flame = Poly(x, y, -0.13f, 0.56f, 0.13f, 0.56f, 0f, 0.95f);
+                    return Sub(Min(Min(body, nose), Min(fins, flame)), Circle(x, y - 0.12f, 0.09f));
+                }
+                case "ressort":
+                {
+                    float top = Box(x, y - 0.62f, 0.8f, 0.1f, 0.06f);
+                    float foot = Box(x, y + 0.78f, 0.6f, 0.08f, 0.04f);
+                    float z = Seg(x, y, -0.5f, -0.48f, 0.5f, -0.22f, 0.07f);
+                    z = Min(z, Seg(x, y, 0.5f, -0.22f, -0.5f, 0.06f, 0.07f));
+                    z = Min(z, Seg(x, y, -0.5f, 0.06f, 0.5f, 0.34f, 0.07f));
+                    z = Min(z, Seg(x, y, 0.5f, 0.34f, -0.5f, 0.62f, 0.07f));
+                    return Min(Min(top, foot), z);
+                }
+                case "foudre":
+                    return Min(Poly(x, y, 0.22f, -0.95f, -0.42f, 0.12f, 0.08f, 0.12f), Poly(x, y, -0.08f, -0.08f, 0.42f, -0.08f, -0.24f, 0.95f));
+                case "riposte":
+                {
+                    // Une fleche qui frappe un mur et REVIENT.
+                    float wall = Box(x - 0.66f, y, 0.08f, 0.78f, 0.03f);
+                    float go = Min(Seg(x, y, -0.85f, -0.34f, 0.24f, -0.34f, 0.08f), Poly(x, y, 0.18f, -0.58f, 0.18f, -0.1f, 0.5f, -0.34f));
+                    float back = Min(Seg(x, y, 0.42f, 0.34f, -0.45f, 0.34f, 0.08f), Poly(x, y, -0.4f, 0.1f, -0.4f, 0.58f, -0.82f, 0.34f));
+                    return Min(wall, Min(go, back));
+                }
+                case "vampire":
+                {
+                    // Deux crocs.
+                    float jaw = Box(x, y + 0.55f, 0.75f, 0.14f, 0.08f);
+                    float f1 = Poly(x, y, -0.5f, -0.45f, -0.14f, -0.45f, -0.32f, 0.55f);
+                    float f2 = Poly(x, y, 0.14f, -0.45f, 0.5f, -0.45f, 0.32f, 0.55f);
+                    return Min(jaw, Min(f1, f2));
+                }
+                case "tete-dure":
+                {
+                    // Un heaume : la coque arrondie, la fente des yeux, le nasal.
+                    float shell = Box(x, y - 0.08f, 0.62f, 0.78f, 0.55f);
+                    float slit = Box(x, y + 0.08f, 0.48f, 0.07f, 0.03f);
+                    float nasal = Box(x, y - 0.22f, 0.06f, 0.22f, 0.02f);
+                    return Sub(shell, Min(Sub(slit, nasal), Box(x, y - 0.72f, 0.08f, 0.1f, 0.02f)));
+                }
+                case "second-souffle":
+                    return Min(Wings(x, y + 0.2f), Star(x, y - 0.62f, 0.3f, 0.12f, 4));
+                case "plume":
+                {
+                    float u = (x + y) * 0.7071f, v = (y - x) * 0.7071f;
+                    float leaf = ((float)Math.Sqrt(u * u + v * v * 5.5f) - 0.8f) * 0.5f;
+                    return Sub(Min(leaf, Seg(x, y, 0.5f, 0.5f, 0.88f, 0.88f, 0.05f)), Seg(x, y, -0.5f, -0.5f, 0.5f, 0.5f, 0.025f));
                 }
                 default: return Circle(x, y, 0.6f);
             }

@@ -467,6 +467,19 @@ namespace Fief
                 case Ability.PriseFerme: return "prise-ferme";
                 case Ability.Recharge: return "recharge";
                 case Ability.Rebond: return "rebond";
+                case Ability.Meteore: return "meteore";
+                case Ability.Tornade: return "tornade";
+                case Ability.TrouNoir: return "trou-noir";
+                case Ability.Boulet: return "boulet";
+                case Ability.Geant: return "geant";
+                case Ability.Fusee: return "fusee";
+                case Ability.Ressort: return "ressort";
+                case Ability.Foudre: return "foudre";
+                case Ability.Riposte: return "riposte";
+                case Ability.Vampire: return "vampire";
+                case Ability.TeteDure: return "tete-dure";
+                case Ability.SecondSouffle: return "second-souffle";
+                case Ability.Plume: return "plume";
                 default: return "aimant";
             }
         }

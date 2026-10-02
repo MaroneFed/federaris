@@ -54,6 +54,7 @@ namespace Fief
         /// <summary>Combien on descend par metre parcouru, a plat (les bots s'en servent pour viser).</summary>
         public static float Descent(Seeker s)
         {
+            // (La Plume va plus vite, mais tombe d'autant : la meme pente.)
             if (s != null && s.CarriesCrown) return HeavySink / HeavyCruise;
             if (s != null && (s.HasWings || s.Has(Ability.Planeur))) return 0.15f;
             return 0.22f;
@@ -125,10 +126,14 @@ namespace Fief
             if (s != null && s.FreeFlight && s.Body != null && Castle.Inside(s.Body.position)) s.FreeFlight = false;
             if (s != null && s.FreeFlight) return NoClimbInside(FlyFree(ref airspeed, look, side, brake, s, dt), s);
             bool heavy = s != null && s.CarriesCrown;
+            // (05/10) La PLUME : le porteur plane a la vitesse de tout le monde. Mais la Couronne
+            // pese toujours (30/09) : il tombe d'autant plus vite, la pente reste celle du porteur
+            // -- du sommet, il ne va toujours pas droit aux Monuments.
+            bool plume = heavy && s.Has(Ability.Plume);
             bool gold = !heavy && s != null && (s.HasWings || s.Has(Ability.Planeur));
-            float cruise = heavy ? HeavyCruise : Cruise * (gold ? 1.25f : 1f);
-            float top = MaxSpeed * (gold ? 1.12f : heavy ? 0.8f : 1f);
-            float sink = heavy ? HeavySink : Sink * (gold ? 0.75f : 1f);
+            float cruise = heavy ? (plume ? Cruise : HeavyCruise) : Cruise * (gold ? 1.25f : 1f);
+            float top = MaxSpeed * (gold ? 1.12f : heavy && !plume ? 0.8f : 1f);
+            float sink = heavy ? HeavySink * cruise / HeavyCruise : Sink * (gold ? 0.75f : 1f);
 
             // (03/10) Un anneau de vent traverse : la vitesse remonte d'un coup (voir WindRing).
             if (s != null) WindRing.Through(s, ref airspeed);
@@ -187,7 +192,7 @@ namespace Fief
         static Vector3 FlyFree(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
         {
             WindRing.Through(s, ref airspeed);
-            float cruise = s.CarriesCrown ? FreeHeavyCruise : FreeCruise;
+            float cruise = s.CarriesCrown && !s.Has(Ability.Plume) ? FreeHeavyCruise : FreeCruise;
             float want = brake ? cruise * 0.45f : cruise;
             // Les anneaux donnent un elan au-dessus de la croisiere, qui retombe doucement.
             airspeed = Mathf.MoveTowards(airspeed, want, (airspeed > want ? 6f : 18f) * dt);

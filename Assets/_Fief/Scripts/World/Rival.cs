@@ -312,6 +312,8 @@ namespace Fief
         public void Launch(Vector3 velocity)
         {
             if (seeker.Remote) return;
+            // Tire : il prend le but du tir (le porteur a chasser, le Monument, le parvis).
+            if (hasShot) { goal = shotGoal; target = shotTarget; hasShot = false; }
             ballistic = true;
             launchAge = 0f;
             flight = new Vector3(velocity.x, 0f, velocity.z);
@@ -433,37 +435,7 @@ namespace Fief
             }
 
             Seeker holder = Crown.Holder;
-            if (holder != null && holder != seeker && holder.Body != null)
-            {
-                prey = holder;
-                preyTimer = 5f;
-                Monument watched = Monument.Nearest(holder.Body.position);
-                if (watched != null)
-                {
-                    Vector3 m = watched.transform.position;
-                    Vector3 hp = holder.Body.position;
-                    bool holderAway = !OnFoot(hp);      // il vole, ou il est sur un ilot
-                    // L'un d'eux (le plus pres du Monument) va l'y attendre, par l'arbaleste
-                    // ou en planant ; les autres le chassent.
-                    // (02/10, gamer chiant n° 183-184) Quand il vole, ils se REPARTISSENT : le
-                    // gardien du Monument le plus proche du porteur y va, les autres couvrent les
-                    // deux autres Monuments (avant, tout le monde courait au meme, et le porteur
-                    // n'avait qu'a en choisir un autre).
-                    if (holderAway && Guardian(watched) != this && Monument.All.Count > 1)
-                    {
-                        Monument other = Monument.All[seeker.Index % Monument.All.Count];
-                        if (other != null) m = other.transform.position;
-                    }
-                    if (holderAway || Guardian(watched) == this && Flat(hp - m).magnitude > 35f)
-                    {
-                        if (ReachTo(m + Flat(me - m).normalized * 5f, Goal.Guard, was)) return;
-                    }
-                }
-                if (OnFoot(holder.Body.position)) { SetGoal(Goal.Hunt, holder.Body.position, was); return; }
-                // Il vole et on ne peut pas le suivre : on monte chercher des ailes.
-                SetGoal(Goal.Raid, Tower.CrownSpot, was);
-                return;
-            }
+            if (holder != null && holder != seeker && holder.Body != null) { HuntCarrier(holder, was); return; }
             if (prey != null && preyTimer > 0f && prey.Body != null && !prey.Hidden && seeker.CanShove && (prey.Body.position - me).magnitude < 25f && OnFoot(prey.Body.position))
             {
                 SetGoal(Goal.Fight, prey.Body.position, was);
@@ -495,6 +467,108 @@ namespace Fief
         }
 
         /// <summary>
+        /// TOUS SUR LE PORTEUR (05/10 -- Martin : "quand j'ai la couronne, ils sont censes tous
+        /// venir me niquer, il n'y a personne qui vient"). Avant, des que le porteur volait, ceux
+        /// qui ne trouvaient pas d'arbaleste A 70 M partaient... remonter la tour chercher des
+        /// ailes : on les voyait tourner le dos. Desormais :
+        ///   - a pied (l'ile, la tour) : TOUT LE MONDE lui fonce dessus (un seul garde le
+        ///     Monument, et seulement si le porteur en est encore loin) ;
+        ///   - en vol ou sur un ilot : chacun cherche UNE arbaleste (jusqu'a 160 m, sur l'ile
+        ///     comme sur son ilot) qui le pose pres de lui -- ou pres de son Monument pour le
+        ///     gardien -- et, tire, il VOLE droit sur lui (vol libre) et fond dessus (pique) ;
+        ///   - haut sur la tour : il saute et plane vers lui ;
+        ///   - sinon : au bord de l'ile, face a lui -- on le voit venir, on l'attend.
+        /// </summary>
+        void HuntCarrier(Seeker holder, Goal was)
+        {
+            Vector3 me = transform.position;
+            prey = holder;
+            preyTimer = 5f;
+            Vector3 hp = holder.Body.position;
+            Monument dest = Monument.Nearest(hp);
+            bool guard = dest != null && Guardian(dest) == this;
+            if (OnFoot(hp))
+            {
+                if (guard && Flat(hp - dest.transform.position).magnitude > 60f
+                    && ReachTo(dest.transform.position + Flat(me - dest.transform.position).normalized * 5f, Goal.Guard, was)) return;
+                SetGoal(Goal.Hunt, hp, was);
+                return;
+            }
+            // Haut sur la tour (ailes d'or au sommet) : on saute vers lui.
+            if (seeker.CanGlide && Tower.On(me) && me.y > hp.y + 12f)
+            {
+                goal = Goal.Hunt;
+                target = hp;
+                Leap(hp);
+                return;
+            }
+            Vector3 aimAt = guard && dest != null ? dest.transform.position : IsletAt(hp) >= 0 ? hp : dest != null ? dest.transform.position : hp;
+            if (TryAnyBallistaTo(aimAt, 14f, guard ? Goal.Guard : Goal.Hunt, hp, was)) return;
+            // Personne a portee : au bord de l'ile, face a lui.
+            SetGoal(Goal.Guard, EdgeToward(hp), was);
+        }
+
+        /// <summary>Un point au bord de l'ile (dehors, sur l'herbe), du cote de "p".</summary>
+        static Vector3 EdgeToward(Vector3 p)
+        {
+            float a = Mathf.Atan2(p.z, p.x);
+            float r = Ground.EdgeAt(a) - 7f;
+            return Ground.Place(Mathf.Cos(a) * r, Mathf.Sin(a) * r, 0.1f);
+        }
+
+        /// <summary>
+        /// N'IMPORTE QUELLE ARBALESTE (a 160 m, ou l'on peut aller a pied) dont un tir pose pres de
+        /// "to". Vrai s'il y va. Une fois tire, il vise "chase" (le porteur) avec le but "after".
+        /// </summary>
+        bool TryAnyBallistaTo(Vector3 to, float tolerance, Goal after, Vector3 chase, Goal was)
+        {
+            Vector3 me = transform.position;
+            // Calculer des tirs coute (200 segments chacun) : une recherche toutes les 2 s au plus.
+            if (Time.time < nextBallistaSearch) return false;
+            nextBallistaSearch = Time.time + 2f;
+            int myIslet = IsletAt(me);
+            List<Ballista> near = new List<Ballista>();
+            for (int i = 0; i < Ballista.All.Count; i++)
+            {
+                Ballista b = Ballista.All[i];
+                if (b == null || !b.Free || b.HasFixedTarget) continue;
+                Vector3 bp = b.transform.position;
+                if (Flat(bp - me).magnitude > 160f) continue;
+                int bIslet = IsletAt(bp);
+                bool walkable = bIslet >= 0 ? bIslet == myIslet : myIslet < 0 && OnFoot(me);
+                if (walkable) near.Add(b);
+            }
+            near.Sort((x, y) => Flat(x.transform.position - me).magnitude.CompareTo(Flat(y.transform.position - me).magnitude));
+            for (int i = 0; i < near.Count && i < 3; i++)
+            {
+                Ballista b = near[i];
+                Vector3 v;
+                Vector3 aim = to + Vector3.up;
+                bool ok = Ballista.Solve(b.Seat, aim, false, out v) && b.Lands(v, to, tolerance)
+                       || Ballista.Solve(b.Seat, aim, true, out v) && b.Lands(v, to, tolerance);
+                if (!ok) continue;
+                ballista = b;
+                ballistaShot = v;
+                ballistaChosen = Time.time;
+                shotGoal = after;
+                shotTarget = chase;
+                hasShot = true;
+                goal = Goal.Ballista;
+                target = b.transform.position;
+                if (was != Goal.Ballista || path.Count == 0) PlanPath(target);
+                return true;
+            }
+            return false;
+        }
+
+        // Ce qu'il fera une fois tire par l'arbaleste (avant : il gardait "aller a l'arbaleste"
+        // comme but, et en vol libre il... revolait vers elle).
+        Goal shotGoal;
+        Vector3 shotTarget;
+        bool hasShot;
+        float nextBallistaSearch;
+
+        /// <summary>
         /// QUITTER SA PLATEFORME (28/09) : son arbaleste l'envoie devant la porte la plus
         /// proche ; si elle ne peut pas (ou s'il est un bot facile), il saute et plane.
         /// </summary>
@@ -509,6 +583,9 @@ namespace Fief
                 ballista = own;
                 ballistaShot = own.FixedVelocity;
                 ballistaChosen = Time.time;
+                shotGoal = Goal.Raid;
+                shotTarget = gate;
+                hasShot = true;
                 goal = Goal.Ballista;
                 target = own.transform.position;
                 if (was != Goal.Ballista || path.Count == 0) { path.Clear(); path.Add(target); }
@@ -628,6 +705,9 @@ namespace Fief
             ballista = b;
             ballistaShot = v;
             ballistaChosen = Time.time;
+            shotGoal = after;
+            shotTarget = to;
+            hasShot = true;
             goal = Goal.Ballista;
             target = b.transform.position;
             if (was != Goal.Ballista || path.Count == 0) PlanPath(target);
@@ -1104,7 +1184,8 @@ namespace Fief
                         break;
                     case Ability.Souffle:
                         // La vague porte a 150 m : il la lache sur le porteur, meme loin (meme en vol).
-                        go = prey != null && preyD < 90f && (prey.CarriesCrown || goal == Goal.Fight && preyD < 15f);
+                        // (05/10 -- "des capacites cheatees, on ne peut rien faire") : 45 m au plus, pas 90.
+                        go = prey != null && preyD < 45f && (prey.CarriesCrown || goal == Goal.Fight && preyD < 15f);
                         aim = toPrey;
                         break;
                     case Ability.Gel:
@@ -1119,7 +1200,7 @@ namespace Fief
                         aim = Flat(toPrey);
                         break;
                     case Ability.Echange:
-                        go = prey != null && prey.CarriesCrown && Monument.All.Count > 0 && preyD > 12f && preyD < 32f
+                        go = prey != null && prey.CarriesCrown && Monument.All.Count > 0 && preyD > 12f && preyD < 32f && rng.NextDouble() < 0.35
                              && Monument.NearestDistance(prey.Body.position) < Monument.NearestDistance(me) - 15f && preyD < AbilityCaster.EchangeRange;
                         aim = toPrey;
                         break;
@@ -1138,6 +1219,41 @@ namespace Fief
                         break;
                     case Ability.Rappel:
                         go = Time.time - fellAt < 3.5f && (goal == Goal.Raid || carrying);
+                        break;
+                    // ---- les capacites de malade (05/10)
+                    case Ability.Meteore:
+                        go = !Tower.On(me) && (near >= 2 || prey != null && prey.CarriesCrown && preyD < 9f);
+                        break;
+                    case Ability.Tornade:
+                        go = prey != null && preyD < 22f && Mathf.Abs(toPrey.y) < 4f && (prey.CarriesCrown || goal == Goal.Fight && preyD < 10f);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.TrouNoir:
+                        go = prey != null && prey.CarriesCrown && preyD < 22f && preyD > 5f;
+                        aim = toPrey;
+                        break;
+                    case Ability.Boulet:
+                    {
+                        Vector3 land = me + Flat(toPrey).normalized * 20f;
+                        go = prey != null && prey.CarriesCrown && preyD > 6f && preyD < 26f && Mathf.Abs(toPrey.y) < 3f
+                             && !Tower.On(me) && body.isGrounded && Ground.OnIsland(land.x, land.z);
+                        aim = Flat(toPrey);
+                        break;
+                    }
+                    case Ability.Geant:
+                        go = near >= 1 && (goal == Goal.Hunt || goal == Goal.Fight) || carrying && Chasers(10f) > 0;
+                        break;
+                    case Ability.Fusee:
+                        // Pour rejoindre un porteur qui vole, depuis l'ile (jamais dans la citadelle).
+                        go = !carrying && goal == Goal.Hunt && prey != null && !OnFoot(prey.Body.position) && !Castle.Inside(me) && body.isGrounded;
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.Ressort:
+                        go = carrying && Chasers(8f) > 0 && body.isGrounded && !Tower.On(me);
+                        break;
+                    case Ability.Foudre:
+                        go = prey != null && prey.CarriesCrown && preyD < AbilityCaster.FoudreRange - 5f;
+                        aim = toPrey;
                         break;
                 }
                 if (!go) continue;
@@ -1279,6 +1395,14 @@ namespace Fief
                 airTop = Mathf.Max(airTop, transform.position.y);
                 fallSpeed -= 22f * dt;
                 // LE VOL PLANE (28/09) : comme toi, ses ailes s'ouvrent seules au-dessus du vide.
+                // (05/10) Tire pour CHASSER (le porteur, son Monument, la Couronne) : il ouvre ses
+                // ailes des le haut de la courbe et vole droit dessus, comme toi en vol libre.
+                bool chasing = goal == Goal.Hunt || goal == Goal.Guard || goal == Goal.Deliver || goal == Goal.Grab;
+                if (!gliding && seeker.CanGlide && seeker.FreeFlight && chasing && ballistic && launchAge > 0.6f && fallSpeed < 4f && Wings.VoidBelow(transform.position, 3f))
+                {
+                    gliding = true;
+                    airspeed = Wings.OpeningSpeed(Flat(flight) + Vector3.up * fallSpeed);
+                }
                 if (!gliding && seeker.CanGlide && fallSpeed < -6f && (!ballistic || launchAge > 3.6f) && Wings.VoidBelow(transform.position, ballistic ? 45f : Wings.OpenAbove))
                 {
                     gliding = true;

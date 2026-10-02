@@ -100,7 +100,8 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
 ### La Couronne
 
 - Qui la porte **brille** (colonne dorée), va **15 % moins vite**, **ne pousse pas** et
-  ne lance pas de capacité offensive (sauf avec le passif Porteur).
+  ne lance pas de capacité offensive (sauf avec le passif Porteur) : Crochet, Onde, Souffle,
+  Givre, Météore, Tornade, Trou noir, Foudre, Boulet de canon ; ni la Fusée (« trop lourd »).
 - **POUSSER LE PORTEUR, C'EST LUI VOLER LA COURONNE** : elle passe directement dans
   tes mains (un trait d'or). Le voleur est **protégé 1,5 s** (une bulle de lumière) ;
   la victime **ne peut pas la reprendre pendant 3 s**. C'est ce qui empêche le porteur
@@ -189,12 +190,15 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 
 ---
 
-## Les 26 capacités
+## Les 39 capacités
 
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le
 clic gauche). Chaque carte prise **remplace** celle de la manche d'avant. Le vainqueur de
-la manche choisit en dernier.
+la manche choisit en dernier. **Le choix est large** (05/10, v26 — Martin : « ouvre le choix
+des capacités beaucoup, beaucoup plus large ») : **(joueurs + 3) cartes, six au moins** —
+neuf à six joueurs, onze à huit — sur **deux rangées** au-delà de six (flèches haut/bas au
+clavier).
 
 **Les cartes** (refaites le 28/09) : elles arrivent **face cachée** (un dos de velours,
 un losange d'or) et **se retournent** une à une ; la face : une pierre granuleuse, un
@@ -207,11 +211,11 @@ une gerbe d'étincelles, un **coup de phonk**.
 
 | Capacité | Ce que ça fait | Recharge |
 |---|---|---|
-| **Ruée** | Douze mètres d'un trait : qui est sur ta route est bousculé. | 6 s |
-| **Grappin** | Vise un mur, un rebord, la tour (48 m) : le grappin t'y tire. Jamais la muraille depuis dehors (on entre par une porte). | 7 s |
-| **Crochet** | Vise un joueur, jusqu'à 32 m : il est tiré jusqu'à toi. | 10 s |
-| **Onde de choc** | Une explosion : tout le monde à neuf mètres s'envole. | 8 s |
-| **Clignement** | Tu disparais et réapparais quinze mètres plus loin. | 5 s |
+| **Ruée** | Quinze mètres d'un trait (40 m/s) : qui est sur ta route est bousculé. | 6 s |
+| **Grappin** | Vise un mur, un rebord, la tour (60 m) : le grappin t'y tire. Jamais la muraille depuis dehors (on entre par une porte). | 7 s |
+| **Crochet** | Vise un joueur, jusqu'à 40 m : il est tiré jusqu'à toi. | 10 s |
+| **Onde de choc** | Une explosion : tout le monde à onze mètres s'envole. | 8 s |
+| **Clignement** | Tu disparais et réapparais vingt mètres plus loin. | 5 s |
 | **Bond** | Un saut immense ; le souffle du départ repousse ceux qui sont tout près. | 8 s |
 | **Mur** | Un mur de 10 m sur 4,5 m surgit du sol devant toi ; qui est dessus s'envole. Pas en plein vol. | 12 s |
 | **Nuée** | Un nuage de fumée de 16 m : les gargouilles et les autres ne voient plus rien. | 14 s |
@@ -220,7 +224,21 @@ une gerbe d'étincelles, un **coup de phonk**.
 | **Voile** | Tu deviens invisible pendant sept secondes. | 16 s |
 | **Échange** | Vise un joueur, jusqu'à 45 m : vous échangez vos places. Jamais à travers la muraille (l'un dedans, l'autre dehors), jamais avec un protégé. | 14 s |
 | **Rappel** | Tu reviens là où tu étais il y a quatre secondes (jamais d'avant un respawn). | 10 s |
-| **Souffle** | **Une vague de vent qui traverse toute l'île** (150 m, 60 m/s, de 3 à 18 m de large) et emporte tout le monde, même en vol. | 9 s |
+| **Souffle** | **Une vague de vent qui traverse toute l'île** (150 m, 60 m/s, de 3 à 18 m de large) et emporte tout le monde, même en vol — plus fort depuis v26. | 9 s |
+
+**Les capacités de malade** (05/10, v26 — Martin : « fais le mec qui veut vraiment des
+capacités de malade mental, qu'on pousse un peu plus loin » ; `World/Powers.cs`) :
+
+| Capacité | Ce que ça fait | Recharge |
+|---|---|---|
+| **Météore** | Tu bondis, puis tu t'écrases comme une météorite (46 m/s) : tout s'envole à dix mètres. | 10 s |
+| **Tornade** | Une tornade file devant toi (14 m/s, 3,5 s) et jette vers le ciel tous ceux qu'elle touche. | 12 s |
+| **Trou noir** | Un trou noir s'ouvre là où tu vises (24 m au plus), aspire tout le monde à 15 m, puis explose. | 13 s |
+| **Boulet de canon** | Tu fonces trente mètres à 48 m/s : qui est sur ta route décolle. | 9 s |
+| **Géant** | Géant sept secondes : on ne te bouge presque plus, ta poussée porte 60 % plus loin, qui te frôle est écarté. | 18 s |
+| **Fusée** | Tu décolles, puis tu voles librement, comme après une arbaleste. Pas avec la Couronne, pas dans la citadelle : le sceau tient. | 15 s |
+| **Trampoline** | Un trampoline à tes pieds (14 s, deux au plus) : boing, 26 m/s vers le ciel — pour tout le monde. | 10 s |
+| **Foudre** | Vise un joueur (60 m) : la foudre tombe là où il était, un instant après (0,8 s) ; qui court s'en sort. | 11 s |
 
 ### Passives (toujours là)
 
@@ -230,7 +248,7 @@ une gerbe d'étincelles, un **coup de phonk**.
 | **Planeur** | Des ailes d'or pour toujours : tu voles plus vite et plus loin. |
 | **Coureur** | Tu vas quinze pour cent plus vite. |
 | **Porteur** | Avec la Couronne, tu n'es plus ralenti et tu peux pousser. |
-| **Poigne** | Ta poussée envoie deux fois plus loin. |
+| **Poigne** | Ta poussée envoie deux fois plus loin, et revient plus vite. |
 | **Ancrage** | On te pousse deux fois moins loin. |
 | **Flair** | Tu vois l'invisible : les mines, les joueurs voilés, à travers la fumée. (02/10 : la Couronne, tout le monde la voit maintenant.) |
 | **Ombre** | Les gargouilles mettent deux fois plus de temps à te repérer. |
@@ -238,6 +256,11 @@ une gerbe d'étincelles, un **coup de phonk**.
 | **Recharge** | Tes capacités reviennent un tiers plus vite. |
 | **Rebond** | Retomber de haut fait une onde de choc autour de toi. |
 | **Aimant** | La Couronne à terre vole jusqu'à toi. |
+| **Riposte** | Qui te pousse se prend un retour de bâton. |
+| **Vampire** | Chaque coup que tu donnes te fait courir 30 % plus vite, trois secondes. |
+| **Tête dure** | Les pièges ne t'éjectent plus de la tour : ils te bousculent, c'est tout. |
+| **Second souffle** | Tombé dans les nuages ? Tu repars avec des ailes d'or, protégé six secondes. |
+| **Plume** | Avec la Couronne, tu voles aussi vite que les autres (13 m/s au lieu de 11, 24 en vol libre au lieu de 16). Elle pèse toujours : tu descends d'autant, et du sommet tu ne vas pas droit aux Monuments. |
 
 (Le code : `Match/Abilities.cs` pour la liste, `World/AbilityCaster.cs` pour les effets.)
 
@@ -406,10 +429,17 @@ d'aura, de ralenti, de « +1000 AURA », de flammes, de phonk, d'aura d'or du po
 
 ## Les pseudos
 
-- **Réglages ▸ Pseudo** : on tape son pseudo (16 lettres) ; il est gardé.
+- **Réglages ▸ Pseudo** : on tape son pseudo (16 lettres) ; il est gardé. Plus simple
+  (05/10) : **la pastille de ton pseudo**, en haut à droite de l'écran-titre et du salon —
+  un clic, on tape, Entrée.
 - **Au-dessus de chaque joueur, son pseudo** — rien d'autre — à sa couleur (en or pour
   le porteur), plus gros de près, lisible jusqu'à 170 m.
 - Le score, la fin de manche et le podium disent les pseudos.
+- **Les cris** (05/10 — Martin : « imaginons que Gotaga joue : GOTAGA T'A POUSSÉ, avec un
+  mot spécial ») : un bandeau en haut, son pseudo dans une pastille à sa couleur —
+  « **GOTAGA** t'a envoyé valser ! », « Tu as atomisé **SQUEEZIE** ! », « … t'a envoyé dans
+  les nuages ! », « … t'a piqué la Couronne ! » — un mot différent à chaque fois, deux
+  bandeaux au plus, 2,6 s (`UI/Shouts.cs`). L'exception assumée au zéro texte.
 - Tes coups **portent** : une micro-pause et un tremblement à chaque impact.
 
 ---
@@ -501,16 +531,24 @@ la rampe de leur porte (sautent **les balayeurs et les moulinets**,
 chercher un **courant d'air** quand ils sont trop bas — avec la Couronne, ils sautent
 vers le courant d'air du Monument et y tournent pour remonter (30/09), **chassent** le porteur (en vol
 aussi, avec le **piqué d'aigle**) en **visant là où il va** (01/10), et l'un d'eux va
-**l'attendre au Monument** le plus proche de lui. **Ils se battent en montant** (29/09 :
+**l'attendre au Monument** le plus proche de lui. **Quand quelqu'un a la Couronne, ils
+fondent TOUS sur lui** (05/10, v26 — Martin : « ils sont censés tous venir me niquer, il
+n'y a personne qui vient ») : à pied s'il est à terre ; du haut de la tour, ils sautent ;
+sinon ils prennent **n'importe quelle arbaleste** (à 160 m) qui pose près de lui, ou
+filent au bord de l'île le plus proche de lui. Un seul garde le Monument, et seulement
+quand le porteur en est encore loin. **Ils se battent en montant** (29/09 :
 « faut qu'il y ait du combat ») : qui passe à portée dans la citadelle ou sur la rampe
 peut se faire pousser (pas un joueur protégé). **Ils lisent les obstacles** (02/10 : « les bots
 n'arrivent pas à monter la tour ») : pendules, béliers, herses et marteaux disent où ils
 frapperont (`World/Hazards.cs`) ; le bot **attend son tour** (3,5 s au plus) puis passe,
 et **fonce** quand une gargouille a verrouillé son tir. **Sur les rampes, ils ne se
 poussent plus entre eux** (ils s'éjectaient de la tour les uns les autres) : ils ne
-poussent que toi ou le porteur, et rarement. Coincés plus de 5 s, ils refont leur
-chemin ; poussés hors de l'île, ils cherchent un courant d'air. Ils se servent de toutes
-leurs capacités (le Souffle, jusqu'à 90 m).
+poussent que toi ou le porteur, et rarement. Coincés, ils montent d'un cran (05/10) : un pas de
+côté et un saut (2 s), le repère suivant (4,5 s), un nouveau chemin (7,5 s) et, à 12 s,
+hors de ta vue, ils sont reposés sur leur chemin ; poussés hors de l'île, ils cherchent un
+courant d'air. Ils se servent de toutes leurs capacités — mais plus de Souffle lancé de
+l'autre bout de l'île (45 m au plus) ni d'Échange à tout bout de champ (05/10 : « des
+fois, les bots sont vraiment trop forts »).
 
 ## Retiré
 
