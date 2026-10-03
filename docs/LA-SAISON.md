@@ -198,7 +198,7 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 - **Le bouton** : « **Mode Dieu** » sur l'écran-titre, juste sous Jouer (une fanfare) ; il ouvre
   le salon en Mode Dieu (le titre dit « MODE DIEU », en or qui bat). Dans le salon — et dans le
   salon en ligne, où l'hôte décide pour tout le monde — la ligne **Mode : Normal / DIEU**.
-- **La table divine** : on ne pioche que les **trente-trois divines** (vingt-cinq actives, huit passives) et les plus folles des autres
+- **La table divine** : on ne pioche que les **quarante-six divines** (trente-cinq actives, onze passives) et les plus folles des autres
   (Météore, Tornade, Trou noir, Boulet, Géant, Foudre, Prison, Bombe, Ballon, Séisme, Gant,
   Déluge, Missile, Raz-de-marée, Lasso, Geyser, Hypnose, Souffle, Apesanteur ; passives :
   Kamikaze, Riposte, Miroir, Rage, Vampire, Planeur, Poigne, Tête dure). Les sanctuaires
@@ -252,6 +252,16 @@ manche : l'écran reste épuré). Repasser en Normal : tout revient doucement.
 | **Geôle** (v30) | Tous ceux qui sont à 50 m sont mis en prison 4 s (un coup les libère). | 22 s |
 | **Tsunami** (v30) | Une vague géante emporte tout jusqu'à 60 m. | 18 s |
 | **Foudre en chaîne** (v30) | Vise un joueur : la foudre le frappe, puis saute sur ses quatre voisins. | 14 s |
+| **Armée de haricots** (v31) | Six petits haricots kamikazes (à ta couleur) courent sur les autres et explosent. | 18 s |
+| **Volcan** (v31) | Un volcan surgit là où tu vises (60 m) et crache des bombes de lave cinq secondes, à 22 m. | 20 s |
+| **Frappe orbitale** (v31) | Vise un joueur (80 m) : une cible au sol, puis un laser du ciel le poursuit quatre secondes (8,5 m/s : qui court bien s'en sort). | 20 s |
+| **Rocher géant** (v31) | Un rocher de 7 m roule devant toi à 20 m/s et écrase tout ce qu'il croise. | 16 s |
+| **Chute de la lune** (v31) | La lune tombe, lentement, là où tu vises (120 m) — son ombre grandit 3,5 s — puis tout saute à 45 m. | 26 s |
+| **Ouragan** (v31) | Six secondes, une tornade géante de 14 m tourne autour de toi et envoie valser qui s'y trouve. | 20 s |
+| **Frappe du ciel** (v31) | Tu bondis à une trentaine de mètres et tu t'écrases là où tu regardes (60 m) : onde de 18 m. Jamais depuis ou vers la citadelle, jamais sur la tour, jamais avec la Couronne. | 16 s |
+| **Pluie d'enclumes** (v31) | Une ombre suit **chaque** autre joueur, où qu'il soit, 1,2 s… puis une enclume lui tombe dessus. | 24 s |
+| **Lilliput** (v31) | Tous les autres à 60 m deviennent minuscules (6 s). | 18 s |
+| **Démence** (v31) | Tous les autres à 60 m ont la tête à l'envers (5 s) et de l'encre plein l'écran (4 s). | 20 s |
 
 **Les passives divines** :
 
@@ -265,8 +275,11 @@ manche : l'écran reste épuré). Repasser en Normal : tout revient doucement.
 | **Explosif** (v30) | Chaque joueur que tu pousses explose : ses voisins à 7 m partent aussi. |
 | **Corps de lave** (v30) | Ton corps brûle : qui te touche est projeté. |
 | **Écho** (v30) | Ta capacité active part deux fois d'affilée (la seconde une demi-seconde après). |
+| **Orage** (v31) | Toutes les trois secondes, la foudre tombe sur le plus proche des autres (18 m). |
+| **Orbes de feu** (v31) | Trois boules de feu tournent autour de toi ; qui les touche est projeté. |
+| **Pas de titan** (v31) | Chaque fois que tu retombes d'au moins 4 m, le sol tremble (onde de 7 m). |
 
-## Les 106 capacités
+## Les 119 capacités
 
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le

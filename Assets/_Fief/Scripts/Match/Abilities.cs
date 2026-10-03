@@ -34,6 +34,8 @@ namespace Fief
         Apocalypse, ArretTemps, Rayon, Teleport, Tempete, Nuke, MainDeDieu, Essaim, GraviteZero, Invincible,
         // (08/10 au soir -- "encore plus de dinguerie") la deuxieme fournee divine
         Bombardement, Singularite, Dragon, Comete, Cataclysme, Chaos, AnneauFeu, Geole, Tsunami, FoudreChaine,
+        // (09/10, v31 -- "encore plus de capacites divines, des trucs de malade") la troisieme fournee divine
+        Armee, Volcan, FrappeOrbitale, Rocher, Lune, Ouragan, FrappeCiel, Enclumes, Lilliput, Demence,
         // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
         DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond,
         // (05/10) les passives neuves
@@ -44,15 +46,16 @@ namespace Fief
         Miroir, Increvable, Pickpocket, Chanceux, Armure, Sprinter,
         // (08/10) les passives divines (Mode Dieu)
         Colosse, Eclair, MainLourde, Phenix, Sablier,
-        Explosif, Lave, Echo
+        Explosif, Lave, Echo,
+        Orage, Orbes, Titan
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 106;
+        public const int Count = 119;
 
         /// <summary>(08/10) Une capacite DIVINE : seulement en Mode Dieu.</summary>
-        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.FoudreChaine || a >= Ability.Colosse; }
+        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.Demence || a >= Ability.Colosse; }
 
         /// <summary>
         /// (08/10) LA TABLE DU MODE DIEU : les divines, et les plus folles des autres. Rien de
@@ -196,6 +199,19 @@ namespace Fief
                 case Ability.FoudreChaine: return "Foudre en chaîne";
                 case Ability.Explosif: return "Explosif";
                 case Ability.Lave: return "Corps de lave";
+                case Ability.Armee: return "Armée de haricots";
+                case Ability.Volcan: return "Volcan";
+                case Ability.FrappeOrbitale: return "Frappe orbitale";
+                case Ability.Rocher: return "Rocher géant";
+                case Ability.Lune: return "Chute de la lune";
+                case Ability.Ouragan: return "Ouragan";
+                case Ability.FrappeCiel: return "Frappe du ciel";
+                case Ability.Enclumes: return "Pluie d'enclumes";
+                case Ability.Lilliput: return "Lilliput";
+                case Ability.Demence: return "Démence";
+                case Ability.Orage: return "Orage";
+                case Ability.Orbes: return "Orbes de feu";
+                case Ability.Titan: return "Pas de titan";
                 default: return "Écho";
             }
         }
@@ -310,6 +326,19 @@ namespace Fief
                 case Ability.FoudreChaine: return "Vise un joueur : la foudre le frappe, puis saute sur ses voisins.";
                 case Ability.Explosif: return "Chaque joueur que tu pousses explose (et ses voisins aussi).";
                 case Ability.Lave: return "Ton corps brûle : qui te touche est projeté.";
+                case Ability.Armee: return "Six petits haricots kamikazes courent sur les autres et explosent.";
+                case Ability.Volcan: return "Un volcan surgit là où tu vises et crache de la lave cinq secondes.";
+                case Ability.FrappeOrbitale: return "Vise un joueur : un laser tombe du ciel et le poursuit.";
+                case Ability.Rocher: return "Un rocher géant roule devant toi et écrase tout.";
+                case Ability.Lune: return "La lune tombe là où tu vises. Courez.";
+                case Ability.Ouragan: return "Six secondes, une tornade géante tourne autour de toi.";
+                case Ability.FrappeCiel: return "Tu bondis dans le ciel et tu t'écrases là où tu regardes.";
+                case Ability.Enclumes: return "Une enclume tombe sur chaque autre joueur, où qu'il soit.";
+                case Ability.Lilliput: return "Tous ceux qui sont à soixante mètres deviennent minuscules.";
+                case Ability.Demence: return "Tous ceux qui sont à soixante mètres ont la tête à l'envers et l'encre.";
+                case Ability.Orage: return "Toutes les trois secondes, la foudre tombe sur le plus proche.";
+                case Ability.Orbes: return "Trois boules de feu tournent autour de toi.";
+                case Ability.Titan: return "Chaque fois que tu retombes de haut, le sol tremble.";
                 default: return "Ta capacité active part deux fois d'affilée.";
             }
         }
@@ -389,6 +418,16 @@ namespace Fief
                 case Ability.Geole: return 22f;
                 case Ability.Tsunami: return 18f;
                 case Ability.FoudreChaine: return 14f;
+                case Ability.Armee: return 18f;
+                case Ability.Volcan: return 20f;
+                case Ability.FrappeOrbitale: return 20f;
+                case Ability.Rocher: return 16f;
+                case Ability.Lune: return 26f;
+                case Ability.Ouragan: return 20f;
+                case Ability.FrappeCiel: return 16f;
+                case Ability.Enclumes: return 24f;
+                case Ability.Lilliput: return 18f;
+                case Ability.Demence: return 20f;
                 default: return 0f;
             }
         }
@@ -444,7 +483,16 @@ namespace Fief
                 case Ability.Comete: case Ability.Cataclysme: return new Color(1f, 0.7f, 0.3f);
                 case Ability.Geole: return new Color(0.75f, 0.78f, 0.86f);
                 case Ability.Tsunami: return new Color(0.3f, 0.7f, 1f);
-                case Ability.FoudreChaine: return new Color(1f, 0.95f, 0.5f);
+                case Ability.FoudreChaine: case Ability.Orage: return new Color(1f, 0.95f, 0.5f);
+                case Ability.Armee: return new Color(0.5f, 0.9f, 0.4f);
+                case Ability.Volcan: case Ability.Orbes: return new Color(1f, 0.32f, 0.08f);
+                case Ability.FrappeOrbitale: return new Color(0.4f, 0.85f, 1f);
+                case Ability.Rocher: case Ability.Titan: return new Color(0.75f, 0.62f, 0.45f);
+                case Ability.Lune: return new Color(0.88f, 0.9f, 1f);
+                case Ability.Ouragan: return new Color(0.6f, 0.85f, 0.95f);
+                case Ability.FrappeCiel: return new Color(1f, 0.75f, 0.3f);
+                case Ability.Enclumes: return new Color(0.55f, 0.58f, 0.66f);
+                case Ability.Lilliput: case Ability.Demence: return new Color(0.95f, 0.45f, 0.95f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

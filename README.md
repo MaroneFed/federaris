@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v30 · ciel de feu · 08/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v31 · Internet (Steam) · 09/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -153,8 +153,8 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 |---|---|
 | Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
 | Les manches, le départage, le choix des capacités | `Scripts/Match/Match.cs` |
-| Le Mode Dieu (la table divine, les recharges) | `Scripts/Match/Abilities.cs` (`InGodPool`), `Scripts/Match/Match.cs` (`GodMode`) ; les divines : `Scripts/World/Dieu.cs` ; le ciel de feu : `Scripts/World/GodSky.cs` |
-| Les 106 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » : `Scripts/World/Mayhem.cs` (prison, bombe, ballon...) et `Folies.cs` (missile, geyser, boomerang...) |
+| Le Mode Dieu (la table divine, les recharges) | `Scripts/Match/Abilities.cs` (`InGodPool`), `Scripts/Match/Match.cs` (`GodMode`) ; les divines : `Scripts/World/Dieu.cs` et `Scripts/World/Divin.cs` (v31) ; le ciel de feu : `Scripts/World/GodSky.cs` |
+| Les 119 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » : `Scripts/World/Mayhem.cs` (prison, bombe, ballon...) et `Folies.cs` (missile, geyser, boomerang...) |
 | Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
 | Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
 | La Couronne (et le vol), le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |
@@ -234,9 +234,27 @@ et le jeu le dit.
    Exécuter quand même** (normal : le jeu n'est pas signé). Au pare-feu : **Autoriser**.
 4. À chaque nouvelle version : refaire le build et le renvoyer — les deux doivent avoir
    **la même version** (en bas de l'écran-titre).
-5. **Pas dans la même maison** : installer tous les deux **Radmin VPN** (gratuit), créer un
-   réseau, l'autre le rejoint ; l'invité tape l'adresse de l'hôte affichée dans la fenêtre Radmin (`26.x.x.x`).
-   (En attendant Steam, étape 4.)
+5. **Pas dans la même maison** : par **Internet (Steam)**, juste en dessous. (Radmin VPN marche
+   toujours, si Steam pose problème.)
+
+## Jouer sur Internet, avec n'importe qui (v31, Steam)
+
+Le jeu passe par **Steam** : ses serveurs relais traversent toutes les box, rien à ouvrir, pas
+d'adresse à donner.
+
+1. **Steam ouvert et connecté** sur les deux PC, **chacun avec son compte Steam** (gratuit ;
+   le même compte ne peut pas jouer sur deux PC à la fois). Le jeu se présente à Steam comme
+   « Spacewar » (l'appli d'essai de Valve, n° 480) : c'est normal, ce sera « FIEF » quand le jeu
+   aura son propre numéro (Phase 5).
+2. L'hôte : **En ligne ▸ Héberger sur Internet**. Un **code de 6 signes** s'affiche (ex.
+   `K7QM2P`), et le bouton **Inviter un ami** ouvre la liste d'amis Steam.
+3. L'autre, au choix : il **voit la partie dans la liste** (« Internet  Martin  1/8 ») et clique ;
+   ou il **tape le code** à côté de **Rejoindre** ; ou il **accepte l'invitation** Steam (le jeu
+   doit être déjà lancé chez lui).
+4. Le reste ne change pas : le salon, **Lancer**, le choix des cartes, le match.
+
+Si le bouton dit « Internet : Ouvre Steam pour jouer sur Internet » : Steam n'est pas lancé (ou
+pas connecté) — lance-le, puis relance le jeu.
 
 Détails et étapes suivantes : `docs/RESEAU.md`. (Claude teste le réseau sans Unity :
 `sh Tools/reseau.sh`.)

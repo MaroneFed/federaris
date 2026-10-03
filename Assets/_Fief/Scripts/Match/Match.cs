@@ -433,7 +433,11 @@ namespace Fief
                                     Ability.Sablier, Ability.GraviteZero, Ability.Teleport, Ability.Invincible,
                                     Ability.Comete, Ability.Echo, Ability.Singularite, Ability.Explosif, Ability.Dragon, Ability.Lave,
                                     Ability.FoudreChaine, Ability.Bombardement, Ability.Geole, Ability.Tsunami, Ability.Cataclysme,
-                                    Ability.AnneauFeu, Ability.Chaos };
+                                    Ability.AnneauFeu, Ability.Chaos,
+                                    // (09/10, v31) la troisieme fournee divine
+                                    Ability.Lune, Ability.Orage, Ability.Armee, Ability.Orbes, Ability.FrappeOrbitale, Ability.Titan,
+                                    Ability.Volcan, Ability.Rocher, Ability.Enclumes, Ability.Ouragan, Ability.FrappeCiel,
+                                    Ability.Lilliput, Ability.Demence };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

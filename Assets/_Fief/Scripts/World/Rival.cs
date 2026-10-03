@@ -1145,6 +1145,7 @@ namespace Fief
         {
             if (seeker.Has(Ability.Colosse)) GiantAura.Keep(seeker);
             if (seeker.Has(Ability.Lave)) LavaBody.Keep(seeker);
+            Divin.KeepPassives(seeker);
             if (seeker.Stunned) return;
             List<Ability> list = new List<Ability>();
             if (seeker.HasActive) list.Add(seeker.CurrentActive);
@@ -1382,6 +1383,39 @@ namespace Fief
                     case Ability.FoudreChaine:
                         go = victim != null || prey != null && preyD < 55f && goal == Goal.Fight;
                         aim = victim != null ? toVictim : toPrey;
+                        break;
+                    // ---- la troisieme fournee divine (v31)
+                    case Ability.Armee:
+                    case Ability.Rocher:
+                        go = prey != null && preyD < (a == Ability.Rocher ? 60f : 45f) && preyD > 6f && (prey.CarriesCrown || goal == Goal.Fight)
+                             && (!Tower.On(me) || prey.IsPlayer || prey.CarriesCrown);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.Volcan:
+                    case Ability.Lune:
+                        // Sur le porteur, et pas a bout portant (la lune souffle 45 m).
+                        go = prey != null && prey.CarriesCrown && preyD < (a == Ability.Lune ? 100f : 55f) && preyD > (a == Ability.Lune ? 25f : 8f);
+                        aim = prey != null ? toPrey : transform.forward;
+                        break;
+                    case Ability.FrappeOrbitale:
+                        go = victim != null || prey != null && preyD < 75f && (prey.CarriesCrown || goal == Goal.Fight);
+                        aim = victim != null ? toVictim : toPrey;
+                        break;
+                    case Ability.Ouragan:
+                        go = !carrying && (near >= 2 || prey != null && prey.CarriesCrown && preyD < 12f);
+                        break;
+                    case Ability.FrappeCiel:
+                        // Pour tomber sur un porteur dehors, de loin.
+                        go = !carrying && !Castle.Inside(me) && prey != null && prey.CarriesCrown && preyD > 12f && preyD < 58f
+                             && !Castle.Inside(prey.Body.position) && !Tower.On(prey.Body.position);
+                        aim = toPrey;
+                        break;
+                    case Ability.Enclumes:
+                        go = holder != null && holder != seeker || near >= 3;
+                        break;
+                    case Ability.Lilliput:
+                    case Ability.Demence:
+                        go = !carrying && (prey != null && prey.CarriesCrown && preyD < 55f || contender != null || near >= 3);
                         break;
                     case Ability.Invincible:
                         go = !carrying && (near >= 2 || prey != null && prey.CarriesCrown && preyD < 10f || Tower.On(me) && hazardWait > 0.8f);

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compile les scripts du jeu HORS d'Unity, contre les assemblies de
+       reference d'Unity (voir compiler.sh). Rien n'est produit pour le jeu :
+       seules les ERREURS comptent. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>disable</Nullable>
+    <NoWarn>CS0649;CS0169;CS0162;CS0219;CS0414</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(ExtraDefines);$(SteamDefine)</DefineConstants>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/_Fief/Scripts/**/*.cs" />
+    <Compile Include="stubs/*.cs" Condition="'$(ExtraDefines)' != ''" />
+    <!-- (v31) Steamworks.NET, range dans Packages/ : compile seulement avec UNITY_STANDALONE_WIN. -->
+    <Compile Include="../../Packages/com.rlabrecque.steamworks.net/Runtime/**/*.cs" />
+    <Reference Include="$(RefDir)/lib/netstandard2.0/*.dll" />
+  </ItemGroup>
+</Project>

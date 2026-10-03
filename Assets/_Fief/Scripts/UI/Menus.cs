@@ -120,6 +120,13 @@ namespace Fief
 
             // (04/10, en ligne) L'invite suit l'hote ; l'hote dit ou il en est.
             if (NetSession.Link != null && !NetSession.Link.IsHost) FollowHost();
+            // (v31) Une invitation Steam acceptee : on file a l'ecran En ligne (le salon s'y ouvre).
+            if (SteamNet.Invited)
+            {
+                SteamNet.Invited = false;
+                if (Current == State.Title || Current == State.Lobby) Go(State.Online);
+                else if (Current != State.Online && !leaving) { Match.Abandon(); openOnline = true; Curtain(Reload); }
+            }
             NetGame.LocalPhase = PhaseNow();
 
             Season season = Game.Season;
@@ -381,7 +388,7 @@ namespace Fief
                 if (FiefInput.RightPressed) AdjustOnline(selected, 1);
             }
             // (04/10) Entree en tapant l'adresse : on rejoint (pas "Heberger", vise par defaut).
-            if (FiefInput.ConfirmPressed && Current == State.Online && addressFocused && NetSession.Link == null) { Activate(1); return; }
+            if (FiefInput.ConfirmPressed && Current == State.Online && addressFocused && NetSession.Link == null) { Activate(2); return; }
             if (FiefInput.ConfirmPressed) Activate(selected);
         }
 
@@ -394,7 +401,7 @@ namespace Fief
             {
                 case State.Title: return TitleItems.Length;
                 case State.Lobby: return LobbyRows + 2;
-                case State.Online: return NetSession.Link == null ? 3 + FoundCount : HostingSalon ? OnlineRows + 2 : 1;
+                case State.Online: return NetSession.Link == null ? 4 + FoundCount + SteamCount : HostingSalon ? OnlineRows + (NetSession.OverSteam ? 3 : 2) : 1;
                 case State.Paused: return PauseItems.Length;
                 case State.RoundOver: return stateTime > 3f ? 1 : 0;
                 case State.Ended: return stateTime > 1.5f ? EndItems.Length : 0;
@@ -444,19 +451,33 @@ namespace Fief
                     {
                         if (i < OnlineRows) AdjustOnline(i, 1);
                         else if (i == OnlineRows) StartOnlineMatch();
-                        else NetSession.Leave();
+                        else if (i == OnlineRows + 1) NetSession.Leave();
+                        else SteamNet.Invite();     // (v31) l'overlay de Steam : inviter un ami
                         break;
                     }
                     if (NetSession.Link != null) { NetSession.Leave(); break; }
                     if (i == 0) NetSession.Host();
-                    else if (i == 1) NetSession.Join(joinAddress);
-                    else if (i == 2) Go(State.Title);
-                    // (06/10) Une partie de la liste : un clic, on la rejoint.
-                    else if (i - 3 < FoundCount)
+                    else if (i == 1)
                     {
-                        Fief.Net.NetFinder.Found g = NetSession.Finder.Games[i - 3];
+                        // (v31) HEBERGER SUR INTERNET (Steam). Steam ferme : on dit pourquoi.
+                        if (!SteamNet.Ready) { Sfx.Deny(); NetSession.Report(SteamNet.Why); break; }
+                        NetSession.HostInternet();
+                    }
+                    else if (i == 2) NetSession.Join(joinAddress);
+                    else if (i == 3) Go(State.Title);
+                    // (06/10) Une partie du reseau local : un clic, on la rejoint.
+                    else if (i - 4 < FoundCount)
+                    {
+                        Fief.Net.NetFinder.Found g = NetSession.Finder.Games[i - 4];
                         if (g.Started || !g.SameVersion) { Sfx.Deny(); break; }
                         NetSession.Join(g.Address);
+                    }
+                    // (v31) Une partie Steam, n'importe ou dans le monde.
+                    else if (i - 4 - FoundCount < SteamCount)
+                    {
+                        SteamNet.Lobby lob = SteamNet.Lobbies[i - 4 - FoundCount];
+                        if (lob.Started || !lob.SameVersion || lob.Players >= lob.Max) { Sfx.Deny(); break; }
+                        NetSession.JoinInternet(lob.Id);
                     }
                     break;
                 case State.Paused:
@@ -822,7 +843,8 @@ namespace Fief
                     why = link.RefusedFor == Fief.Net.NetLink.Refusal.BadVersion ? "Pas la même version du jeu que l'hôte : refaites le Build tous les deux."
                         : link.RefusedFor == Fief.Net.NetLink.Refusal.Full ? "Le salon est plein."
                         : "Le match a déjà commencé.";
-                else if (link.Roster.Count == 0) why = "Pas de réponse de l'hôte : vérifie l'adresse, et que son pare-feu autorise le jeu.";
+                else if (link.Roster.Count == 0) why = NetSession.OverSteam ? "Pas de réponse de l'hôte par Steam (il a peut-être quitté)."
+                    : "Pas de réponse de l'hôte : vérifie l'adresse, et que son pare-feu autorise le jeu.";
                 NetSession.Leave();
                 NetSession.Report(why);
                 if (inMatch || Current != State.Online) { openOnline = true; Curtain(Reload); }
@@ -1014,6 +1036,8 @@ namespace Fief
         static string IconFor(string text)
         {
             if (text.StartsWith("Jouer") || text.StartsWith("Commencer") || text.StartsWith("Reprendre") || text.StartsWith("Nouveau")) return "jouer";
+            if (text.StartsWith("Héberger sur Internet") || text.StartsWith("Internet")) return "internet";
+            if (text.StartsWith("Inviter")) return "joueur";
             if (text.StartsWith("En ligne") || text.StartsWith("Héberger")) return "en-ligne";
             if (text.StartsWith("Mode Dieu")) return "dieu";
             if (text.StartsWith("Rejoindre")) return "joueur";
@@ -1377,7 +1401,9 @@ namespace Fief
         /// ping). Lancer le match ensemble, c'est l'etape 2 (docs/RESEAU.md).
         /// </summary>
         /// <summary>Combien de parties la liste montre (0 si l'on ne cherche pas).</summary>
-        int FoundCount { get { return NetSession.Link == null && NetSession.Finder != null ? Mathf.Min(6, NetSession.Finder.Games.Count) : 0; } }
+        int FoundCount { get { return NetSession.Link == null && NetSession.Finder != null ? Mathf.Min(SteamNet.Lobbies.Count > 0 ? 3 : 6, NetSession.Finder.Games.Count) : 0; } }
+        /// <summary>(v31) Combien de parties Steam (Internet) la liste montre.</summary>
+        int SteamCount { get { return NetSession.Link == null && SteamNet.Ready ? Mathf.Min(6, SteamNet.Lobbies.Count) : 0; } }
 
         /// <summary>
         /// LES PARTIES DU RESEAU (06/10 -- Martin : "comme dans FPS Chess, toutes les games sont la
@@ -1395,7 +1421,8 @@ namespace Fief
             Icons.Number(new Rect(x + ih + UiStyle.S(12), y, UiStyle.S(400), ih), "PARTIES", Mathf.RoundToInt(UiStyle.S(28)), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += ih + UiStyle.S(12);
             int n = FoundCount;
-            if (n == 0)
+            int ns = SteamCount;
+            if (n == 0 && ns == 0)
             {
                 // On cherche : un sablier qui bat.
                 Rect wait = new Rect(x, y, bw, bh);
@@ -1410,7 +1437,17 @@ namespace Fief
                 Fief.Net.NetFinder.Found g = finder.Games[i];
                 bool open = !g.Started && g.SameVersion && g.Players < g.Max;
                 string label = g.Host + "   " + g.Players + "/" + g.Max + (g.Started ? "  (en jeu)" : !g.SameVersion ? "  (autre version)" : "");
-                if (Entry(new Rect(x, y, bw + UiStyle.S(140), bh), label, 3 + i, open, open ? 1f : 0.45f)) Activate(3 + i);
+                if (Entry(new Rect(x, y, bw + UiStyle.S(140), bh), label, 4 + i, open, open ? 1f : 0.45f)) Activate(4 + i);
+                y += bh + UiStyle.S(10);
+            }
+            // (v31) Les parties STEAM, du monde entier : le pseudo de l'hote, les joueurs, "Internet".
+            for (int i = 0; i < ns; i++)
+            {
+                SteamNet.Lobby lob = SteamNet.Lobbies[i];
+                bool open = !lob.Started && lob.SameVersion && lob.Players < lob.Max;
+                string label = "Internet  " + lob.Host + "   " + lob.Players + "/" + lob.Max + (lob.Started ? "  (en jeu)" : !lob.SameVersion ? "  (autre version)" : "");
+                int index = 4 + n + i;
+                if (Entry(new Rect(x, y, bw + UiStyle.S(140), bh), label, index, open, open ? 1f : 0.45f)) Activate(index);
                 y += bh + UiStyle.S(10);
             }
         }
@@ -1421,7 +1458,7 @@ namespace Fief
             float x = Left;
             float y = Screen.height * 0.5f - UiStyle.S(220);
             // Le salon de l'hote est plus haut (les reglages et Lancer) : centre sur sa vraie hauteur.
-            if (HostingSalon) y = Mathf.Round(Mathf.Max(UiStyle.S(24), (Screen.height - UiStyle.S(510 + 52 * NetSession.Link.Roster.Count)) * 0.5f));
+            if (HostingSalon) y = Mathf.Round(Mathf.Max(UiStyle.S(24), (Screen.height - UiStyle.S(510 + (NetSession.OverSteam ? 56 : 0) + 52 * NetSession.Link.Roster.Count)) * 0.5f));
             Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "EN LIGNE", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(74);
             Fief.Net.NetLink link = NetSession.Link;
@@ -1432,7 +1469,11 @@ namespace Fief
                 if (joinAddress == null) joinAddress = NetSession.LastAddress;
                 if (Entry(new Rect(x, y, bw, bh), "Héberger", 0, true, 1f)) Activate(0);
                 y += bh + UiStyle.S(16);
-                if (Entry(new Rect(x, y, bw, bh), "Rejoindre", 1, true, 1f)) Activate(1);
+                // (v31) LE VRAI EN LIGNE : par Steam, avec n'importe qui dans le monde. Steam
+                // ferme, le bouton est pale et dit quoi faire.
+                if (Entry(new Rect(x, y, bw, bh), SteamNet.Ready ? "Héberger sur Internet" : "Internet : " + (SteamNet.Why ?? "Steam fermé"), 1, SteamNet.Ready, SteamNet.Ready ? 1f : 0.45f)) Activate(1);
+                y += bh + UiStyle.S(16);
+                if (Entry(new Rect(x, y, bw, bh), "Rejoindre", 2, true, 1f)) Activate(2);
                 // L'adresse de l'hote, a taper (elle est gardee d'une fois sur l'autre).
                 if (addressStyle == null)
                 {
@@ -1446,7 +1487,7 @@ namespace Fief
                 joinAddress = GUI.TextField(field, joinAddress ?? "", 64, addressStyle);
                 addressFocused = GUI.GetNameOfFocusedControl() == "adresse";
                 y += bh + UiStyle.S(16);
-                if (Entry(new Rect(x, y, bw, bh), "Retour", 2, false, 1f)) Activate(2);
+                if (Entry(new Rect(x, y, bw, bh), "Retour", 3, false, 1f)) Activate(3);
                 PseudoBadge(1f);
                 y += bh + UiStyle.S(24);
                 if (!string.IsNullOrEmpty(NetSession.Problem))
@@ -1470,7 +1511,9 @@ namespace Fief
                 // (06/10) LE CODE a donner a l'ami, en gros ; les adresses, en petit dessous. (Sur le
                 // meme reseau, il n'a meme pas besoin du code : ta partie est dans sa liste.)
                 Icons.Number(new Rect(state.xMax + UiStyle.S(16), y - UiStyle.S(4), UiStyle.S(500), s * 0.75f), "Code  " + NetSession.MyCode, Mathf.RoundToInt(UiStyle.S(36)), new Color(1f, 0.86f, 0.4f), TextAnchor.MiddleLeft);
-                string all = string.Join("   ", Fief.Net.NetLink.LocalAddresses().ToArray());
+                // (v31) Sur Internet : pas d'adresse a donner, le code (ou l'invitation) suffit.
+                string all = NetSession.OverSteam ? "Internet (Steam) : le monde entier voit ta partie"
+                    : string.Join("   ", Fief.Net.NetLink.LocalAddresses().ToArray());
                 Icons.Text(new Rect(state.xMax + UiStyle.S(16), y + s * 0.62f, UiStyle.S(700), s * 0.4f), all, Mathf.RoundToInt(UiStyle.S(18)), new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleLeft, true);
             }
             else if (link.Status == Fief.Net.NetLink.State.Connected)
@@ -1508,6 +1551,11 @@ namespace Fief
                 if (Entry(new Rect(x, y, bw, UiStyle.S(50)), "Lancer", OnlineRows, true, 1f)) Activate(OnlineRows);
                 y += UiStyle.S(56);
                 if (Entry(new Rect(x, y, bw, bh), "Quitter le salon", OnlineRows + 1, false, 1f)) Activate(OnlineRows + 1);
+                if (NetSession.OverSteam)
+                {
+                    y += bh + UiStyle.S(10);
+                    if (Entry(new Rect(x, y, bw, bh), "Inviter un ami", OnlineRows + 2, true, 1f)) Activate(OnlineRows + 2);
+                }
                 return;
             }
             if (link.Status == Fief.Net.NetLink.State.Connected)

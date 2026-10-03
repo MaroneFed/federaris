@@ -164,3 +164,16 @@ IPEndPoint
 MemoryStream
 Socket
 SocketException
+CSteamID
+ESteamAPIInitResult
+Exception
+GCHandle
+GameLobbyJoinRequested_t
+IntPtr
+KeyValuePair
+LobbyCreated_t
+LobbyEnter_t
+LobbyMatchList_t
+SteamNetworkingIdentity
+SteamNetworkingMessage_t
+SteamNetworkingMessagesSessionRequest_t

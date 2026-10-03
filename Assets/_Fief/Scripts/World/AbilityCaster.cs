@@ -115,7 +115,7 @@ namespace Fief
         public static bool Curses(Ability a)
         {
             return a == Ability.Prison || a == Ability.Bombe || a == Ability.Inversion || a == Ability.Mini || a == Ability.Ballon || a == Ability.Encre
-                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser || a == Ability.MainDeDieu || a == Ability.FoudreChaine;
+                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser || a == Ability.MainDeDieu || a == Ability.FoudreChaine || a == Ability.FrappeOrbitale;
         }
 
         public static IMover MoverOf(Seeker s)
@@ -137,7 +137,9 @@ namespace Fief
                 || a == Ability.Apocalypse || a == Ability.ArretTemps || a == Ability.Rayon || a == Ability.Tempete
                 || a == Ability.Nuke || a == Ability.MainDeDieu || a == Ability.Essaim || a == Ability.GraviteZero
                 || a == Ability.Bombardement || a == Ability.Singularite || a == Ability.Dragon || a == Ability.Comete
-                || a == Ability.Cataclysme || a == Ability.Chaos || a == Ability.Geole || a == Ability.Tsunami || a == Ability.FoudreChaine;
+                || a == Ability.Cataclysme || a == Ability.Chaos || a == Ability.Geole || a == Ability.Tsunami || a == Ability.FoudreChaine
+                || a == Ability.Armee || a == Ability.Volcan || a == Ability.FrappeOrbitale || a == Ability.Rocher || a == Ability.Lune
+                || a == Ability.Ouragan || a == Ability.FrappeCiel || a == Ability.Enclumes || a == Ability.Lilliput || a == Ability.Demence;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -148,6 +150,7 @@ namespace Fief
             if (s.CarriesCrown && Offensive(a) && !s.Has(Ability.Porteur)) return "Mains prises";
             // La Fusee : la Couronne est trop lourde pour elle, et pas de raccourci dans la citadelle.
             if (a == Ability.Fusee && s.CarriesCrown) return "Trop lourd";
+            if (a == Ability.FrappeCiel && s.CarriesCrown) return "Trop lourd";
             if (a == Ability.Fusee && Castle.Inside(s.Body.position)) return "Pas ici";
             // (06/10) Le Fantome : avec la Couronne, il gagnerait au Monument sans qu'on puisse rien faire.
             if ((a == Ability.Fantome || a == Ability.Catapulte || a == Ability.Teleport || a == Ability.Invincible) && s.CarriesCrown) return "Trop lourd";
@@ -725,6 +728,96 @@ namespace Fief
                         Lightning.Call(s, near[i].Body.position);
                         Tether.Show(t.Body, near[i].Body, Vector3.zero, 0.4f, tint);
                     }
+                    break;
+                }
+
+                // ---- la troisieme fournee divine (09/10, v31 : "des trucs de malade")
+                case Ability.Armee:
+                    for (int k = 0; k < 6; k++)
+                    {
+                        Vector3 d = Quaternion.Euler(0f, -50f + k * 20f, 0f) * flat;
+                        BeanBomber.Release(s, pos + d * 1.5f, d);
+                    }
+                    Fx.Shock(chest, tint, 4f, 0.3f);
+                    Sfx.BoingAt(pos);
+                    break;
+                case Ability.Volcan:
+                {
+                    RaycastHit hit;
+                    Vector3 where = RayFrom(s, eye, aim, 60f, out hit) ? hit.point : pos + flat * 20f;
+                    Volcano.Raise(s, where);
+                    break;
+                }
+                case Ability.FrappeOrbitale:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, 80f, AimAngle);
+                    if (t == null || t.Graced) { s.Refund(a); return false; }
+                    OrbitalStrike.Lock(s, t);
+                    Fx.Column(pos, tint, 40f, 0.3f, 0.6f);
+                    break;
+                }
+                case Ability.Rocher:
+                    GiantBoulder.Roll(s, pos + flat * 5f, flat);
+                    break;
+                case Ability.Lune:
+                {
+                    RaycastHit hit;
+                    Vector3 where = RayFrom(s, eye, aim, 120f, out hit) ? hit.point : pos + flat * 40f;
+                    MoonFall.Drop(s, where);
+                    if (Game.Hud != null && s.IsPlayer) Game.Hud.Flash(new Color(0.85f, 0.88f, 1f, 0.35f));
+                    break;
+                }
+                case Ability.Ouragan:
+                    Hurricane.Spin(s);
+                    break;
+                case Ability.FrappeCiel:
+                {
+                    // Tu bondis tres haut et tu t'ecrases la ou tu regardes (60 m au plus). Jamais
+                    // depuis ou vers la citadelle (le sceau), jamais sur la tour (elle se monte a pied).
+                    if (Castle.Inside(pos)) { s.Refund(a); return false; }
+                    RaycastHit hit;
+                    Vector3 dest = RayFrom(s, eye, aim, 60f, out hit) ? hit.point : pos + flat * 25f;
+                    if (Castle.Inside(dest) || Tower.On(dest)) { s.Refund(a); Fx.Sparks(dest, Ward.Rune, 14, 3f); return false; }
+                    const float T = 3.2f;
+                    const float G = 22f;
+                    Vector3 d = dest - pos;
+                    m.Launch(new Vector3(d.x / T, (d.y + 0.5f * G * T * T) / T, d.z / T));
+                    SkySlam.Arm(s);
+                    Fx.Column(pos, tint, 35f, 0.4f, 1.2f);
+                    Fx.Burst(pos + Vector3.up * 0.2f, new Color(0.6f, 0.52f, 0.42f), 90, 12f, 0.4f, 0.8f, 0.5f, Vector3.up, 60f);
+                    Sfx.KoBoom(pos, s.IsPlayer);
+                    break;
+                }
+                case Ability.Enclumes:
+                {
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || o.Graced) continue;
+                        AnvilDrop.On(s, o);
+                        n++;
+                    }
+                    if (n == 0) { s.Refund(a); return false; }
+                    Sfx.Alarm();
+                    break;
+                }
+                case Ability.Lilliput:
+                case Ability.Demence:
+                {
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 60f) continue;
+                        bool hit = a == Ability.Lilliput ? Combat.Afflict(o, Combat.Affliction.Tiny, 6f, s)
+                                                         : Combat.Afflict(o, Combat.Affliction.Inverted, 5f, s);
+                        if (a == Ability.Demence && hit) Combat.Afflict(o, Combat.Affliction.Ink, 4f, s);
+                        if (hit) n++;
+                    }
+                    if (n == 0) { s.Refund(a); return false; }
+                    Fx.Shock(chest, tint, 60f, 0.7f);
+                    Fx.Burst(chest, tint, 120, 20f, 0.3f, 0.8f, 0f, Vector3.zero, 0f);
                     break;
                 }
 

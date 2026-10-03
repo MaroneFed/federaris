@@ -25,7 +25,7 @@ namespace Fief
             "couronne", "tour", "monument", "ailes", "pousser", "chrono", "joueur", "souris-g", "souris-d", "souris-m",
             "courant", "arbaleste", "cible", "pique", "sacre", "haut", "don", "oeil", "coche", "croix",
             "jouer", "reglages", "quitter", "en-ligne", "commandes", "bot", "manches", "duree", "pseudo", "volume",
-            "vue", "texte", "ecran", "retour", "drapeau", "cloche", "touche", "bouclier",
+            "vue", "texte", "ecran", "retour", "drapeau", "cloche", "touche", "bouclier", "internet",
             "ruee", "grappin", "crochet", "onde", "clignement", "bond", "mur", "nuee", "mine", "gel", "voile",
             "echange", "rappel", "souffle", "double-saut", "planeur", "coureur", "porteur", "poigne", "ancrage",
             "flair", "ombre", "prise-ferme", "recharge", "rebond", "aimant",
@@ -39,6 +39,8 @@ namespace Fief
             "invincible", "colosse", "eclair", "main-lourde", "phenix", "sablier",
             "bombardement", "singularite", "dragon", "comete", "cataclysme", "chaos", "anneau-feu", "geole", "tsunami",
             "foudre-chaine", "explosif", "lave", "echo",
+            "armee", "volcan", "orbitale", "rocher", "lune", "ouragan", "frappe-ciel", "enclume", "lilliput", "demence",
+            "orage", "orbes", "titan",
             "etourdi", "chute", "ko", "clip"
         };
 
@@ -931,6 +933,15 @@ namespace Fief
                     float head = Poly(x, y, 0.62f, 0.5f, 0.9f, 0.62f, 0.62f, 0.85f);
                     return Min(Min(glass, bars), Min(arc, head));
                 }
+                case "internet":
+                {
+                    // Le globe du reseau, plus petit, et deux ondes qui partent au loin : le monde entier.
+                    const float k = 0.68f;
+                    float globe = Shape("en-ligne", (x + 0.22f) / k, (y - 0.22f) / k) * k;
+                    float w1 = Max(Max(Ring(x + 0.22f, y - 0.22f, 0.78f, 0.065f), -(x - 0.12f)), y - 0.0f);
+                    float w2 = Max(Max(Ring(x + 0.22f, y - 0.22f, 1.04f, 0.065f), -(x - 0.24f)), y + 0.1f);
+                    return Min(globe, Min(w1, w2));
+                }
                 // ============================================ les divines, deuxieme vague (v30)
                 case "bombardement":
                 {
@@ -1042,6 +1053,123 @@ namespace Fief
                     float a = Star(x + 0.3f, y + 0.22f, 0.56f, 0.25f, 5);
                     float b = Sub(Star(x - 0.3f, y - 0.22f, 0.56f, 0.25f, 5), Star(x - 0.3f, y - 0.22f, 0.42f, 0.13f, 5));
                     return Min(a, Sub(b, Star(x + 0.3f, y + 0.22f, 0.7f, 0.36f, 5)));
+                }
+                // ============================================ les divines, troisieme vague (v31)
+                case "armee":
+                {
+                    // Trois haricots aux grands yeux, celui du milieu devant, une meche allumee.
+                    float d = float.MaxValue;
+                    for (int k = -1; k <= 1; k++)
+                    {
+                        float bx = k * 0.56f, by = k == 0 ? 0.08f : 0.28f, sc = k == 0 ? 1f : 0.78f;
+                        float bean = Box(x - bx, y - by, 0.22f * sc, 0.4f * sc, 0.22f * sc);
+                        bean = Sub(bean, Min(Circle(x - bx + 0.08f * sc, y - by + 0.14f * sc, 0.065f * sc), Circle(x - bx - 0.08f * sc, y - by + 0.14f * sc, 0.065f * sc)));
+                        d = Min(d, bean);
+                    }
+                    d = Min(d, Seg(x, y, 0f, -0.34f, 0.08f, -0.56f, 0.04f));
+                    return Min(d, Star(x - 0.12f, y + 0.68f, 0.17f, 0.07f, 5));
+                }
+                case "volcan":
+                {
+                    float hill = Poly4(x, y, -0.92f, 0.82f, 0.92f, 0.82f, 0.26f, -0.12f, -0.26f, -0.12f);
+                    hill = Sub(hill, Poly(x, y, -0.14f, -0.14f, 0.14f, -0.14f, 0f, 0.12f));
+                    float lava = Min(Circle(x + 0.52f, y + 0.5f, 0.12f), Min(Circle(x, y + 0.78f, 0.15f), Circle(x - 0.5f, y + 0.46f, 0.11f)));
+                    float plume = Min(Seg(x, y, -0.06f, -0.2f, -0.38f, -0.42f, 0.05f), Seg(x, y, 0.06f, -0.2f, 0.36f, -0.4f, 0.05f));
+                    return Min(Min(hill, lava), plume);
+                }
+                case "orbitale":
+                {
+                    float sat = Min(Box(x, y + 0.82f, 0.13f, 0.1f, 0.03f), Min(Box(x - 0.36f, y + 0.82f, 0.18f, 0.06f, 0.01f), Box(x + 0.36f, y + 0.82f, 0.18f, 0.06f, 0.01f)));
+                    float beam = Poly4(x, y, -0.07f, -0.7f, 0.07f, -0.7f, 0.2f, 0.55f, -0.2f, 0.55f);
+                    float target = Ring(x, (y - 0.66f) * 2.6f, 0.62f, 0.16f) / 2.6f;
+                    return Min(Min(sat, beam), target);
+                }
+                case "rocher":
+                {
+                    float rock = Circle(x - 0.15f, y, 0.62f);
+                    rock = Sub(rock, Min(Circle(x + 0.05f, y + 0.25f, 0.12f), Min(Circle(x - 0.32f, y - 0.05f, 0.09f), Circle(x + 0.25f, y - 0.28f, 0.1f))));
+                    float lines = Min(Seg(x, y, 0.62f, -0.3f, 0.95f, -0.3f, 0.06f), Min(Seg(x, y, 0.66f, 0.05f, 0.98f, 0.05f, 0.06f), Seg(x, y, 0.6f, 0.38f, 0.9f, 0.38f, 0.06f)));
+                    float ground = Box(x, y - 0.74f, 0.95f, 0.06f, 0.03f);
+                    return Min(Min(rock, lines), ground);
+                }
+                case "lune":
+                {
+                    float moon = Circle(x - 0.12f, y - 0.12f, 0.6f);
+                    moon = Sub(moon, Min(Circle(x - 0.32f, y - 0.02f, 0.16f), Min(Circle(x + 0.12f, y - 0.38f, 0.11f), Circle(x - 0.02f, y + 0.22f, 0.08f))));
+                    float lines = Min(Seg(x, y, 0.45f, -0.55f, 0.75f, -0.8f, 0.05f), Min(Seg(x, y, 0.6f, -0.32f, 0.88f, -0.56f, 0.05f), Seg(x, y, 0.22f, -0.7f, 0.46f, -0.9f, 0.05f)));
+                    return Min(moon, lines);
+                }
+                case "ouragan":
+                {
+                    float d = float.MaxValue;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        float yy = 0.72f - i * 0.36f;
+                        float half = 0.12f + i * 0.17f;
+                        float off = (float)Math.Sin(i * 1.3f) * 0.1f;
+                        d = Min(d, Seg(x, y, off - half, yy, off + half, yy, 0.08f));
+                    }
+                    return d;
+                }
+                case "frappe-ciel":
+                {
+                    float arrow = ArrowUp(x, -(y + 0.2f), 0.62f);
+                    float ground = Box(x, y - 0.72f, 0.9f, 0.07f, 0.03f);
+                    float burst = Min(Seg(x, y, -0.32f, 0.5f, -0.62f, 0.3f, 0.05f), Seg(x, y, 0.32f, 0.5f, 0.62f, 0.3f, 0.05f));
+                    return Min(Min(arrow, ground), burst);
+                }
+                case "enclume":
+                {
+                    float top = Box(x - 0.1f, y + 0.25f, 0.55f, 0.14f, 0.03f);
+                    float horn = Poly(x, y, 0.45f, -0.39f, 0.45f, -0.11f, 0.95f, -0.25f);
+                    float waist = Box(x - 0.1f, y - 0.08f, 0.2f, 0.2f, 0.02f);
+                    float foot = Box(x - 0.1f, y - 0.4f, 0.44f, 0.12f, 0.03f);
+                    return Min(Min(top, horn), Min(waist, foot));
+                }
+                case "lilliput":
+                {
+                    // Un grand haricot en creux, un tout petit plein : on retrecit.
+                    float big = Box(x + 0.48f, y, 0.32f, 0.66f, 0.32f);
+                    big = Sub(big, Box(x + 0.48f, y, 0.2f, 0.54f, 0.2f));
+                    float small = Box(x - 0.66f, y - 0.44f, 0.13f, 0.24f, 0.13f);
+                    float arrow = Min(Seg(x, y, -0.08f, 0.02f, 0.26f, 0.28f, 0.065f), Poly(x, y, 0.14f, 0.38f, 0.38f, 0.12f, 0.44f, 0.42f));
+                    return Min(Min(big, small), arrow);
+                }
+                case "demence":
+                {
+                    // Une spirale : la tete qui tourne.
+                    float d = float.MaxValue;
+                    float[] up = { 0.15f, 0.45f, 0.75f };
+                    float[] low = { 0.3f, 0.6f };
+                    for (int i = 0; i < up.Length; i++) d = Min(d, Max(Ring(x, y, up[i], 0.06f), y));
+                    for (int i = 0; i < low.Length; i++) d = Min(d, Max(Ring(x + 0.15f, y, low[i], 0.06f), -y));
+                    return d;
+                }
+                case "orage":
+                {
+                    float cloud = Cloud(x, y + 0.35f);
+                    float bolt = Min(Poly(x, y, 0.12f, 0.02f, -0.22f, 0.46f, 0.04f, 0.46f), Poly(x, y, -0.04f, 0.38f, 0.2f, 0.38f, -0.1f, 0.92f));
+                    float rain = Min(Seg(x, y, -0.5f, 0.15f, -0.6f, 0.45f, 0.05f), Seg(x, y, 0.5f, 0.15f, 0.4f, 0.45f, 0.05f));
+                    return Min(cloud, Min(bolt, rain));
+                }
+                case "orbes":
+                {
+                    float d = Min(Circle(x, y, 0.2f), Ring(x, y, 0.62f, 0.035f));
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float a = -1.5708f + k * 2.0944f;
+                        d = Min(d, Circle(x - (float)Math.Cos(a) * 0.62f, y - (float)Math.Sin(a) * 0.62f, 0.2f));
+                    }
+                    return d;
+                }
+                case "titan":
+                {
+                    float foot = Box(x + 0.05f, y + 0.05f, 0.3f, 0.42f, 0.2f);
+                    float toes = Box(x + 0.22f, y - 0.28f, 0.45f, 0.14f, 0.12f);
+                    float ground = Box(x, y - 0.64f, 0.95f, 0.06f, 0.03f);
+                    float cracks = Min(Seg(x, y, -0.55f, 0.68f, -0.75f, 0.92f, 0.04f), Seg(x, y, 0.6f, 0.68f, 0.82f, 0.9f, 0.04f));
+                    float shock = Min(Seg(x, y, -0.5f, 0.45f, -0.85f, 0.35f, 0.05f), Seg(x, y, 0.75f, 0.45f, 0.95f, 0.3f, 0.05f));
+                    return Min(Min(Min(foot, toes), ground), Min(cracks, shock));
                 }
                 default: return Circle(x, y, 0.6f);
             }

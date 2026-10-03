@@ -55,6 +55,27 @@ static class Essai
               "le code " + code + " redonne 192.168.1.23");
         Check(NetCode.ToAddress("26.14.200.7") == "26.14.200.7" && NetCode.Decode("hello") == null, "une adresse tapee reste une adresse");
 
+        // (v31) LE MEME JEU PAR UN AUTRE TUYAU : un faux "Steam" en memoire (des numeros, pas
+        // d'adresses IP). C'est ce que fait SteamWire dans le jeu : NetLink ne voit pas la difference.
+        {
+            Standard sw = new Standard();
+            NetLink sh = NetLink.HostOver(new MemWire(sw, 76561198000000001UL), "Hote", 8);
+            NetLink sa = NetLink.JoinOver(new MemWire(sw, 76561198000000002UL), new PeerId(76561198000000001UL), "Ami", now());
+            NetLink sb = NetLink.JoinOver(new MemWire(sw, 76561198000000003UL), new PeerId(76561198000000001UL), "Cousin", now());
+            Loop(now, 1f, sh, sa, sb);
+            Check(sa.Status == NetLink.State.Connected && sb.Status == NetLink.State.Connected && sh.Roster.Count == 3,
+                  "par Steam (simule) : deux amis entrent dans le salon (" + sh.Roster.Count + ")");
+            for (int i = 0; i < 20; i++) sa.Send(0, new byte[] { 5, (byte)i }, true);
+            sh.Broadcast(new byte[] { 6, 1 }, true);
+            Loop(now, 1f, sh, sa, sb);
+            int[] gh = Count(sh), ga = Count(sa), gb = Count(sb);
+            Check(gh[5] == 20 && ga[6] == 1 && gb[6] == 1, "par Steam (simule) : les messages du jeu passent");
+            sb.Dispose();
+            Loop(now, 0.5f, sh, sa);
+            Check(sh.Roster.Count == 2, "par Steam (simule) : le cousin part, l'hote le voit");
+            sh.Dispose(); sa.Dispose();
+        }
+
         // Un invite part : l'hote et l'autre invite le voient.
         a.Dispose();
         Loop(now, 1.5f, host, b);
@@ -99,4 +120,40 @@ static class Essai
             Thread.Sleep(16);
         }
     }
+}
+
+/// <summary>Un faux standard Steam : chaque numero a sa boite aux lettres.</summary>
+sealed class Standard
+{
+    public readonly System.Collections.Generic.Dictionary<ulong, System.Collections.Generic.Queue<(byte[], ulong)>> Boxes =
+        new System.Collections.Generic.Dictionary<ulong, System.Collections.Generic.Queue<(byte[], ulong)>>();
+}
+
+/// <summary>Un tuyau en memoire qui se comporte comme SteamWire (des PeerId au lieu d'adresses IP).</summary>
+sealed class MemWire : IWire
+{
+    readonly Standard sw;
+    readonly ulong me;
+    public MemWire(Standard sw, ulong me) { this.sw = sw; this.me = me; sw.Boxes[me] = new System.Collections.Generic.Queue<(byte[], ulong)>(); }
+    public bool Receive(byte[] buffer, out int length, out System.Net.EndPoint from)
+    {
+        length = 0; from = null;
+        System.Collections.Generic.Queue<(byte[], ulong)> box;
+        if (!sw.Boxes.TryGetValue(me, out box) || box.Count == 0) return false;
+        var m = box.Dequeue();
+        System.Array.Copy(m.Item1, buffer, m.Item1.Length);
+        length = m.Item1.Length;
+        from = new PeerId(m.Item2);
+        return true;
+    }
+    public void Send(byte[] data, int length, System.Net.EndPoint to)
+    {
+        System.Collections.Generic.Queue<(byte[], ulong)> box;
+        PeerId p = to as PeerId;
+        if (p == null || !sw.Boxes.TryGetValue(p.Id, out box)) return;
+        byte[] copy = new byte[length];
+        System.Array.Copy(data, copy, length);
+        box.Enqueue((copy, me));
+    }
+    public void Close() { sw.Boxes.Remove(me); }
 }

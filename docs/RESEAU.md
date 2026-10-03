@@ -91,7 +91,39 @@ fin de manche sont à l'hôte.
   suffit : les box bloquent les connexions qui arrivent de dehors. Il faut un intermédiaire sur
   Internet — c'est l'étape 4.
 
-## ÉTAPE 4 (à venir) : Steam — la liste du monde entier, les invitations, la traversée des box
+## ÉTAPE 4 FAITE (09/10, v31) : Internet par Steam
+
+Martin : « fais le vrai mode en ligne ». Ce qui est fait :
+
+- **Steamworks.NET** (MIT) est **rangé dans le projet** : `Packages/com.rlabrecque.steamworks.net`
+  (un paquet « embarqué » : Unity le charge tout seul, **pas besoin de Git ni du Package
+  Manager**). `steam_appid.txt` (480) est à la racine du projet ; après chaque Build, il est
+  recopié à côté du `.exe` (`Assets/_Fief/Editor/SteamAppId.cs`).
+- **Le tuyau** : `NetLink` ne parle plus à une prise UDP mais à un `IWire` — `UdpWire` (la
+  maison, Radmin) ou `SteamWire` (`Net/SteamNet.cs`, par `SteamNetworkingMessages` : les relais de
+  Steam traversent les box). L'adresse d'un joueur Steam, c'est son numéro (`PeerId`).
+  `NetGame`, le salon, les fiables, le ping, le départ : **rien n'a bougé**. Le banc d'essai
+  (`sh Tools/reseau.sh`) fait tourner le même protocole sur un faux Steam en mémoire.
+- **Le salon Steam** (`SteamNet`) : **Héberger sur Internet** crée un lobby public (pseudo, version,
+  **code de 6 signes**, « en jeu ») ; l'écran En ligne **liste les parties FIEF du monde entier**
+  (« Internet  Martin  2/8 ») ; **Rejoindre** accepte ce code ; **Inviter un ami** ouvre
+  l'overlay Steam ; une **invitation acceptée** (ou « Rejoindre la partie » sur un ami) fait
+  entrer dans le salon.
+- **Protocole v8** : les deux PC doivent avoir la même version.
+
+**Pour tester** : deux PC, **deux comptes Steam** (Steam ouvert et connecté sur chacun ; un même
+compte ne joue pas sur deux PC à la fois). On ne peut **pas** tester Steam sur un seul PC.
+Claude a compilé le chemin Steam (`sh Tools/compiler.sh`) mais **n'a pas pu l'essayer** : c'est
+le premier test de Martin qui dira si tout passe.
+
+**Limites connues** :
+- Avec le n° 480, Steam affiche « Spacewar » ; une invitation acceptée alors que FIEF est
+  **fermé** lance Spacewar, pas FIEF : il faut que le jeu soit déjà ouvert chez l'ami (ou il
+  prend le code). Tout ça disparaît avec notre propre numéro (Steam Direct, Phase 5).
+- Les effets des capacités ne se voient toujours que chez celui qui les lance (étape 3).
+
+### Le plan d'origine de l'étape 4 (gardé pour mémoire)
+
 
 C'est **exactement ce que fait FPS Chess** : sa liste de parties, ce sont les **« lobbies »
 Steam** (Steam garde la liste des parties publiques du jeu, pour le monde entier), et ses

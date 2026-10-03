@@ -25,9 +25,87 @@ namespace Fief.Net
     /// on le REPETE jusqu'a la reponse. Plus tard (Steam), seul ce "tuyau" change : les
     /// messages et la logique restent.
     /// </summary>
+    /// <summary>
+    /// LE TUYAU (09/10, v31 -- Martin : "fais le vrai mode en ligne") : ce par quoi passent les
+    /// paquets. NetLink ne sait pas si c'est une prise UDP (le reseau de la maison) ou Steam
+    /// (Internet, a travers les box) : il demande seulement "envoie ca la", "qu'est-ce qui est
+    /// arrive ?". Les deux tuyaux : UdpWire (ci-dessous) et SteamWire (Net/SteamNet.cs).
+    /// </summary>
+    public interface IWire
+    {
+        /// <summary>Le prochain paquet arrive (faux s'il n'y en a plus pour l'instant).</summary>
+        bool Receive(byte[] buffer, out int length, out EndPoint from);
+        void Send(byte[] data, int length, EndPoint to);
+        void Close();
+    }
+
+    /// <summary>
+    /// L'ADRESSE D'UN JOUEUR STEAM : son numero (SteamID, 64 bits). Pour NetLink, c'est une
+    /// adresse comme une autre : deux PeerId du meme numero sont la meme personne.
+    /// </summary>
+    public sealed class PeerId : EndPoint
+    {
+        public readonly ulong Id;
+        public PeerId(ulong id) { Id = id; }
+        public override bool Equals(object obj) { PeerId o = obj as PeerId; return o != null && o.Id == Id; }
+        public override int GetHashCode() { return Id.GetHashCode(); }
+        public override string ToString() { return "steam:" + Id; }
+    }
+
+    /// <summary>Le tuyau de la maison : une prise UDP (le reseau local, Radmin VPN).</summary>
+    public sealed class UdpWire : IWire
+    {
+        Socket socket;
+
+        public UdpWire(int port)
+        {
+            socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Blocking = false;
+            // (Windows) Un paquet vers une adresse qui ne repond pas renvoie une erreur "connexion
+            // reinitialisee" au prochain Receive : on ignore ce cas plus bas.
+            socket.Bind(new IPEndPoint(IPAddress.Any, port));
+        }
+
+        public bool Receive(byte[] buffer, out int length, out EndPoint from)
+        {
+            length = 0;
+            from = null;
+            for (int guard = 0; guard < 16 && socket != null; guard++)
+            {
+                EndPoint any = new IPEndPoint(IPAddress.Any, 0);
+                try
+                {
+                    if (socket.Available <= 0) return false;
+                    length = socket.ReceiveFrom(buffer, ref any);
+                    from = any;
+                    return true;
+                }
+                catch (SocketException e)
+                {
+                    // 10054 (Windows) : la machine d'en face a ferme -- on continue d'ecouter.
+                    if (e.SocketErrorCode == SocketError.ConnectionReset || e.SocketErrorCode == SocketError.WouldBlock) continue;
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public void Send(byte[] data, int length, EndPoint to)
+        {
+            if (socket == null) return;
+            socket.SendTo(data, 0, length, SocketFlags.None, to);
+        }
+
+        public void Close()
+        {
+            try { if (socket != null) socket.Close(); } catch (Exception) { }
+            socket = null;
+        }
+    }
+
     public sealed class NetLink : IDisposable
     {
-        public const int Version = 7;     // 7 (08/10) : ciel de feu, 106 capacites ; 6 (08/10) : le Mode Dieu, 93 capacites ; 5 (07/10) : 78 capacites, la liste des parties ; 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
+        public const int Version = 8;     // 8 (09/10) : Steam, 119 capacites ; 7 (08/10) : ciel de feu, 106 capacites ; 6 (08/10) : le Mode Dieu, 93 capacites ; 5 (07/10) : 78 capacites, la liste des parties ; 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
         public const int DefaultPort = 7777;
         const uint Magic = 0x46494546;           // "FIEF"
         const float PingEvery = 1f;
@@ -95,7 +173,7 @@ namespace Fief.Net
             public float Ping;
         }
 
-        Socket socket;
+        IWire wire;
         readonly byte[] buffer = new byte[2048];
         EndPoint host;
         readonly List<Peer> peers = new List<Peer>();
@@ -126,40 +204,42 @@ namespace Fief.Net
         /// <summary>HEBERGER : on ecoute sur "port", on est la place 0.</summary>
         public static NetLink Host(int port, string name, int maxPlayers)
         {
-            NetLink l = new NetLink();
-            l.IsHost = true;
-            l.MyName = Clean(name);
-            l.MySlot = 0;
-            l.maxPlayers = Math.Max(2, Math.Min(8, maxPlayers));
-            l.socket = Open(port);
-            l.Status = State.Hosting;
-            l.RebuildRoster();
-            return l;
+            return HostOver(new UdpWire(port), name, maxPlayers);
         }
 
         /// <summary>REJOINDRE l'hote a "address" (une adresse IP, ou un nom de machine).</summary>
         public static NetLink Join(string address, int port, string name, float now)
         {
+            return JoinOver(new UdpWire(0), new IPEndPoint(Resolve(address), port), name, now);
+        }
+
+        /// <summary>HEBERGER sur un tuyau donne (Steam : v31).</summary>
+        public static NetLink HostOver(IWire wire, string name, int maxPlayers)
+        {
+            NetLink l = new NetLink();
+            l.IsHost = true;
+            l.MyName = Clean(name);
+            l.MySlot = 0;
+            l.maxPlayers = Math.Max(2, Math.Min(8, maxPlayers));
+            l.wire = wire;
+            l.Status = State.Hosting;
+            l.RebuildRoster();
+            return l;
+        }
+
+        /// <summary>REJOINDRE l'hote "hostAt" par un tuyau donne (Steam : l'hote, c'est son numero Steam).</summary>
+        public static NetLink JoinOver(IWire wire, EndPoint hostAt, string name, float now)
+        {
             NetLink l = new NetLink();
             l.IsHost = false;
             l.MyName = Clean(name);
             l.MySlot = -1;
-            l.host = new IPEndPoint(Resolve(address), port);
-            l.socket = Open(0);
+            l.host = hostAt;
+            l.wire = wire;
             l.Status = State.Connecting;
             l.lastHeardHost = now;
             l.lastHello = -99f;
             return l;
-        }
-
-        static Socket Open(int port)
-        {
-            Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            s.Blocking = false;
-            // (Windows) Un paquet vers une adresse qui ne repond pas renvoie une erreur "connexion
-            // reinitialisee" au prochain Receive : on ignore ce cas plus bas.
-            s.Bind(new IPEndPoint(IPAddress.Any, port));
-            return s;
         }
 
         static IPAddress Resolve(string address)
@@ -198,7 +278,7 @@ namespace Fief.Net
         /// <summary>A appeler a chaque image : lit ce qui est arrive, repete ce qui doit l'etre. "now" en secondes.</summary>
         public void Poll(float now)
         {
-            if (socket == null) return;
+            if (wire == null) return;
             lastClock = now;
             Receive(now);
             if (IsHost) HostTick(now);
@@ -268,20 +348,11 @@ namespace Fief.Net
         {
             for (int guard = 0; guard < 256; guard++)
             {
-                EndPoint from = new IPEndPoint(IPAddress.Any, 0);
+                EndPoint from;
                 int n;
-                try
-                {
-                    if (socket.Available <= 0) return;
-                    n = socket.ReceiveFrom(buffer, ref from);
-                }
-                catch (SocketException e)
-                {
-                    // 10054 (Windows) : la machine d'en face a ferme -- on continue d'ecouter.
-                    if (e.SocketErrorCode == SocketError.ConnectionReset || e.SocketErrorCode == SocketError.WouldBlock) continue;
-                    return;
-                }
-                if (n < 5) continue;
+                try { if (!wire.Receive(buffer, out n, out from)) return; }
+                catch (Exception) { return; }
+                if (n < 5 || from == null) continue;
                 try
                 {
                     using (BinaryReader r = new BinaryReader(new MemoryStream(buffer, 0, n), Encoding.UTF8))
@@ -299,7 +370,7 @@ namespace Fief.Net
         static bool SameAddress(EndPoint a, EndPoint b)
         {
             IPEndPoint x = a as IPEndPoint, y = b as IPEndPoint;
-            if (x == null || y == null) return false;
+            if (x == null || y == null) return a != null && a.Equals(b);     // Steam : le meme numero
             if (x.Port != y.Port) return false;
             return x.Address.Equals(y.Address) || IPAddress.IsLoopback(x.Address) && IPAddress.IsLoopback(y.Address);
         }
@@ -591,7 +662,7 @@ namespace Fief.Net
 
         void Send(EndPoint to, Msg type, Action<BinaryWriter> body)
         {
-            if (socket == null || to == null) return;
+            if (wire == null || to == null) return;
             try
             {
                 using (MemoryStream ms = new MemoryStream())
@@ -602,7 +673,7 @@ namespace Fief.Net
                     if (body != null) body.Invoke(w);
                     w.Flush();
                     if (DropForTests > 0 && (type == Msg.Data || type == Msg.Reliable || type == Msg.Ack) && lossRng.NextDouble() < DropForTests) return;
-                    socket.SendTo(ms.GetBuffer(), 0, (int)ms.Length, SocketFlags.None, to);
+                    wire.Send(ms.GetBuffer(), (int)ms.Length, to);
                 }
             }
             catch (Exception) { /* le reseau a eternue : le prochain envoi reessaiera */ }
@@ -611,11 +682,11 @@ namespace Fief.Net
         /// <summary>Partir proprement : on previent les autres (sinon ils attendront six secondes).</summary>
         public void Dispose()
         {
-            if (socket == null) return;
+            if (wire == null) return;
             if (IsHost) for (int i = 0; i < peers.Count; i++) Send(peers[i].Address, Msg.Bye, null);
             else if (host != null) Send(host, Msg.Bye, null);
-            try { socket.Close(); } catch (Exception) { }
-            socket = null;
+            try { wire.Close(); } catch (Exception) { }
+            wire = null;
             Status = State.Closed;
         }
     }

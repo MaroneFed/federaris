@@ -19,13 +19,15 @@ if [ ! -d "$REF/lib/netstandard2.0" ]; then
 fi
 status=0
 for defines in "" "ENABLE_INPUT_SYSTEM"; do
-  out=$(dotnet build Controle.csproj -nologo -v q -p:RefDir="$REF" -p:ExtraDefines="$defines" 2>&1 || true)
+  # (v31) La seconde passe compile aussi le chemin Steam (Windows).
+  steam=""; [ -n "$defines" ] && steam="UNITY_STANDALONE_WIN%3BUNITY_2017_1_OR_NEWER%3BUNITY_EDITOR_WIN%3BUNITY_STANDALONE"
+  out=$(dotnet build Controle.csproj -nologo -v q -p:RefDir="$REF" -p:ExtraDefines="$defines" -p:SteamDefine="$steam" 2>&1 || true)
   errs=$(printf "%s\n" "$out" | grep -E ": error " | sed 's#.*/Assets/#Assets/#; s# \[.*##' | sort -u)
   if [ -n "$errs" ]; then
-    echo "ERREURS DE COMPILATION ${defines:+($defines)} :"
+    echo "ERREURS DE COMPILATION ${defines:+($defines $steam)} :"
     echo "$errs"
     status=1
   fi
 done
-[ $status -eq 0 ] && echo "Compilation OK (Input System et Input classique)."
+[ $status -eq 0 ] && echo "Compilation OK (Input System et Input classique ; avec et sans Steam)."
 exit $status
