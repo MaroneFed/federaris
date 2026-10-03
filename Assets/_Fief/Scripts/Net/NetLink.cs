@@ -27,7 +27,7 @@ namespace Fief.Net
     /// </summary>
     public sealed class NetLink : IDisposable
     {
-        public const int Version = 4;     // 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
+        public const int Version = 5;     // 5 (07/10) : 78 capacites, la liste des parties ; 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
         public const int DefaultPort = 7777;
         const uint Magic = 0x46494546;           // "FIEF"
         const float PingEvery = 1f;
@@ -38,7 +38,12 @@ namespace Fief.Net
         public enum State { Idle, Hosting, Connecting, Connected, Refused, Lost, Closed }
         public enum Refusal : byte { None = 0, Full = 1, BadVersion = 2, Started = 3 }
 
-        enum Msg : byte { Hello = 1, Welcome = 2, Roster = 3, Ping = 4, Pong = 5, Bye = 6, Refused = 7, Data = 8, Reliable = 9, Ack = 10 }
+        enum Msg : byte { Hello = 1, Welcome = 2, Roster = 3, Ping = 4, Pong = 5, Bye = 6, Refused = 7, Data = 8, Reliable = 9, Ack = 10, Query = 11, Info = 12 }
+
+        // (06/10) La LISTE DES PARTIES (NetFinder) : "il y a une partie ?" -- l'hote repond.
+        public const uint WireMagic = Magic;
+        public const byte QueryType = (byte)Msg.Query;
+        public const byte InfoType = (byte)Msg.Info;
 
         /// <summary>
         /// UN MESSAGE DU JEU recu (etape 2) : qui l'envoie (sa place ; 0 = l'hote) et son contenu.
@@ -311,6 +316,17 @@ namespace Fief.Net
             if (p != null) p.LastHeard = now;
             switch (type)
             {
+                case Msg.Query:
+                    // Quelqu'un cherche des parties (NetFinder) : qui heberge, combien, deja lance ?
+                    Send(from, Msg.Info, w =>
+                    {
+                        w.Write(Version);
+                        w.Write(MyName ?? "");
+                        w.Write((byte)Roster.Count);
+                        w.Write((byte)maxPlayers);
+                        w.Write(Locked);
+                    });
+                    return;
                 case Msg.Hello:
                 {
                     int version = r.ReadInt32();

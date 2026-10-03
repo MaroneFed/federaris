@@ -499,7 +499,27 @@ namespace Fief
                 case Ability.Kamikaze: return "kamikaze";
                 case Ability.AngeGardien: return "ange";
                 case Ability.Rage: return "rage";
-                default: return "ninja";
+                case Ability.Ninja: return "ninja";
+                case Ability.Lasso: return "lasso";
+                case Ability.Missile: return "missile";
+                case Ability.Apesanteur: return "apesanteur";
+                case Ability.Flammes: return "flammes";
+                case Ability.Pogo: return "pogo";
+                case Ability.Geyser: return "geyser";
+                case Ability.Boomerang: return "boomerang";
+                case Ability.PiegeLoup: return "piege";
+                case Ability.Catapulte: return "catapulte";
+                case Ability.Oreillers: return "oreiller";
+                case Ability.Hypnose: return "hypnose";
+                case Ability.Raz: return "raz";
+                case Ability.CoupDePied: return "coup-de-pied";
+                case Ability.Cri: return "cri";
+                case Ability.Miroir: return "miroir";
+                case Ability.Increvable: return "increvable";
+                case Ability.Pickpocket: return "pickpocket";
+                case Ability.Chanceux: return "chanceux";
+                case Ability.Armure: return "armure";
+                default: return "sprinter";
             }
         }
     }

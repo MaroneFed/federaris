@@ -114,7 +114,8 @@ namespace Fief
         /// <summary>(06/10) Les sorts qu'on vise sur un joueur : la prison, la bombe, la tete a l'envers, le mini, le ballon, l'encre.</summary>
         public static bool Curses(Ability a)
         {
-            return a == Ability.Prison || a == Ability.Bombe || a == Ability.Inversion || a == Ability.Mini || a == Ability.Ballon || a == Ability.Encre;
+            return a == Ability.Prison || a == Ability.Bombe || a == Ability.Inversion || a == Ability.Mini || a == Ability.Ballon || a == Ability.Encre
+                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser;
         }
 
         public static IMover MoverOf(Seeker s)
@@ -130,7 +131,9 @@ namespace Fief
             return a == Ability.Crochet || a == Ability.Onde || a == Ability.Souffle || a == Ability.Gel
                 || a == Ability.Meteore || a == Ability.Tornade || a == Ability.TrouNoir || a == Ability.Foudre
                 || a == Ability.Boulet || Curses(a) || a == Ability.Seisme || a == Ability.Gant || a == Ability.Deluge
-                || a == Ability.Toupie || a == Ability.Taupe;
+                || a == Ability.Toupie || a == Ability.Taupe
+                || a == Ability.Missile || a == Ability.Apesanteur || a == Ability.Boomerang || a == Ability.Oreillers
+                || a == Ability.Raz || a == Ability.Cri;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -143,7 +146,7 @@ namespace Fief
             if (a == Ability.Fusee && s.CarriesCrown) return "Trop lourd";
             if (a == Ability.Fusee && Castle.Inside(s.Body.position)) return "Pas ici";
             // (06/10) Le Fantome : avec la Couronne, il gagnerait au Monument sans qu'on puisse rien faire.
-            if (a == Ability.Fantome && s.CarriesCrown) return "Trop lourd";
+            if ((a == Ability.Fantome || a == Ability.Catapulte) && s.CarriesCrown) return "Trop lourd";
             if (s.Rooted) return "Enchaîné";
             if (!s.Ready(a, Time.time)) return "Recharge";
             return null;
@@ -531,6 +534,97 @@ namespace Fief
                     SpinAura.Spin(s);
                     break;
 
+                // ---- la deuxieme fournee (07/10)
+                case Ability.Lasso:
+                {
+                    // Tu l'attrapes au lasso, et tu le jettes LA OU TU REGARDES.
+                    Seeker t = Combat.Aimed(s, eye, aim, CurseRange, AimAngle);
+                    if (t == null || t.Graced) { s.Refund(a); return false; }
+                    Tether.Show(s.Body, t.Body, Vector3.zero, 0.6f, tint);
+                    Combat.Hit(t, flat * 28f + Vector3.up * 14f, 0.4f, true, s);
+                    Fx.Ring(t.Body.position + Vector3.up, tint, 0.4f, 2f, 0.3f, 0.12f, Vector3.up);
+                    Sfx.WhooshAt(t.Body.position);
+                    break;
+                }
+                case Ability.Hypnose:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, CurseRange, AimAngle);
+                    if (t == null || t.Graced) { s.Refund(a); return false; }
+                    Tether.Show(s.Body, t.Body, Vector3.zero, 0.5f, tint);
+                    Combat.Afflict(t, Combat.Affliction.Charmed, 3f, s);
+                    break;
+                }
+                case Ability.Geyser:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, 45f, AimAngle);
+                    if (t == null) { s.Refund(a); return false; }
+                    Geyser.Erupt(s, t.Body.position);
+                    break;
+                }
+                case Ability.Missile:
+                    HomingMissile.Fire(s, chest + flat * 1.2f, aim);
+                    break;
+                case Ability.Apesanteur:
+                {
+                    // Tous ceux qui sont a 14 m s'envolent comme des ballons.
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 14f) continue;
+                        if (Combat.Afflict(o, Combat.Affliction.Balloon, 2.5f, s)) n++;
+                    }
+                    Fx.Shock(chest, tint, 14f, 0.5f);
+                    Fx.Burst(chest, Color.white, 80, 6f, 0.2f, 1.2f, -0.6f, Vector3.up, 80f);
+                    if (n == 0) { s.Refund(a); return false; }
+                    break;
+                }
+                case Ability.Flammes:
+                    FireTrail.Light(s);
+                    break;
+                case Ability.Pogo:
+                    PogoStick.Jump(s);
+                    break;
+                case Ability.Boomerang:
+                    BoomerangThrow.Throw(s, chest + flat, flat);
+                    break;
+                case Ability.PiegeLoup:
+                    if (!JawTrap.Place(s, pos)) { s.Refund(a); return false; }
+                    break;
+                case Ability.Catapulte:
+                    // En cloche, loin devant (l'elan ne se freine presque pas : comme une poussee).
+                    m.Push(flat * 24f + Vector3.up * 15f);
+                    s.Launch(1.6f);
+                    Fx.Burst(pos + Vector3.up * 0.2f, tint, 50, 8f, 0.3f, 0.7f, 0.4f, -flat, 50f);
+                    Fx.Trail(s.Body, tint, 1.2f, 0.8f);
+                    break;
+                case Ability.Oreillers:
+                    PillowVolley.Begin(s);
+                    break;
+                case Ability.Raz:
+                    TidalWave.Roll(s, pos);
+                    break;
+                case Ability.CoupDePied:
+                    s.SuperShoveUntil = now + 5f;
+                    Fx.Ring(pos + Vector3.up * 0.3f, tint, 0.3f, 2f, 0.3f, 0.15f, Vector3.up);
+                    Fx.Sparks(pos + Vector3.up * 0.4f, tint, 20, 4f);
+                    break;
+                case Ability.Cri:
+                {
+                    // Un cri : tout ce qui est devant, a 12 m, est sonne (0,7 s) et recule un peu.
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || !Combat.InArc(pos, flat, o.Body.position, 12f, 70f)) continue;
+                        Combat.Hit(o, flat * 7f + Vector3.up * 4f, 0.7f, false, s);
+                        n++;
+                    }
+                    for (int k = 0; k < 5; k++) Fx.Ring(chest + flat * (1f + k * 2.2f), tint, 0.5f + k * 0.6f, 1.5f + k * 1.2f, 0.25f + k * 0.05f, 0.18f, flat);
+                    Sfx.BigPush(pos, s.IsPlayer);
+                    break;
+                }
+
                 case Ability.Foudre:
                 {
                     Seeker t = Combat.Aimed(s, eye, aim, FoudreRange, AimAngle);
@@ -560,6 +654,13 @@ namespace Fief
             }
             Sfx.WhooshAt(pos);
             if (s.IsPlayer) Stats.Casts++;
+            // (07/10) CHANCEUX : une fois sur trois, la capacite revient tout de suite.
+            if (s.Has(Ability.Chanceux) && Random.value < 0.33f)
+            {
+                s.Refund(a);
+                Fx.Sparks(chest, AbilityInfo.Tint(Ability.Chanceux), 25, 4f);
+                if (s.IsPlayer) Sfx.Pop();
+            }
             return true;
         }
 

@@ -414,7 +414,12 @@ namespace Fief
                                     Ability.Prison, Ability.Gant, Ability.Bombe, Ability.BrasLongs, Ability.Seisme, Ability.Ballon,
                                     Ability.Rage, Ability.Taupe, Ability.Kangourou, Ability.Mini, Ability.Deluge, Ability.Kamikaze,
                                     Ability.Inversion, Ability.Toupie, Ability.Glu, Ability.AngeGardien, Ability.Banane, Ability.Encre,
-                                    Ability.Fantome, Ability.Ninja };
+                                    Ability.Fantome, Ability.Ninja,
+                                    // (07/10) la deuxieme fournee
+                                    Ability.Lasso, Ability.Missile, Ability.Miroir, Ability.Geyser, Ability.CoupDePied, Ability.Armure,
+                                    Ability.Boomerang, Ability.Hypnose, Ability.Sprinter, Ability.Raz, Ability.Chanceux, Ability.Cri,
+                                    Ability.Oreillers, Ability.Increvable, Ability.Apesanteur, Ability.Pickpocket, Ability.Catapulte,
+                                    Ability.Flammes, Ability.PiegeLoup, Ability.Pogo };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

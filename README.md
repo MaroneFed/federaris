@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v27 · capacités de fou · 06/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v28 · liste des parties · 07/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -153,7 +153,7 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 |---|---|
 | Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
 | Les manches, le départage, le choix des capacités | `Scripts/Match/Match.cs` |
-| Les 58 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » (prison, bombe, ballon...) : `Scripts/World/Mayhem.cs` |
+| Les 78 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » : `Scripts/World/Mayhem.cs` (prison, bombe, ballon...) et `Folies.cs` (missile, geyser, boomerang...) |
 | Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
 | Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
 | La Couronne (et le vol), le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |
@@ -211,8 +211,11 @@ d'autres pièges et capacités (Phase 2), l'équilibrage fin (Phase 4).
 à la même île. On se voit, on se pousse, on se vole la Couronne ; l'hôte décide de la Couronne et
 de la fin de manche.
 
-1. L'hôte : **En ligne ▸ Héberger**. Son adresse s'affiche en haut du salon (du genre `192.168.1.23`).
-2. L'autre : **En ligne**, tape cette adresse à côté de **Rejoindre**, puis **Rejoindre**.
+1. L'hôte : **En ligne ▸ Héberger**. Son **code** s'affiche en gros en haut du salon (du genre
+   `4BH-XNUL`), son adresse en petit dessous.
+2. L'autre : **En ligne**. Sur le même réseau, **la partie apparaît toute seule dans la liste
+   « Parties »** : un clic, c'est rejoint. Sinon, taper le code (ou l'adresse) à côté de
+   **Rejoindre**, puis **Rejoindre**.
 3. Les deux pseudos sont dans le salon : l'hôte appuie sur **Lancer**.
 4. Pour essayer seul sur ton PC : **File ▸ Build Profiles ▸ Windows ▸ Build And Run** (un jeu
    dans sa fenêtre) + **Play** dans Unity (un deuxième), et rejoindre `127.0.0.1`.

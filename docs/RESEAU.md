@@ -54,7 +54,7 @@ salon, départs, refus, ping) — « RESEAU OK ». Elle parle **UDP** (le protoc
   tout le monde (`Crown.TryTakeFor`, `TrySteal`, `KnockOff`…) et le dit à tous (`Crown.Mirror`).
 - **Un ami part en plein match** : sa place devient un bot, là où il était. **L'hôte part** :
   retour à l'écran En ligne, avec la raison. **Pas la même version** des deux côtés : refusé, et
-  le jeu le dit (`NetLink.Version` = 4 depuis v27 : 58 capacités et un message neuf, le
+  le jeu le dit (`NetLink.Version` = 5 depuis v28, 78 capacités ; 4 depuis v27 : 58 capacités et un message neuf, le
   **sort** — prison, glu, tête à l'envers, mini, encre, ballon — qui part chez la victime par
   l'hôte, `NetGame.RemoteAfflict`, comme un coup).
 - Testé hors d'Unity : `sh Tools/reseau.sh` (messages fiables avec 30 % de paquets perdus exprès).
@@ -70,9 +70,48 @@ de banane**, le **Déluge**, le **Gant** et la **Toupie** d'un autre ne se voien
 (les coups, eux, arrivent) ; les **sorts** (prison, encre…) frappent bien l'ami chez lui. Rien de tout ça ne change qui gagne : la Couronne et la
 fin de manche sont à l'hôte.
 
-**Étape 3** : partager ce qui manque ci-dessus, si ça gêne en jouant. **Étape 4** : Steam
-(invitations, Internet). **Porte 3** : un match de 30-45 min à plusieurs sans plantage ni
-désynchronisation.
+## ÉTAPE 2,5 (07/10, v28) : la liste des parties et le code — FAIT
+
+> Martin, après avoir joué avec son frère sur le même wifi : « tout est parfait ; après, quand on
+> sera sur différents réseaux, il faut un truc comme dans FPS Chess où t'as toutes les games et
+> tu peux les rejoindre ; c'est chiant de mettre ton IP, trouve un code ».
+
+- **La liste des parties** (`Net/NetFinder.cs`, du C# pur) : sur l'écran En ligne, le jeu crie
+  toutes les 1,5 s sur le réseau (un paquet UDP en *broadcast*, sur chaque carte réseau et sur
+  la machine elle-même) : « il y a une partie ? ». Chaque hôte répond (`Msg.Query` / `Msg.Info`
+  dans `NetLink`) : son pseudo, le nombre de joueurs, s'il a lancé, sa version. La liste
+  s'affiche sous Rejoindre ; **un clic, on rejoint**. Grisée si la partie a commencé ou n'est pas
+  la même version. Testé hors d'Unity (`sh Tools/reseau.sh`).
+- **Le code de partie** (`NetCode`) : l'adresse de l'hôte écrite en 7 signes faciles à dicter
+  (ni O ni 0, ni I ni 1), du genre `4BH-XNUL`. L'hôte le voit en gros dans son salon ; le champ
+  Rejoindre accepte le code **ou** l'adresse.
+- **Honnêtement** : le code et la liste ne marchent que là où une adresse IP marche aussi — **le
+  même réseau** (la box, le wifi) ou un **réseau virtuel** qui imite un réseau local (Radmin VPN :
+  la liste y trouve les parties). Pour deux maisons différentes **sans** Radmin, aucun code ne
+  suffit : les box bloquent les connexions qui arrivent de dehors. Il faut un intermédiaire sur
+  Internet — c'est l'étape 4.
+
+## ÉTAPE 4 (à venir) : Steam — la liste du monde entier, les invitations, la traversée des box
+
+C'est **exactement ce que fait FPS Chess** : sa liste de parties, ce sont les **« lobbies »
+Steam** (Steam garde la liste des parties publiques du jeu, pour le monde entier), et ses
+connexions passent par les **relais de Steam** (Steam Datagram Relay), qui traversent toutes les
+box, sans serveur à nous (la loi n° 2 tient : pas de serveur dédié).
+
+Ce qu'il faudra :
+1. **Steamworks.NET** (gratuit, MIT) dans le projet : un paquet Unity par une adresse Git
+   (`Window ▸ Package Manager ▸ + ▸ Install package from git URL`). Claude peut écrire le code,
+   **mais ne peut pas le tester** : il faut Steam ouvert sur le PC.
+2. **Un numéro d'application Steam** : pour les essais, le **480** (« Spacewar », l'appli de test
+   de Valve, que tout le monde peut utiliser) ; pour de vrai, **Steam Direct** (100 $ une fois,
+   le compte Steamworks de Martin) — de toute façon nécessaire pour la page Steam (Phase 5).
+3. Dans le code, seul le **tuyau** change : `NetLink` envoie ses paquets par
+   `SteamNetworkingMessages` au lieu d'une prise UDP ; la liste vient de
+   `SteamMatchmaking.RequestLobbyList` au lieu de `NetFinder` ; « Inviter un ami » ouvre
+   l'overlay Steam. `NetGame` (les messages du jeu) ne bouge pas.
+
+**Étape 3** : partager ce qui manque ci-dessus, si ça gêne en jouant. **Porte 3** : un match de
+30-45 min à plusieurs sans plantage ni désynchronisation.
 
 ---
 

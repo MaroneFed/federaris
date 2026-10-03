@@ -42,6 +42,19 @@ static class Essai
         host.DropForTests = 0; a.DropForTests = 0;
         Check(host.HasPeer(a.MySlot) && !host.HasPeer(7), "l'hote sait qui est la");
 
+        // (06/10) LA LISTE DES PARTIES : un chercheur trouve l'hote tout seul, sans adresse.
+        NetFinder finder = NetFinder.Start(port);
+        for (float t0 = now(); now() - t0 < 1.2f; ) { finder.Poll(now()); host.Poll(now()); a.Poll(now()); b.Poll(now()); Thread.Sleep(10); }
+        NetFinder.Found seen = finder.Games.Count > 0 ? finder.Games[0] : null;
+        Check(seen != null && seen.Host == "Martin" && seen.Players == 3 && seen.Max == 8 && !seen.Started && seen.SameVersion,
+              "le chercheur trouve la partie de Martin, 3/8 (" + finder.Games.Count + " trouvee(s))");
+        finder.Dispose();
+        // LE CODE : une adresse en 7 signes, et retour.
+        string code = NetCode.Encode("192.168.1.23");
+        Check(code.Length == 8 && NetCode.Decode(code) == "192.168.1.23" && NetCode.Decode(code.ToLowerInvariant().Replace("-", "")) == "192.168.1.23",
+              "le code " + code + " redonne 192.168.1.23");
+        Check(NetCode.ToAddress("26.14.200.7") == "26.14.200.7" && NetCode.Decode("hello") == null, "une adresse tapee reste une adresse");
+
         // Un invite part : l'hote et l'autre invite le voient.
         a.Dispose();
         Loop(now, 1.5f, host, b);

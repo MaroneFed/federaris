@@ -33,6 +33,8 @@ namespace Fief
             "riposte", "vampire", "tete-dure", "second-souffle", "plume",
             "prison", "bombe", "inversion", "mini", "glu", "banane", "ballon", "seisme", "gant", "fantome",
             "taupe", "deluge", "toupie", "encre", "bras-longs", "kangourou", "kamikaze", "ange", "rage", "ninja",
+            "lasso", "missile", "apesanteur", "flammes", "pogo", "geyser", "boomerang", "piege", "catapulte", "oreiller",
+            "hypnose", "raz", "coup-de-pied", "cri", "miroir", "increvable", "pickpocket", "chanceux", "armure", "sprinter",
             "etourdi", "chute", "ko", "clip"
         };
 
@@ -679,8 +681,157 @@ namespace Fief
                     float tails = Min(Seg(x, y, 0.62f, -0.12f, 0.95f, -0.45f, 0.07f), Seg(x, y, 0.62f, -0.05f, 0.98f, 0.05f, 0.07f));
                     return Min(Min(Sub(head, band), eyes), tails);
                 }
+                // ============================================ la deuxieme fournee (07/10)
+                case "lasso":
+                {
+                    float loop = Ring(x - 0.25f, y + 0.3f, 0.42f, 0.08f);
+                    float rope = Min(Seg(x, y, 0.02f, 0.05f, -0.35f, 0.4f, 0.07f), Seg(x, y, -0.35f, 0.4f, -0.75f, 0.85f, 0.07f));
+                    return Min(loop, rope);
+                }
+                case "missile":
+                {
+                    float body = Seg(x, y, -0.45f, 0.45f, 0.4f, -0.4f, 0.19f);
+                    float nose = Poly(x, y, 0.26f, -0.54f, 0.54f, -0.26f, 0.82f, -0.82f);
+                    float fins = Min(Poly(x, y, -0.3f, 0.3f, -0.82f, 0.32f, -0.5f, 0.55f), Poly(x, y, -0.3f, 0.3f, -0.32f, 0.82f, -0.55f, 0.5f));
+                    return Min(Min(body, nose), Min(fins, Circle(x + 0.72f, y - 0.72f, 0.13f)));
+                }
+                case "apesanteur":
+                {
+                    float man = Min(Circle(x, y - 0.02f, 0.17f), Box(x, y - 0.42f, 0.18f, 0.22f, 0.12f));
+                    float arrows = Min(ArrowUp(x + 0.62f, y - 0.1f, 0.32f), ArrowUp(x - 0.62f, y - 0.1f, 0.32f));
+                    float moon = Sub(Circle(x, y + 0.62f, 0.3f), Circle(x - 0.16f, y + 0.72f, 0.27f));
+                    return Min(Min(man, arrows), moon);
+                }
+                case "flammes":
+                    return Min(Flame(x + 0.55f, y - 0.25f, 0.42f), Min(Flame(x, y + 0.05f, 0.58f), Flame(x - 0.55f, y - 0.25f, 0.42f)));
+                case "pogo":
+                {
+                    float stick = Box(x, y + 0.05f, 0.07f, 0.72f, 0.03f);
+                    float bar = Box(x, y + 0.72f, 0.42f, 0.07f, 0.05f);
+                    float pegs = Box(x, y - 0.3f, 0.32f, 0.06f, 0.04f);
+                    float spring = Seg(x, y, -0.2f, 0.45f, 0.2f, 0.55f, 0.05f);
+                    spring = Min(spring, Seg(x, y, 0.2f, 0.55f, -0.2f, 0.65f, 0.05f));
+                    spring = Min(spring, Seg(x, y, -0.2f, 0.65f, 0.2f, 0.75f, 0.05f));
+                    float foot = Box(x, y - 0.86f, 0.14f, 0.07f, 0.05f);
+                    return Min(Min(stick, bar), Min(pegs, Min(spring, foot)));
+                }
+                case "geyser":
+                {
+                    float jet = Box(x, y - 0.15f, 0.17f, 0.6f, 0.1f);
+                    float top = Circle(x, y + 0.52f, 0.36f);
+                    float drops = Min(Circle(x - 0.6f, y + 0.35f, 0.12f), Circle(x + 0.6f, y + 0.35f, 0.12f));
+                    float ground = Box(x, y - 0.82f, 0.82f, 0.07f, 0.04f);
+                    return Min(Min(jet, top), Min(drops, ground));
+                }
+                case "boomerang":
+                    return Min(Seg(x, y, -0.72f, 0.35f, 0f, -0.42f, 0.17f), Seg(x, y, 0f, -0.42f, 0.72f, 0.35f, 0.17f));
+                case "piege":
+                {
+                    float plate = Box(x, y - 0.6f, 0.86f, 0.09f, 0.04f);
+                    float jaws = Max(Ring(x, y - 0.6f, 0.62f, 0.08f), y - 0.6f);
+                    float teeth = Min(Poly(x, y, -0.5f, 0.12f, -0.3f, 0.12f, -0.4f, 0.4f), Poly(x, y, -0.1f, -0.02f, 0.1f, -0.02f, 0f, 0.3f));
+                    teeth = Min(teeth, Poly(x, y, 0.3f, 0.12f, 0.5f, 0.12f, 0.4f, 0.4f));
+                    return Min(Min(plate, jaws), teeth);
+                }
+                case "catapulte":
+                {
+                    float base0 = Box(x, y - 0.68f, 0.75f, 0.09f, 0.04f);
+                    float wheels = Min(Circle(x + 0.5f, y - 0.78f, 0.16f), Circle(x - 0.5f, y - 0.78f, 0.16f));
+                    float arm = Seg(x, y, -0.55f, 0.6f, 0.5f, -0.42f, 0.08f);
+                    float stone = Circle(x - 0.66f, y + 0.6f, 0.2f);
+                    return Min(Min(base0, wheels), Min(arm, stone));
+                }
+                case "oreiller":
+                {
+                    float p0 = Box(x, y, 0.72f, 0.42f, 0.3f);
+                    float ears = Min(Min(Circle(x - 0.72f, y - 0.42f, 0.13f), Circle(x + 0.72f, y - 0.42f, 0.13f)), Min(Circle(x - 0.72f, y + 0.42f, 0.13f), Circle(x + 0.72f, y + 0.42f, 0.13f)));
+                    return Sub(Min(p0, ears), Seg(x, y, -0.3f, 0f, 0.3f, 0f, 0.035f));
+                }
+                case "hypnose":
+                {
+                    float rings = Min(Ring(x, y, 0.2f, 0.07f), Min(Ring(x, y, 0.46f, 0.07f), Ring(x, y, 0.72f, 0.07f)));
+                    return Sub(rings, Box(x + 0.45f, y, 0.45f, 0.06f, 0f));
+                }
+                case "raz":
+                {
+                    // Deux vagues en zigzag doux.
+                    float w = float.MaxValue;
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float o = k == 0 ? -0.32f : 0.28f;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            float ax = -0.88f + i * 0.35f, bx = ax + 0.35f;
+                            float ay = o + (i % 2 == 0 ? 0.15f : -0.15f), by = o + (i % 2 == 0 ? -0.15f : 0.15f);
+                            w = Min(w, Seg(x, y, ax, ay, bx, by, 0.1f));
+                        }
+                    }
+                    return w;
+                }
+                case "coup-de-pied":
+                {
+                    float leg = Box(x + 0.2f, y + 0.25f, 0.2f, 0.5f, 0.1f);
+                    float foot = Box(x - 0.05f, y - 0.38f, 0.48f, 0.2f, 0.16f);
+                    float bang = Star(x + 0.62f, y - 0.42f, 0.32f, 0.14f, 6);
+                    return Min(Min(leg, foot), bang);
+                }
+                case "cri":
+                {
+                    float horn = Poly4(x, y, -0.6f, -0.13f, 0.2f, -0.5f, 0.2f, 0.5f, -0.6f, 0.13f);
+                    float grip = Box(x + 0.7f, y, 0.12f, 0.18f, 0.05f);
+                    float waves = Max(Min(Ring(x + 0.2f, y, 0.7f, 0.06f), Ring(x + 0.2f, y, 0.94f, 0.06f)), 0.42f - x);
+                    return Min(Min(horn, grip), waves);
+                }
+                case "miroir":
+                {
+                    float frame = Ring(x, y * 0.82f + 0.08f, 0.6f, 0.09f);
+                    float stand = Box(x, y - 0.86f, 0.32f, 0.07f, 0.04f);
+                    float shine = Seg(x, y, -0.25f, 0.12f, 0.1f, -0.28f, 0.05f);
+                    return Min(Min(frame, stand), shine);
+                }
+                case "increvable":
+                {
+                    float glass = Min(Poly(x, y, -0.48f, -0.72f, 0.48f, -0.72f, 0f, 0f), Poly(x, y, -0.48f, 0.72f, 0.48f, 0.72f, 0f, 0f));
+                    float bars = Min(Box(x, y + 0.8f, 0.6f, 0.07f, 0.04f), Box(x, y - 0.8f, 0.6f, 0.07f, 0.04f));
+                    return Min(glass, bars);
+                }
+                case "pickpocket":
+                {
+                    float bag = Circle(x, y - 0.22f, 0.55f);
+                    float neck = Box(x, y + 0.38f, 0.2f, 0.1f, 0.04f);
+                    float flaps = Min(Poly(x, y, -0.2f, -0.45f, -0.5f, -0.75f, 0f, -0.55f), Poly(x, y, 0.2f, -0.45f, 0.5f, -0.75f, 0f, -0.55f));
+                    return Sub(Min(Min(bag, neck), flaps), Star(x, y - 0.22f, 0.25f, 0.1f, 5));
+                }
+                case "chanceux":
+                {
+                    float c = Min(Min(Circle(x - 0.27f, y + 0.25f, 0.29f), Circle(x + 0.27f, y + 0.25f, 0.29f)), Min(Circle(x - 0.27f, y - 0.25f, 0.29f), Circle(x + 0.27f, y - 0.25f, 0.29f)));
+                    return Min(c, Seg(x, y, 0.1f, 0.3f, 0.42f, 0.88f, 0.07f));
+                }
+                case "armure":
+                {
+                    float plate = Box(x, y, 0.55f, 0.66f, 0.26f);
+                    plate = Sub(plate, Circle(x, y + 0.74f, 0.3f));
+                    plate = Sub(plate, Circle(x - 0.72f, y + 0.42f, 0.26f));
+                    plate = Sub(plate, Circle(x + 0.72f, y + 0.42f, 0.26f));
+                    return Sub(plate, Box(x, y - 0.1f, 0.03f, 0.4f, 0f));
+                }
+                case "sprinter":
+                {
+                    float shoe = Min(Box(x + 0.15f, y - 0.25f, 0.6f, 0.22f, 0.18f), Box(x - 0.15f, y + 0.12f, 0.28f, 0.22f, 0.1f));
+                    float sole = Box(x + 0.15f, y - 0.52f, 0.62f, 0.06f, 0.03f);
+                    float lines = Min(Seg(x, y, -0.95f, -0.25f, -0.62f, -0.25f, 0.06f), Seg(x, y, -0.92f, 0.05f, -0.55f, 0.05f, 0.06f));
+                    return Min(Min(shoe, sole), lines);
+                }
                 default: return Circle(x, y, 0.6f);
             }
+        }
+
+        /// <summary>Une flamme (la pointe en haut), de taille "s".</summary>
+        static float Flame(float x, float y, float s)
+        {
+            x /= s; y /= s;
+            float f = Min(Circle(x, y - 0.3f, 0.52f), Poly(x, y, -0.5f, 0.2f, 0.5f, 0.2f, 0.1f, -0.92f));
+            return f * s;
         }
 
         // ================================================================== les motifs

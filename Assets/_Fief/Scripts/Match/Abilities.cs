@@ -27,18 +27,21 @@ namespace Fief
         // (06/10 -- "une prison qui t'enchaine au sol dix secondes, plein de conneries comme ca,
         // des trucs de fou, il m'en faut une vingtaine") les actives de fou
         Prison, Bombe, Inversion, Mini, Glu, Banane, Ballon, Seisme, Gant, Fantome, Taupe, Deluge, Toupie, Encre,
+        // (07/10 -- "encore plus de capas, plus, plus, plus") la deuxieme fournee
+        Lasso, Missile, Apesanteur, Flammes, Pogo, Geyser, Boomerang, PiegeLoup, Catapulte, Oreillers, Hypnose, Raz, CoupDePied, Cri,
         // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
         DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond,
         // (05/10) les passives neuves
         Riposte, Vampire, TeteDure, SecondSouffle, Plume,
         // (06/10) et encore -- l'AIMANT est parti (Martin : "un truc qui TP la couronne vers toi,
         // c'est n'importe quoi, il faut quand meme monter la tour")
-        BrasLongs, Kangourou, Kamikaze, AngeGardien, Rage, Ninja
+        BrasLongs, Kangourou, Kamikaze, AngeGardien, Rage, Ninja,
+        Miroir, Increvable, Pickpocket, Chanceux, Armure, Sprinter
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 58;
+        public const int Count = 78;
         /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
         public const int MaxActives = 1;
 
@@ -111,7 +114,27 @@ namespace Fief
                 case Ability.Kamikaze: return "Kamikaze";
                 case Ability.AngeGardien: return "Ange gardien";
                 case Ability.Rage: return "Rage";
-                default: return "Ninja";
+                case Ability.Ninja: return "Ninja";
+                case Ability.Lasso: return "Lasso";
+                case Ability.Missile: return "Missile";
+                case Ability.Apesanteur: return "Apesanteur";
+                case Ability.Flammes: return "Traînée de feu";
+                case Ability.Pogo: return "Pogo";
+                case Ability.Geyser: return "Geyser";
+                case Ability.Boomerang: return "Boomerang";
+                case Ability.PiegeLoup: return "Piège à loup";
+                case Ability.Catapulte: return "Catapulte";
+                case Ability.Oreillers: return "Bataille d'oreillers";
+                case Ability.Hypnose: return "Hypnose";
+                case Ability.Raz: return "Raz-de-marée";
+                case Ability.CoupDePied: return "Coup de pied";
+                case Ability.Cri: return "Cri";
+                case Ability.Miroir: return "Miroir";
+                case Ability.Increvable: return "Increvable";
+                case Ability.Pickpocket: return "Pickpocket";
+                case Ability.Chanceux: return "Chanceux";
+                case Ability.Armure: return "Armure";
+                default: return "Sprinter";
             }
         }
 
@@ -177,7 +200,27 @@ namespace Fief
                 case Ability.Kamikaze: return "Quand on te pousse, tu exploses : tout le monde autour s'envole.";
                 case Ability.AngeGardien: return "Une fois par manche, tomber dans les nuages te ramène où tu étais.";
                 case Ability.Rage: return "Chaque coup reçu rend ta prochaine poussée plus forte.";
-                default: return "Immobile une seconde, tu deviens invisible.";
+                case Ability.Ninja: return "Immobile une seconde, tu deviens invisible.";
+                case Ability.Lasso: return "Vise un joueur : tu l'attrapes et tu le jettes là où tu regardes.";
+                case Ability.Missile: return "Un missile qui poursuit le joueur le plus proche, puis explose.";
+                case Ability.Apesanteur: return "Tous ceux qui sont autour de toi s'envolent comme des ballons.";
+                case Ability.Flammes: return "Pendant quatre secondes, tu laisses une traînée de feu derrière toi.";
+                case Ability.Pogo: return "Cinq secondes de bâton sauteur : tu rebondis très haut.";
+                case Ability.Geyser: return "Vise un joueur : un geyser jaillit sous ses pieds.";
+                case Ability.Boomerang: return "Un boomerang qui frappe à l'aller et au retour.";
+                case Ability.PiegeLoup: return "Un piège à tes pieds : qui marche dessus est coincé trois secondes.";
+                case Ability.Catapulte: return "Tu te catapultes loin devant toi. Pas avec la Couronne.";
+                case Ability.Oreillers: return "Six oreillers d'affilée, droit devant : paf, paf, paf.";
+                case Ability.Hypnose: return "Vise un joueur : trois secondes, il marche vers toi.";
+                case Ability.Raz: return "Une vague part de toi et emporte tout jusqu'à vingt mètres.";
+                case Ability.CoupDePied: return "Ta prochaine poussée envoie trois fois plus loin.";
+                case Ability.Cri: return "Un cri si fort que ceux qui sont devant toi sont sonnés.";
+                case Ability.Miroir: return "Les sorts qu'on te lance (prison, encre...) reviennent à l'envoyeur.";
+                case Ability.Increvable: return "Les sorts qu'on te lance durent deux fois moins longtemps.";
+                case Ability.Pickpocket: return "Quand tu voles la Couronne, tu disparais deux secondes.";
+                case Ability.Chanceux: return "Une fois sur trois, ta capacité revient tout de suite.";
+                case Ability.Armure: return "Le premier coup qu'on te donne dans la manche ne te fait rien.";
+                default: return "Les vingt premières secondes de la manche, tu cours bien plus vite.";
             }
         }
 
@@ -222,6 +265,20 @@ namespace Fief
                 case Ability.Deluge: return 14f;
                 case Ability.Toupie: return 13f;
                 case Ability.Encre: return 12f;
+                case Ability.Lasso: return 11f;
+                case Ability.Missile: return 12f;
+                case Ability.Apesanteur: return 14f;
+                case Ability.Flammes: return 12f;
+                case Ability.Pogo: return 12f;
+                case Ability.Geyser: return 10f;
+                case Ability.Boomerang: return 8f;
+                case Ability.PiegeLoup: return 10f;
+                case Ability.Catapulte: return 9f;
+                case Ability.Oreillers: return 9f;
+                case Ability.Hypnose: return 14f;
+                case Ability.Raz: return 12f;
+                case Ability.CoupDePied: return 7f;
+                case Ability.Cri: return 10f;
                 default: return 0f;
             }
         }
@@ -256,7 +313,15 @@ namespace Fief
                 case Ability.Ballon: return new Color(1f, 0.45f, 0.6f);
                 case Ability.Seisme: case Ability.Taupe: return new Color(0.82f, 0.62f, 0.42f);
                 case Ability.Fantome: case Ability.AngeGardien: return new Color(0.85f, 0.95f, 1f);
-                case Ability.Encre: case Ability.Ninja: return new Color(0.45f, 0.42f, 0.7f);
+                case Ability.Encre: case Ability.Ninja: case Ability.Pickpocket: return new Color(0.45f, 0.42f, 0.7f);
+                case Ability.Lasso: case Ability.Catapulte: case Ability.Boomerang: return new Color(0.85f, 0.68f, 0.42f);
+                case Ability.Missile: case Ability.Flammes: case Ability.Cri: return new Color(1f, 0.42f, 0.2f);
+                case Ability.Apesanteur: case Ability.Pogo: case Ability.Sprinter: return new Color(0.6f, 0.85f, 1f);
+                case Ability.Geyser: case Ability.Raz: return new Color(0.35f, 0.75f, 1f);
+                case Ability.PiegeLoup: case Ability.Armure: return new Color(0.7f, 0.72f, 0.78f);
+                case Ability.Oreillers: case Ability.Hypnose: case Ability.Miroir: return new Color(0.95f, 0.7f, 1f);
+                case Ability.CoupDePied: return new Color(0.95f, 0.3f, 0.3f);
+                case Ability.Increvable: case Ability.Chanceux: return new Color(0.5f, 0.95f, 0.55f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

@@ -211,6 +211,13 @@ namespace Fief
             }
             Vector3 wish = forward * input.y + right * input.x;
             if (wish.sqrMagnitude > 1f) wish.Normalize();
+            // (07/10) HYPNOSE : tes pieds marchent tout seuls vers celui qui t'a hypnotise.
+            if (me != null && me.Charmed)
+            {
+                Vector3 to = me.CharmedBy.Body.position - transform.position;
+                to.y = 0f;
+                wish = to.sqrMagnitude > 1f ? to.normalized : Vector3.zero;
+            }
 
             float factor = me != null ? me.SpeedFactor : 1f;
             float speed = cfg.moveSpeed * factor;

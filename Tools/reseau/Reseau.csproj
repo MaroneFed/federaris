@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Assets/_Fief/Scripts/Net/NetLink.cs" />
+    <Compile Include="../../Assets/_Fief/Scripts/Net/NetFinder.cs" />
     <Compile Include="Essai.cs" />
   </ItemGroup>
 </Project>

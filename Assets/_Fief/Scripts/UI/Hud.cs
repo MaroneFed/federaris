@@ -541,6 +541,8 @@ namespace Fief
             if (me.Inverted) { states.Add("inversion"); tints.Add(AbilityInfo.Tint(Ability.Inversion)); }
             if (me.Tiny) { states.Add("mini"); tints.Add(AbilityInfo.Tint(Ability.Mini)); }
             if (me.Ballooned) { states.Add("ballon"); tints.Add(AbilityInfo.Tint(Ability.Ballon)); }
+            if (me.Charmed) { states.Add("hypnose"); tints.Add(AbilityInfo.Tint(Ability.Hypnose)); }
+            if (Time.time < me.SuperShoveUntil) { states.Add("coup-de-pied"); tints.Add(AbilityInfo.Tint(Ability.CoupDePied)); }
             if (Game.Player != null && Game.Player.Gliding && Thermal.LiftAt(me.Body.position) > 0.5f) { states.Add("courant"); tints.Add(new Color(0.75f, 0.92f, 1f)); }
             else if (me.HasWings || me.Has(Ability.Planeur)) { states.Add("ailes"); tints.Add(Wings.Gold); }
             if (me.CarriesCrown) { states.Add("couronne"); tints.Add(new Color(1f, 0.86f, 0.35f)); }

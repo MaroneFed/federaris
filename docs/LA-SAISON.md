@@ -190,7 +190,7 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 
 ---
 
-## Les 58 capacités
+## Les 78 capacités
 
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le
@@ -264,8 +264,29 @@ frappent l'ami **chez lui**. C'est la seule exception à « on n'est jamais éto
 | **Toupie** | Quatre secondes : tu tournes, tu cours plus vite, et qui te touche est éjecté. | 13 s |
 | **Encre** | Vise un joueur : de l'encre lui couvre l'écran cinq secondes (un bot avance au hasard). | 12 s |
 
-Interdites au porteur (« mains prises », sauf Porteur) : toutes, sauf la Glu et la Peau de
-banane (pour semer ses poursuivants) ; le Fantôme, jamais (« trop lourd »).
+**La deuxième fournée** (07/10, v28 — Martin : « fais encore plus de capas, plus, plus, plus » ;
+`World/Folies.cs`) :
+
+| Capacité | Ce que ça fait | Recharge |
+|---|---|---|
+| **Lasso** | Vise un joueur (40 m) : tu l'attrapes et tu le jettes **là où tu regardes**. | 11 s |
+| **Missile** | Un missile part devant puis poursuit le joueur le plus proche ; BOUM au contact (ou au bout de 4 s). | 12 s |
+| **Apesanteur** | Tous ceux qui sont à 14 m s'envolent comme des ballons (2,5 s), puis éclatent. | 14 s |
+| **Traînée de feu** | Quatre secondes, tu sèmes des flammes derrière toi ; qui marche dedans est projeté. | 12 s |
+| **Pogo** | Cinq secondes de bâton sauteur : dès que tu touches le sol, tu rebondis très haut. | 12 s |
+| **Geyser** | Vise un joueur (45 m) : un geyser jaillit sous ses pieds 0,6 s après (on le voit bouillonner). | 10 s |
+| **Boomerang** | Il part à 20 m et revient : il frappe à l'aller ET au retour. | 8 s |
+| **Piège à loup** | Un piège à tes pieds (deux au plus, armé en 1 s) : qui marche dessus est coincé trois secondes. | 10 s |
+| **Catapulte** | Tu te lances en cloche loin devant. Pas avec la Couronne. | 9 s |
+| **Bataille d'oreillers** | Six oreillers d'affilée, droit où tu regardes : paf, paf, paf. | 9 s |
+| **Hypnose** | Vise un joueur : trois secondes, ses pieds marchent tout seuls vers toi. | 14 s |
+| **Raz-de-marée** | Une vague part de toi et grandit jusqu'à 22 m : elle emporte tout ce qu'elle traverse. | 12 s |
+| **Coup de pied** | Ta prochaine poussée (dans les 5 s) envoie trois fois plus loin. | 7 s |
+| **Cri** | Un cri si fort que tous ceux qui sont devant toi, à 12 m, sont sonnés (0,7 s). | 10 s |
+
+Interdites au porteur (« mains prises », sauf Porteur) : toutes, sauf la Glu, la Peau de
+banane, la Traînée de feu, le Piège à loup et le Pogo (pour semer ses poursuivants) et le Coup
+de pied ; le Fantôme et la Catapulte, jamais (« trop lourd »).
 
 ### Passives (toujours là)
 
@@ -293,6 +314,12 @@ banane (pour semer ses poursuivants) ; le Fantôme, jamais (« trop lourd »).
 | **Ange gardien** | Une fois par manche, tomber dans les nuages te ramène là où tu touchais le sol — jamais sur la tour (pas de point de reprise sur la tour). |
 | **Rage** | Chaque coup reçu rend ta prochaine poussée plus forte (+25 % par coup, ×2,5 au plus). |
 | **Ninja** | Immobile une seconde au sol (sans la Couronne), tu deviens invisible. |
+| **Miroir** | Les sorts qu'on te lance (prison, encre, mini, hypnose…) reviennent à l'envoyeur. |
+| **Increvable** | Les sorts qu'on te lance durent deux fois moins longtemps. |
+| **Pickpocket** | Quand tu voles la Couronne, tu disparais deux secondes. |
+| **Chanceux** | Une fois sur trois, ta capacité active revient tout de suite. |
+| **Armure** | Le premier coup qu'un joueur te donne dans la manche ne te fait rien. |
+| **Sprinter** | Les vingt premières secondes de la manche, tu cours 35 % plus vite. |
 
 (06/10 : **l'Aimant est retiré** — Martin : « un truc qui TP la couronne vers toi, c'est
 n'importe quoi, il faut quand même monter la tour ».)

@@ -27,6 +27,7 @@ namespace Fief
         static bool stealAttempt;
         static bool riposting;
         static bool exploding;
+        static bool mirroring;
 
         /// <summary>
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
@@ -40,6 +41,8 @@ namespace Fief
             if (by.Giant) force *= 1.6f;
             // (06/10) RAGE : chaque coup recu depuis ta derniere poussee la rend plus forte (x2,5 au plus).
             if (by.Rage > 0) { force *= 1f + 0.25f * by.Rage; by.Rage = 0; }
+            // (07/10) COUP DE PIED : cette poussee-ci envoie trois fois plus loin.
+            bool kick = Time.time < by.SuperShoveUntil;
             float reach = ReachOf(by);
             Seeker best = null;
             float bestD = float.MaxValue;
@@ -51,6 +54,7 @@ namespace Fief
                 if (d < bestD) { bestD = d; best = s; }
             }
             if (best == null) return false;
+            if (kick) { force *= 3f; by.SuperShoveUntil = -1f; Fx.Shock(best.Body.position + Vector3.up, AbilityInfo.Tint(Ability.CoupDePied), 3f, 0.3f); }
             Vector3 push = Flat(best.Body.position - by.Body.position).normalized;
             if (push.sqrMagnitude < 0.01f) push = f;
             // POUSSER LE PORTEUR, C'EST LUI VOLER LA COURONNE (27/09 -- Martin : "il se la
@@ -182,6 +186,15 @@ namespace Fief
             if (victim.Has(Ability.Ancrage)) velocity = new Vector3(velocity.x * 0.5f, velocity.y * 0.7f, velocity.z * 0.5f);
             // (05/10) Le GEANT ne bouge presque pas.
             if (victim.Giant) velocity *= 0.3f;
+            // (07/10) L'ARMURE : le premier coup d'un joueur dans la manche ne fait rien.
+            if (by != null && by != victim && victim.Has(Ability.Armure) && !victim.ArmorUsed)
+            {
+                victim.ArmorUsed = true;
+                Fx.Shock(victim.Body.position + Vector3.up * 1.1f, AbilityInfo.Tint(Ability.Armure), 2.2f, 0.3f);
+                Fx.Sparks(victim.Body.position + Vector3.up * 1.1f, Color.white, 20, 5f);
+                Sfx.ClangAt(victim.Body.position);
+                return;
+            }
             // (06/10) Le MINI part deux fois plus loin.
             if (victim.Tiny) velocity = new Vector3(velocity.x * 2f, velocity.y * 1.3f, velocity.z * 2f);
             // La PRISON : le premier coup brise la cage (sinon dix secondes, c'est horrible).
@@ -280,7 +293,7 @@ namespace Fief
         /// touchent pas un ami -- il a les siens, chez lui, au bon endroit.
         /// </summary>
         /// <summary>Ce que les capacites de fou font a leur cible (06/10).</summary>
-        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6 }
+        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6, Charmed = 7 }
 
         /// <summary>
         /// LES SORTS DES CAPACITES DE FOU (06/10 -- Martin : "une prison qui t'enchaine au sol
@@ -291,6 +304,17 @@ namespace Fief
         public static bool Afflict(Seeker victim, Affliction what, float seconds, Seeker by)
         {
             if (victim == null || victim.Body == null || victim.Graced) return false;
+            // (07/10) MIROIR : le sort revient a l'envoyeur (une seule fois, pas de ping-pong).
+            if (victim.Has(Ability.Miroir) && by != null && by != victim && by.Body != null && !mirroring)
+            {
+                mirroring = true;
+                Fx.Shock(victim.Body.position + Vector3.up * 1.2f, AbilityInfo.Tint(Ability.Miroir), 2f, 0.3f);
+                bool back = Afflict(by, what, seconds, victim);
+                mirroring = false;
+                return back;
+            }
+            // INCREVABLE : les sorts durent deux fois moins longtemps.
+            if (victim.Has(Ability.Increvable)) seconds *= 0.5f;
             seconds = Mathf.Clamp(seconds, 0f, 12f);
             float until = Time.time + seconds;
             switch (what)
@@ -301,6 +325,11 @@ namespace Fief
                 case Affliction.Tiny: victim.TinyUntil = Mathf.Max(victim.TinyUntil, until); break;
                 case Affliction.Ink: victim.InkUntil = Mathf.Max(victim.InkUntil, until); break;
                 case Affliction.Balloon: victim.BalloonUntil = Mathf.Max(victim.BalloonUntil, until); break;
+                case Affliction.Charmed:
+                    if (by == null) return false;
+                    victim.CharmedUntil = Mathf.Max(victim.CharmedUntil, until);
+                    victim.CharmedBy = by;
+                    break;
             }
             Mayhem.Show(victim, what, by);
             if (victim.Remote && by != null && !by.Remote) NetGame.RemoteAfflict(victim, what, seconds, by);
@@ -640,7 +669,7 @@ namespace Fief
             s.StunnedUntil = -1f;
             s.SlowUntil = -1f;
             // Les sorts des capacites de fou ne survivent pas au plongeon.
-            s.RootedUntil = s.GluedUntil = s.InvertedUntil = s.TinyUntil = s.InkUntil = s.BalloonUntil = -1f;
+            s.RootedUntil = s.GluedUntil = s.InvertedUntil = s.TinyUntil = s.InkUntil = s.BalloonUntil = s.CharmedUntil = -1f;
             if (angel) Fx.Column(at, AbilityInfo.Tint(Ability.AngeGardien), 30f, 0.6f, 1.2f);
             Fx.Respawn(at, s.Colour);
             Feed.FellIntoClouds(s);

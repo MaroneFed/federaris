@@ -1074,7 +1074,7 @@ namespace Fief
             // voit, il est remis sur son chemin (comme tous les jeux le font avec leurs bots).
             if (!body.enabled || gliding || ballistic || leaping || mounted) { noProgress = 0f; unstick = 0; return; }
             // (06/10) Enchaine, englue, aveugle, a l'envers : ce n'est pas etre coince.
-            if (seeker.Rooted || seeker.Glued || seeker.Inverted || seeker.Inked || seeker.Ballooned || seeker.Stunned) { noProgress = 0f; return; }
+            if (seeker.Rooted || seeker.Glued || seeker.Inverted || seeker.Inked || seeker.Ballooned || seeker.Charmed || seeker.Stunned) { noProgress = 0f; return; }
             float remaining = path.Count * 1000f + Flat(step - transform.position).magnitude;
             if (remaining < progressBest - 0.8f) { progressBest = remaining; noProgress = 0f; unstick = 0; return; }
             // Attendre que le pendule passe, ce n'est pas etre coince.
@@ -1331,6 +1331,53 @@ namespace Fief
                     case Ability.Toupie:
                         go = !Tower.On(me) && (near >= 1 && (goal == Goal.Hunt || goal == Goal.Fight) || prey != null && prey.CarriesCrown && preyD < 8f);
                         break;
+                    // ---- la deuxieme fournee (07/10)
+                    case Ability.Hypnose:
+                    case Ability.Geyser:
+                        go = victim != null;
+                        aim = toVictim;
+                        break;
+                    case Ability.Lasso:
+                        // Il l'attrape et le jette... vers le vide le plus proche (dos au centre de l'ile).
+                        go = victim != null && (victim.Body.position - me).magnitude < 30f && (!Tower.On(me) || victim.IsPlayer || victim.CarriesCrown);
+                        aim = toVictim;
+                        break;
+                    case Ability.Missile:
+                    case Ability.Oreillers:
+                        go = prey != null && preyD < (a == Ability.Missile ? 38f : 22f) && (prey.CarriesCrown || goal == Goal.Fight)
+                             && (!Tower.On(me) || prey.IsPlayer || prey.CarriesCrown);
+                        aim = toPrey;
+                        break;
+                    case Ability.Boomerang:
+                        go = prey != null && preyD < 18f && Mathf.Abs(toPrey.y) < 3f && (prey.CarriesCrown || goal == Goal.Fight)
+                             && (!Tower.On(me) || prey.IsPlayer || prey.CarriesCrown);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.Apesanteur:
+                    case Ability.Raz:
+                        go = !Tower.On(me) && near >= 2 || prey != null && prey.CarriesCrown && preyD < (a == Ability.Raz ? 18f : 12f);
+                        break;
+                    case Ability.Cri:
+                        go = prey != null && prey.CarriesCrown && preyD < 11f;
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.CoupDePied:
+                        go = prey != null && preyD < 6f && seeker.CanShove && (prey.CarriesCrown || goal == Goal.Fight);
+                        break;
+                    case Ability.Flammes:
+                    case Ability.PiegeLoup:
+                    case Ability.Pogo:
+                        // Le porteur poursuivi seme le feu, les pieges -- ou rebondit pour s'echapper.
+                        go = carrying && Chasers(10f) > 0 && body.isGrounded && !gliding && (a != Ability.Pogo || !Tower.On(me));
+                        break;
+                    case Ability.Catapulte:
+                    {
+                        Vector3 land = me + Flat(toWaypoint).normalized * 22f;
+                        go = !Tower.On(me) && !Castle.Inside(me) && body.isGrounded && Ground.OnIsland(land.x, land.z) && !gliding && !ballistic
+                             && farToGo > 26f && (goal == Goal.Hunt || goal == Goal.Grab || goal == Goal.Raid);
+                        aim = Flat(toWaypoint);
+                        break;
+                    }
                 }
                 if (!go) continue;
                 if (aim.sqrMagnitude < 0.01f) aim = transform.forward;
@@ -1455,7 +1502,8 @@ namespace Fief
             Wings.Tick(seeker, grounded);
             if (grounded || !seeker.CanGlide) gliding = false;
             // (06/10) TETE A L'ENVERS : il part a reculons ; ENCRE : il avance au hasard, en zigzag.
-            if (seeker.Inverted) dir = -dir;
+            if (seeker.Charmed) { Vector3 toCharmer = Flat(seeker.CharmedBy.Body.position - transform.position); if (toCharmer.sqrMagnitude > 1f) { dir = toCharmer.normalized; if (speed > 0f) speed = Mathf.Max(speed, WalkSpeed); } }
+            else if (seeker.Inverted) dir = -dir;
             else if (seeker.Inked) dir = Quaternion.Euler(0f, Mathf.Sin(Time.time * 2.3f + seeker.Index) * 80f, 0f) * dir;
             // LE NINJA : immobile une seconde au sol (sans la Couronne), il disparait.
             if (seeker.Has(Ability.Ninja) && grounded && speed < 0.3f && !seeker.CarriesCrown)

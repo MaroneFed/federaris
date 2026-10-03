@@ -60,7 +60,7 @@ namespace Fief
             }
         }
 
-        /// <summary>REJOINDRE la partie de "address" (une adresse IP).</summary>
+        /// <summary>REJOINDRE la partie de "address" : une adresse IP, ou un CODE de partie (06/10).</summary>
         public static void Join(string address)
         {
             Leave();
@@ -70,7 +70,7 @@ namespace Fief
             {
                 Ensure();
                 Settings.Load();
-                Link = NetLink.Join(address, NetLink.DefaultPort, Settings.Shown, Time.unscaledTime);
+                Link = NetLink.Join(NetCode.ToAddress(address), NetLink.DefaultPort, Settings.Shown, Time.unscaledTime);
             }
             catch (System.Exception e)
             {
@@ -89,8 +89,47 @@ namespace Fief
             if (Match.Online) Match.Abandon();
         }
 
+        // ================================================================== la liste des parties (06/10)
+
+        /// <summary>Le chercheur de parties (seulement tant que l'ecran En ligne le demande).</summary>
+        public static NetFinder Finder { get; private set; }
+        static float findUntil;
+
+        /// <summary>L'ecran En ligne l'appelle a chaque image : on cherche les parties du reseau.</summary>
+        public static void KeepFinding()
+        {
+            findUntil = Time.unscaledTime + 0.5f;
+            if (Finder != null) return;
+            try { Ensure(); Finder = NetFinder.Start(NetLink.DefaultPort); }
+            catch (System.Exception e) { Finder = null; Debug.LogWarning("[FIEF] Réseau (recherche) : " + e.Message); }
+        }
+
+        /// <summary>
+        /// LE CODE DE TA PARTIE (06/10 -- "c'est chiant de mettre ton IP, trouve un code") : ton
+        /// adresse sur le reseau local en 7 signes. On prefere celle de la box (192.168..., 10...),
+        /// puis celle de Radmin VPN (26...).
+        /// </summary>
+        public static string MyCode
+        {
+            get
+            {
+                string best = null;
+                foreach (string a in NetLink.LocalAddresses())
+                {
+                    if (a.StartsWith("192.168.") || a.StartsWith("10.") || a.StartsWith("172.")) { best = a; break; }
+                    if (best == null) best = a;
+                }
+                return NetCode.Encode(best);
+            }
+        }
+
         void Update()
         {
+            if (Finder != null)
+            {
+                if (Time.unscaledTime > findUntil || Link != null) { Finder.Dispose(); Finder = null; }
+                else Finder.Poll(Time.unscaledTime);
+            }
             if (Link == null) return;
             Link.Poll(Time.unscaledTime);
             // (04/10, etape 2) Les messages du jeu : l'etat du match, les positions, les coups.

@@ -394,7 +394,7 @@ namespace Fief
             {
                 case State.Title: return TitleItems.Length;
                 case State.Lobby: return LobbyRows + 2;
-                case State.Online: return NetSession.Link == null ? 3 : HostingSalon ? OnlineRows + 2 : 1;
+                case State.Online: return NetSession.Link == null ? 3 + FoundCount : HostingSalon ? OnlineRows + 2 : 1;
                 case State.Paused: return PauseItems.Length;
                 case State.RoundOver: return stateTime > 3f ? 1 : 0;
                 case State.Ended: return stateTime > 1.5f ? EndItems.Length : 0;
@@ -446,7 +446,14 @@ namespace Fief
                     if (NetSession.Link != null) { NetSession.Leave(); break; }
                     if (i == 0) NetSession.Host();
                     else if (i == 1) NetSession.Join(joinAddress);
-                    else Go(State.Title);
+                    else if (i == 2) Go(State.Title);
+                    // (06/10) Une partie de la liste : un clic, on la rejoint.
+                    else if (i - 3 < FoundCount)
+                    {
+                        Fief.Net.NetFinder.Found g = NetSession.Finder.Games[i - 3];
+                        if (g.Started || !g.SameVersion) { Sfx.Deny(); break; }
+                        NetSession.Join(g.Address);
+                    }
                     break;
                 case State.Paused:
                     if (i == 0) Resume();
@@ -1348,6 +1355,45 @@ namespace Fief
         /// partie, la rejoindre par son adresse, et voir le meme SALON (les pseudos de tous, leur
         /// ping). Lancer le match ensemble, c'est l'etape 2 (docs/RESEAU.md).
         /// </summary>
+        /// <summary>Combien de parties la liste montre (0 si l'on ne cherche pas).</summary>
+        int FoundCount { get { return NetSession.Link == null && NetSession.Finder != null ? Mathf.Min(6, NetSession.Finder.Games.Count) : 0; } }
+
+        /// <summary>
+        /// LES PARTIES DU RESEAU (06/10 -- Martin : "comme dans FPS Chess, toutes les games sont la
+        /// et tu peux les rejoindre") : une pastille par partie entendue -- le pseudo de l'hote, le
+        /// nombre de joueurs ; un clic, on la rejoint. Grisee si elle a deja commence (ou si ce
+        /// n'est pas la meme version du jeu).
+        /// </summary>
+        void DrawFoundGames(float x, float y, float bw, float bh)
+        {
+            NetSession.KeepFinding();
+            Fief.Net.NetFinder finder = NetSession.Finder;
+            float ih = UiStyle.S(40);
+            Icons.Pill(new Rect(x, y, ih, ih), new Color(0.2f, 0.24f, 0.55f));
+            Icons.Draw(new Rect(x + ih * 0.15f, y + ih * 0.15f, ih * 0.7f, ih * 0.7f), "en-ligne", Color.white);
+            Icons.Number(new Rect(x + ih + UiStyle.S(12), y, UiStyle.S(400), ih), "PARTIES", Mathf.RoundToInt(UiStyle.S(28)), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
+            y += ih + UiStyle.S(12);
+            int n = FoundCount;
+            if (n == 0)
+            {
+                // On cherche : un sablier qui bat.
+                Rect wait = new Rect(x, y, bw, bh);
+                Icons.Pill(wait, new Color(0.14f, 0.16f, 0.36f, 0.8f));
+                float beat = 0.8f + 0.2f * Mathf.Sin(Time.unscaledTime * 6f);
+                Icons.Draw(new Rect(wait.x + bh * 0.14f, wait.y + bh * 0.12f, bh * 0.76f * beat, bh * 0.76f * beat), "chrono", Color.white);
+                Icons.Number(new Rect(wait.x + bh, wait.y, wait.width - bh * 1.2f, bh), "Recherche...", Mathf.RoundToInt(bh * 0.42f), new Color(1f, 1f, 1f, 0.75f), TextAnchor.MiddleCenter);
+                return;
+            }
+            for (int i = 0; i < n; i++)
+            {
+                Fief.Net.NetFinder.Found g = finder.Games[i];
+                bool open = !g.Started && g.SameVersion && g.Players < g.Max;
+                string label = g.Host + "   " + g.Players + "/" + g.Max + (g.Started ? "  (en jeu)" : !g.SameVersion ? "  (autre version)" : "");
+                if (Entry(new Rect(x, y, bw + UiStyle.S(140), bh), label, 3 + i, open, open ? 1f : 0.45f)) Activate(3 + i);
+                y += bh + UiStyle.S(10);
+            }
+        }
+
         void DrawOnline()
         {
             Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f));
@@ -1383,7 +1429,11 @@ namespace Fief
                 PseudoBadge(1f);
                 y += bh + UiStyle.S(24);
                 if (!string.IsNullOrEmpty(NetSession.Problem))
+                {
                     Icons.Text(new Rect(x, y, UiStyle.S(700), UiStyle.S(40)), NetSession.Problem, Mathf.RoundToInt(UiStyle.S(22)), new Color(1f, 0.5f, 0.42f), TextAnchor.MiddleLeft, true);
+                    y += UiStyle.S(48);
+                }
+                DrawFoundGames(x, y, bw, bh);
                 return;
             }
 
@@ -1396,9 +1446,11 @@ namespace Fief
             Icons.Draw(new Rect(state.x + s * 0.15f, state.y + s * 0.15f, s * 0.7f, s * 0.7f), ok ? "coche" : waiting ? "chrono" : "croix", Color.white);
             if (link.IsHost)
             {
-                // L'adresse a donner a l'ami (sur le meme reseau : la box, le wifi de la maison).
+                // (06/10) LE CODE a donner a l'ami, en gros ; les adresses, en petit dessous. (Sur le
+                // meme reseau, il n'a meme pas besoin du code : ta partie est dans sa liste.)
+                Icons.Number(new Rect(state.xMax + UiStyle.S(16), y - UiStyle.S(4), UiStyle.S(500), s * 0.75f), "Code  " + NetSession.MyCode, Mathf.RoundToInt(UiStyle.S(36)), new Color(1f, 0.86f, 0.4f), TextAnchor.MiddleLeft);
                 string all = string.Join("   ", Fief.Net.NetLink.LocalAddresses().ToArray());
-                Icons.Text(new Rect(state.xMax + UiStyle.S(16), y, UiStyle.S(700), s), all, Mathf.RoundToInt(UiStyle.S(30)), Color.white, TextAnchor.MiddleLeft, true);
+                Icons.Text(new Rect(state.xMax + UiStyle.S(16), y + s * 0.62f, UiStyle.S(700), s * 0.4f), all, Mathf.RoundToInt(UiStyle.S(18)), new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleLeft, true);
             }
             else if (link.Status == Fief.Net.NetLink.State.Connected)
                 Icons.Number(new Rect(state.xMax + UiStyle.S(16), y, UiStyle.S(300), s), Mathf.RoundToInt(link.PingToHost) + " ms", Mathf.RoundToInt(UiStyle.S(30)), Color.white, TextAnchor.MiddleLeft);

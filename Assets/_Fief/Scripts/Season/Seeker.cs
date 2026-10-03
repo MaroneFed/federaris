@@ -223,6 +223,14 @@ namespace Fief
         public bool Tiny { get { return Time.time < TinyUntil; } }
         public bool Inked { get { return Time.time < InkUntil; } }
         public bool Ballooned { get { return Time.time < BalloonUntil; } }
+        /// <summary>(07/10) HYPNOSE : il marche vers celui qui l'a hypnotise.</summary>
+        public float CharmedUntil = -1f;
+        public Seeker CharmedBy;
+        public bool Charmed { get { return Time.time < CharmedUntil && CharmedBy != null && CharmedBy.Body != null; } }
+        /// <summary>(07/10) COUP DE PIED : sa prochaine poussee envoie trois fois plus loin, jusqu'a cet instant.</summary>
+        public float SuperShoveUntil = -1f;
+        /// <summary>(07/10) L'ARMURE a deja servi cette manche.</summary>
+        public bool ArmorUsed;
         /// <summary>Ni saut ni second saut (enchaine, englue, en ballon).</summary>
         public bool NoJump { get { return Rooted || Glued || Ballooned; } }
 
@@ -244,6 +252,8 @@ namespace Fief
                 if (Time.time < RushUntil) f *= 1.3f;
                 if (Slowed) f *= 0.5f;
                 if (Tiny) f *= 0.75f;
+                // (07/10) SPRINTER : les vingt premieres secondes de la manche, il file.
+                if (Has(Ability.Sprinter) && Game.Season != null && Game.Season.Elapsed < 20f) f *= 1.35f;
                 if (Glued) f *= 0.3f;
                 if (Stunned || Rooted) f = 0f;
                 return f;

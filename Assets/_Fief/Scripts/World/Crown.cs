@@ -594,6 +594,8 @@ namespace Fief
                 if (Game.Hud != null) { Game.Hud.Flash(new Color(1f, 0.8f, 0.35f, 0.7f)); Game.Hud.ShowSplash("couronne", Gold, "TU AS VOLÉ LA COURONNE !"); }
             }
             if (victim.IsPlayer && Game.Hud != null) Game.Hud.CrownLost();
+            // (07/10) PICKPOCKET : le voleur disparait deux secondes.
+            if (thief.Has(Ability.Pickpocket)) { thief.HiddenUntil = Mathf.Max(thief.HiddenUntil, Time.time + 2f); Fx.Burst(thief.Body.position + Vector3.up, AbilityInfo.Tint(Ability.Pickpocket), 40, 5f, 0.3f, 0.8f, 0f, Vector3.zero, 0f); }
             Shouts.Stolen(thief, victim);
             Feed.CrownStolen(thief, victim);
             Highlights.CrownChanged(thief);
