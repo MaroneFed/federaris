@@ -86,6 +86,24 @@ namespace Fief
             if (!best.Graced) Sfx.BigPush(best.Body.position, by.IsPlayer || best.IsPlayer);
             if (by.IsPlayer) { Stats.Shoves++; Hud.HitStop(0.07f); }
             if (by.IsPlayer && !best.Graced && !stole) Shouts.IPushed(best);
+            // (08/10) EXPLOSIF (divin) : celui qu'on pousse explose -- ses voisins s'envolent.
+            if (by.Has(Ability.Explosif) && !best.Graced && !stole)
+            {
+                Vector3 c = best.Body.position;
+                for (int i = 0; i < Game.Seekers.Count; i++)
+                {
+                    Seeker o = Game.Seekers[i];
+                    if (o == by || o == best || o.Body == null) continue;
+                    Vector3 d = o.Body.position - c;
+                    if (Mathf.Abs(d.y) > 3f || Flat(d).magnitude > 7f) continue;
+                    Vector3 away = Flat(d).sqrMagnitude > 0.01f ? Flat(d).normalized : Vector3.forward;
+                    Hit(o, away * 22f + Vector3.up * 11f, 0.3f, true, by);
+                }
+                Color k = AbilityInfo.Tint(Ability.Explosif);
+                Fx.Shock(c + Vector3.up, k, 7f, 0.4f);
+                Fx.Burst(c + Vector3.up, k, 120, 18f, 0.25f, 0.8f, 0f, Vector3.zero, 0f);
+                Sfx.KoBoom(c, true);
+            }
             if (!best.Graced) Highlights.Shoved(by, best, stole);
             return true;
         }

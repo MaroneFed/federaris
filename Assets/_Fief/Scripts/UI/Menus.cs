@@ -934,6 +934,10 @@ namespace Fief
             hoverFollows = mouseMoved;
 
             if (Current == State.Title || Current == State.Lobby || Current == State.Online) GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
+            // (08/10 -- "quand tu appuies sur la pastille, tout l'ecran se met dans un autre truc") :
+            // le salon en Mode Dieu allume le ciel de feu (GodSky) ; l'ecran rougeoie et brule.
+            GodSky.MenuGod = lobbyGod && (Current == State.Lobby || Current == State.Online && HostingSalon);
+            if (Current == State.Lobby || Current == State.Online || Current == State.Draft) GodSky.DrawOverlay(true);
             if (veil > 0.001f) UiStyle.Fill(screen, new Color(0.015f, 0.014f, 0.012f, 0.84f * veil));
 
             // (02/10) Un ecran qui plante ne laisse plus la couleur ou le zoom de travers (sinon
@@ -965,6 +969,7 @@ namespace Fief
             }
             GUI.color = Color.white;
             GUI.matrix = Matrix4x4.identity;
+            GodSky.DrawFlash();
 
             // Le rideau passe par-dessus tout, y compris le texte.
             if (curtain > 0.001f) UiStyle.Fill(screen, new Color(0f, 0f, 0f, curtain));

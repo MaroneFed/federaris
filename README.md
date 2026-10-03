@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v29 · Mode Dieu · 08/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v30 · ciel de feu · 08/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 
@@ -153,8 +153,8 @@ Tu peux les modifier **pendant que le jeu tourne** pour sentir l'effet immédiat
 |---|---|
 | Vitesse, saut, brume, lanterne, taille de la carte | `Scripts/Core/GameConfig.cs` |
 | Les manches, le départage, le choix des capacités | `Scripts/Match/Match.cs` |
-| Le Mode Dieu (la table divine, les recharges) | `Scripts/Match/Abilities.cs` (`InGodPool`), `Scripts/Match/Match.cs` (`GodMode`) ; les divines : `Scripts/World/Dieu.cs` |
-| Les 93 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » : `Scripts/World/Mayhem.cs` (prison, bombe, ballon...) et `Folies.cs` (missile, geyser, boomerang...) |
+| Le Mode Dieu (la table divine, les recharges) | `Scripts/Match/Abilities.cs` (`InGodPool`), `Scripts/Match/Match.cs` (`GodMode`) ; les divines : `Scripts/World/Dieu.cs` ; le ciel de feu : `Scripts/World/GodSky.cs` |
+| Les 106 capacités (noms, phrases, recharges, couleurs) | `Scripts/Match/Abilities.cs` ; celles « de malade » : `Scripts/World/Powers.cs` ; celles « de fou » : `Scripts/World/Mayhem.cs` (prison, bombe, ballon...) et `Folies.cs` (missile, geyser, boomerang...) |
 | Ce que fait chaque capacité | `Scripts/World/AbilityCaster.cs` (mines, murs : `Effects.cs`) |
 | Pousser, projeter | `Scripts/World/Combat.cs` ; les touches : `Scripts/Player/AbilityUser.cs` |
 | La Couronne (et le vol), le Monument, les sanctuaires | `Scripts/World/Crown.cs`, `Monument.cs`, `Shrine.cs` |

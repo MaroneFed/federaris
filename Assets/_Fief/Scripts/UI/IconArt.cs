@@ -37,6 +37,8 @@ namespace Fief
             "hypnose", "raz", "coup-de-pied", "cri", "miroir", "increvable", "pickpocket", "chanceux", "armure", "sprinter",
             "dieu", "apocalypse", "arret-temps", "rayon", "teleport", "tempete", "nuke", "main-dieu", "essaim", "gravite",
             "invincible", "colosse", "eclair", "main-lourde", "phenix", "sablier",
+            "bombardement", "singularite", "dragon", "comete", "cataclysme", "chaos", "anneau-feu", "geole", "tsunami",
+            "foudre-chaine", "explosif", "lave", "echo",
             "etourdi", "chute", "ko", "clip"
         };
 
@@ -928,6 +930,118 @@ namespace Fief
                     float arc = Max(Ring(x, y, 0.88f, 0.06f), -x + 0.2f);
                     float head = Poly(x, y, 0.62f, 0.5f, 0.9f, 0.62f, 0.62f, 0.85f);
                     return Min(Min(glass, bars), Min(arc, head));
+                }
+                // ============================================ les divines, deuxieme vague (v30)
+                case "bombardement":
+                {
+                    // Trois bombes qui tombent, chacune sa trainee.
+                    float d = float.MaxValue;
+                    for (int k = -1; k <= 1; k++)
+                    {
+                        float bx = k * 0.6f, by = 0.42f - (k == 0 ? 0.3f : 0f);
+                        d = Min(d, Circle(x - bx, y - by, 0.24f));
+                        d = Min(d, Seg(x, y, bx, by - 0.3f, bx, by - 0.78f, 0.06f));
+                    }
+                    return d;
+                }
+                case "singularite":
+                {
+                    // Un point noir, un anneau, et tout ce qui est aspire vers lui.
+                    float d = Min(Circle(x, y, 0.2f), Ring(x, y, 0.46f, 0.055f));
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float a = k * 0.7854f + 0.39f;
+                        float c = (float)Math.Cos(a), sn = (float)Math.Sin(a);
+                        d = Min(d, Seg(x, y, c * 0.66f, sn * 0.66f, c * 0.94f, sn * 0.94f, 0.07f));
+                    }
+                    return d;
+                }
+                case "dragon":
+                {
+                    // Une tete cornue qui crache un cone de feu.
+                    float head = Min(Circle(x + 0.55f, y + 0.02f, 0.3f), Box(x + 0.25f, y - 0.06f, 0.2f, 0.14f, 0.1f));
+                    float horn = Poly(x, y, -0.78f, -0.18f, -0.52f, -0.26f, -0.92f, -0.62f);
+                    head = Min(head, horn);
+                    head = Sub(head, Circle(x + 0.55f, y + 0.1f, 0.07f));
+                    float fire = Poly(x, y, -0.02f, 0.02f, 0.95f, -0.42f, 0.95f, 0.46f);
+                    fire = Sub(fire, Min(Circle(x - 1.02f, y + 0.18f, 0.16f), Circle(x - 1.02f, y - 0.24f, 0.16f)));
+                    return Min(head, Sub(fire, Box(x - 0.08f, y, 0.06f, 0.6f, 0f)));
+                }
+                case "comete":
+                {
+                    float ball = Circle(x - 0.42f, y - 0.42f, 0.34f);
+                    float tail = Poly(x, y, 0.14f, 0.66f, 0.66f, 0.14f, -0.92f, -0.92f);
+                    float spark = Star(x + 0.62f, y - 0.5f, 0.24f, 0.09f, 4);
+                    return Min(Min(ball, tail), spark);
+                }
+                case "cataclysme":
+                {
+                    // Le sol qui se fend et des rochers qui s'envolent.
+                    float ground = Box(x, y - 0.66f, 0.92f, 0.2f, 0.06f);
+                    ground = Sub(ground, Poly4(x, y, -0.12f, 0.42f, 0.12f, 0.42f, 0.04f, 0.92f, -0.04f, 0.92f));
+                    float rocks = Min(Box(x + 0.5f, y + 0.12f, 0.17f, 0.15f, 0.04f), Min(Box(x, y + 0.62f, 0.2f, 0.18f, 0.05f), Box(x - 0.55f, y + 0.22f, 0.15f, 0.13f, 0.04f)));
+                    float lines = Min(Seg(x, y, -0.32f, 0.3f, -0.42f, 0.0f, 0.05f), Seg(x, y, 0.3f, 0.3f, 0.4f, 0.05f, 0.05f));
+                    return Min(Min(ground, rocks), lines);
+                }
+                case "chaos":
+                {
+                    // Deux fleches qui se croisent : on melange tout le monde.
+                    float a = Seg(x, y, -0.85f, 0.5f, 0.48f, -0.48f, 0.09f);
+                    float b = Seg(x, y, -0.85f, -0.5f, 0.48f, 0.48f, 0.09f);
+                    float ha = Poly(x, y, 0.3f, -0.72f, 0.92f, -0.72f, 0.66f, -0.2f);
+                    float hb = Poly(x, y, 0.3f, 0.72f, 0.92f, 0.72f, 0.66f, 0.2f);
+                    return Min(Min(a, b), Min(ha, hb));
+                }
+                case "anneau-feu":
+                {
+                    float ring = Ring(x, (y - 0.5f) * 2.2f, 0.78f, 0.16f) / 2.2f;
+                    float fl = Min(Flame(x + 0.55f, y - 0.05f, 0.3f), Min(Flame(x, y + 0.12f, 0.42f), Flame(x - 0.55f, y - 0.05f, 0.3f)));
+                    return Min(ring, fl);
+                }
+                case "geole":
+                {
+                    // Une cage dans un cercle : tout le monde autour est enferme.
+                    float frame = Sub(Box(x, y, 0.42f, 0.5f, 0.1f), Box(x, y, 0.3f, 0.38f, 0.04f));
+                    float bars = Box(x, y, 0.06f, 0.42f, 0f);
+                    float ring = Ring(x, y, 0.84f, 0.07f);
+                    return Min(Min(frame, bars), ring);
+                }
+                case "tsunami":
+                {
+                    // Une grande vague qui s'enroule, sur une mer.
+                    float wave = Sub(Circle(x, y + 0.05f, 0.72f), Circle(x - 0.3f, y + 0.18f, 0.5f));
+                    wave = Max(wave, y - 0.55f);
+                    float sea = Box(x, y - 0.68f, 0.95f, 0.13f, 0.08f);
+                    return Min(wave, sea);
+                }
+                case "foudre-chaine":
+                {
+                    // Un eclair au centre, relie a trois cibles.
+                    float bolt = Min(Poly(x, y, 0.1f, -0.52f, -0.24f, 0.06f, 0.04f, 0.06f), Poly(x, y, -0.04f, -0.04f, 0.24f, -0.04f, -0.12f, 0.52f));
+                    float links = Min(Seg(x, y, -0.2f, -0.2f, -0.72f, -0.62f, 0.045f), Min(Seg(x, y, 0.2f, -0.2f, 0.72f, -0.62f, 0.045f), Seg(x, y, 0.15f, 0.3f, 0.7f, 0.66f, 0.045f)));
+                    float dots = Min(Circle(x + 0.74f, y + 0.66f, 0.17f), Min(Circle(x - 0.74f, y + 0.66f, 0.17f), Circle(x - 0.72f, y - 0.68f, 0.17f)));
+                    return Min(Min(bolt, links), dots);
+                }
+                case "explosif":
+                {
+                    // Une deflagration : la poussee qui explose autour de la victime.
+                    float burst = Sub(Star(x, y, 0.96f, 0.5f, 9), Star(x, y, 0.56f, 0.28f, 9));
+                    return Min(burst, Circle(x, y, 0.16f));
+                }
+                case "lave":
+                {
+                    // Une goutte de lave qui coule.
+                    float blob = Circle(x, y + 0.18f, 0.5f);
+                    float drips = Min(Box(x + 0.3f, y - 0.42f, 0.1f, 0.24f, 0.1f), Min(Box(x - 0.05f, y - 0.52f, 0.1f, 0.34f, 0.1f), Box(x - 0.36f, y - 0.36f, 0.09f, 0.18f, 0.09f)));
+                    float drop = Circle(x - 0.05f, y - 0.96f, 0.1f);
+                    return Sub(Min(Min(blob, drips), drop), Circle(x + 0.18f, y + 0.36f, 0.1f));
+                }
+                case "echo":
+                {
+                    // Une etoile et son ombre : le sort repart une seconde fois.
+                    float a = Star(x + 0.3f, y + 0.22f, 0.56f, 0.25f, 5);
+                    float b = Sub(Star(x - 0.3f, y - 0.22f, 0.56f, 0.25f, 5), Star(x - 0.3f, y - 0.22f, 0.42f, 0.13f, 5));
+                    return Min(a, Sub(b, Star(x + 0.3f, y + 0.22f, 0.7f, 0.36f, 5)));
                 }
                 default: return Circle(x, y, 0.6f);
             }

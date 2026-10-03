@@ -101,6 +101,9 @@ namespace Fief
 
             try { Ambiance.Build(worldRoot, player != null ? player.transform : null, config); }
             catch (System.Exception error) { Debug.LogWarning("[FIEF] Ambiance ignorée : " + error.Message); }
+            // (08/10) Le ciel du Mode Dieu (rouge sang, meteores, couronne de feu...), pret a s'allumer.
+            try { GodSky.Build(worldRoot); }
+            catch (System.Exception error) { Debug.LogWarning("[FIEF] Ciel du Mode Dieu ignoré : " + error.Message); }
 
             BuildHud(player);
 

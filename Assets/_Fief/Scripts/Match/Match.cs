@@ -430,7 +430,10 @@ namespace Fief
                                     // (08/10) les divines
                                     Ability.MainDeDieu, Ability.Essaim, Ability.Colosse, Ability.Rayon, Ability.Eclair, Ability.Nuke,
                                     Ability.ArretTemps, Ability.MainLourde, Ability.Apocalypse, Ability.Phenix, Ability.Tempete,
-                                    Ability.Sablier, Ability.GraviteZero, Ability.Teleport, Ability.Invincible };
+                                    Ability.Sablier, Ability.GraviteZero, Ability.Teleport, Ability.Invincible,
+                                    Ability.Comete, Ability.Echo, Ability.Singularite, Ability.Explosif, Ability.Dragon, Ability.Lave,
+                                    Ability.FoudreChaine, Ability.Bombardement, Ability.Geole, Ability.Tsunami, Ability.Cataclysme,
+                                    Ability.AnneauFeu, Ability.Chaos };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

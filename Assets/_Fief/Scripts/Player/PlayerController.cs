@@ -197,6 +197,7 @@ namespace Fief
             if (dt <= 0f) return;
 
             if (me != null && me.Has(Ability.Colosse)) GiantAura.Keep(me);
+            if (me != null && me.Has(Ability.Lave)) LavaBody.Keep(me);
             Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
             // (06/10) TETE A L'ENVERS : avant/arriere, gauche/droite, tout s'inverse.
             if (me != null && me.Inverted) input = -input;

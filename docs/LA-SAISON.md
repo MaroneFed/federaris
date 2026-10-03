@@ -198,13 +198,35 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 - **Le bouton** : « **Mode Dieu** » sur l'écran-titre, juste sous Jouer (une fanfare) ; il ouvre
   le salon en Mode Dieu (le titre dit « MODE DIEU », en or qui bat). Dans le salon — et dans le
   salon en ligne, où l'hôte décide pour tout le monde — la ligne **Mode : Normal / DIEU**.
-- **La table divine** : on ne pioche que les **quinze divines** et les plus folles des autres
+- **La table divine** : on ne pioche que les **trente-trois divines** (vingt-cinq actives, huit passives) et les plus folles des autres
   (Météore, Tornade, Trou noir, Boulet, Géant, Foudre, Prison, Bombe, Ballon, Séisme, Gant,
   Déluge, Missile, Raz-de-marée, Lasso, Geyser, Hypnose, Souffle, Apesanteur ; passives :
   Kamikaze, Riposte, Miroir, Rage, Vampire, Planeur, Poigne, Tête dure). Les sanctuaires
   donnent aussi des divines.
 - **Tout se recharge en 45 % du temps.**
 - **Les règles ne bougent pas** : le sceau, la tour qui se monte à pied, la Couronne lourde.
+
+### Le ciel de feu (v30)
+
+> Martin, le 08/10 : « quand on sélectionne le mode Dieu, tu as tout l'écran qui se met dans un
+> autre truc : des flammes dans le ciel, des trucs de fou ; quand tu appuies sur la petite
+> pastille qui change, c'est un truc de malade mental ».
+
+`World/GodSky.cs`. Au moment où l'on passe en Mode Dieu (le bouton du titre, la pastille
+**Mode** du salon) :
+
+- **le BOUM** : tout l'écran blanchit puis vire à l'orange, une colonne de feu jaillit de la
+  tour, une onde, un grondement, l'écran tremble ;
+- **le ciel vire au rouge sang et à l'or**, la brume devient braise, le soleil grossit et
+  rougit, **la mer de nuages prend feu** ;
+- **une pluie de météores** traverse le ciel, **une couronne de feu** de 140 m tourne au-dessus
+  de la tour, **des flammes** montent de l'horizon, **des braises** volent autour de toi,
+  **des éclairs** tombent au loin ;
+- dans les menus (salon, choix des cartes), **les bords de l'écran rougeoient** et des
+  flammes montent du bas.
+
+Le ciel reste en feu **tout le match** en Mode Dieu (mais rien de plus à l'écran pendant la
+manche : l'écran reste épuré). Repasser en Normal : tout revient doucement.
 
 **Les actives divines** (`World/Dieu.cs` et les autres effets réutilisés) :
 
@@ -220,6 +242,16 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 | **Essaim de missiles** | Huit missiles en éventail, qui poursuivent tout le monde. | 16 s |
 | **Gravité zéro** | Tout le monde à 40 m s'envole comme des ballons (4 s), puis éclate. | 18 s |
 | **Invincible** | Six secondes intouchable, et géant. Jamais avec la Couronne. | 22 s |
+| **Bombardement** (v30) | Un tapis de bombes s'abat devant toi, sur quarante mètres. | 16 s |
+| **Singularité** (v30) | Un trou noir géant, là où tu vises (60 m), aspire tout à 45 m puis explose. | 20 s |
+| **Souffle du dragon** (v30) | Trois secondes, tu craches un cône de feu qui projette. | 14 s |
+| **Comète** (v30) | Une comète géante tombe du ciel là où tu vises (90 m) et souffle tout. | 16 s |
+| **Cataclysme** (v30) | Tous ceux qui sont au sol à 100 m sont projetés dans le ciel. | 22 s |
+| **Chaos** (v30) | Tout le monde dehors échange de place au hasard. **Jamais le porteur, jamais dans la citadelle** : la Couronne ne se téléporte pas. | 20 s |
+| **Anneau de feu** (v30) | Un cercle de feu autour de toi : qui le traverse est éjecté. | 16 s |
+| **Geôle** (v30) | Tous ceux qui sont à 50 m sont mis en prison 4 s (un coup les libère). | 22 s |
+| **Tsunami** (v30) | Une vague géante emporte tout jusqu'à 60 m. | 18 s |
+| **Foudre en chaîne** (v30) | Vise un joueur : la foudre le frappe, puis saute sur ses quatre voisins. | 14 s |
 
 **Les passives divines** :
 
@@ -230,8 +262,11 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 | **Main lourde** | Ta poussée porte à 5,5 m et envoie deux fois et demie plus loin. |
 | **Phénix** | À chaque chute dans les nuages, tu renais là où tu touchais le sol (jamais sur la tour), dans une explosion. |
 | **Sablier** | Tes capacités reviennent trois fois plus vite (et encore plus en Mode Dieu). |
+| **Explosif** (v30) | Chaque joueur que tu pousses explose : ses voisins à 7 m partent aussi. |
+| **Corps de lave** (v30) | Ton corps brûle : qui te touche est projeté. |
+| **Écho** (v30) | Ta capacité active part deux fois d'affilée (la seconde une demi-seconde après). |
 
-## Les 93 capacités
+## Les 106 capacités
 
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le

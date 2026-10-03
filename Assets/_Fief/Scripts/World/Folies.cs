@@ -400,19 +400,26 @@ namespace Fief
     /// <summary>LE RAZ-DE-MAREE : un anneau d'eau part de lui et grandit jusqu'a 22 m en 1,1 s ; il emporte qui il traverse.</summary>
     public class TidalWave : MonoBehaviour
     {
-        const float Reach = 22f;
-        const float Seconds = 1.1f;
+        float Reach = 22f;
+        float Seconds = 1.1f;
+        float Force = 20f;
         Seeker by;
         float age, spray;
         readonly HashSet<Seeker> hit = new HashSet<Seeker>();
 
-        public static void Roll(Seeker by, Vector3 at)
+        public static void Roll(Seeker by, Vector3 at) { Roll(by, at, 22f, 1.1f, 20f); }
+
+        /// <summary>(08/10) Le TSUNAMI divin : la meme vague, bien plus grande et plus forte.</summary>
+        public static void Roll(Seeker by, Vector3 at, float reach, float seconds, float force)
         {
-            GameObject go = new GameObject("RAZ-DE-MAREE");
+            GameObject go = new GameObject(reach > 30f ? "TSUNAMI" : "RAZ-DE-MAREE");
             go.transform.position = at;
             TidalWave w = go.AddComponent<TidalWave>();
             w.by = by;
-            Fx.GroundRing(at, AbilityInfo.Tint(Ability.Raz), Reach, Seconds);
+            w.Reach = reach;
+            w.Seconds = seconds;
+            w.Force = force;
+            Fx.GroundRing(at, AbilityInfo.Tint(Ability.Raz), reach, seconds);
             Sfx.CrashAt(at);
         }
 
@@ -442,7 +449,7 @@ namespace Fief
                 if (Mathf.Abs(d.y) > 3.5f || flat > r || flat < r - 3f) continue;
                 hit.Add(s);
                 Vector3 away = Combat.Flat(d).sqrMagnitude > 0.01f ? Combat.Flat(d).normalized : Vector3.forward;
-                Combat.Hit(s, away * 20f + Vector3.up * 9f, 0.3f, true, by);
+                Combat.Hit(s, away * Force + Vector3.up * Force * 0.45f, 0.3f, true, by);
             }
             if (age > Seconds) Destroy(gameObject);
         }

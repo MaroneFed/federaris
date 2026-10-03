@@ -534,7 +534,20 @@ namespace Fief
                 case Ability.Eclair: return "eclair";
                 case Ability.MainLourde: return "main-lourde";
                 case Ability.Phenix: return "phenix";
-                default: return "sablier";
+                case Ability.Sablier: return "sablier";
+                case Ability.Bombardement: return "bombardement";
+                case Ability.Singularite: return "singularite";
+                case Ability.Dragon: return "dragon";
+                case Ability.Comete: return "comete";
+                case Ability.Cataclysme: return "cataclysme";
+                case Ability.Chaos: return "chaos";
+                case Ability.AnneauFeu: return "anneau-feu";
+                case Ability.Geole: return "geole";
+                case Ability.Tsunami: return "tsunami";
+                case Ability.FoudreChaine: return "foudre-chaine";
+                case Ability.Explosif: return "explosif";
+                case Ability.Lave: return "lave";
+                default: return "echo";
             }
         }
     }

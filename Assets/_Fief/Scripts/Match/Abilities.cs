@@ -32,6 +32,8 @@ namespace Fief
         // (08/10 -- "une version God Mode, que des capacites de malade mental") : les DIVINES,
         // seulement en Mode Dieu
         Apocalypse, ArretTemps, Rayon, Teleport, Tempete, Nuke, MainDeDieu, Essaim, GraviteZero, Invincible,
+        // (08/10 au soir -- "encore plus de dinguerie") la deuxieme fournee divine
+        Bombardement, Singularite, Dragon, Comete, Cataclysme, Chaos, AnneauFeu, Geole, Tsunami, FoudreChaine,
         // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
         DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond,
         // (05/10) les passives neuves
@@ -41,15 +43,16 @@ namespace Fief
         BrasLongs, Kangourou, Kamikaze, AngeGardien, Rage, Ninja,
         Miroir, Increvable, Pickpocket, Chanceux, Armure, Sprinter,
         // (08/10) les passives divines (Mode Dieu)
-        Colosse, Eclair, MainLourde, Phenix, Sablier
+        Colosse, Eclair, MainLourde, Phenix, Sablier,
+        Explosif, Lave, Echo
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 93;
+        public const int Count = 106;
 
         /// <summary>(08/10) Une capacite DIVINE : seulement en Mode Dieu.</summary>
-        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.Invincible || a >= Ability.Colosse; }
+        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.FoudreChaine || a >= Ability.Colosse; }
 
         /// <summary>
         /// (08/10) LA TABLE DU MODE DIEU : les divines, et les plus folles des autres. Rien de
@@ -180,7 +183,20 @@ namespace Fief
                 case Ability.Eclair: return "Éclair";
                 case Ability.MainLourde: return "Main lourde";
                 case Ability.Phenix: return "Phénix";
-                default: return "Sablier";
+                case Ability.Sablier: return "Sablier";
+                case Ability.Bombardement: return "Bombardement";
+                case Ability.Singularite: return "Singularité";
+                case Ability.Dragon: return "Souffle du dragon";
+                case Ability.Comete: return "Comète";
+                case Ability.Cataclysme: return "Cataclysme";
+                case Ability.Chaos: return "Chaos";
+                case Ability.AnneauFeu: return "Anneau de feu";
+                case Ability.Geole: return "Geôle";
+                case Ability.Tsunami: return "Tsunami";
+                case Ability.FoudreChaine: return "Foudre en chaîne";
+                case Ability.Explosif: return "Explosif";
+                case Ability.Lave: return "Corps de lave";
+                default: return "Écho";
             }
         }
 
@@ -281,7 +297,20 @@ namespace Fief
                 case Ability.Eclair: return "Tu cours une fois et demie plus vite, toute la manche.";
                 case Ability.MainLourde: return "Ta poussée porte à cinq mètres et demi et envoie deux fois et demie plus loin.";
                 case Ability.Phenix: return "Chaque chute dans les nuages : tu renais là où tu étais, dans une explosion.";
-                default: return "Tes capacités reviennent trois fois plus vite.";
+                case Ability.Sablier: return "Tes capacités reviennent trois fois plus vite.";
+                case Ability.Bombardement: return "Un tapis de bombes s'abat devant toi, sur quarante mètres.";
+                case Ability.Singularite: return "Un trou noir géant aspire tout à quarante-cinq mètres, puis explose.";
+                case Ability.Dragon: return "Trois secondes, tu craches le feu comme un dragon.";
+                case Ability.Comete: return "Une comète géante s'écrase là où tu vises.";
+                case Ability.Cataclysme: return "Tous ceux qui sont au sol à cent mètres sont projetés dans le ciel.";
+                case Ability.Chaos: return "Tout le monde dehors échange de place au hasard. Pas le porteur.";
+                case Ability.AnneauFeu: return "Un cercle de feu autour de toi : qui le traverse est éjecté.";
+                case Ability.Geole: return "Tous ceux qui sont à cinquante mètres sont mis en prison.";
+                case Ability.Tsunami: return "Une vague géante emporte tout jusqu'à soixante mètres.";
+                case Ability.FoudreChaine: return "Vise un joueur : la foudre le frappe, puis saute sur ses voisins.";
+                case Ability.Explosif: return "Chaque joueur que tu pousses explose (et ses voisins aussi).";
+                case Ability.Lave: return "Ton corps brûle : qui te touche est projeté.";
+                default: return "Ta capacité active part deux fois d'affilée.";
             }
         }
 
@@ -350,6 +379,16 @@ namespace Fief
                 case Ability.Essaim: return 16f;
                 case Ability.GraviteZero: return 18f;
                 case Ability.Invincible: return 22f;
+                case Ability.Bombardement: return 16f;
+                case Ability.Singularite: return 20f;
+                case Ability.Dragon: return 14f;
+                case Ability.Comete: return 16f;
+                case Ability.Cataclysme: return 22f;
+                case Ability.Chaos: return 20f;
+                case Ability.AnneauFeu: return 16f;
+                case Ability.Geole: return 22f;
+                case Ability.Tsunami: return 18f;
+                case Ability.FoudreChaine: return 14f;
                 default: return 0f;
             }
         }
@@ -400,6 +439,12 @@ namespace Fief
                 case Ability.Teleport: case Ability.GraviteZero: return new Color(0.75f, 0.55f, 1f);
                 case Ability.Tempete: case Ability.Eclair: return new Color(0.7f, 0.92f, 1f);
                 case Ability.Essaim: case Ability.MainLourde: return new Color(1f, 0.4f, 0.3f);
+                case Ability.Bombardement: case Ability.Dragon: case Ability.AnneauFeu: case Ability.Explosif: case Ability.Lave: return new Color(1f, 0.38f, 0.12f);
+                case Ability.Singularite: case Ability.Chaos: case Ability.Echo: return new Color(0.7f, 0.4f, 1f);
+                case Ability.Comete: case Ability.Cataclysme: return new Color(1f, 0.7f, 0.3f);
+                case Ability.Geole: return new Color(0.75f, 0.78f, 0.86f);
+                case Ability.Tsunami: return new Color(0.3f, 0.7f, 1f);
+                case Ability.FoudreChaine: return new Color(1f, 0.95f, 0.5f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

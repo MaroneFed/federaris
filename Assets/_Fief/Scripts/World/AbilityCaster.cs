@@ -115,7 +115,7 @@ namespace Fief
         public static bool Curses(Ability a)
         {
             return a == Ability.Prison || a == Ability.Bombe || a == Ability.Inversion || a == Ability.Mini || a == Ability.Ballon || a == Ability.Encre
-                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser || a == Ability.MainDeDieu;
+                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser || a == Ability.MainDeDieu || a == Ability.FoudreChaine;
         }
 
         public static IMover MoverOf(Seeker s)
@@ -135,7 +135,9 @@ namespace Fief
                 || a == Ability.Missile || a == Ability.Apesanteur || a == Ability.Boomerang || a == Ability.Oreillers
                 || a == Ability.Raz || a == Ability.Cri
                 || a == Ability.Apocalypse || a == Ability.ArretTemps || a == Ability.Rayon || a == Ability.Tempete
-                || a == Ability.Nuke || a == Ability.MainDeDieu || a == Ability.Essaim || a == Ability.GraviteZero;
+                || a == Ability.Nuke || a == Ability.MainDeDieu || a == Ability.Essaim || a == Ability.GraviteZero
+                || a == Ability.Bombardement || a == Ability.Singularite || a == Ability.Dragon || a == Ability.Comete
+                || a == Ability.Cataclysme || a == Ability.Chaos || a == Ability.Geole || a == Ability.Tsunami || a == Ability.FoudreChaine;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -615,6 +617,117 @@ namespace Fief
                     Fx.Shock(chest, tint, 40f, 0.7f);
                     break;
                 }
+                // ---- la deuxieme fournee divine (08/10 au soir)
+                case Ability.Bombardement:
+                    BombCarpet.Drop(s, pos, flat);
+                    break;
+                case Ability.Singularite:
+                {
+                    RaycastHit hit;
+                    Vector3 where = RayFrom(s, eye, aim, 60f, out hit) ? hit.point : pos + flat * 25f;
+                    Singularity.Open(s, where);
+                    break;
+                }
+                case Ability.Dragon:
+                    DragonBreath.Breathe(s);
+                    break;
+                case Ability.Comete:
+                {
+                    RaycastHit hit;
+                    Vector3 where = RayFrom(s, eye, aim, 90f, out hit) ? hit.point : pos + flat * 30f;
+                    CometStrike.Call(s, where);
+                    break;
+                }
+                case Ability.Cataclysme:
+                {
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null) continue;
+                        Vector3 d = o.Body.position - pos;
+                        if (Combat.Flat(d).magnitude > 100f || Mathf.Abs(d.y) > 8f) continue;
+                        Vector3 away = Combat.Flat(d).sqrMagnitude > 0.01f ? Combat.Flat(d).normalized : Vector3.forward;
+                        Combat.Hit(o, Vector3.up * 30f + away * 6f, 0.6f, true, s);
+                        n++;
+                    }
+                    Fx.GroundRing(pos, tint, 100f, 1.2f);
+                    Fx.GroundRing(pos, Color.white, 50f, 0.8f);
+                    Fx.Burst(pos + Vector3.up * 0.3f, new Color(0.55f, 0.45f, 0.35f), 300, 20f, 0.5f, 1.5f, 0.7f, Vector3.up, 80f);
+                    ShakeNear(pos, 1.2f);
+                    Sfx.KoBoom(pos, s.IsPlayer);
+                    if (n == 0) { s.Refund(a); return false; }
+                    break;
+                }
+                case Ability.Chaos:
+                {
+                    // Tout le monde DEHORS (pas dans la citadelle) echange de place au hasard -- sauf
+                    // le porteur : la Couronne ne se teleporte pas (06/10 : "il faut monter la tour").
+                    List<Seeker> who = new List<Seeker>();
+                    List<Vector3> where = new List<Vector3>();
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o.Body == null || o.CarriesCrown || o.Graced && o != s || Castle.Inside(o.Body.position)) continue;
+                        who.Add(o);
+                        where.Add(o.Body.position);
+                    }
+                    if (who.Count < 2) { s.Refund(a); return false; }
+                    for (int i = where.Count - 1; i > 0; i--) { int j = Random.Range(0, i); Vector3 t = where[i]; where[i] = where[j]; where[j] = t; }
+                    for (int i = 0; i < who.Count; i++)
+                    {
+                        IMover om = MoverOf(who[i]);
+                        if (om == null) continue;
+                        Fx.Column(who[i].Body.position, tint, 20f, 0.3f, 0.8f);
+                        om.Blink(where[i] + Vector3.up * 0.2f);
+                        Fx.Shock(where[i] + Vector3.up, tint, 2.5f, 0.3f);
+                    }
+                    if (Game.Hud != null) Game.Hud.Flash(new Color(0.7f, 0.4f, 1f, 0.4f));
+                    Sfx.WhooshAt(pos);
+                    break;
+                }
+                case Ability.AnneauFeu:
+                    FireRingZone.Light(s, pos);
+                    break;
+                case Ability.Geole:
+                {
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 50f) continue;
+                        if (Combat.Afflict(o, Combat.Affliction.Prison, 4f, s)) n++;
+                    }
+                    if (n == 0) { s.Refund(a); return false; }
+                    Fx.Shock(chest, tint, 50f, 0.6f);
+                    Sfx.ClangAt(pos);
+                    break;
+                }
+                case Ability.Tsunami:
+                    TidalWave.Roll(s, pos, 60f, 2.2f, 32f);
+                    break;
+                case Ability.FoudreChaine:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, 60f, AimAngle);
+                    if (t == null) { s.Refund(a); return false; }
+                    Lightning.Call(s, t.Body.position);
+                    // Puis elle saute sur les quatre voisins les plus proches (a 20 m de la cible).
+                    List<Seeker> near = new List<Seeker>();
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o == t || o.Body == null || (o.Body.position - t.Body.position).magnitude > 20f) continue;
+                        near.Add(o);
+                    }
+                    near.Sort((x, y) => (x.Body.position - t.Body.position).sqrMagnitude.CompareTo((y.Body.position - t.Body.position).sqrMagnitude));
+                    for (int i = 0; i < near.Count && i < 4; i++)
+                    {
+                        Lightning.Call(s, near[i].Body.position);
+                        Tether.Show(t.Body, near[i].Body, Vector3.zero, 0.4f, tint);
+                    }
+                    break;
+                }
+
                 case Ability.Invincible:
                     s.GraceUntil = Mathf.Max(s.GraceUntil, now + 6f);
                     GiantAura.Grow(s);
@@ -741,8 +854,10 @@ namespace Fief
             }
             Sfx.WhooshAt(pos);
             if (s.IsPlayer) Stats.Casts++;
+            // (08/10) L'ECHO (divin) : elle repart une seconde fois, une demi-seconde apres.
+            if (s.Has(Ability.Echo) && !EchoCast.Echoing) { s.Refund(a); EchoCast.Schedule(s, a); }
             // (07/10) CHANCEUX : une fois sur trois, la capacite revient tout de suite.
-            if (s.Has(Ability.Chanceux) && Random.value < 0.33f)
+            else if (s.Has(Ability.Chanceux) && Random.value < 0.33f)
             {
                 s.Refund(a);
                 Fx.Sparks(chest, AbilityInfo.Tint(Ability.Chanceux), 25, 4f);

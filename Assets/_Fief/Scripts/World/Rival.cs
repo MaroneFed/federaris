@@ -1144,6 +1144,7 @@ namespace Fief
         void UseAbilities()
         {
             if (seeker.Has(Ability.Colosse)) GiantAura.Keep(seeker);
+            if (seeker.Has(Ability.Lave)) LavaBody.Keep(seeker);
             if (seeker.Stunned) return;
             List<Ability> list = new List<Ability>();
             if (seeker.HasActive) list.Add(seeker.CurrentActive);
@@ -1355,6 +1356,32 @@ namespace Fief
                         // Pour rejoindre un porteur loin (sur un ilot), quand on est dehors.
                         go = !carrying && !Castle.Inside(me) && prey != null && prey.CarriesCrown && preyD > 35f && preyD < 140f && !Castle.Inside(prey.Body.position);
                         aim = toPrey;
+                        break;
+                    // ---- la deuxieme fournee divine
+                    case Ability.Bombardement:
+                    case Ability.Dragon:
+                        go = prey != null && preyD < (a == Ability.Dragon ? 22f : 40f) && preyD > 5f && (prey.CarriesCrown || goal == Goal.Fight)
+                             && (!Tower.On(me) || prey.IsPlayer || prey.CarriesCrown);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.Singularite:
+                    case Ability.Comete:
+                        go = prey != null && prey.CarriesCrown && preyD < 55f || !Tower.On(me) && near >= 3;
+                        aim = prey != null ? toPrey : transform.forward;
+                        break;
+                    case Ability.Cataclysme:
+                    case Ability.Geole:
+                    case Ability.Tsunami:
+                    case Ability.AnneauFeu:
+                        go = !carrying && (prey != null && prey.CarriesCrown && preyD < (a == Ability.AnneauFeu ? 14f : 45f) || contender != null || near >= 3);
+                        break;
+                    case Ability.Chaos:
+                        // Le porteur est loin devant (sur un ilot) : le chaos rebat les cartes dehors.
+                        go = !carrying && holder != null && holder.Body != null && !Castle.Inside(me) && Monument.NearestDistance(holder.Body.position) < 60f;
+                        break;
+                    case Ability.FoudreChaine:
+                        go = victim != null || prey != null && preyD < 55f && goal == Goal.Fight;
+                        aim = victim != null ? toVictim : toPrey;
                         break;
                     case Ability.Invincible:
                         go = !carrying && (near >= 2 || prey != null && prey.CarriesCrown && preyD < 10f || Tower.On(me) && hazardWait > 0.8f);
