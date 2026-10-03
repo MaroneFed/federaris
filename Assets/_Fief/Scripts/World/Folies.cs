@@ -116,10 +116,7 @@ namespace Fief
             Vector3 p = transform.position;
             Combat.Blast(p, 4.5f, 24f, 12f, by);
             Color c = AbilityInfo.Tint(Ability.Missile);
-            Fx.Shock(p, c, 4.5f, 0.35f);
-            Fx.Burst(p, c, 100, 16f, 0.2f, 0.7f, 0f, Vector3.zero, 0f);
-            Fx.Flash(p, c, 16f, 7f, 0.3f);
-            Sfx.KoBoom(p, by != null && by.IsPlayer);
+            DivineFx.Impact(p, 4.5f, c, 0.8f, by != null && by.IsPlayer);
             Destroy(gameObject);
         }
     }

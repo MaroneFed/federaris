@@ -276,6 +276,11 @@ namespace Fief
                 exploding = false;
             }
             Knockback(victim, velocity);
+            // (v34) Il ENCAISSE : le haricot s'ecrase du cote du choc, la tete part ; un gros coup
+            // laisse une trainee derriere lui (on suit sa trajectoire de loin).
+            CharacterRig hitRig = CharacterRig.Of(victim);
+            if (hitRig != null) hitRig.PlayHit(velocity, velocity.magnitude / 30f);
+            if (velocity.magnitude > 20f && !victim.IsPlayer) Fx.Trail(victim.Body, Color.Lerp(victim.Colour, Color.white, 0.4f), 0.8f, 0.6f);
             victim.LastHurt = Time.time;
             if (by != null && by != victim) { victim.LastHitBy = by; victim.LastHitByAt = Time.time; }
             // (05/10) "GOTAGA T'A DEGAGE !" -- en toutes lettres, en haut (Shouts).

@@ -248,6 +248,16 @@ namespace Fief
             Scorch(g, Mathf.Max(1.5f, radius * 0.45f), 5f + 2f * power);
             AbilityCaster.ShakeNear(g, 0.3f + 0.35f * power);
             if (loud) Sfx.KoBoom(g, true); else Sfx.CrashAt(g);
+            // (v34) Pres de toi, ca te frappe : l'image se resserre, et pour les tres grosses, un
+            // eclair blanc d'une image (l'"impact frame" des animes).
+            Camera cam = Camera.main;
+            if (cam != null && Game.Hud != null)
+            {
+                float d = (cam.transform.position - g).magnitude;
+                float near = Mathf.Clamp01(1f - d / (radius * 2.5f + 15f));
+                if (near > 0f && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Punch(4f + 6f * power * near);
+                if (power >= 2f && near > 0.2f) Game.Hud.Flash(new Color(1f, 1f, 1f, 0.55f * near));
+            }
         }
     }
 

@@ -1882,6 +1882,10 @@ namespace Fief
                 rig.Speed = gliding || mounted ? 0f : Mathf.Min(moved.magnitude / Mathf.Max(dt, 0.001f), 12f);
                 rig.Grounded = seeker.Remote ? (netFlags & NetGame.FlagGrounded) != 0 : body.enabled && body.isGrounded || mounted;
                 rig.Tumbling = seeker.Tumbling || seeker.Launched;
+                // (v34) Etourdi : les etoiles ; et ses yeux suivent la Couronne (ou son porteur).
+                rig.Dizzy = seeker.Stunned || seeker.Rooted;
+                if (seeker.CarriesCrown || Crown.Instance == null) rig.LookAt = null;
+                else rig.LookAt = Crown.Holder != null && Crown.Holder.Body != null ? Crown.Holder.Body.position + Vector3.up * 1.6f : Crown.Position;
             }
         }
 

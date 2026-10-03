@@ -309,11 +309,8 @@ namespace Fief
                 Combat.Hit(o, out2 * 20f + Vector3.up * 10f, 0.3f, true, by);
             }
             Color c = AbilityInfo.Tint(Ability.Bombe);
-            Fx.Shock(p + Vector3.up, c, 5f, 0.4f);
+            DivineFx.Impact(p, 5f, c, 1f, (by != null && by.IsPlayer) || target.IsPlayer);
             Fx.Burst(p + Vector3.up, c, 140, 20f, 0.25f, 0.8f, 0f, Vector3.zero, 0f);
-            Fx.Flash(p + Vector3.up, c, 22f, 9f, 0.4f);
-            AbilityCaster.ShakeNear(p, 0.45f);
-            Sfx.KoBoom(p, (by != null && by.IsPlayer) || target.IsPlayer);
             Destroy(gameObject);
         }
     }

@@ -46,6 +46,7 @@ namespace Fief
         float blinkIn = 2f;
         float blinkAge = -1f;
         float wide = 1f;
+        Vector2 look;
         Renderer[] parts;
         ModelCharacter model;
         bool firstPerson;
@@ -108,7 +109,58 @@ namespace Fief
         }
 
         float castTimer, castLength = 0.5f;
+        float swingTwist, swingLean;
         bool castBig;
+
+        // ================================================================== v34 : les sensations
+        // (10/10 -- Martin : "je veux que tu fasses les meilleures animations du jeu video ever").
+        // Ce qui fait qu'un personnage de Fall Guys ou de Smash a l'air VIVANT, c'est d'abord ce
+        // qu'il fait entre les grandes actions :
+        //   - il ENCAISSE les coups (ecrase du cote du choc, la tete qui part, les yeux ronds) ;
+        //   - il PREND SON ELAN avant de pousser (le bras recule, puis part, le corps suit) ;
+        //   - ses pieds levent de la POUSSIERE quand il court, et il en fait un nuage en atterrissant ;
+        //   - il se PENCHE dans les virages, comme un coureur ;
+        //   - ses YEUX suivent la Couronne (ou celui qui la porte) : on sait ou il veut aller ;
+        //   - etourdi, des ETOILES lui tournent autour de la tete ;
+        //   - immobile, il S'IMPATIENTE (un petit bond, un regard de cote).
+
+        /// <summary>Un coup recu : "dir" (monde) d'ou il est pousse, "power" 0 a 1.</summary>
+        public void PlayHit(Vector3 dir, float power)
+        {
+            hitTimer = 0.32f;
+            hitPower = Mathf.Clamp01(power);
+            Vector3 local = transform.InverseTransformDirection(dir);
+            hitDir = new Vector3(local.x, 0f, local.z).sqrMagnitude > 0.01f ? new Vector3(local.x, 0f, local.z).normalized : Vector3.back;
+            if (model != null) model.Swing();
+        }
+
+        /// <summary>Etourdi (les etoiles) -- les bots seulement : en premiere personne, on ne voit pas sa tete.</summary>
+        public bool Dizzy;
+
+        /// <summary>Ou il regarde (la Couronne, son porteur). Pas de cible : il regarde devant lui.</summary>
+        public Vector3? LookAt;
+
+        float hitTimer, hitPower;
+        Vector3 hitDir;
+        float airTime, lastYaw, bank, idleTime, fidget = -1f, fidgetIn = 5f, starAngle;
+        bool lastStepSide;
+        readonly List<Transform> pupils = new List<Transform>();
+        readonly List<Vector3> pupilHome = new List<Vector3>();
+
+        /// <summary>Le squelette d'un joueur (toi ou un bot) -- null s'il n'en a pas.</summary>
+        public static CharacterRig Of(Seeker s)
+        {
+            if (s == null) return null;
+            if (s.IsPlayer) return Game.Rig;
+            Rival r = Rival.Of(s);
+            return r != null ? r.Rig : null;
+        }
+
+        static bool NearCamera(Vector3 p, float metres)
+        {
+            Camera c = Camera.main;
+            return c != null && (c.transform.position - p).sqrMagnitude < metres * metres;
+        }
 
         /// <summary>LA JOIE DU VAINQUEUR : il danse sur la musique (voir Party).</summary>
         public void Celebrate(float seconds)
@@ -209,8 +261,10 @@ namespace Fief
             for (int side = -1; side <= 1; side += 2)
             {
                 Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.16f, 0f, 0.36f), new Vector3(0.27f, 0.34f, 0.13f), colour, "Œil"), white));
-                Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.15f, -0.01f, 0.425f), new Vector3(0.13f, 0.19f, 0.05f), colour, "Pupille"), pupil));
+                GameObject pup = Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.15f, -0.01f, 0.425f), new Vector3(0.13f, 0.19f, 0.05f), colour, "Pupille"), pupil));
                 GameObject glint = Eye(Paint(Proto.Sphere(head, new Vector3(side * 0.13f + 0.025f, 0.06f, 0.45f), Vector3.one * 0.05f, colour, "Reflet"), spark));
+                pupils.Add(pup.transform); pupilHome.Add(pup.transform.localPosition);
+                pupils.Add(glint.transform); pupilHome.Add(glint.transform.localPosition);
                 glint.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
             }
 
@@ -256,7 +310,7 @@ namespace Fief
                 if (blinkAge >= 0.14f) blinkAge = -1f;
             }
             // (03/10 : plus de bouche) Projete ou en fete : les yeux s'ECARQUILLENT.
-            bool excited = Tumbling || celebrate > 0f || castTimer > 0f || !Grounded && squash <= 0f && Speed > RunSpeed * 1.4f;
+            bool excited = Tumbling || celebrate > 0f || castTimer > 0f || hitTimer > 0f || !Grounded && squash <= 0f && Speed > RunSpeed * 1.4f;
             wide = Mathf.Lerp(wide, excited ? 1.22f : 1f, 1f - Mathf.Exp(-14f * dt));
             for (int i = 0; i < eyes.Count; i++)
             {
@@ -264,6 +318,17 @@ namespace Fief
                 Vector3 s = eyeScales[i];
                 eyes[i].localScale = new Vector3(s.x * wide, s.y * wide * (1f - 0.9f * shut), s.z);
             }
+            // (v34) LES YEUX SUIVENT : les pupilles glissent vers ce qu'il regarde (la Couronne).
+            Vector2 want = Vector2.zero;
+            if (LookAt.HasValue && head != null)
+            {
+                Vector3 local = head.InverseTransformPoint(LookAt.Value);
+                if (local.z > 0.2f) want = new Vector2(Mathf.Clamp(local.x / local.z, -1f, 1f), Mathf.Clamp(local.y / local.z, -1f, 1f));
+                else want = new Vector2(Mathf.Sign(local.x), 0f);
+            }
+            look = Vector2.Lerp(look, want, 1f - Mathf.Exp(-10f * dt));
+            for (int i = 0; i < pupils.Count; i++)
+                if (pupils[i] != null) pupils[i].localPosition = pupilHome[i] + new Vector3(look.x * 0.05f, look.y * 0.045f, 0f);
         }
 
         void BuildLeg(Transform pivotLeg, Material foot)
@@ -323,7 +388,19 @@ namespace Fief
             float c = Mathf.Cos(cycle);
 
             // L'atterrissage l'ecrase ; en l'air il s'etire (squash and stretch).
-            if (Grounded && !wasGrounded) squash = 1f;
+            if (Grounded && !wasGrounded)
+            {
+                squash = Mathf.Clamp(0.5f + airTime * 0.8f, 0.5f, 1.3f);
+                // L'atterrissage souleve un nuage de poussiere -- plus gros si l'on tombait de haut.
+                if (airTime > 0.35f && NearCamera(transform.position, 45f))
+                {
+                    Vector3 f = transform.position + Vector3.up * 0.15f;
+                    int n = Mathf.RoundToInt(Mathf.Lerp(8f, 26f, Mathf.Clamp01(airTime / 1.5f)));
+                    Fx.Burst(f, new Color(0.78f, 0.72f, 0.62f), n, 3.5f + airTime * 2f, 0.45f, 0.6f, -0.05f, Vector3.up, 88f);
+                    if (airTime > 0.9f) Fx.Ring(f, new Color(0.85f, 0.8f, 0.7f), 0.3f, 2.2f, 0.35f, 0.18f, Vector3.up);
+                }
+            }
+            airTime = Grounded ? 0f : airTime + dt;
             wasGrounded = Grounded;
             squash = Mathf.MoveTowards(squash, 0f, dt * 4.5f);
             float bounce = Mathf.Sin(squash * Mathf.PI) * squash;
@@ -343,24 +420,101 @@ namespace Fief
             armL.localRotation = Quaternion.Euler(-s * armSwing + idle, 0f, -8f - spread);
             if (swingTimer > 0f)
             {
-                // Le coup : le bras droit part droit devant, poing en avant.
+                // (v34) LE COUP AVEC ELAN : 25 % du temps le bras RECULE (l'anticipation), puis il
+                // part droit devant, le corps tourne et se jette dans le coup, et revient.
                 swingTimer -= dt;
                 float t = 1f - Mathf.Clamp01(swingTimer / 0.36f);
-                float blow = Mathf.Sin(t * Mathf.PI);
-                armR.localRotation = Quaternion.Euler(-100f * blow, 0f, 12f);
+                float wind = t < 0.25f ? Mathf.Sin(t / 0.25f * Mathf.PI * 0.5f) : 0f;
+                float blow = t < 0.25f ? 0f : Mathf.Sin(Mathf.Clamp01((t - 0.25f) / 0.75f) * Mathf.PI);
+                armR.localRotation = Quaternion.Euler(45f * wind - 115f * blow, 0f, 12f + 20f * wind);
+                armL.localRotation = Quaternion.Euler(30f * blow, 0f, -20f);
+                swingTwist = -18f * wind + 22f * blow;
+                swingLean = 14f * blow;
             }
-            else armR.localRotation = Quaternion.Euler(s * armSwing + idle, 0f, 8f + spread);
+            else
+            {
+                swingTwist = 0f;
+                swingLean = 0f;
+                armR.localRotation = Quaternion.Euler(s * armSwing + idle, 0f, 8f + spread);
+            }
 
             // --- corps : il se dandine, rebondit, se penche quand il court
             float bob = Mathf.Abs(c) * Mathf.Lerp(0.02f, 0.07f, effort) * moving;
             float breathe = (1f - moving) * Mathf.Sin(Time.time * 2f) * 0.012f;
             body.localPosition = new Vector3(0f, BodyY + bob + breathe - 0.08f * bounce, 0f);
-            body.localRotation = Quaternion.Euler(Mathf.Lerp(0f, 12f, effort), -s * 5f * moving, s * 5f * moving);
+            body.localRotation = Quaternion.Euler(Mathf.Lerp(0f, 12f, effort) + swingLean, -s * 5f * moving + swingTwist, s * 5f * moving);
             head.localRotation = Quaternion.Euler(-Mathf.Lerp(0f, 8f, effort), s * 3f * moving, -s * 2f * moving);
 
             // --- la cape : elle flotte en arriere avec la vitesse, ondule, se souleve en l'air
+            // --- (v34) LES VIRAGES : il se penche vers l'interieur, comme un coureur.
+            float yaw = transform.eulerAngles.y;
+            float turn = Mathf.DeltaAngle(lastYaw, yaw) / Mathf.Max(dt, 0.001f);
+            lastYaw = yaw;
+            bank = Mathf.Lerp(bank, Mathf.Clamp(-turn * 0.045f, -16f, 16f) * moving * (Grounded ? 1f : 0.5f), 1f - Mathf.Exp(-8f * dt));
+            body.localRotation = body.localRotation * Quaternion.Euler(0f, 0f, bank);
+
+            // --- (v34) LA POUSSIERE DES PIEDS : un petit nuage a chaque pas, quand il court.
+            if (Grounded && effort > 0.55f)
+            {
+                bool side = s > 0f;
+                if (side != lastStepSide && NearCamera(transform.position, 30f))
+                {
+                    Transform foot = side ? legL : legR;
+                    Fx.Burst(foot.position + Vector3.down * 0.5f, new Color(0.8f, 0.74f, 0.64f), 3, 1.4f, 0.3f, 0.45f, -0.05f, Vector3.up - transform.forward * 0.6f, 50f);
+                }
+                lastStepSide = side;
+            }
+
             float flutter = Mathf.Sin(Time.time * 7f + cycle) * (3f + 6f * effort);
             cape.localRotation = Quaternion.Euler(-(Mathf.Lerp(4f, 48f, effort) + air * 30f) + flutter, 0f, 0f);
+
+            // --- (v34) LE COUP RECU : ecrase du cote du choc, penche a l'oppose, la tete qui part.
+            if (hitTimer > 0f)
+            {
+                hitTimer -= dt;
+                float k = Mathf.Sin(Mathf.Clamp01(1f - hitTimer / 0.32f) * Mathf.PI) * (0.5f + 0.5f * hitPower);
+                body.localRotation = body.localRotation * Quaternion.Euler(hitDir.z * 28f * k, 0f, -hitDir.x * 28f * k);
+                body.localScale = new Vector3(body.localScale.x * (1f + 0.22f * k), body.localScale.y * (1f - 0.18f * k), body.localScale.z * (1f + 0.22f * k));
+                head.localRotation = head.localRotation * Quaternion.Euler(hitDir.z * 22f * k, 0f, -hitDir.x * 22f * k);
+                armL.localRotation = Quaternion.Euler(-40f * k, 0f, -60f * k - 10f);
+                armR.localRotation = Quaternion.Euler(-40f * k, 0f, 60f * k + 10f);
+            }
+
+            // --- (v34) ETOURDI : la tete fait des ronds, des etoiles tournent au-dessus.
+            if (Dizzy && !Tumbling)
+            {
+                starAngle += dt * 360f;
+                head.localRotation = head.localRotation * Quaternion.Euler(Mathf.Sin(Time.time * 9f) * 10f, 0f, Mathf.Cos(Time.time * 9f) * 10f);
+                if (NearCamera(transform.position, 40f) && Mathf.Repeat(starAngle, 45f) < dt * 360f)
+                {
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float a = (starAngle + k * 120f) * Mathf.Deg2Rad;
+                        Vector3 p = head.position + Vector3.up * 0.55f + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 0.5f;
+                        Fx.Sparks(p, new Color(1f, 0.9f, 0.3f), 2, 0.4f);
+                    }
+                }
+            }
+
+            // --- (v34) IMMOBILE, IL S'IMPATIENTE : de temps en temps un petit bond et un regard de cote.
+            if (moving < 0.1f && Grounded && hitTimer <= 0f && castTimer <= 0f)
+            {
+                idleTime += dt;
+                fidgetIn -= dt;
+                if (fidgetIn <= 0f && idleTime > 2f) { fidget = 0f; fidgetIn = Random.Range(4f, 8f); }
+            }
+            else { idleTime = 0f; fidget = -1f; }
+            if (fidget >= 0f)
+            {
+                fidget += dt;
+                float f = fidget / 0.9f;
+                if (f >= 1f) fidget = -1f;
+                else
+                {
+                    pivot.localPosition = new Vector3(0f, 0.12f * Mathf.Max(0f, Mathf.Sin(f * Mathf.PI * 2f)), 0f);
+                    head.localRotation = head.localRotation * Quaternion.Euler(0f, 35f * Mathf.Sin(f * Mathf.PI), 0f);
+                }
+            }
 
             // --- le POUVOIR : accroupi (l'elan, 20 % du temps), puis il jaillit, bras au ciel.
             if (castTimer > 0f)

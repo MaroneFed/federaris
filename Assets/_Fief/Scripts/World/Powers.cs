@@ -76,6 +76,11 @@ namespace Fief
             Fx.Burst(p + Vector3.up * 0.3f, c, 180, 22f, 0.3f, 0.9f, 0.4f, Vector3.up, 75f);
             Fx.Burst(p + Vector3.up * 0.1f, new Color(0.62f, 0.55f, 0.48f), 90, 12f, 0.55f, 1.2f, 0.5f, Vector3.up, 85f);
             Fx.Flash(p + Vector3.up, c, 30f, 9f, 0.5f);
+            // (v34) Le poids de l'impact : pierres, fumee, cratere, coup de poing de camera.
+            DivineFx.Debris(p + Vector3.up * 0.4f, 16, c, 11f);
+            DivineFx.Smoke(p + Vector3.up * 0.4f, 4, 2.2f, 2.5f);
+            DivineFx.Scorch(p, Radius * 0.55f, 6f);
+            if (by.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Punch(8f);
             AbilityCaster.ShakeNear(p, 0.6f);
             Sfx.KoBoom(p, by.IsPlayer);
             Destroy(this);
@@ -188,13 +193,8 @@ namespace Fief
             }
             if (age < Blow) return;
             Combat.Blast(transform.position, 8f, 30f, 15f, by);
-            Fx.Shock(c, tint, 9f, 0.5f);
-            Fx.Shock(c, Color.white, 5f, 0.3f);
+            DivineFx.Impact(transform.position, 8f, tint, 1.2f, by != null && by.IsPlayer);
             Fx.Burst(c, tint, 200, 24f, 0.25f, 0.9f, 0f, Vector3.zero, 0f);
-            Fx.Flash(c, tint, 28f, 9f, 0.5f);
-            Fx.GroundRing(transform.position, tint, 11f, 0.5f);
-            AbilityCaster.ShakeNear(transform.position, 0.5f);
-            Sfx.KoBoom(transform.position, by != null && by.IsPlayer);
             Destroy(gameObject);
         }
     }

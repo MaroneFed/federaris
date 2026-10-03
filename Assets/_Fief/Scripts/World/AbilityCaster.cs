@@ -256,6 +256,8 @@ namespace Fief
                     Fx.Burst(pos + Vector3.up * 0.3f, tint, 160, 18f, 0.24f, 0.8f, 0.2f, Vector3.zero, 0f);
                     Fx.Burst(pos + Vector3.up * 0.1f, new Color(0.7f, 0.62f, 0.52f), 70, 10f, 0.5f, 1f, 0.3f, Vector3.up, 80f);
                     Fx.Flash(chest, tint, 22f, 8f, 0.45f);
+                    DivineFx.Debris(pos + Vector3.up * 0.4f, 10, tint, 9f);
+                    DivineFx.Scorch(pos, 3f, 4f);
                     ShakeNear(pos, 0.45f);
                     Sfx.CrashAt(pos);
                     break;
@@ -279,6 +281,8 @@ namespace Fief
                     // repousse ceux qui sont tout pres.
                     m.Push(Vector3.up * 26f + flat * 6f);
                     Combat.Blast(pos, 5f, 16f, 6f, s);
+                    DivineFx.Debris(pos + Vector3.up * 0.3f, 6, tint, 7f);
+                    DivineFx.Smoke(pos, 2, 1.2f, 1.5f);
                     Fx.GroundRing(pos, tint, 6f, 0.45f);
                     Fx.Shock(pos + Vector3.up * 0.3f, tint, 3.5f, 0.3f);
                     Fx.Column(pos, tint, 20f, 0.3f, 0.7f);
@@ -482,6 +486,11 @@ namespace Fief
                     Fx.GroundRing(pos, tint, 25f, 0.7f);
                     Fx.GroundRing(pos, Color.white, 14f, 0.45f);
                     Fx.Burst(pos + Vector3.up * 0.2f, new Color(0.6f, 0.5f, 0.4f), 120, 10f, 0.35f, 1f, 0.6f, Vector3.up, 80f);
+                    // (v34) Le sol se fend : des pierres jaillissent sous chaque victime, une fumee de poussiere.
+                    DivineFx.Debris(pos + Vector3.up * 0.3f, 14, tint, 10f);
+                    DivineFx.Smoke(pos, 5, 3f, 2f);
+                    DivineFx.Scorch(pos, 5f, 6f);
+                    if (s.IsPlayer && Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Punch(7f);
                     ShakeNear(pos, 0.7f);
                     Sfx.KoBoom(pos, s.IsPlayer);
                     break;
@@ -522,6 +531,9 @@ namespace Fief
                     Fx.Burst(pos + Vector3.up * 0.2f, dirt, 70, 7f, 0.35f, 0.8f, 0.6f, Vector3.up, 70f);
                     m.Blink(dest);
                     Combat.Blast(dest, 5f, 24f, 16f, s);
+                    DivineFx.Debris(pos + Vector3.up * 0.3f, 8, dirt, 6f);
+                    DivineFx.Debris(dest + Vector3.up * 0.3f, 14, dirt, 10f);
+                    DivineFx.Scorch(pos, 1.6f, 4f);
                     Fx.Burst(dest + Vector3.up * 0.2f, dirt, 110, 12f, 0.4f, 1f, 0.7f, Vector3.up, 60f);
                     Fx.GroundRing(dest, tint, 5f, 0.4f);
                     Sfx.CrashAt(dest);

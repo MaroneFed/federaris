@@ -80,6 +80,18 @@ namespace Fief
 
         float kick;
 
+        float punch;
+
+        /// <summary>
+        /// (v34) LE COUP DE POING DE LA CAMERA : une grosse explosion pres de toi, et l'image se
+        /// RESSERRE d'un coup (le champ de vision se ferme de quelques degres) puis se rouvre --
+        /// comme si l'onde de choc t'avait frappe la tete. Le contraire du Kick (la vitesse).
+        /// </summary>
+        public void Punch(float degrees)
+        {
+            punch = Mathf.Max(punch, degrees);
+        }
+
         /// <summary>Le champ de vision s'ouvre d'un coup (ruee, grappin, courant) : la vitesse se sent.</summary>
         public void Kick(float degrees)
         {
@@ -201,8 +213,9 @@ namespace Fief
                 {
                     bool running = Game.Player != null && Game.Player.IsSprinting;
                     float flight = Game.Player != null ? Game.Player.FlightFov : 0f;
-                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f) + kick + flight;
+                    float wantedFov = baseFieldOfView + (running ? sprintFieldOfView : 0f) + kick + flight - punch;
                     kick = Mathf.MoveTowards(kick, 0f, dt * 30f);
+                    if (punch > 0f) { view.fieldOfView = Mathf.Min(view.fieldOfView, wantedFov); punch = Mathf.MoveTowards(punch, 0f, dt * 40f); }
                     view.fieldOfView = Mathf.Lerp(view.fieldOfView, wantedFov, 1f - Mathf.Exp(-9f * dt));
                 }
 
