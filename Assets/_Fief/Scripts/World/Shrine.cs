@@ -126,7 +126,13 @@ namespace Fief
         /// <summary>Un don au hasard (une capacite active), tire de la graine de la manche.</summary>
         public static Ability RandomGift(System.Random rng)
         {
-            return (Ability)rng.Next((int)Ability.DoubleSaut);
+            // (08/10) Seulement ce que le match permet (Mode Dieu : les divines ; sinon : pas elles).
+            for (int tries = 0; tries < 200; tries++)
+            {
+                Ability a = (Ability)rng.Next((int)Ability.DoubleSaut);
+                if (AbilityInfo.Allowed(a)) return a;
+            }
+            return Ability.Ruee;
         }
 
         /// <summary>

@@ -190,7 +190,48 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 
 ---
 
-## Les 78 capacités
+## Le Mode Dieu
+
+> Martin, le 08/10 : « une version God Mode de la map : un bouton où tu cliques et tu n'as que
+> des gods capacités, des trucs de malade mental, de vraiment, vraiment malade mental ».
+
+- **Le bouton** : « **Mode Dieu** » sur l'écran-titre, juste sous Jouer (une fanfare) ; il ouvre
+  le salon en Mode Dieu (le titre dit « MODE DIEU », en or qui bat). Dans le salon — et dans le
+  salon en ligne, où l'hôte décide pour tout le monde — la ligne **Mode : Normal / DIEU**.
+- **La table divine** : on ne pioche que les **quinze divines** et les plus folles des autres
+  (Météore, Tornade, Trou noir, Boulet, Géant, Foudre, Prison, Bombe, Ballon, Séisme, Gant,
+  Déluge, Missile, Raz-de-marée, Lasso, Geyser, Hypnose, Souffle, Apesanteur ; passives :
+  Kamikaze, Riposte, Miroir, Rage, Vampire, Planeur, Poigne, Tête dure). Les sanctuaires
+  donnent aussi des divines.
+- **Tout se recharge en 45 % du temps.**
+- **Les règles ne bougent pas** : le sceau, la tour qui se monte à pied, la Couronne lourde.
+
+**Les actives divines** (`World/Dieu.cs` et les autres effets réutilisés) :
+
+| Capacité | Ce que ça fait | Recharge (avant les 45 %) |
+|---|---|---|
+| **Apocalypse** | Vingt-cinq météores s'abattent tout autour de toi (28 m), jamais sur toi. | 20 s |
+| **Le temps s'arrête** | Tous les autres, à 70 m, sont figés dans la glace 3,5 s (un coup les libère : pousse-les dans le vide). | 22 s |
+| **Rayon divin** | Trois secondes, un laser d'or de 90 m part de tes yeux là où tu regardes ; tout ce qu'il touche est projeté. | 16 s |
+| **Téléportation** | Tu te téléportes là où tu vises (150 m). Jamais dans la citadelle ni sur la tour, jamais avec la Couronne. | 12 s |
+| **Tempête** | Six tornades partent de toi dans toutes les directions. | 16 s |
+| **Bombe atomique** | Posée à tes pieds : 2,5 s de bips… puis tout ce qui est à 30 m s'envole (toi non). | 24 s |
+| **Main de Dieu** | Vise un joueur (60 m) : une ombre, puis une main géante tombe du ciel et l'envoie vers le vide. | 18 s |
+| **Essaim de missiles** | Huit missiles en éventail, qui poursuivent tout le monde. | 16 s |
+| **Gravité zéro** | Tout le monde à 40 m s'envole comme des ballons (4 s), puis éclate. | 18 s |
+| **Invincible** | Six secondes intouchable, et géant. Jamais avec la Couronne. | 22 s |
+
+**Les passives divines** :
+
+| Capacité | Ce que ça fait |
+|---|---|
+| **Colosse** | Géant toute la manche : on ne te bouge presque plus, ta poussée porte plus loin. |
+| **Éclair** | Tu cours une fois et demie plus vite, toute la manche. |
+| **Main lourde** | Ta poussée porte à 5,5 m et envoie deux fois et demie plus loin. |
+| **Phénix** | À chaque chute dans les nuages, tu renais là où tu touchais le sol (jamais sur la tour), dans une explosion. |
+| **Sablier** | Tes capacités reviennent trois fois plus vite (et encore plus en Mode Dieu). |
+
+## Les 93 capacités
 
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le

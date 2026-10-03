@@ -83,7 +83,11 @@ namespace Fief
 
         public float CooldownOf(Ability a)
         {
-            return AbilityInfo.Cooldown(a) * (Has(Ability.Recharge) ? 0.67f : 1f);
+            float k = Has(Ability.Recharge) ? 0.67f : 1f;
+            // (08/10) Le SABLIER (divin) : trois fois plus vite ; le MODE DIEU : tout revient vite.
+            if (Has(Ability.Sablier)) k *= 0.35f;
+            if (Match.GodMode) k *= 0.45f;
+            return AbilityInfo.Cooldown(a) * k;
         }
 
         /// <summary>Se servir d'une capacite : vrai si elle etait prete (elle repart en recharge).</summary>
@@ -194,7 +198,7 @@ namespace Fief
 
         /// <summary>(05/10) GEANT jusqu'a cet instant (GiantAura) : on ne le bouge presque plus.</summary>
         public float GiantUntil = -1f;
-        public bool Giant { get { return Time.time < GiantUntil; } }
+        public bool Giant { get { return Time.time < GiantUntil || Has(Ability.Colosse); } }
         /// <summary>(05/10) VAMPIRE : il court plus vite jusqu'a cet instant (chaque coup donne).</summary>
         public float RushUntil = -1f;
 
@@ -252,6 +256,7 @@ namespace Fief
                 if (Time.time < RushUntil) f *= 1.3f;
                 if (Slowed) f *= 0.5f;
                 if (Tiny) f *= 0.75f;
+                if (Has(Ability.Eclair)) f *= 1.5f;
                 // (07/10) SPRINTER : les vingt premieres secondes de la manche, il file.
                 if (Has(Ability.Sprinter) && Game.Season != null && Game.Season.Elapsed < 20f) f *= 1.35f;
                 if (Glued) f *= 0.3f;

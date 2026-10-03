@@ -115,7 +115,7 @@ namespace Fief
         public static bool Curses(Ability a)
         {
             return a == Ability.Prison || a == Ability.Bombe || a == Ability.Inversion || a == Ability.Mini || a == Ability.Ballon || a == Ability.Encre
-                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser;
+                || a == Ability.Lasso || a == Ability.Hypnose || a == Ability.Geyser || a == Ability.MainDeDieu;
         }
 
         public static IMover MoverOf(Seeker s)
@@ -133,7 +133,9 @@ namespace Fief
                 || a == Ability.Boulet || Curses(a) || a == Ability.Seisme || a == Ability.Gant || a == Ability.Deluge
                 || a == Ability.Toupie || a == Ability.Taupe
                 || a == Ability.Missile || a == Ability.Apesanteur || a == Ability.Boomerang || a == Ability.Oreillers
-                || a == Ability.Raz || a == Ability.Cri;
+                || a == Ability.Raz || a == Ability.Cri
+                || a == Ability.Apocalypse || a == Ability.ArretTemps || a == Ability.Rayon || a == Ability.Tempete
+                || a == Ability.Nuke || a == Ability.MainDeDieu || a == Ability.Essaim || a == Ability.GraviteZero;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -146,7 +148,7 @@ namespace Fief
             if (a == Ability.Fusee && s.CarriesCrown) return "Trop lourd";
             if (a == Ability.Fusee && Castle.Inside(s.Body.position)) return "Pas ici";
             // (06/10) Le Fantome : avec la Couronne, il gagnerait au Monument sans qu'on puisse rien faire.
-            if ((a == Ability.Fantome || a == Ability.Catapulte) && s.CarriesCrown) return "Trop lourd";
+            if ((a == Ability.Fantome || a == Ability.Catapulte || a == Ability.Teleport || a == Ability.Invincible) && s.CarriesCrown) return "Trop lourd";
             if (s.Rooted) return "Enchaîné";
             if (!s.Ready(a, Time.time)) return "Recharge";
             return null;
@@ -532,6 +534,91 @@ namespace Fief
 
                 case Ability.Toupie:
                     SpinAura.Spin(s);
+                    break;
+
+                // ---- les DIVINES (08/10, Mode Dieu)
+                case Ability.Apocalypse:
+                    MeteorShower.Rain(s, pos, 25, 28f, 3.5f, true);
+                    Fx.Flash(chest, tint, 30f, 8f, 0.4f);
+                    ShakeNear(pos, 0.5f);
+                    break;
+                case Ability.ArretTemps:
+                {
+                    // Tous les autres (a 70 m) sont figes dans la glace -- un coup les libere.
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 70f) continue;
+                        if (Combat.Afflict(o, Combat.Affliction.Frozen, 3.5f, s)) n++;
+                    }
+                    if (n == 0) { s.Refund(a); return false; }
+                    Fx.Shock(chest, tint, 70f, 0.8f);
+                    if (Game.Hud != null) Game.Hud.Flash(new Color(0.6f, 0.85f, 1f, 0.5f));
+                    Sfx.Alarm();
+                    break;
+                }
+                case Ability.Rayon:
+                    DivineBeam.Fire(s);
+                    break;
+                case Ability.Teleport:
+                {
+                    // La ou tu vises (150 m) -- mais pas dans la citadelle, ni sur la tour : le sceau
+                    // et "la tour se monte a pied" tiennent, meme pour un dieu.
+                    RaycastHit hit;
+                    if (!RayFrom(s, eye, aim, 150f, out hit)) { s.Refund(a); return false; }
+                    Vector3 dest = hit.point + hit.normal * 0.3f;
+                    if (Castle.Inside(dest) || Castle.Inside(pos) || Tower.On(dest)) { s.Refund(a); Fx.Sparks(hit.point, Ward.Rune, 14, 3f); return false; }
+                    Fx.Column(pos, tint, 25f, 0.4f, 1f);
+                    m.Blink(dest);
+                    Fx.Column(dest, tint, 25f, 0.4f, 1f);
+                    Fx.Shock(dest + Vector3.up, Color.white, 3f, 0.3f);
+                    Tether.Show(s.Body, null, chest, 0.4f, tint);
+                    break;
+                }
+                case Ability.Tempete:
+                    for (int k = 0; k < 6; k++)
+                    {
+                        float ang = k * 60f;
+                        Vector3 d = Quaternion.Euler(0f, ang, 0f) * flat;
+                        Twister.Launch(s, pos + d * 3f, d);
+                    }
+                    Fx.Shock(chest, tint, 8f, 0.4f);
+                    break;
+                case Ability.Nuke:
+                    NukeBomb.Arm(s, pos);
+                    break;
+                case Ability.MainDeDieu:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, 60f, AimAngle);
+                    if (t == null || t.Graced) { s.Refund(a); return false; }
+                    HandOfGod.Strike(s, t);
+                    break;
+                }
+                case Ability.Essaim:
+                    for (int k = 0; k < 8; k++)
+                    {
+                        Vector3 d = Quaternion.Euler(-20f - (k % 2) * 15f, -70f + k * 20f, 0f) * flat;
+                        HomingMissile.Fire(s, chest + d * 1.2f, d);
+                    }
+                    break;
+                case Ability.GraviteZero:
+                {
+                    int n = 0;
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 40f) continue;
+                        if (Combat.Afflict(o, Combat.Affliction.Balloon, 4f, s)) n++;
+                    }
+                    if (n == 0) { s.Refund(a); return false; }
+                    Fx.Shock(chest, tint, 40f, 0.7f);
+                    break;
+                }
+                case Ability.Invincible:
+                    s.GraceUntil = Mathf.Max(s.GraceUntil, now + 6f);
+                    GiantAura.Grow(s);
+                    Fx.Column(pos, tint, 40f, 0.6f, 2f);
                     break;
 
                 // ---- la deuxieme fournee (07/10)

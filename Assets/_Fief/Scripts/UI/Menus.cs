@@ -402,13 +402,16 @@ namespace Fief
             return 0;
         }
 
-        static readonly string[] TitleItems = { "Jouer", "En ligne", "Réglages", "Commandes", "Quitter" };
+        // (08/10 -- "une version God Mode, un bouton ou tu cliques") : MODE DIEU, juste sous Jouer.
+        static readonly string[] TitleItems = { "Jouer", "Mode Dieu", "En ligne", "Réglages", "Commandes", "Quitter" };
+        /// <summary>Le Mode Dieu choisi au salon (le bouton du titre l'allume, Jouer l'eteint).</summary>
+        bool lobbyGod;
         static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
         static readonly string[] EndItems = { "Nouveau match", "Quitter" };
         static readonly string[] ClientEndItems = { "Quitter le salon", "Quitter" };
 
         /// <summary>Le salon : les lignes a regler (joueurs, bots, manches, duree), puis Commencer et Retour.</summary>
-        const int LobbyRows = 4;
+        const int LobbyRows = 5;     // (08/10) + "Mode" (normal / Dieu)
 
         bool showSettings;
         /// <summary>"Abandonner le match" demande une seconde pression (on ne perd pas un match d'un clic egare).</summary>
@@ -422,10 +425,11 @@ namespace Fief
             switch (Current)
             {
                 case State.Title:
-                    if (i == 0) Go(State.Lobby);
-                    else if (i == 1) Go(State.Online);
-                    else if (i == 2) { showSettings = true; selected = 0; }
-                    else if (i == 3) { showControls = true; selected = 0; }
+                    if (i == 0) { lobbyGod = false; Go(State.Lobby); }
+                    else if (i == 1) { lobbyGod = true; Sfx.Discovery(); Go(State.Lobby); }
+                    else if (i == 2) Go(State.Online);
+                    else if (i == 3) { showSettings = true; selected = 0; }
+                    else if (i == 4) { showControls = true; selected = 0; }
                     else Quit();
                     break;
                 case State.Lobby:
@@ -487,6 +491,7 @@ namespace Fief
             else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
             else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
             else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
+            else if (row == 4) lobbyGod = !lobbyGod;
             else return;
             Sfx.Pop();
         }
@@ -505,6 +510,7 @@ namespace Fief
         /// </summary>
         void StartMatch()
         {
+            Match.GodMode = lobbyGod;
             Match.Begin(lobbyBots, lobbyRounds, lobbyMinutes);
             Stats.Reset();
             Match.Draft.Prepare();
@@ -743,7 +749,7 @@ namespace Fief
         bool HostingSalon { get { return NetSession.Link != null && NetSession.Link.IsHost && !Match.Online; } }
 
         /// <summary>Le salon en ligne : les bots, leur niveau, les manches, la duree.</summary>
-        const int OnlineRows = 4;
+        const int OnlineRows = 5;     // (08/10) + "Mode" (normal / Dieu)
         int onlineBots;
 
         void AdjustOnline(int row, int step)
@@ -753,6 +759,7 @@ namespace Fief
             else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
             else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
             else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
+            else if (row == 4) lobbyGod = !lobbyGod;
             else return;
             Sfx.Pop();
         }
@@ -764,6 +771,7 @@ namespace Fief
         /// </summary>
         void StartOnlineMatch()
         {
+            Match.GodMode = lobbyGod;
             if (!NetGame.HostBegin(onlineBots, lobbyRounds, lobbyMinutes)) { Sfx.Deny(); return; }
             Stats.Reset();
             Match.Draft.Prepare();
@@ -1002,6 +1010,7 @@ namespace Fief
         {
             if (text.StartsWith("Jouer") || text.StartsWith("Commencer") || text.StartsWith("Reprendre") || text.StartsWith("Nouveau")) return "jouer";
             if (text.StartsWith("En ligne") || text.StartsWith("Héberger")) return "en-ligne";
+            if (text.StartsWith("Mode Dieu")) return "dieu";
             if (text.StartsWith("Rejoindre")) return "joueur";
             if (text.StartsWith("Quitter le salon")) return "retour";
             if (text.StartsWith("Réglages")) return "reglages";
@@ -1216,11 +1225,18 @@ namespace Fief
             // Centre sur sa vraie hauteur (titre, quatre lignes, les pseudos, le chrono, les boutons).
             float height = UiStyle.S(80) + LobbyRows * UiStyle.S(58) + UiStyle.S(38) * (lobbyBots > 5 ? 2 : 1) + UiStyle.S(64) + UiStyle.S(56) + UiStyle.S(38);
             float y = Mathf.Round(Mathf.Max(UiStyle.S(20), (Screen.height - height) * 0.5f));
-            Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "NOUVEAU MATCH", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
+            // (08/10) En Mode Dieu, le titre le dit -- en or qui bat, sur des rayons.
+            if (lobbyGod)
+            {
+                float beat = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 5f);
+                Icons.Draw(new Rect(x - UiStyle.S(4), y - UiStyle.S(4), UiStyle.S(64), UiStyle.S(64)), "dieu", new Color(1f, 0.85f, 0.3f, beat));
+                Icons.Number(new Rect(x + UiStyle.S(70), y, UiStyle.S(600), UiStyle.S(56)), "MODE DIEU", UiStyle.S(44), new Color(1f, 0.6f * beat + 0.3f, 0.2f), TextAnchor.MiddleLeft);
+            }
+            else Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "NOUVEAU MATCH", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(80);
 
-            string[] labels = { "Joueurs", "Bots", "Manches", "Durée max" };
-            string[] values = { (lobbyBots + 1).ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min" };
+            string[] labels = { "Joueurs", "Bots", "Manches", "Durée max", "Mode" };
+            string[] values = { (lobbyBots + 1).ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min", lobbyGod ? "DIEU" : "Normal" };
             for (int i = 0; i < LobbyRows; i++)
             {
                 int row = i;
@@ -1475,8 +1491,8 @@ namespace Fief
             {
                 // (04/10, etape 2) L'HOTE REGLE ET LANCE : les bots en plus des amis, leur niveau,
                 // les manches, la duree. Puis "Lancer" : tout le monde passe au choix des cartes.
-                string[] labels = { "Bots", "Niveau", "Manches", "Durée max" };
-                string[] values = { onlineBots.ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min" };
+                string[] labels = { "Bots", "Niveau", "Manches", "Durée max", "Mode" };
+                string[] values = { onlineBots.ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min", lobbyGod ? "DIEU" : "Normal" };
                 for (int i = 0; i < OnlineRows; i++)
                 {
                     int row = i;

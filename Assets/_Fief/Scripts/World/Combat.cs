@@ -20,7 +20,12 @@ namespace Fief
         public const float ShoveLift = 10f;
 
         /// <summary>La portee de la poussee de "s" (06/10 : les BRAS LONGS portent a 5 m).</summary>
-        public static float ReachOf(Seeker s) { return s != null && s.Has(Ability.BrasLongs) ? 5f : ShoveReach; }
+        public static float ReachOf(Seeker s)
+        {
+            if (s == null) return ShoveReach;
+            if (s.Has(Ability.MainLourde)) return 5.5f;      // (08/10) divine
+            return s.Has(Ability.BrasLongs) ? 5f : ShoveReach;
+        }
         /// <summary>Vrai pendant le coup d'une poussee : Hit ne joue pas son petit son, la poussee a le sien.</summary>
         static bool quietHit;
         /// <summary>(04/10, en ligne) Vrai pendant une poussee ou un pique d'invite sur le porteur : l'hote decidera du vol.</summary>
@@ -39,6 +44,7 @@ namespace Fief
             Vector3 f = Flat(forward).normalized;
             float force = by.Has(Ability.Poigne) ? ShoveForce * 2f : ShoveForce;
             if (by.Giant) force *= 1.6f;
+            if (by.Has(Ability.MainLourde)) force *= 2.5f;
             // (06/10) RAGE : chaque coup recu depuis ta derniere poussee la rend plus forte (x2,5 au plus).
             if (by.Rage > 0) { force *= 1f + 0.25f * by.Rage; by.Rage = 0; }
             // (07/10) COUP DE PIED : cette poussee-ci envoie trois fois plus loin.
@@ -293,7 +299,7 @@ namespace Fief
         /// touchent pas un ami -- il a les siens, chez lui, au bon endroit.
         /// </summary>
         /// <summary>Ce que les capacites de fou font a leur cible (06/10).</summary>
-        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6, Charmed = 7 }
+        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6, Charmed = 7, Frozen = 8 }
 
         /// <summary>
         /// LES SORTS DES CAPACITES DE FOU (06/10 -- Martin : "une prison qui t'enchaine au sol
@@ -320,6 +326,8 @@ namespace Fief
             switch (what)
             {
                 case Affliction.Prison: victim.RootedUntil = Mathf.Max(victim.RootedUntil, until); break;
+                // (08/10) LE TEMPS S'ARRETE : comme la prison (un coup libere), dans un bloc de glace.
+                case Affliction.Frozen: victim.RootedUntil = Mathf.Max(victim.RootedUntil, until); break;
                 case Affliction.Glue: victim.GluedUntil = Mathf.Max(victim.GluedUntil, until); break;
                 case Affliction.Inverted: victim.InvertedUntil = Mathf.Max(victim.InvertedUntil, until); break;
                 case Affliction.Tiny: victim.TinyUntil = Mathf.Max(victim.TinyUntil, until); break;
@@ -643,12 +651,14 @@ namespace Fief
             // (jamais sur la tour : pas de point de reprise sur la tour, refuse le 02/10).
             IMover mover = AbilityCaster.MoverOf(s);
             bool angel = false;
-            if (s.Has(Ability.AngeGardien) && !s.AngelUsed && mover != null)
+            // (08/10) Le PHENIX (divin) : la meme chose, a CHAQUE chute -- et il renait dans une explosion.
+            bool phoenix = s.Has(Ability.Phenix);
+            if ((phoenix || s.Has(Ability.AngeGardien) && !s.AngelUsed) && mover != null)
             {
                 Vector3 g = mover.LastGround;
                 if (g.y > Ground.FallLine + 2f && !Tower.On(g))
                 {
-                    s.AngelUsed = true;
+                    if (!phoenix) s.AngelUsed = true;
                     angel = true;
                     at = g + Vector3.up * 0.3f;
                 }
@@ -670,7 +680,14 @@ namespace Fief
             s.SlowUntil = -1f;
             // Les sorts des capacites de fou ne survivent pas au plongeon.
             s.RootedUntil = s.GluedUntil = s.InvertedUntil = s.TinyUntil = s.InkUntil = s.BalloonUntil = s.CharmedUntil = -1f;
-            if (angel) Fx.Column(at, AbilityInfo.Tint(Ability.AngeGardien), 30f, 0.6f, 1.2f);
+            if (angel) Fx.Column(at, AbilityInfo.Tint(phoenix ? Ability.Phenix : Ability.AngeGardien), 30f, 0.6f, 1.2f);
+            if (angel && phoenix)
+            {
+                Combat.Blast(at, 9f, 26f, 14f, s);
+                Fx.Burst(at + Vector3.up, AbilityInfo.Tint(Ability.Phenix), 160, 18f, 0.3f, 1f, -0.3f, Vector3.up, 70f);
+                Fx.Shock(at + Vector3.up, AbilityInfo.Tint(Ability.Phenix), 9f, 0.45f);
+                Sfx.KoBoom(at, s.IsPlayer);
+            }
             Fx.Respawn(at, s.Colour);
             Feed.FellIntoClouds(s);
             if (s.IsPlayer && Game.Hud != null) Game.Hud.Flash(new Color(s.Colour.r, s.Colour.g, s.Colour.b, 0.6f));

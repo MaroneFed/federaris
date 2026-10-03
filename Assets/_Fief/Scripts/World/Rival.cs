@@ -1143,6 +1143,7 @@ namespace Fief
         /// </summary>
         void UseAbilities()
         {
+            if (seeker.Has(Ability.Colosse)) GiantAura.Keep(seeker);
             if (seeker.Stunned) return;
             List<Ability> list = new List<Ability>();
             if (seeker.HasActive) list.Add(seeker.CurrentActive);
@@ -1330,6 +1331,33 @@ namespace Fief
                     }
                     case Ability.Toupie:
                         go = !Tower.On(me) && (near >= 1 && (goal == Goal.Hunt || goal == Goal.Fight) || prey != null && prey.CarriesCrown && preyD < 8f);
+                        break;
+                    // ---- les DIVINES (08/10, Mode Dieu)
+                    case Ability.Apocalypse:
+                    case Ability.Nuke:
+                    case Ability.Tempete:
+                        go = !Tower.On(me) && near >= 2 || prey != null && prey.CarriesCrown && preyD < (a == Ability.Nuke ? 26f : 24f) && !carrying;
+                        break;
+                    case Ability.ArretTemps:
+                    case Ability.GraviteZero:
+                        go = !carrying && (prey != null && prey.CarriesCrown && preyD < 38f || contender != null || near >= 3);
+                        break;
+                    case Ability.Rayon:
+                    case Ability.Essaim:
+                        go = prey != null && preyD < 55f && (prey.CarriesCrown || goal == Goal.Fight) && (!Tower.On(me) || prey.IsPlayer || prey.CarriesCrown);
+                        aim = toPrey;
+                        break;
+                    case Ability.MainDeDieu:
+                        go = victim != null || prey != null && prey.CarriesCrown && preyD < 58f;
+                        aim = victim != null ? toVictim : toPrey;
+                        break;
+                    case Ability.Teleport:
+                        // Pour rejoindre un porteur loin (sur un ilot), quand on est dehors.
+                        go = !carrying && !Castle.Inside(me) && prey != null && prey.CarriesCrown && preyD > 35f && preyD < 140f && !Castle.Inside(prey.Body.position);
+                        aim = toPrey;
+                        break;
+                    case Ability.Invincible:
+                        go = !carrying && (near >= 2 || prey != null && prey.CarriesCrown && preyD < 10f || Tower.On(me) && hazardWait > 0.8f);
                         break;
                     // ---- la deuxieme fournee (07/10)
                     case Ability.Hypnose:

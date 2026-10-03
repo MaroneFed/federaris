@@ -29,6 +29,9 @@ namespace Fief
         Prison, Bombe, Inversion, Mini, Glu, Banane, Ballon, Seisme, Gant, Fantome, Taupe, Deluge, Toupie, Encre,
         // (07/10 -- "encore plus de capas, plus, plus, plus") la deuxieme fournee
         Lasso, Missile, Apesanteur, Flammes, Pogo, Geyser, Boomerang, PiegeLoup, Catapulte, Oreillers, Hypnose, Raz, CoupDePied, Cri,
+        // (08/10 -- "une version God Mode, que des capacites de malade mental") : les DIVINES,
+        // seulement en Mode Dieu
+        Apocalypse, ArretTemps, Rayon, Teleport, Tempete, Nuke, MainDeDieu, Essaim, GraviteZero, Invincible,
         // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
         DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond,
         // (05/10) les passives neuves
@@ -36,12 +39,40 @@ namespace Fief
         // (06/10) et encore -- l'AIMANT est parti (Martin : "un truc qui TP la couronne vers toi,
         // c'est n'importe quoi, il faut quand meme monter la tour")
         BrasLongs, Kangourou, Kamikaze, AngeGardien, Rage, Ninja,
-        Miroir, Increvable, Pickpocket, Chanceux, Armure, Sprinter
+        Miroir, Increvable, Pickpocket, Chanceux, Armure, Sprinter,
+        // (08/10) les passives divines (Mode Dieu)
+        Colosse, Eclair, MainLourde, Phenix, Sablier
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 78;
+        public const int Count = 93;
+
+        /// <summary>(08/10) Une capacite DIVINE : seulement en Mode Dieu.</summary>
+        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.Invincible || a >= Ability.Colosse; }
+
+        /// <summary>
+        /// (08/10) LA TABLE DU MODE DIEU : les divines, et les plus folles des autres. Rien de
+        /// "petit" (pas de double saut, pas de coureur) : que des trucs de malade mental.
+        /// </summary>
+        public static bool InGodPool(Ability a)
+        {
+            if (IsGod(a)) return true;
+            switch (a)
+            {
+                case Ability.Meteore: case Ability.Tornade: case Ability.TrouNoir: case Ability.Boulet: case Ability.Geant:
+                case Ability.Foudre: case Ability.Prison: case Ability.Bombe: case Ability.Ballon: case Ability.Seisme:
+                case Ability.Gant: case Ability.Deluge: case Ability.Missile: case Ability.Raz: case Ability.Lasso:
+                case Ability.Geyser: case Ability.Hypnose: case Ability.Souffle: case Ability.Apesanteur:
+                case Ability.Kamikaze: case Ability.Riposte: case Ability.Miroir: case Ability.Rage: case Ability.Vampire:
+                case Ability.Planeur: case Ability.Poigne: case Ability.TeteDure:
+                    return true;
+                default: return false;
+            }
+        }
+
+        /// <summary>Peut-on la tirer dans ce match (Mode Dieu : la table divine ; sinon : tout sauf les divines) ?</summary>
+        public static bool Allowed(Ability a) { return Match.GodMode ? InGodPool(a) : !IsGod(a); }
         /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
         public const int MaxActives = 1;
 
@@ -134,7 +165,22 @@ namespace Fief
                 case Ability.Pickpocket: return "Pickpocket";
                 case Ability.Chanceux: return "Chanceux";
                 case Ability.Armure: return "Armure";
-                default: return "Sprinter";
+                case Ability.Sprinter: return "Sprinter";
+                case Ability.Apocalypse: return "Apocalypse";
+                case Ability.ArretTemps: return "Le temps s'arrête";
+                case Ability.Rayon: return "Rayon divin";
+                case Ability.Teleport: return "Téléportation";
+                case Ability.Tempete: return "Tempête";
+                case Ability.Nuke: return "Bombe atomique";
+                case Ability.MainDeDieu: return "Main de Dieu";
+                case Ability.Essaim: return "Essaim de missiles";
+                case Ability.GraviteZero: return "Gravité zéro";
+                case Ability.Invincible: return "Invincible";
+                case Ability.Colosse: return "Colosse";
+                case Ability.Eclair: return "Éclair";
+                case Ability.MainLourde: return "Main lourde";
+                case Ability.Phenix: return "Phénix";
+                default: return "Sablier";
             }
         }
 
@@ -220,7 +266,22 @@ namespace Fief
                 case Ability.Pickpocket: return "Quand tu voles la Couronne, tu disparais deux secondes.";
                 case Ability.Chanceux: return "Une fois sur trois, ta capacité revient tout de suite.";
                 case Ability.Armure: return "Le premier coup qu'on te donne dans la manche ne te fait rien.";
-                default: return "Les vingt premières secondes de la manche, tu cours bien plus vite.";
+                case Ability.Sprinter: return "Les vingt premières secondes de la manche, tu cours bien plus vite.";
+                case Ability.Apocalypse: return "Vingt-cinq météores s'abattent tout autour de toi.";
+                case Ability.ArretTemps: return "Tous les autres sont figés trois secondes et demie. Pousse-les !";
+                case Ability.Rayon: return "Un rayon de lumière balaie tout ce que tu regardes, trois secondes.";
+                case Ability.Teleport: return "Tu te téléportes là où tu vises. Pas dans la citadelle, pas avec la Couronne.";
+                case Ability.Tempete: return "Six tornades partent de toi dans toutes les directions.";
+                case Ability.Nuke: return "Deux secondes et demie... puis tout explose à trente mètres.";
+                case Ability.MainDeDieu: return "Vise un joueur : une main géante l'envoie valser dans le vide.";
+                case Ability.Essaim: return "Huit missiles qui poursuivent tout le monde.";
+                case Ability.GraviteZero: return "Tout le monde à quarante mètres s'envole comme des ballons.";
+                case Ability.Invincible: return "Six secondes géant et intouchable. Pas avec la Couronne.";
+                case Ability.Colosse: return "Toute la manche, tu es géant : on ne te bouge presque plus.";
+                case Ability.Eclair: return "Tu cours une fois et demie plus vite, toute la manche.";
+                case Ability.MainLourde: return "Ta poussée porte à cinq mètres et demi et envoie deux fois et demie plus loin.";
+                case Ability.Phenix: return "Chaque chute dans les nuages : tu renais là où tu étais, dans une explosion.";
+                default: return "Tes capacités reviennent trois fois plus vite.";
             }
         }
 
@@ -279,6 +340,16 @@ namespace Fief
                 case Ability.Raz: return 12f;
                 case Ability.CoupDePied: return 7f;
                 case Ability.Cri: return 10f;
+                case Ability.Apocalypse: return 20f;
+                case Ability.ArretTemps: return 22f;
+                case Ability.Rayon: return 16f;
+                case Ability.Teleport: return 12f;
+                case Ability.Tempete: return 16f;
+                case Ability.Nuke: return 24f;
+                case Ability.MainDeDieu: return 18f;
+                case Ability.Essaim: return 16f;
+                case Ability.GraviteZero: return 18f;
+                case Ability.Invincible: return 22f;
                 default: return 0f;
             }
         }
@@ -322,6 +393,13 @@ namespace Fief
                 case Ability.Oreillers: case Ability.Hypnose: case Ability.Miroir: return new Color(0.95f, 0.7f, 1f);
                 case Ability.CoupDePied: return new Color(0.95f, 0.3f, 0.3f);
                 case Ability.Increvable: case Ability.Chanceux: return new Color(0.5f, 0.95f, 0.55f);
+                // Les divines : l'or et le blanc, la lumiere.
+                case Ability.Apocalypse: case Ability.Nuke: case Ability.Phenix: return new Color(1f, 0.55f, 0.15f);
+                case Ability.ArretTemps: case Ability.Sablier: return new Color(0.55f, 0.85f, 1f);
+                case Ability.Rayon: case Ability.MainDeDieu: case Ability.Invincible: case Ability.Colosse: return new Color(1f, 0.88f, 0.45f);
+                case Ability.Teleport: case Ability.GraviteZero: return new Color(0.75f, 0.55f, 1f);
+                case Ability.Tempete: case Ability.Eclair: return new Color(0.7f, 0.92f, 1f);
+                case Ability.Essaim: case Ability.MainLourde: return new Color(1f, 0.4f, 0.3f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

@@ -35,7 +35,10 @@ namespace Fief
             switch (what)
             {
                 case Combat.Affliction.Prison:
-                    Cage.Lock(victim);
+                    Cage.Lock(victim, false);
+                    break;
+                case Combat.Affliction.Frozen:
+                    Cage.Lock(victim, true);
                     break;
                 case Combat.Affliction.Tiny:
                     Shrink.Begin(victim);
@@ -62,14 +65,27 @@ namespace Fief
         Seeker who;
         float rattle;
 
-        public static void Lock(Seeker s)
+        public static void Lock(Seeker s, bool ice)
         {
             Cage old = Find(s);
             if (old != null) return;
-            GameObject go = new GameObject("PRISON de " + s.Name);
+            GameObject go = new GameObject((ice ? "GLACE de " : "PRISON de ") + s.Name);
             go.transform.position = s.Body.position;
             Cage c = go.AddComponent<Cage>();
             c.who = s;
+            if (ice)
+            {
+                // (08/10) LE TEMPS S'ARRETE : un bloc de glace bleu, pas de barreaux.
+                Color blue = AbilityInfo.Tint(Ability.ArretTemps);
+                Proto.BeginVisualOnly();
+                GameObject block = Proto.Capsule(go.transform, new Vector3(0f, 1.1f, 0f), new Vector3(1.6f, 1.3f, 1.6f), blue, "Glace");
+                block.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetTransparent(new Color(blue.r, blue.g, blue.b, 0.45f));
+                Proto.EndVisualOnly();
+                All.Add(c);
+                Fx.Burst(s.Body.position + Vector3.up, new Color(0.8f, 0.95f, 1f), 40, 4f, 0.2f, 0.8f, 0.2f, Vector3.zero, 0f);
+                Sfx.ChipAt(s.Body.position);
+                return;
+            }
             Color iron = new Color(0.32f, 0.33f, 0.4f);
             Proto.BeginVisualOnly();
             for (int i = 0; i < 10; i++)
@@ -457,30 +473,41 @@ namespace Fief
     /// <summary>LE DELUGE : sept meteores tombent en 2,5 s autour du point vise (une cible au sol les annonce).</summary>
     public class MeteorShower : MonoBehaviour
     {
-        const int Count = 7;
-        const float Spread = 7f;
         const float Warn = 0.6f;
+        int Count = 7;
         Seeker by;
         float age;
-        readonly Vector3[] spots = new Vector3[Count];
-        readonly float[] at = new float[Count];
-        readonly bool[] done = new bool[Count];
-        readonly Transform[] rocks = new Transform[Count];
+        Vector3[] spots;
+        float[] at;
+        bool[] done;
+        Transform[] rocks;
 
-        public static void Rain(Seeker by, Vector3 centre)
+        public static void Rain(Seeker by, Vector3 centre) { Rain(by, centre, 7, 7f, 2.3f, false); }
+
+        /// <summary>
+        /// (08/10) "count" meteores en "seconds", dans un rayon "spread" ; "aroundOnly" : jamais au
+        /// centre (l'APOCALYPSE tombe autour de son lanceur, pas sur lui).
+        /// </summary>
+        public static void Rain(Seeker by, Vector3 centre, int count, float spread, float seconds, bool aroundOnly)
         {
-            GameObject go = new GameObject("DELUGE");
+            GameObject go = new GameObject(count > 10 ? "APOCALYPSE" : "DELUGE");
             go.transform.position = centre;
             MeteorShower m = go.AddComponent<MeteorShower>();
             m.by = by;
-            for (int i = 0; i < Count; i++)
+            m.Count = count;
+            m.spots = new Vector3[count];
+            m.at = new float[count];
+            m.done = new bool[count];
+            m.rocks = new Transform[count];
+            for (int i = 0; i < count; i++)
             {
-                Vector2 r = i == 0 ? Vector2.zero : Random.insideUnitCircle * Spread;
+                Vector2 r = i == 0 && !aroundOnly ? Vector2.zero : Random.insideUnitCircle * spread;
+                if (aroundOnly && r.magnitude < 4f) r = (r.sqrMagnitude > 0.01f ? r.normalized : Vector2.right) * (4f + Random.value * spread * 0.5f);
                 Vector3 p = centre + new Vector3(r.x, 0f, r.y);
                 RaycastHit hit;
                 if (Physics.Raycast(p + Vector3.up * 8f, Vector3.down, out hit, 20f, ~0, QueryTriggerInteraction.Ignore)) p = hit.point;
                 m.spots[i] = p;
-                m.at[i] = 0.3f + i * 0.33f;
+                m.at[i] = 0.3f + i * seconds / count;
             }
         }
 

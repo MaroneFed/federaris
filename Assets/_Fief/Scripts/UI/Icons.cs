@@ -519,7 +519,22 @@ namespace Fief
                 case Ability.Pickpocket: return "pickpocket";
                 case Ability.Chanceux: return "chanceux";
                 case Ability.Armure: return "armure";
-                default: return "sprinter";
+                case Ability.Sprinter: return "sprinter";
+                case Ability.Apocalypse: return "apocalypse";
+                case Ability.ArretTemps: return "arret-temps";
+                case Ability.Rayon: return "rayon";
+                case Ability.Teleport: return "teleport";
+                case Ability.Tempete: return "tempete";
+                case Ability.Nuke: return "nuke";
+                case Ability.MainDeDieu: return "main-dieu";
+                case Ability.Essaim: return "essaim";
+                case Ability.GraviteZero: return "gravite";
+                case Ability.Invincible: return "invincible";
+                case Ability.Colosse: return "colosse";
+                case Ability.Eclair: return "eclair";
+                case Ability.MainLourde: return "main-lourde";
+                case Ability.Phenix: return "phenix";
+                default: return "sablier";
             }
         }
     }

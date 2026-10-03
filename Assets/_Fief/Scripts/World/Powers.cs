@@ -228,9 +228,22 @@ namespace Fief
             Sfx.KoBoom(s.Body.position, s.IsPlayer);
         }
 
+        /// <summary>(08/10) Le COLOSSE (passive divine) : geant toute la manche, sans fanfare.</summary>
+        public static void Keep(Seeker s)
+        {
+            if (s == null || s.Body == null || s.Body.GetComponent<GiantAura>() != null) return;
+            GiantAura a = s.Body.gameObject.AddComponent<GiantAura>();
+            a.who = s;
+            a.until = float.MaxValue;
+            CharacterRig rig = s.IsPlayer ? Game.Rig : null;
+            if (!s.IsPlayer) { Rival r = Rival.Of(s); if (r != null) rig = r.Rig; }
+            a.figure = rig != null ? rig.transform : null;
+        }
+
         void Update()
         {
             if (who == null || who.Body == null) { Destroy(this); return; }
+            if (who.Has(Ability.Colosse)) until = float.MaxValue;
             bool on = Time.time < until;
             float want = on ? 1.7f : 1f;
             if (figure != null)

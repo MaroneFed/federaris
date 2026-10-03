@@ -91,6 +91,13 @@ namespace Fief
         /// frequence de leurs capacites -- jamais les regles.
         /// </summary>
         public static int BotLevel = 1;
+        /// <summary>
+        /// (08/10 -- Martin : "une version God Mode, un bouton ou tu cliques et tu n'as que des
+        /// capacites de malade mental") : le MODE DIEU. On ne pioche que des capacites divines (et
+        /// les plus folles des autres), et tout se recharge plus de deux fois plus vite. Les regles
+        /// du jeu, elles, ne changent pas (le sceau, la tour a pied, la Couronne lourde).
+        /// </summary>
+        public static bool GodMode;
         public static readonly string[] BotLevels = { "Faciles", "Normaux", "Coriaces" };
         static readonly Color[] Colours =
         {
@@ -342,7 +349,7 @@ namespace Fief
                 // passive en premier n'est pas forcement le premier pour l'active.
                 System.Random rng = new System.Random(RoundSeed + stage * 7919);
                 List<Ability> pool = new List<Ability>();
-                for (int i = 0; i < AbilityInfo.Count; i++) pool.Add((Ability)i);
+                for (int i = 0; i < AbilityInfo.Count; i++) if (AbilityInfo.Allowed((Ability)i)) pool.Add((Ability)i);
                 // Une capacite que TOUT LE MONDE a deja ne sert a rien sur la table.
                 pool.RemoveAll(p => { for (int k = 0; k < Slots.Count; k++) if (!Slots[k].Has(p)) return false; return true; });
                 // (05/10 -- Martin : "ouvre le choix des capacites beaucoup, beaucoup plus large") :
@@ -419,7 +426,11 @@ namespace Fief
                                     Ability.Lasso, Ability.Missile, Ability.Miroir, Ability.Geyser, Ability.CoupDePied, Ability.Armure,
                                     Ability.Boomerang, Ability.Hypnose, Ability.Sprinter, Ability.Raz, Ability.Chanceux, Ability.Cri,
                                     Ability.Oreillers, Ability.Increvable, Ability.Apesanteur, Ability.Pickpocket, Ability.Catapulte,
-                                    Ability.Flammes, Ability.PiegeLoup, Ability.Pogo };
+                                    Ability.Flammes, Ability.PiegeLoup, Ability.Pogo,
+                                    // (08/10) les divines
+                                    Ability.MainDeDieu, Ability.Essaim, Ability.Colosse, Ability.Rayon, Ability.Eclair, Ability.Nuke,
+                                    Ability.ArretTemps, Ability.MainLourde, Ability.Apocalypse, Ability.Phenix, Ability.Tempete,
+                                    Ability.Sablier, Ability.GraviteZero, Ability.Teleport, Ability.Invincible };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

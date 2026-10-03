@@ -54,7 +54,7 @@ salon, départs, refus, ping) — « RESEAU OK ». Elle parle **UDP** (le protoc
   tout le monde (`Crown.TryTakeFor`, `TrySteal`, `KnockOff`…) et le dit à tous (`Crown.Mirror`).
 - **Un ami part en plein match** : sa place devient un bot, là où il était. **L'hôte part** :
   retour à l'écran En ligne, avec la raison. **Pas la même version** des deux côtés : refusé, et
-  le jeu le dit (`NetLink.Version` = 5 depuis v28, 78 capacités ; 4 depuis v27 : 58 capacités et un message neuf, le
+  le jeu le dit (`NetLink.Version` = 6 depuis v29, le Mode Dieu dans l'état du match, 93 capacités ; 5 depuis v28, 78 capacités ; 4 depuis v27 : 58 capacités et un message neuf, le
   **sort** — prison, glu, tête à l'envers, mini, encre, ballon — qui part chez la victime par
   l'hôte, `NetGame.RemoteAfflict`, comme un coup).
 - Testé hors d'Unity : `sh Tools/reseau.sh` (messages fiables avec 30 % de paquets perdus exprès).
