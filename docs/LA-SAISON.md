@@ -286,6 +286,17 @@ manche : l'écran reste épuré). Repasser en Normal : tout revient doucement.
 
 ## Les 119 capacités
 
+> **v33 (10/10) — les noms et les phrases des cartes réécrits** (Martin : « des fois, on ne comprend
+> rien du tout à la carte »). Les phrases disent « tu fais ça → il arrive ça », avec des chiffres.
+> Noms changés : Nuée → **Fumée**, Givre → **Boule de glace**, Voile → **Invisibilité**, Glu →
+> **Colle**, Porteur → **Mains libres**, Poigne → **Grosse poussée**, Ancrage → **Poids lourd**, Flair →
+> **Œil de lynx**, Ombre → **Discret**, Prise ferme → **Bien accroché**, Recharge → **Recharge
+> rapide**, Rebond → **Atterrissage choc**, Apesanteur → **Flottaison**, Increvable → **Résistant**,
+> Plume → **Couronne légère**, Éclair → **Vitesse éclair**, Main lourde → **Poussée géante**,
+> Sablier → **Recharge éclair**, Singularité → **Trou noir géant**, Geôle → **Prison géante**,
+> Lilliput → **Rétrécissement**, Démence → **Folie**, Écho → **Double lancer**. (Les tableaux
+> ci-dessous gardent les anciens noms ; le code fait foi : `Match/Abilities.cs`.)
+
 **Un passif et un clic gauche, c'est tout — et ils CHANGENT À CHAQUE MANCHE.** Avant
 chaque manche, deux tours de table : une **PASSIVE** d'abord, puis une **ACTIVE** (le
 clic gauche). Chaque carte prise **remplace** celle de la manche d'avant. Le vainqueur de

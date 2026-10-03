@@ -420,7 +420,38 @@ namespace Fief
             w.Seconds = seconds;
             w.Force = force;
             Fx.GroundRing(at, AbilityInfo.Tint(Ability.Raz), reach, seconds);
+            // (v33) UN VRAI MUR D'EAU : 36 vagues bleues en cercle, coiffees d'ecume, qui
+            // grandissent en avancant puis s'ecroulent (avant : des gouttes eparses).
+            Color water = new Color(0.25f, 0.6f, 0.95f, 0.75f);
+            float tall = reach > 30f ? 6f : 2.4f;
+            w.tall = tall;
+            for (int k = 0; k < 36; k++)
+            {
+                Proto.BeginVisualOnly();
+                GameObject seg = Proto.Capsule(null, at, new Vector3(2.4f, tall * 0.5f, 1.4f), water, "Vague");
+                GameObject foam = Proto.Sphere(seg.transform, new Vector3(0f, 0.9f, 0.3f), new Vector3(1.1f, 0.25f, 1.6f), Color.white, "Ecume");
+                Proto.EndVisualOnly();
+                Renderer r = seg.GetComponent<Renderer>();
+                r.sharedMaterial = MaterialFactory.GetTransparent(water);
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                foam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                w.wall.Add(seg.transform);
+            }
             Sfx.CrashAt(at);
+        }
+
+        float tall;
+        readonly List<Transform> wall = new List<Transform>();
+
+        void OnDestroy()
+        {
+            for (int i = 0; i < wall.Count; i++)
+            {
+                if (wall[i] == null) continue;
+                Renderer r = wall[i].GetComponent<Renderer>();
+                if (r != null) Destroy(r.sharedMaterial);
+                Destroy(wall[i].gameObject);
+            }
         }
 
         void Update()
@@ -430,6 +461,19 @@ namespace Fief
             float r = Reach * Mathf.Clamp01(age / Seconds);
             Vector3 c = transform.position;
             Color tint = AbilityInfo.Tint(Ability.Raz);
+            float k01 = Mathf.Clamp01(age / Seconds);
+            float h = tall * Mathf.Sin(Mathf.Min(1f, k01 * 1.15f) * Mathf.PI * 0.85f + 0.15f);
+            for (int k = 0; k < wall.Count; k++)
+            {
+                if (wall[k] == null) continue;
+                float a = k / (float)wall.Count * Mathf.PI * 2f;
+                Vector3 outDir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Vector3 p = DivineFx.OnGround(c + outDir * Mathf.Max(0.5f, r));
+                float hh = Mathf.Max(0.05f, h * (0.85f + 0.15f * Mathf.Sin(age * 8f + k)));
+                wall[k].position = p + Vector3.up * hh * 0.5f;
+                wall[k].rotation = Quaternion.LookRotation(outDir) * Quaternion.Euler(-15f * k01, 0f, 0f);
+                wall[k].localScale = new Vector3(Mathf.Max(1.2f, r * 0.2f), hh * 0.5f, 1.4f);
+            }
             spray -= dt;
             if (spray <= 0f)
             {

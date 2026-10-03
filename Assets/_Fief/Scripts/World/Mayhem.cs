@@ -531,10 +531,12 @@ namespace Fief
                     r.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(new Color(0.9f, 0.4f, 0.15f), 0.3f, 0f, 1.5f);
                     Proto.EndVisualOnly();
                     rocks[i] = r.transform;
-                    Fx.GroundRing(spots[i], c, 3f, Warn);
+                    // (v33) La cible au sol se remplit jusqu'a l'impact.
+                    DivineFx.Mark(spots[i], 3f, c, Warn);
                 }
                 rocks[i].position = spots[i] + Vector3.up * Mathf.Max(0f, 30f * left / Warn);
                 if (Random.value < 0.6f) Fx.Sparks(rocks[i].position, c, 2, 3f);
+                Fx.Burst(rocks[i].position + Vector3.up, new Color(1f, 0.6f, 0.25f), 2, 2f, 0.7f, 0.4f, -0.2f, Vector3.up, 20f);
                 if (left > 0f) continue;
                 done[i] = true;
                 Destroy(rocks[i].gameObject);
@@ -548,10 +550,7 @@ namespace Fief
                     Vector3 away = Combat.Flat(d).sqrMagnitude > 0.01f ? Combat.Flat(d).normalized : Vector3.forward;
                     Combat.Hit(s, away * 10f + Vector3.up * 15f, 0.4f, true, by);
                 }
-                Fx.Shock(p + Vector3.up * 0.5f, c, 3.5f, 0.3f);
-                Fx.Burst(p + Vector3.up * 0.3f, c, 60, 12f, 0.2f, 0.6f, 0.5f, Vector3.up, 70f);
-                AbilityCaster.ShakeNear(p, 0.25f);
-                Sfx.CrashAt(p);
+                DivineFx.Impact(p, 3.5f, c, 0.55f, false);
             }
             if (all) Destroy(gameObject);
         }

@@ -545,6 +545,9 @@ namespace Fief
                 case Ability.Apocalypse:
                     MeteorShower.Rain(s, pos, 25, 28f, 3.5f, true);
                     Fx.Flash(chest, tint, 30f, 8f, 0.4f);
+                    DivineFx.Halo(s.Body, tint, 3.5f, 1.4f);
+                    // Le ciel s'ouvre : un anneau de feu a 30 m au-dessus du lanceur.
+                    Fx.Ring(pos + Vector3.up * 30f, tint, 2f, 28f, 1f, 0.6f, Vector3.up);
                     ShakeNear(pos, 0.5f);
                     break;
                 case Ability.ArretTemps:
@@ -555,10 +558,17 @@ namespace Fief
                     {
                         Seeker o = Game.Seekers[i];
                         if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 70f) continue;
-                        if (Combat.Afflict(o, Combat.Affliction.Frozen, 3.5f, s)) n++;
+                        if (Combat.Afflict(o, Combat.Affliction.Frozen, 3.5f, s))
+                        {
+                            n++;
+                            // (v33) Un eclair de givre relie le lanceur a chaque gele.
+                            DivineFx.Bolt(chest, o.Body.position + Vector3.up, new Color(0.7f, 0.9f, 1f), 0.35f, 0.4f);
+                            Fx.Burst(o.Body.position + Vector3.up, new Color(0.8f, 0.95f, 1f), 30, 5f, 0.3f, 0.8f, 0.2f, Vector3.up, 180f);
+                        }
                     }
                     if (n == 0) { s.Refund(a); return false; }
                     Fx.Shock(chest, tint, 70f, 0.8f);
+                    Fx.Ring(chest, Color.white, 1f, 70f, 0.8f, 0.4f, Vector3.up);
                     if (Game.Hud != null) Game.Hud.Flash(new Color(0.6f, 0.85f, 1f, 0.5f));
                     Sfx.Alarm();
                     break;
@@ -589,6 +599,8 @@ namespace Fief
                         Twister.Launch(s, pos + d * 3f, d);
                     }
                     Fx.Shock(chest, tint, 8f, 0.4f);
+                    DivineFx.Smoke(pos, 6, 2.5f, 3f);
+                    DivineFx.Debris(pos + Vector3.up * 0.5f, 12, tint, 9f);
                     break;
                 case Ability.Nuke:
                     NukeBomb.Arm(s, pos);
@@ -606,6 +618,8 @@ namespace Fief
                         Vector3 d = Quaternion.Euler(-20f - (k % 2) * 15f, -70f + k * 20f, 0f) * flat;
                         HomingMissile.Fire(s, chest + d * 1.2f, d);
                     }
+                    DivineFx.Halo(s.Body, tint, 1.2f, 1.2f);
+                    DivineFx.Smoke(chest, 4, 1.2f, 1f);
                     break;
                 case Ability.GraviteZero:
                 {
@@ -614,10 +628,15 @@ namespace Fief
                     {
                         Seeker o = Game.Seekers[i];
                         if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 40f) continue;
-                        if (Combat.Afflict(o, Combat.Affliction.Balloon, 4f, s)) n++;
+                        if (Combat.Afflict(o, Combat.Affliction.Balloon, 4f, s))
+                        {
+                            n++;
+                            Fx.Column(o.Body.position, tint, 25f, 0.5f, 1f);
+                        }
                     }
                     if (n == 0) { s.Refund(a); return false; }
                     Fx.Shock(chest, tint, 40f, 0.7f);
+                    Fx.Ring(pos + Vector3.up * 0.3f, tint, 1f, 40f, 0.7f, 0.5f, Vector3.up);
                     break;
                 }
                 // ---- la deuxieme fournee divine (08/10 au soir)
@@ -655,10 +674,15 @@ namespace Fief
                         n++;
                     }
                     Fx.GroundRing(pos, tint, 100f, 1.2f);
-                    Fx.GroundRing(pos, Color.white, 50f, 0.8f);
-                    Fx.Burst(pos + Vector3.up * 0.3f, new Color(0.55f, 0.45f, 0.35f), 300, 20f, 0.5f, 1.5f, 0.7f, Vector3.up, 80f);
-                    ShakeNear(pos, 1.2f);
-                    Sfx.KoBoom(pos, s.IsPlayer);
+                    DivineFx.Impact(pos, 25f, tint, 2.5f, s.IsPlayer);
+                    // (v33) La terre se souleve sous chacun d'eux.
+                    for (int i = 0; i < Game.Seekers.Count; i++)
+                    {
+                        Seeker o = Game.Seekers[i];
+                        if (o == s || o.Body == null || Combat.Flat(o.Body.position - pos).magnitude > 100f) continue;
+                        DivineFx.Debris(o.Body.position + Vector3.up * 0.3f, 6, tint, 12f);
+                        DivineFx.Scorch(o.Body.position, 2f, 5f);
+                    }
                     if (n == 0) { s.Refund(a); return false; }
                     break;
                 }
@@ -699,7 +723,11 @@ namespace Fief
                     {
                         Seeker o = Game.Seekers[i];
                         if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 50f) continue;
-                        if (Combat.Afflict(o, Combat.Affliction.Prison, 4f, s)) n++;
+                        if (Combat.Afflict(o, Combat.Affliction.Prison, 4f, s))
+                        {
+                            n++;
+                            DivineFx.Bolt(chest, o.Body.position + Vector3.up, tint, 0.3f, 0.45f);
+                        }
                     }
                     if (n == 0) { s.Refund(a); return false; }
                     Fx.Shock(chest, tint, 50f, 0.6f);
@@ -726,7 +754,7 @@ namespace Fief
                     for (int i = 0; i < near.Count && i < 4; i++)
                     {
                         Lightning.Call(s, near[i].Body.position);
-                        Tether.Show(t.Body, near[i].Body, Vector3.zero, 0.4f, tint);
+                        DivineFx.Bolt(t.Body.position + Vector3.up, near[i].Body.position + Vector3.up, tint, 0.5f, 0.6f);
                     }
                     break;
                 }
@@ -813,7 +841,12 @@ namespace Fief
                         bool hit = a == Ability.Lilliput ? Combat.Afflict(o, Combat.Affliction.Tiny, 6f, s)
                                                          : Combat.Afflict(o, Combat.Affliction.Inverted, 5f, s);
                         if (a == Ability.Demence && hit) Combat.Afflict(o, Combat.Affliction.Ink, 4f, s);
-                        if (hit) n++;
+                        if (hit)
+                        {
+                            n++;
+                            DivineFx.Bolt(chest, o.Body.position + Vector3.up, tint, 0.3f, 0.4f);
+                            Fx.Burst(o.Body.position + Vector3.up, tint, 25, 5f, 0.3f, 0.6f, 0f, Vector3.zero, 0f);
+                        }
                     }
                     if (n == 0) { s.Refund(a); return false; }
                     Fx.Shock(chest, tint, 60f, 0.7f);
@@ -825,6 +858,8 @@ namespace Fief
                     s.GraceUntil = Mathf.Max(s.GraceUntil, now + 6f);
                     GiantAura.Grow(s);
                     Fx.Column(pos, tint, 40f, 0.6f, 2f);
+                    DivineFx.Halo(s.Body, new Color(1f, 0.85f, 0.4f), 6f, 2.2f);
+                    DivineFx.Impact(pos, 6f, tint, 0.8f, false);
                     break;
 
                 // ---- la deuxieme fournee (07/10)

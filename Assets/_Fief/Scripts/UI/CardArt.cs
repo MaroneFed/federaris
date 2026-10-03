@@ -200,8 +200,10 @@ namespace Fief
             float sx = Mathf.Abs(Mathf.Cos(turn * Mathf.PI));
             bool showFace = turn >= 0.5f;
             float fade = owned ? 0.55f : 1f;
-            // Celle qu'on vise GRANDIT : on la redessine plus grande (net), on ne l'etire pas.
-            card = Icons.Snap(Grow(card, card.width * 0.04f * lift));
+            // (10/10 -- Martin : "quand on clique sur la carte, le texte bouge, nos yeux bougent")
+            // La carte visee ne grandit plus et ne monte plus : rien de ce qu'on lit ne bouge.
+            // Ce qui dit "c'est celle-la" : le halo, les rayons derriere, le cadre d'or epais.
+            card = Icons.Snap(card);
             int radius = Mathf.Clamp(Mathf.RoundToInt(card.width * 0.08f), 6, 26);
             int line4 = Mathf.Max(3, UiStyle.S(4));
 
@@ -228,6 +230,7 @@ namespace Fief
 
             // L'ombre franche, le liseré sombre.
             Round(new Rect(card.x, card.y + UiStyle.S(9), card.width, card.height), new Color(0f, 0f, 0.05f, 0.4f), radius, false);
+            if (on) Round(Grow(card, line4 * 2f), new Color(1f, 0.9f, 0.45f, 0.5f + 0.5f * lift), radius + line4 * 2, false);
             Round(Grow(card, line4), on ? new Color(1f, 0.9f, 0.45f) : Icons.Ink, radius + line4, false);
 
             if (!showFace)
@@ -268,7 +271,7 @@ namespace Fief
             if (icon != null)
             {
                 float s = Mathf.Min(window.width * 0.62f, window.height * 0.78f);
-                float bob = on ? Mathf.Sin(time * 3f) * UiStyle.S(3) : 0f;
+                float bob = 0f;     // (10/10) l'icone ne danse plus non plus
                 Icons.Draw(new Rect(window.center.x - s * 0.5f, window.y + window.height * 0.55f - s * 0.5f + bob, s, s), icon, Color.white);
             }
 

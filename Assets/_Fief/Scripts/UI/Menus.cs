@@ -1857,7 +1857,7 @@ namespace Fief
                 if (Event.current.type == EventType.Repaint)
                     cardLift[i] = Mathf.MoveTowards(cardLift[i], on ? 1f : 0f, Time.unscaledDeltaTime * 6f);
                 float lift = Mathf.SmoothStep(0f, 1f, cardLift[i]);
-                Rect card = new Rect(hit.x, hit.y + (1f - enter) * UiStyle.S(40) - lift * UiStyle.S(22), cw, ch);
+                Rect card = new Rect(hit.x, hit.y + (1f - enter) * UiStyle.S(40), cw, ch);     // (10/10) elle ne monte plus quand on la vise
                 cardRects[i] = card;
                 Card(card, p, owned, on, lift, enter, me);
                 if (myTurn && enter > 0.9f && GUI.Button(hit, GUIContent.none, GUIStyle.none)) { selected = i; PickCard(i); }

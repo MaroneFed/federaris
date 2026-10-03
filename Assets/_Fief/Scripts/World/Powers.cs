@@ -394,7 +394,11 @@ namespace Fief
                 away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward;
                 Combat.Hit(s, Vector3.up * 16f + away * 8f, 0.7f, true, by);
             }
-            Fx.Column(p, Color.white, 70f, 0.25f, 0.5f);
+            // (v33) Un VRAI eclair en zigzag tombe du ciel, et le sol est noirci.
+            DivineFx.Bolt(p + Vector3.up * 70f + new Vector3(Random.Range(-6f, 6f), 0f, Random.Range(-6f, 6f)), p, c, 1.1f, 0.35f);
+            DivineFx.Bolt(p + Vector3.up * 40f, p, Color.white, 0.5f, 0.25f);
+            DivineFx.Scorch(p, 1.8f, 4f);
+            DivineFx.Debris(p + Vector3.up * 0.3f, 4, c, 7f);
             Fx.Column(p, c, 70f, 0.5f, 1.2f);
             Fx.Shock(p + Vector3.up, c, Radius + 1f, 0.35f);
             Fx.Flash(p + Vector3.up * 3f, c, 40f, 10f, 0.4f);

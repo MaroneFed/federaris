@@ -36,6 +36,8 @@ namespace Fief
             ball.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.5f);
             Proto.EndVisualOnly();
             n.core = ball.transform;
+            // (v33) La zone qui va sauter : un disque qui se remplit jusqu'au BOUM.
+            DivineFx.Mark(at, Radius, c, Fuse);
             Sfx.Alarm();
         }
 
@@ -61,15 +63,12 @@ namespace Fief
             if (age < Fuse) return;
             // BOUM : tout ce qui est a 30 m s'envole (pas celui qui l'a posee).
             Combat.Blast(p, Radius, 40f, 22f, by);
+            DivineFx.Impact(p, Radius, c, 3f, true);
+            DivineFx.Mushroom(p, 7f, c);
             Fx.Flash(p + Vector3.up * 4f, Color.white, 120f, 14f, 0.8f);
-            Fx.Shock(p + Vector3.up * 2f, c, Radius, 0.9f);
-            Fx.Shock(p + Vector3.up * 2f, Color.white, Radius * 0.5f, 0.5f);
             Fx.Column(p, c, 90f, 1.4f, 4f);
-            Fx.Burst(p + Vector3.up * 2f, c, 400, 40f, 0.5f, 1.6f, -0.2f, Vector3.up, 60f);
-            Fx.Burst(p + Vector3.up * 2f, new Color(0.35f, 0.3f, 0.3f), 200, 20f, 0.9f, 2.5f, -0.4f, Vector3.up, 30f);
-            AbilityCaster.ShakeNear(p, 1.2f);
-            Sfx.KoBoom(p, true);
             Sfx.CrashAt(p);
+            if (Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.95f, 0.8f, 0.35f));
             Destroy(gameObject);
         }
     }
@@ -83,7 +82,7 @@ namespace Fief
         public const float Seconds = 3f;
         public const float Reach = 90f;
         Seeker who;
-        float until;
+        float until, scorch;
         Transform beam;
         readonly Dictionary<Seeker, float> burnt = new Dictionary<Seeker, float>();
 
@@ -101,7 +100,13 @@ namespace Fief
                 go.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 2f);
                 Proto.EndVisualOnly();
                 b.beam = go.transform;
+                // (v33) Le coeur blanc du rayon, plus fin, dans le rayon de couleur.
+                Proto.BeginVisualOnly();
+                GameObject core = Proto.Cylinder(go.transform, Vector3.zero, new Vector3(0.4f, 1f, 0.4f), Color.white, "Coeur");
+                core.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Color.white, 3f);
+                Proto.EndVisualOnly();
             }
+            DivineFx.Halo(s.Body, AbilityInfo.Tint(Ability.Rayon), Seconds, 1.1f);
             Sfx.Alarm();
         }
 
@@ -133,7 +138,19 @@ namespace Fief
                 beam.rotation = Quaternion.FromToRotation(Vector3.up, dir);
                 beam.localScale = new Vector3(w, length * 0.5f, w);
             }
-            if (length < Reach) Fx.Burst(from + dir * length, AbilityInfo.Tint(Ability.Rayon), 6, 8f, 0.2f, 0.4f, 0.3f, -dir, 60f);
+            if (length < Reach)
+            {
+                Vector3 spot = from + dir * length;
+                Fx.Burst(spot, AbilityInfo.Tint(Ability.Rayon), 6, 8f, 0.2f, 0.4f, 0.3f, -dir, 60f);
+                scorch -= Time.deltaTime;
+                if (scorch <= 0f)
+                {
+                    scorch = 0.12f;
+                    DivineFx.Scorch(spot, 1.1f, 3f);
+                    DivineFx.Debris(spot, 2, AbilityInfo.Tint(Ability.Rayon), 6f);
+                    DivineFx.Smoke(spot, 1, 0.8f, 2f);
+                }
+            }
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
@@ -182,6 +199,7 @@ namespace Fief
                 .transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
             Proto.EndVisualOnly();
             h.hand = palm.transform;
+            DivineFx.Mark(target.Body.position, 3f, new Color(0.25f, 0.2f, 0.35f), Fall, target.Body);
             Sfx.WhooshAt(target.Body.position);
         }
 
@@ -195,8 +213,9 @@ namespace Fief
             if (age < Fall)
             {
                 transform.position = p;
-                Fx.GroundRing(p, new Color(0.1f, 0.08f, 0.15f), 2.5f, 0.1f);
-                if (hand != null) hand.position = p + Vector3.up * Mathf.Lerp(30f, 2.5f, age / Fall);
+                // Elle tombe de plus en plus vite (au carre), et grossit en approchant.
+                float k = age / Fall;
+                if (hand != null) { hand.position = p + Vector3.up * Mathf.Lerp(30f, 2.5f, k * k); hand.localScale = new Vector3(4f, 1.2f, 5f) * Mathf.Lerp(0.6f, 1.15f, k); }
                 return;
             }
             // La main frappe : vers le vide, loin du centre de l'ile.
@@ -204,11 +223,7 @@ namespace Fief
             out1 = out1.sqrMagnitude > 0.01f ? out1.normalized : Vector3.forward;
             Combat.Hit(target, out1 * 42f + Vector3.up * 20f, 0.7f, true, by);
             Color c = AbilityInfo.Tint(Ability.MainDeDieu);
-            Fx.Shock(p + Vector3.up, c, 6f, 0.4f);
-            Fx.Burst(p + Vector3.up, c, 150, 20f, 0.3f, 0.9f, 0.3f, Vector3.up, 80f);
-            Fx.Flash(p + Vector3.up * 2f, c, 30f, 10f, 0.4f);
-            AbilityCaster.ShakeNear(p, 0.6f);
-            Sfx.KoBoom(p, (by != null && by.IsPlayer) || target.IsPlayer);
+            DivineFx.Impact(p, 6f, c, 1.5f, (by != null && by.IsPlayer) || target.IsPlayer);
             Clean();
         }
 
@@ -222,39 +237,67 @@ namespace Fief
     /// <summary>LE BOMBARDEMENT : douze explosions en ligne, de 6 a 45 m devant, en 2 s.</summary>
     public class BombCarpet : MonoBehaviour
     {
+        // (v33) Chaque bombe a sa CIBLE au sol, et on la VOIT tomber du ciel (avant : des
+        // explosions qui sortaient du sol sans prevenir).
         Seeker by;
-        Vector3 from, dir;
         float age;
-        int done;
         const int Count = 12;
+        const float FallTime = 0.45f;
+        readonly Vector3[] spots = new Vector3[Count];
+        readonly float[] at = new float[Count];
+        readonly Transform[] bombs = new Transform[Count];
+        readonly bool[] done = new bool[Count];
 
         public static void Drop(Seeker by, Vector3 from, Vector3 dir)
         {
             GameObject go = new GameObject("BOMBARDEMENT");
             BombCarpet b = go.AddComponent<BombCarpet>();
             b.by = by;
-            b.from = from;
-            b.dir = dir;
+            Color c = AbilityInfo.Tint(Ability.Bombardement);
+            for (int i = 0; i < Count; i++)
+            {
+                Vector3 p = from + dir * (6f + i * 3.5f) + new Vector3(Random.Range(-3f, 3f), 0f, Random.Range(-3f, 3f));
+                p = DivineFx.OnGround(p);
+                b.spots[i] = p;
+                b.at[i] = 0.7f + i * 0.14f;
+                DivineFx.Mark(p, 5f, c, b.at[i]);
+            }
             Sfx.Alarm();
         }
 
         void Update()
         {
             age += Time.deltaTime;
-            while (done < Count && age > 0.4f + done * 0.14f)
+            Color c = AbilityInfo.Tint(Ability.Bombardement);
+            bool all = true;
+            for (int i = 0; i < Count; i++)
             {
-                Vector3 p = from + dir * (6f + done * 3.5f) + new Vector3(Random.Range(-3f, 3f), 0f, Random.Range(-3f, 3f));
-                RaycastHit hit;
-                if (Physics.Raycast(p + Vector3.up * 30f, Vector3.down, out hit, 80f, ~0, QueryTriggerInteraction.Ignore)) p = hit.point;
-                Combat.Blast(p, 5f, 26f, 14f, by);
-                Color c = AbilityInfo.Tint(Ability.Bombardement);
-                Fx.Shock(p + Vector3.up, c, 5f, 0.3f);
-                Fx.Burst(p + Vector3.up * 0.5f, c, 70, 14f, 0.25f, 0.7f, 0.3f, Vector3.up, 60f);
-                AbilityCaster.ShakeNear(p, 0.25f);
-                Sfx.CrashAt(p);
-                done++;
+                if (done[i]) continue;
+                all = false;
+                float left = at[i] - age;
+                if (left > FallTime) continue;
+                if (bombs[i] == null)
+                {
+                    Proto.BeginVisualOnly();
+                    GameObject g = Proto.Capsule(null, spots[i] + Vector3.up * 30f, new Vector3(0.9f, 1.2f, 0.9f), new Color(0.15f, 0.14f, 0.18f), "Bombe");
+                    Proto.Sphere(g.transform, new Vector3(0f, 0.9f, 0f), new Vector3(1.4f, 0.25f, 1.4f), new Color(0.25f, 0.24f, 0.3f), "Ailette");
+                    Proto.EndVisualOnly();
+                    bombs[i] = g.transform;
+                }
+                bombs[i].position = spots[i] + Vector3.up * (30f * Mathf.Max(0f, left) / FallTime);
+                Fx.Burst(bombs[i].position + Vector3.up, new Color(0.6f, 0.6f, 0.65f), 1, 1f, 0.5f, 0.5f, 0f, Vector3.up, 20f);
+                if (left > 0f) continue;
+                done[i] = true;
+                Destroy(bombs[i].gameObject);
+                Combat.Blast(spots[i], 5f, 26f, 14f, by);
+                DivineFx.Impact(spots[i], 5f, c, 0.8f, false);
             }
-            if (done >= Count) Destroy(gameObject);
+            if (all) Destroy(gameObject);
+        }
+
+        void OnDestroy()
+        {
+            for (int i = 0; i < Count; i++) if (bombs[i] != null) Destroy(bombs[i].gameObject);
         }
     }
 
@@ -275,8 +318,12 @@ namespace Fief
             GameObject core = Proto.Sphere(go.transform, new Vector3(0f, 3f, 0f), new Vector3(4f, 4f, 4f), Color.black, "Coeur");
             core.GetComponent<Renderer>().sharedMaterial = MaterialFactory.Get(new Color(0.02f, 0f, 0.05f));
             Proto.EndVisualOnly();
+            v.core = core.transform;
+            DivineFx.Mark(at, 45f, AbilityInfo.Tint(Ability.Singularite), 2.5f);
             Sfx.WhooshAt(at);
         }
+
+        Transform core;
 
         void Update()
         {
@@ -286,7 +333,22 @@ namespace Fief
             Vector3 c = transform.position + Vector3.up * 3f;
             Color tint = AbilityInfo.Tint(Ability.Singularite);
             ringT -= dt;
-            if (ringT <= 0f && age < 2.4f) { ringT = 0.12f; Fx.Ring(c, tint, 45f, 1f, 0.5f, 0.3f, Vector3.up); }
+            if (ringT <= 0f && age < 2.4f)
+            {
+                ringT = 0.12f;
+                Fx.Ring(c, tint, 45f, 1f, 0.5f, 0.3f, Vector3.up);
+                // (v33) Des eclairs violets du bord vers le coeur, et des pierres arrachees au sol.
+                float a = Random.value * Mathf.PI * 2f;
+                Vector3 edge = DivineFx.OnGround(transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * Random.Range(10f, 40f));
+                DivineFx.Bolt(edge + Vector3.up * 0.5f, c, tint, 0.4f, 0.25f);
+                DivineFx.Debris(edge + Vector3.up * 0.5f, 1, tint, 4f);
+            }
+            if (core != null)
+            {
+                float grow = Mathf.Lerp(4f, 9f, Mathf.Clamp01(age / 2.4f)) * (1f + 0.06f * Mathf.Sin(age * 30f));
+                core.localScale = Vector3.one * grow;
+                core.Rotate(0f, 300f * dt, 0f);
+            }
             if (pulls < 3 && age > 0.2f + pulls * 0.7f)
             {
                 pulls++;
@@ -303,12 +365,9 @@ namespace Fief
             }
             if (age < 2.5f) return;
             Combat.Blast(transform.position, 18f, 42f, 22f, by);
-            Fx.Shock(c, tint, 18f, 0.6f);
-            Fx.Shock(c, Color.white, 9f, 0.35f);
+            DivineFx.Impact(transform.position, 18f, tint, 2.2f, by != null && by.IsPlayer);
             Fx.Burst(c, tint, 300, 34f, 0.3f, 1.1f, 0f, Vector3.zero, 0f);
-            Fx.Flash(c, tint, 60f, 12f, 0.6f);
-            AbilityCaster.ShakeNear(c, 0.9f);
-            Sfx.KoBoom(c, by != null && by.IsPlayer);
+            if (core != null) Destroy(core.gameObject);
             Destroy(gameObject);
         }
     }
@@ -326,6 +385,7 @@ namespace Fief
             if (d == null) d = s.Body.gameObject.AddComponent<DragonBreath>();
             d.who = s;
             d.until = Time.time + 3f;
+            DivineFx.Halo(s.Body, AbilityInfo.Tint(Ability.Dragon), 3f, 1f);
             Sfx.WhooshAt(s.Body.position);
         }
 
@@ -341,6 +401,14 @@ namespace Fief
                 puff = 0.05f;
                 Color c = Random.value < 0.5f ? AbilityInfo.Tint(Ability.Dragon) : new Color(1f, 0.85f, 0.3f);
                 Fx.Burst(mouth, c, 12, 30f, 0.6f, 0.7f, -0.3f, dir, 18f);
+                Fx.Burst(mouth, Color.white, 4, 22f, 0.35f, 0.4f, -0.2f, dir, 8f);
+                // (v33) Le sol brule la ou le feu passe, et la fumee monte.
+                if (Random.value < 0.35f)
+                {
+                    Vector3 spot = who.Body.position + Quaternion.Euler(0f, Random.Range(-30f, 30f), 0f) * flat * Random.Range(6f, 22f);
+                    DivineFx.Scorch(spot, Random.Range(1f, 2f), 4f);
+                    DivineFx.Smoke(DivineFx.OnGround(spot), 1, 1.2f, 2.5f);
+                }
             }
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
@@ -374,6 +442,7 @@ namespace Fief
             r.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(t, 2f);
             Proto.EndVisualOnly();
             c.rock = r.transform;
+            DivineFx.Mark(at, 18f, t, Fall);
             Sfx.Alarm();
         }
 
@@ -390,16 +459,13 @@ namespace Fief
             {
                 rock.position = p + Vector3.up * Mathf.Lerp(120f, 0f, age / Fall);
                 Fx.Burst(rock.position, t, 6, 6f, 1.2f, 0.6f, 0f, Vector3.up, 40f);
+                if (Random.value < 0.5f) DivineFx.Smoke(rock.position + Vector3.up * 4f, 1, 3f, 0.5f);
             }
             if (age < Fall) return;
             if (rock != null) Destroy(rock.gameObject);
             Combat.Blast(p, 18f, 45f, 25f, by);
-            Fx.Shock(p + Vector3.up, t, 18f, 0.6f);
-            Fx.Burst(p + Vector3.up, t, 300, 36f, 0.4f, 1.2f, 0.3f, Vector3.up, 80f);
-            Fx.Flash(p + Vector3.up * 3f, t, 80f, 12f, 0.6f);
+            DivineFx.Impact(p, 18f, t, 2.4f, by != null && by.IsPlayer);
             Fx.Column(p, t, 80f, 0.8f, 6f);
-            AbilityCaster.ShakeNear(p, 1f);
-            Sfx.KoBoom(p, by != null && by.IsPlayer);
             Destroy(gameObject);
         }
 
@@ -420,7 +486,27 @@ namespace Fief
             go.transform.position = at;
             FireRingZone f = go.AddComponent<FireRingZone>();
             f.by = by;
+            // (v33) UN VRAI MUR DE FLAMMES : 28 langues de feu qui dansent sur le cercle (avant,
+            // des etincelles eparses -- on ne voyait pas ou etait le cercle).
+            Color t = AbilityInfo.Tint(Ability.AnneauFeu);
+            Proto.BeginVisualOnly();
+            for (int k = 0; k < 28; k++)
+            {
+                float a = k / 28f * Mathf.PI * 2f;
+                Vector3 p = DivineFx.OnGround(at + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * Radius);
+                GameObject flame = Proto.Capsule(null, p + Vector3.up, new Vector3(0.9f, 1.2f, 0.9f), t, "Flamme");
+                flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(k % 3 == 0 ? new Color(1f, 0.85f, 0.3f) : t, 2.2f);
+                flame.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                f.flames.Add(flame.transform);
+            }
+            Proto.EndVisualOnly();
+            DivineFx.Scorch(at, Radius + 1f, 7f);
+            Fx.Flash(at + Vector3.up * 2f, t, 30f, 6f, 0.4f);
         }
+
+        readonly List<Transform> flames = new List<Transform>();
+
+        void OnDestroy() { for (int i = 0; i < flames.Count; i++) if (flames[i] != null) Destroy(flames[i].gameObject); }
 
         void Update()
         {
@@ -428,6 +514,13 @@ namespace Fief
             if (age > 5f) { Destroy(gameObject); return; }
             Vector3 c = transform.position;
             Color t = AbilityInfo.Tint(Ability.AnneauFeu);
+            float rise = Mathf.Clamp01(age / 0.3f) * Mathf.Clamp01((5f - age) / 0.4f);
+            for (int k = 0; k < flames.Count; k++)
+            {
+                if (flames[k] == null) continue;
+                float h = rise * (1.2f + 0.5f * Mathf.Sin(age * 9f + k * 1.7f) + 0.3f * Mathf.Sin(age * 23f + k));
+                flames[k].localScale = new Vector3(0.9f * rise, Mathf.Max(0.01f, h), 0.9f * rise);
+            }
             puff -= Time.deltaTime;
             if (puff <= 0f)
             {

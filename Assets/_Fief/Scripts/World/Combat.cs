@@ -100,9 +100,7 @@ namespace Fief
                     Hit(o, away * 22f + Vector3.up * 11f, 0.3f, true, by);
                 }
                 Color k = AbilityInfo.Tint(Ability.Explosif);
-                Fx.Shock(c + Vector3.up, k, 7f, 0.4f);
-                Fx.Burst(c + Vector3.up, k, 120, 18f, 0.25f, 0.8f, 0f, Vector3.zero, 0f);
-                Sfx.KoBoom(c, true);
+                DivineFx.Impact(c, 7f, k, 1f, true);
             }
             if (!best.Graced) Highlights.Shoved(by, best, stole);
             return true;
@@ -724,9 +722,12 @@ namespace Fief
             if (angel && phoenix)
             {
                 Combat.Blast(at, 9f, 26f, 14f, s);
-                Fx.Burst(at + Vector3.up, AbilityInfo.Tint(Ability.Phenix), 160, 18f, 0.3f, 1f, -0.3f, Vector3.up, 70f);
-                Fx.Shock(at + Vector3.up, AbilityInfo.Tint(Ability.Phenix), 9f, 0.45f);
-                Sfx.KoBoom(at, s.IsPlayer);
+                // (v33) Il renait en flammes : l'impact divin, des ailes de feu qui s'ouvrent, une aureole.
+                Color ph = AbilityInfo.Tint(Ability.Phenix);
+                DivineFx.Impact(at, 9f, ph, 1.4f, s.IsPlayer);
+                Fx.Burst(at + Vector3.up * 1.5f, ph, 80, 16f, 0.5f, 0.9f, -0.5f, Vector3.left, 25f);
+                Fx.Burst(at + Vector3.up * 1.5f, ph, 80, 16f, 0.5f, 0.9f, -0.5f, Vector3.right, 25f);
+                DivineFx.Halo(s.Body, ph, 2.5f, 1.2f);
             }
             Fx.Respawn(at, s.Colour);
             Feed.FellIntoClouds(s);

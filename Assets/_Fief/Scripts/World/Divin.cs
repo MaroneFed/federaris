@@ -123,11 +123,8 @@ namespace Fief
             Vector3 p = transform.position + Vector3.up * 0.6f;
             Color c = AbilityInfo.Tint(Ability.Armee);
             Combat.Blast(transform.position, 5f, 26f, 14f, by);
-            Fx.Shock(p, c, 5f, 0.3f);
-            Fx.Burst(p, c, 80, 14f, 0.3f, 0.7f, 0.3f, Vector3.up, 80f);
-            Fx.Flash(p, c, 14f, 4f, 0.25f);
-            AbilityCaster.ShakeNear(p, 0.3f);
-            Sfx.CrashAt(p);
+            DivineFx.Impact(transform.position, 5f, c, 0.7f, false);
+            Fx.Confetti(p, new[] { by != null ? by.Colour : c, Color.white }, 30, 10f, Vector3.up, 80f);
             Destroy(gameObject);
         }
     }
@@ -172,9 +169,7 @@ namespace Fief
             v.cone = c.transform;
             v.cone.localScale = new Vector3(1f, 0.05f, 1f);
             Combat.Blast(at, 6f, 24f, 18f, by);
-            Fx.GroundRing(at, AbilityInfo.Tint(Ability.Volcan), 8f, 0.5f);
-            AbilityCaster.ShakeNear(at, 0.6f);
-            Sfx.CrashAt(at);
+            DivineFx.Impact(at, 8f, AbilityInfo.Tint(Ability.Volcan), 1.2f, false);
         }
 
         void Update()
@@ -202,6 +197,7 @@ namespace Fief
                 Vector3 to = transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * Random.Range(4f, Reach);
                 Divin.Ground(ref to, 20f, 40f);
                 b.To = to;
+                DivineFx.Mark(to, 4f, t, 1.1f);
                 b.Ball = Divin.Ball(top, 1.3f, t, 2f).transform;
                 bombs.Add(b);
             }
@@ -218,9 +214,7 @@ namespace Fief
                 }
                 if (b.T < 1f) continue;
                 Combat.Blast(b.To, 4f, 24f, 13f, by);
-                Fx.Shock(b.To + Vector3.up * 0.5f, t, 4f, 0.25f);
-                Fx.Burst(b.To + Vector3.up * 0.3f, t, 40, 10f, 0.3f, 0.6f, 0.5f, Vector3.up, 70f);
-                Sfx.CrashAt(b.To);
+                DivineFx.Impact(b.To, 4f, t, 0.5f, false);
                 if (b.Ball != null) Destroy(b.Ball.gameObject);
                 bombs.RemoveAt(i);
             }
@@ -296,6 +290,8 @@ namespace Fief
             tick = age < Warn ? 0.12f : 0.3f;
             if (age < Warn) { Fx.GroundRing(p, c, 4.5f, 0.15f); return; }
             Combat.Blast(p, 4.5f, 22f, 16f, by);
+            DivineFx.Scorch(p, 2.2f, 4f);
+            DivineFx.Debris(p + Vector3.up * 0.3f, 3, c, 9f);
             Fx.Column(p, Color.white, 120f, 0.2f, 1.2f);
             Fx.Column(p, c, 120f, 0.35f, 2.6f);
             Fx.Shock(p + Vector3.up * 0.4f, c, 4.5f, 0.25f);
@@ -313,7 +309,7 @@ namespace Fief
         const float Radius = 3.5f;
         Seeker by;
         Vector3 dir;
-        float age, fall;
+        float age, fall, trail;
         Transform rock;
         readonly List<Seeker> struck = new List<Seeker>();
 
@@ -345,6 +341,9 @@ namespace Fief
             transform.position = p;
             if (rock != null) rock.Rotate(Vector3.Cross(Vector3.up, dir), Speed * dt / Radius * Mathf.Rad2Deg, Space.World);
             if (Random.value < 0.5f) Fx.Burst(p + Vector3.up * 0.2f, new Color(0.6f, 0.52f, 0.42f), 4, 5f, 0.4f, 0.5f, 0.3f, Vector3.up, 60f);
+            // (v33) Il arrache le sol : des pierres et un sillon derriere lui.
+            trail -= dt;
+            if (trail <= 0f && fall <= 0f) { trail = 0.12f; DivineFx.Debris(p + Vector3.up * 0.4f, 2, new Color(0.6f, 0.52f, 0.42f), 6f); DivineFx.Scorch(p, 2.5f, 5f); }
             if (age % 0.25f < dt) AbilityCaster.ShakeNear(p, 0.15f);
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
@@ -358,7 +357,7 @@ namespace Fief
                 Fx.Impact(s.Body.position + Vector3.up, new Color(0.6f, 0.52f, 0.42f), 1.6f);
                 Sfx.PunchAt(s.Body.position);
             }
-            if (age > Life || p.y < -60f) { Fx.Burst(p + Vector3.up * Radius, new Color(0.5f, 0.45f, 0.4f), 120, 14f, 0.6f, 1f, 0.6f, Vector3.up, 90f); Destroy(gameObject); }
+            if (age > Life || p.y < -60f) { if (p.y > -20f) DivineFx.Impact(p, 6f, new Color(0.6f, 0.52f, 0.42f), 1.2f, false); Destroy(gameObject); }
         }
     }
 
@@ -417,6 +416,9 @@ namespace Fief
             if (age < Fall) return;
             if (moon != null) Destroy(moon.gameObject);
             Combat.Blast(p, Radius, 48f, 26f, by);
+            DivineFx.Impact(p, Radius, t, 3f, true);
+            DivineFx.Mushroom(p, 10f, new Color(0.7f, 0.7f, 0.85f));
+            if (Game.Hud != null) Game.Hud.Flash(new Color(0.9f, 0.92f, 1f, 0.4f));
             Fx.Flash(p + Vector3.up * 6f, Color.white, 160f, 16f, 0.9f);
             Fx.Shock(p + Vector3.up * 2f, t, Radius, 1f);
             Fx.Shock(p + Vector3.up * 2f, Color.white, Radius * 0.6f, 0.6f);
@@ -447,6 +449,7 @@ namespace Fief
             if (h == null) h = s.Body.gameObject.AddComponent<Hurricane>();
             h.who = s;
             h.until = Time.time + Life;
+            DivineFx.Halo(s.Body, AbilityInfo.Tint(Ability.Ouragan), Life, 1.3f);
         }
 
         void Update()
@@ -470,7 +473,15 @@ namespace Fief
                 }
             }
             soundT -= dt;
-            if (soundT <= 0f) { soundT = 0.35f; Sfx.WhooshAt(c); }
+            if (soundT <= 0f)
+            {
+                soundT = 0.35f;
+                Sfx.WhooshAt(c);
+                float a = Random.value * Mathf.PI * 2f;
+                Vector3 edge = c + new Vector3(Mathf.Cos(a), 0.3f, Mathf.Sin(a)) * Radius * Random.Range(0.6f, 1f);
+                DivineFx.Debris(edge, 2, t, 10f);
+                DivineFx.Smoke(edge, 1, 2f, 6f);
+            }
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
                 Seeker s = Game.Seekers[i];
@@ -501,6 +512,7 @@ namespace Fief
             if (k == null) k = s.Body.gameObject.AddComponent<SkySlam>();
             k.who = s;
             k.age = 0f;
+            Fx.KeepTrail(s.Body, Vector3.up, AbilityInfo.Tint(Ability.FrappeCiel), 0.8f, 3f);
         }
 
         void Update()
@@ -517,12 +529,7 @@ namespace Fief
             RaycastHit hit;
             if (!Physics.Raycast(p + Vector3.up * 0.4f, Vector3.down, out hit, 1.1f, ~0, QueryTriggerInteraction.Ignore)) return;
             Combat.Blast(hit.point, 18f, 38f, 20f, who);
-            Fx.Shock(hit.point + Vector3.up, t, 18f, 0.6f);
-            Fx.GroundRing(hit.point, Color.white, 18f, 0.5f);
-            Fx.Burst(hit.point + Vector3.up * 0.3f, new Color(0.6f, 0.52f, 0.42f), 200, 18f, 0.5f, 1.2f, 0.6f, Vector3.up, 80f);
-            Fx.Flash(hit.point + Vector3.up * 2f, t, 40f, 8f, 0.4f);
-            AbilityCaster.ShakeNear(hit.point, 1f);
-            Sfx.KoBoom(hit.point, who.IsPlayer);
+            DivineFx.Impact(hit.point, 18f, t, 2f, who.IsPlayer);
             Destroy(this);
         }
     }
@@ -544,6 +551,7 @@ namespace Fief
             a.by = by;
             a.victim = victim;
             a.spot = victim.Body.position;
+            DivineFx.Mark(victim.Body.position, 2.2f, new Color(0.3f, 0.3f, 0.4f), Warn, victim.Body);
         }
 
         void Update()
@@ -552,9 +560,6 @@ namespace Fief
             if (dt <= 0f) return;
             age += dt;
             if (victim != null && victim.Body != null && age < Warn) spot = victim.Body.position;
-            Color dark = new Color(0.16f, 0.16f, 0.2f);
-            ring -= dt;
-            if (age < Warn && ring <= 0f) { ring = 0.1f; Fx.GroundRing(spot, dark, 2.2f, 0.12f); }
             if (age >= Warn && anvil == null)
             {
                 Proto.BeginVisualOnly();
@@ -571,8 +576,7 @@ namespace Fief
                 Vector3 side = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
                 Combat.Hit(victim, side.normalized * 10f + Vector3.up * 7f, 0.7f, true, by);
             }
-            Fx.Shock(spot + Vector3.up * 0.5f, Color.white, 3f, 0.25f);
-            Fx.Burst(spot + Vector3.up * 0.3f, new Color(0.6f, 0.55f, 0.5f), 50, 9f, 0.3f, 0.6f, 0.6f, Vector3.up, 70f);
+            DivineFx.Impact(spot, 2.6f, new Color(0.8f, 0.82f, 0.9f), 0.5f, false);
             Sfx.ClangAt(spot);
             if (anvil != null) Destroy(anvil.gameObject, 0.8f);
             Destroy(gameObject);
@@ -690,10 +694,7 @@ namespace Fief
             if (top - p.y < 4f || !Match.Active) return;
             Color t = AbilityInfo.Tint(Ability.Titan);
             Combat.Blast(p, 7f, 24f, 12f, who);
-            Fx.GroundRing(p, t, 7f, 0.4f);
-            Fx.Burst(p + Vector3.up * 0.2f, new Color(0.6f, 0.52f, 0.42f), 60, 9f, 0.4f, 0.7f, 0.6f, Vector3.up, 80f);
-            AbilityCaster.ShakeNear(p, 0.4f);
-            Sfx.CrashAt(p);
+            DivineFx.Impact(p, 7f, t, 0.7f, false);
         }
     }
 }
