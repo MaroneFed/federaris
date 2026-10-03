@@ -188,6 +188,8 @@ namespace Fief
         /// <summary>Tout le monde plane (28/09), sauf etourdi ou en pleine chute.</summary>
         public bool CanGlide { get { return !Stunned && !Tumbling && !Rooted && !Ballooned; } }
         public bool Graced { get { return Time.time < GraceUntil; } }
+        /// <summary>(10/10) La derniere gerbe d'or du bouclier divin du porteur (pour ne pas en mettre 60 par seconde).</summary>
+        public float ShieldFxAt = -99f;
         /// <summary>
         /// Qui vient de perdre la Couronne ne la reprend pas tout de suite en retombant
         /// dessus (sinon on la "rattrape" d'office en volant dans la meme direction).

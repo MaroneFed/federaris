@@ -157,6 +157,17 @@ namespace Fief
             v.by = by;
             Proto.BeginVisualOnly();
             GameObject c = Proto.Cone(go.transform, Vector3.zero, 5f, 6f, new Color(0.25f, 0.18f, 0.16f), "Cone", 10);
+            // La lave qui deborde du cratere, et deux coulees sur les flancs.
+            Color lava = AbilityInfo.Tint(Ability.Volcan);
+            GameObject cap = Proto.Sphere(c.transform, new Vector3(0f, 6f, 0f), new Vector3(2.6f, 1f, 2.6f), lava, "Lave");
+            cap.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(lava, 2.2f);
+            for (int k = 0; k < 3; k++)
+            {
+                float a = k * 2.1f;
+                GameObject flow = Proto.Capsule(c.transform, new Vector3(Mathf.Cos(a) * 2.4f, 3f, Mathf.Sin(a) * 2.4f), new Vector3(0.6f, 2.6f, 0.6f), lava, "Coulee");
+                flow.transform.localRotation = Quaternion.LookRotation(new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a))) * Quaternion.Euler(40f, 0f, 0f);
+                flow.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(lava, 1.6f);
+            }
             Proto.EndVisualOnly();
             v.cone = c.transform;
             v.cone.localScale = new Vector3(1f, 0.05f, 1f);
@@ -183,6 +194,8 @@ namespace Fief
             {
                 spit = 0.22f;
                 Fx.Burst(top, t, 20, 10f, 0.5f, 0.8f, 0.6f, Vector3.up, 30f);
+                // La fumee noire qui monte du cratere.
+                Fx.Burst(top + Vector3.up, new Color(0.18f, 0.15f, 0.15f), 6, 4f, 1.6f, 2.2f, -0.6f, Vector3.up, 20f);
                 LavaBomb b = new LavaBomb();
                 b.From = top;
                 float a = Random.value * Mathf.PI * 2f;
@@ -201,6 +214,7 @@ namespace Fief
                     Vector3 p = Vector3.Lerp(b.From, b.To, b.T);
                     p.y += Mathf.Sin(b.T * Mathf.PI) * 14f;
                     b.Ball.position = p;
+                    if (Random.value < 0.6f) Fx.Burst(p, t, 2, 1f, 0.5f, 0.5f, -0.3f, Vector3.up, 30f);
                 }
                 if (b.T < 1f) continue;
                 Combat.Blast(b.To, 4f, 24f, 13f, by);
@@ -230,6 +244,7 @@ namespace Fief
         const float Follow = 8.5f;
         Seeker by, target;
         float age, tick;
+        Transform beam, core, disc;
 
         public static void Lock(Seeker by, Seeker target)
         {
@@ -238,6 +253,20 @@ namespace Fief
             OrbitalStrike o = go.AddComponent<OrbitalStrike>();
             o.by = by;
             o.target = target;
+            // (10/10) UN VRAI RAYON : un tube de lumiere de 120 m, un coeur blanc dedans, et au
+            // sol un disque qui brule -- avant, ce n'etaient que des eclats sans corps.
+            Color c = AbilityInfo.Tint(Ability.FrappeOrbitale);
+            Proto.BeginVisualOnly();
+            GameObject b = Proto.Cylinder(go.transform, new Vector3(0f, 60f, 0f), new Vector3(0.3f, 60f, 0.3f), c, "Rayon");
+            b.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 2.5f);
+            GameObject k = Proto.Cylinder(go.transform, new Vector3(0f, 60f, 0f), new Vector3(0.12f, 60f, 0.12f), Color.white, "Coeur");
+            k.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Color.white, 3f);
+            GameObject d = Proto.Cylinder(go.transform, new Vector3(0f, 0.05f, 0f), new Vector3(9f, 0.02f, 9f), c, "Disque");
+            d.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(c, 1.2f);
+            Proto.EndVisualOnly();
+            o.beam = b.transform;
+            o.core = k.transform;
+            o.disc = d.transform;
             Sfx.Alarm();
         }
 
@@ -256,6 +285,12 @@ namespace Fief
             Divin.Ground(ref p, 4f, 10f);
             transform.position = p;
             Color c = AbilityInfo.Tint(Ability.FrappeOrbitale);
+            // Pendant l'alerte, un fil mince qui tremble ; puis le rayon s'ouvre et pulse.
+            float open = age < Warn ? 0.15f + 0.1f * Mathf.Sin(age * 40f) : Mathf.Min(1f, (age - Warn) * 6f) * (1f + 0.15f * Mathf.Sin(age * 30f));
+            float fade = Mathf.Clamp01((Life - age) / 0.3f);
+            if (beam != null) beam.localScale = new Vector3(3.2f * open * fade, 60f, 3.2f * open * fade);
+            if (core != null) core.localScale = new Vector3(1.2f * open * fade, 60f, 1.2f * open * fade);
+            if (disc != null) { float r = age < Warn ? 9f * (age / Warn) : 9f; disc.localScale = new Vector3(r * fade, 0.02f, r * fade); disc.Rotate(0f, 200f * dt, 0f); }
             tick -= dt;
             if (tick > 0f) return;
             tick = age < Warn ? 0.12f : 0.3f;
@@ -335,7 +370,7 @@ namespace Fief
         const float Size = 26f;
         Seeker by;
         float age, ring;
-        Transform moon;
+        Transform moon, shadow;
 
         public static void Drop(Seeker by, Vector3 at)
         {
@@ -351,8 +386,11 @@ namespace Fief
             Proto.Sphere(r.transform, new Vector3(0.25f, 0.2f, -0.38f), new Vector3(0.22f, 0.22f, 0.12f), crater, "Cratere");
             Proto.Sphere(r.transform, new Vector3(-0.2f, -0.15f, -0.42f), new Vector3(0.16f, 0.16f, 0.1f), crater, "Cratere");
             Proto.Sphere(r.transform, new Vector3(-0.05f, 0.32f, -0.36f), new Vector3(0.1f, 0.1f, 0.08f), crater, "Cratere");
+            // Son OMBRE au sol : un disque sombre qui grandit -- on voit ou elle va tomber.
+            GameObject sh = Proto.Cylinder(go.transform, new Vector3(0f, 0.08f, 0f), new Vector3(1f, 0.01f, 1f), new Color(0.05f, 0.05f, 0.1f), "Ombre");
             Proto.EndVisualOnly();
             m.moon = r.transform;
+            m.shadow = sh.transform;
             Sfx.Alarm();
         }
 
@@ -371,8 +409,11 @@ namespace Fief
                 // Lente, puis de plus en plus vite (k au carre).
                 moon.position = p + Vector3.up * Mathf.Lerp(240f, Size * 0.3f, k * k);
                 moon.Rotate(Vector3.up, 20f * dt, Space.World);
+                // Elle brule en entrant dans le ciel : une traine de feu derriere elle.
+                Fx.Burst(moon.position + Vector3.up * Size * 0.4f, new Color(1f, 0.55f, 0.2f), 8, 6f, 2.5f, 1f, -0.3f, Vector3.up, 40f);
                 if (age % 0.6f < dt) AbilityCaster.ShakeNear(p, 0.1f + 0.4f * k);
             }
+            if (shadow != null) { float r = Radius * 2f * Mathf.Lerp(0.15f, 1f, k * k); shadow.localScale = new Vector3(r, 0.01f, r); }
             if (age < Fall) return;
             if (moon != null) Destroy(moon.gameObject);
             Combat.Blast(p, Radius, 48f, 26f, by);

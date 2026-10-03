@@ -1072,6 +1072,13 @@ namespace Fief
             // chaque palier : un pas de cote et un saut, puis le repere suivant, puis un nouveau
             // chemin -- et en dernier recours, s'il est coince depuis 12 s la ou personne ne le
             // voit, il est remis sur son chemin (comme tous les jeux le font avec leurs bots).
+            // (10/10 -- Martin : "il y a des bots qui buguent, ils restent coinces je sais pas ou")
+            // LA VRAIE CAUSE : le chien de garde ci-dessous se remettait a zero a chaque fois que
+            // sa CIBLE bougeait de 3 m (SetGoal) -- et un bot qui chasse le porteur change de cible
+            // sans arret. Il pouvait donc pousser contre un mur toute la manche. Desormais, un
+            // second chien regarde OU IL EST VRAIMENT, quoi qu'il vise : 2,5 m en 8 s, sinon il
+            // s'en sort, en dernier recours sous tes yeux aussi (dans un petit nuage).
+            if (WatchStill(step, dt)) return;
             if (!body.enabled || gliding || ballistic || leaping || mounted) { noProgress = 0f; unstick = 0; return; }
             // (06/10) Enchaine, englue, aveugle, a l'envers : ce n'est pas etre coince.
             if (seeker.Rooted || seeker.Glued || seeker.Inverted || seeker.Inked || seeker.Ballooned || seeker.Charmed || seeker.Stunned) { noProgress = 0f; return; }
@@ -1114,6 +1121,53 @@ namespace Fief
         }
 
         int unstick;
+        Vector3 stillAnchor;
+        float still;
+
+        /// <summary>Le second chien de garde : il ne regarde que la position. Vrai s'il vient d'agir.</summary>
+        bool WatchStill(Vector3 step, float dt)
+        {
+            if (!body.enabled || mounted) { still = 0f; stillAnchor = transform.position; return false; }
+            if ((transform.position - stillAnchor).magnitude > 2.5f) { stillAnchor = transform.position; still = 0f; return false; }
+            // Un sort, un etourdissement, l'attente d'un pendule : ce n'est pas etre coince.
+            if (seeker.Rooted || seeker.Glued || seeker.Ballooned || seeker.Charmed || seeker.Stunned) return false;
+            if (hazardWait > 0f && hazardWait < HazardPatience) return false;
+            still += dt;
+            // Coince EN L'AIR (planer contre un mur, un tir qui ne retombe jamais) : on le laisse tomber.
+            if (still > 4f && (gliding || ballistic || leaping)) { gliding = false; ballistic = false; leaping = false; }
+            if (still > 8f && still - dt <= 8f)
+            {
+                PlanPath(target);
+                progressBest = float.MaxValue;
+                detourTimer = 1.2f;
+                detourSign = rng.NextDouble() < 0.5 ? -1f : 1f;
+                if (body.isGrounded) fallSpeed = 8f;
+                return true;
+            }
+            if (still < 15f) return false;
+            still = 0f;
+            stillAnchor = transform.position;
+            noProgress = 0f;
+            unstick = 0;
+            Vector3 from = transform.position;
+            bool seen = SeenByPlayer();
+            if (!Nudge(step) && !seeker.CarriesCrown)
+            {
+                // Rien d'accessible devant lui : il repart de sa plateforme.
+                Teleport(Spawns.Of(seeker.Index, Spawns.PadOf(seeker.Index)) + Vector3.up * 0.4f);
+                Forget();
+            }
+            if (seen)
+            {
+                // Sous tes yeux : un petit nuage, comme un tour de magie, plutot qu'un saut sec.
+                Fx.Burst(from + Vector3.up, Color.white, 40, 4f, 0.5f, 0.6f, -0.2f, Vector3.up, 180f);
+                Fx.Burst(transform.position + Vector3.up, Color.white, 40, 4f, 0.5f, 0.6f, -0.2f, Vector3.up, 180f);
+                Sfx.Pop();
+            }
+            PlanPath(target);
+            progressBest = float.MaxValue;
+            return true;
+        }
 
         /// <summary>Vrai si le joueur le voit (a l'ecran, a moins de 70 m) : on ne le replace jamais sous ses yeux.</summary>
         bool SeenByPlayer()
@@ -1126,13 +1180,29 @@ namespace Fief
             return v.z > 0f && v.x > -0.15f && v.x < 1.15f && v.y > -0.15f && v.y < 1.15f;
         }
 
-        /// <summary>Le dernier recours : le reposer sur son chemin, un peu plus loin (12 m au plus).</summary>
-        void Nudge(Vector3 step)
+        /// <summary>Le dernier recours : le reposer sur son chemin, un peu plus loin (12 m au plus). Vrai s'il a pu.</summary>
+        bool Nudge(Vector3 step)
         {
+            // Le repere lui-meme, puis a mi-chemin, puis les reperes suivants : le premier qui
+            // est un vrai sol (avant, s'il n'y en avait pas, il ne se passait RIEN).
+            List<Vector3> tries = new List<Vector3>();
             Vector3 to = step;
             if ((to - transform.position).magnitude > 12f) to = transform.position + (to - transform.position).normalized * 12f;
-            if (!OnFoot(to) && IsletAt(to) < 0) return;
-            Teleport(to + Vector3.up * 0.4f);
+            tries.Add(to);
+            tries.Add(Vector3.Lerp(transform.position, step, 0.5f));
+            tries.Add(step);
+            for (int i = 0; i < path.Count && i < 3; i++) tries.Add(path[i]);
+            for (int i = 0; i < tries.Count; i++)
+            {
+                Vector3 p = tries[i];
+                RaycastHit hit;
+                if (Physics.Raycast(p + Vector3.up * 3f, Vector3.down, out hit, 8f, ~0, QueryTriggerInteraction.Ignore)) p = hit.point;
+                if (!OnFoot(p) && IsletAt(p) < 0) continue;
+                if (Castle.Inside(p) != Castle.Inside(transform.position)) continue;     // jamais a travers la muraille
+                Teleport(p + Vector3.up * 0.4f);
+                return true;
+            }
+            return false;
         }
 
         // ================================================================== les capacites

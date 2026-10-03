@@ -277,6 +277,11 @@ namespace Fief
         void Update()
         {
             if (visual == null) return;
+            // LA FETE DU VAINQUEUR : elle vient flotter au-dessus de sa tete, et RIEN d'autre ne
+            // la bouge. (10/10 -- Martin : "la couronne se retrouve je sais pas ou". Avant, la
+            // ligne "reste a la hauteur de ton socle" s'appliquait encore a chaque image : la
+            // Couronne etait tiree vers le Monument ET vers la tete, et flottait entre les deux.)
+            if (showOff != null) { FollowWinner(); return; }
             // (04/10, en ligne) Chez un invite, la Couronne RECOPIE celle de l'hote (Mirror) : elle
             // ne decide de rien -- ni de tomber, ni de rentrer, ni de qui la prend.
             bool mirror = NetGame.IsClient;
@@ -305,18 +310,6 @@ namespace Fief
             if (state == State.Dropped || state == State.OnPedestal) PickUpByTouch();
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
             if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
-            // La fete du vainqueur : elle vient flotter au-dessus de sa tete, bien visible.
-            if (showOff != null)
-            {
-                if (hiddenForMe)
-                {
-                    hiddenForMe = false;
-                    Renderer[] all = visual.GetComponentsInChildren<Renderer>(true);
-                    for (int i = 0; i < all.Length; i++) all[i].enabled = true;
-                }
-                Vector3 above = showOff.position + Vector3.up * (3.1f + Mathf.Sin(Time.time * 3f) * 0.12f);
-                visual.position = Vector3.Lerp(visual.position, above, 1f - Mathf.Exp(-5f * Time.deltaTime));
-            }
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
             if (glow != null) glow.intensity = 1.1f * (0.85f + 0.15f * Mathf.Sin(Time.time * 4f));
             if (runeRing != null) runeRing.Rotate(0f, 12f * Time.deltaTime, 0f, Space.Self);
@@ -329,6 +322,29 @@ namespace Fief
             }
         }
 
+        void FollowWinner()
+        {
+            if (hiddenForMe || !shownForWinner)
+            {
+                hiddenForMe = false;
+                shownForWinner = true;
+                Renderer[] all = visual.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < all.Length; i++) all[i].enabled = true;
+                if (crystals != null) crystals.gameObject.SetActive(false);
+                // Elle part d'ou elle est, mais jamais de plus de 12 m : sinon on la verrait
+                // traverser l'ile (la danse est filmee de pres).
+                Vector3 head = showOff.position + Vector3.up * 3.1f;
+                if ((visual.position - head).magnitude > 12f) visual.position = head + Vector3.up * 6f;
+            }
+            float dt = Time.unscaledDeltaTime;
+            Vector3 above = showOff.position + Vector3.up * (3.1f + Mathf.Sin(Time.unscaledTime * 3f) * 0.12f);
+            visual.position = Vector3.Lerp(visual.position, above, 1f - Mathf.Exp(-8f * dt));
+            visual.Rotate(0f, 70f * dt, 0f, Space.World);
+            if (beam != null) { beam.targetAlpha = 0f; beam.fadeSpeed = 3f; beam.source = visual.position; }
+            if (glow != null) glow.intensity = 1.3f * (0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 4f));
+        }
+
+        bool shownForWinner;
         float groundY;
         bool hiddenForMe;
         Vector3 pedestal;

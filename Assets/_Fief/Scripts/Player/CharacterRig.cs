@@ -92,6 +92,24 @@ namespace Fief
             if (model != null) model.Swing();
         }
 
+        /// <summary>
+        /// LANCER UN POUVOIR (10/10 -- Martin : "les animations pour les nouvelles capacites, tout
+        /// est nul") : avant, le haricot donnait le meme petit coup de poing que pour pousser.
+        /// Maintenant il s'ACCROUPIT (l'elan), puis jaillit : les deux bras au ciel, le corps
+        /// etire vers le haut, un petit bond, les yeux ecarquilles -- et redescend. "divine" :
+        /// plus haut, plus long (Mode Dieu).
+        /// </summary>
+        public void PlayCast(bool divine)
+        {
+            castLength = divine ? 0.75f : 0.5f;
+            castTimer = castLength;
+            castBig = divine;
+            if (model != null) model.Swing();
+        }
+
+        float castTimer, castLength = 0.5f;
+        bool castBig;
+
         /// <summary>LA JOIE DU VAINQUEUR : il danse sur la musique (voir Party).</summary>
         public void Celebrate(float seconds)
         {
@@ -238,7 +256,7 @@ namespace Fief
                 if (blinkAge >= 0.14f) blinkAge = -1f;
             }
             // (03/10 : plus de bouche) Projete ou en fete : les yeux s'ECARQUILLENT.
-            bool excited = Tumbling || celebrate > 0f || !Grounded && squash <= 0f && Speed > RunSpeed * 1.4f;
+            bool excited = Tumbling || celebrate > 0f || castTimer > 0f || !Grounded && squash <= 0f && Speed > RunSpeed * 1.4f;
             wide = Mathf.Lerp(wide, excited ? 1.22f : 1f, 1f - Mathf.Exp(-14f * dt));
             for (int i = 0; i < eyes.Count; i++)
             {
@@ -343,6 +361,27 @@ namespace Fief
             // --- la cape : elle flotte en arriere avec la vitesse, ondule, se souleve en l'air
             float flutter = Mathf.Sin(Time.time * 7f + cycle) * (3f + 6f * effort);
             cape.localRotation = Quaternion.Euler(-(Mathf.Lerp(4f, 48f, effort) + air * 30f) + flutter, 0f, 0f);
+
+            // --- le POUVOIR : accroupi (l'elan, 20 % du temps), puis il jaillit, bras au ciel.
+            if (castTimer > 0f)
+            {
+                castTimer -= dt;
+                float t = 1f - Mathf.Clamp01(castTimer / castLength);
+                float crouch = t < 0.2f ? Mathf.Sin(t / 0.2f * Mathf.PI * 0.5f) : Mathf.Max(0f, 1f - (t - 0.2f) * 6f);
+                float rise = t < 0.2f ? 0f : Mathf.Sin(Mathf.Clamp01((t - 0.2f) / 0.8f) * Mathf.PI);
+                float big = castBig ? 1.35f : 1f;
+                float up = Mathf.Lerp(-20f, -170f, rise);
+                armL.localRotation = Quaternion.Euler(up * 0.25f, 0f, Mathf.Lerp(-30f, -160f, rise));
+                armR.localRotation = Quaternion.Euler(up * 0.25f, 0f, Mathf.Lerp(30f, 160f, rise));
+                body.localScale = new Vector3(1f + 0.16f * crouch - 0.08f * rise, 1f - 0.2f * crouch + 0.16f * rise * big, 1f + 0.16f * crouch - 0.08f * rise);
+                body.localPosition = new Vector3(0f, BodyY - 0.1f * crouch, 0f);
+                body.localRotation = Quaternion.Euler(-10f * rise, 0f, 0f);
+                head.localRotation = Quaternion.Euler(-22f * rise, 0f, 0f);
+                pivot.localPosition = new Vector3(0f, 0.28f * rise * big, 0f);
+                legL.localRotation = Quaternion.Euler(-25f * crouch, 0f, -10f * rise);
+                legR.localRotation = Quaternion.Euler(-25f * crouch, 0f, 10f * rise);
+                cape.localRotation = Quaternion.Euler(-60f * rise, 0f, 0f);
+            }
 
             // --- ejecte : il fait des saltos en arriere, bras et jambes en etoile
             if (Tumbling && !Grounded)

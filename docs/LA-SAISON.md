@@ -204,6 +204,11 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
   Kamikaze, Riposte, Miroir, Rage, Vampire, Planeur, Poigne, Tête dure). Les sanctuaires
   donnent aussi des divines.
 - **Tout se recharge en 45 % du temps.**
+- **Le porteur est intouchable par les pouvoirs** (10/10, v32 — Martin : « en God Mode, il faut
+  pas taper la couronne, c'est trop cheaté ; il faut pas téléporter ») : les coups et les sorts des
+  autres glissent sur lui dans une gerbe d'or. La Couronne se vole **à la main** : la poussée (clic
+  droit) et le piqué d'aigle. Les pièges de la tour, eux, le touchent toujours. **La Téléportation
+  et le Chaos ne sont plus tirés** en Mode Dieu.
 - **Les règles ne bougent pas** : le sceau, la tour qui se monte à pied, la Couronne lourde.
 
 ### Le ciel de feu (v30)

@@ -946,6 +946,7 @@ namespace Fief
                 }
             }
             Sfx.WhooshAt(pos);
+            Flourish(s, a, pos, tint);
             if (s.IsPlayer) Stats.Casts++;
             // (08/10) L'ECHO (divin) : elle repart une seconde fois, une demi-seconde apres.
             if (s.Has(Ability.Echo) && !EchoCast.Echoing) { s.Refund(a); EchoCast.Schedule(s, a); }
@@ -957,6 +958,31 @@ namespace Fief
                 if (s.IsPlayer) Sfx.Pop();
             }
             return true;
+        }
+
+        /// <summary>
+        /// LE GESTE DU LANCEUR (10/10 -- "les animations, tout est nul") : le haricot jaillit bras
+        /// au ciel (CharacterRig.PlayCast), un cercle magique a sa couleur s'ouvre sous ses pieds,
+        /// des etincelles montent de ses mains. Une divine : un double cercle d'or qui tourne, une
+        /// colonne de lumiere, un eclair au sol -- on sait QUI vient de le faire, de loin.
+        /// </summary>
+        static void Flourish(Seeker s, Ability a, Vector3 pos, Color tint)
+        {
+            if (s == null || s.Body == null || EchoCast.Echoing) return;
+            bool divine = AbilityInfo.IsGod(a);
+            CharacterRig rig = s.IsPlayer ? Game.Rig : null;
+            if (!s.IsPlayer) { Rival r = Rival.Of(s); if (r != null) rig = r.Rig; }
+            if (rig != null) rig.PlayCast(divine);
+            Vector3 hands = pos + Vector3.up * 2.2f;
+            Fx.GroundRing(pos, tint, divine ? 5f : 3f, divine ? 0.6f : 0.4f);
+            Fx.Ring(pos + Vector3.up * 0.1f, Color.Lerp(tint, Color.white, 0.4f), 0.5f, divine ? 3.5f : 2.2f, 0.35f, 0.08f, Vector3.up);
+            Fx.Burst(hands, tint, divine ? 50 : 24, divine ? 7f : 4.5f, 0.22f, 0.7f, -0.4f, Vector3.up, 35f);
+            Fx.Sparks(hands, Color.white, divine ? 18 : 8, 3f);
+            if (!divine) return;
+            Color gold = new Color(1f, 0.82f, 0.36f);
+            Fx.Ring(pos + Vector3.up * 0.15f, gold, 4.5f, 1.2f, 0.5f, 0.1f, Vector3.up);
+            Fx.Column(pos, Color.Lerp(tint, gold, 0.5f), 24f, 0.35f, 1.1f);
+            Fx.Flash(hands, tint, 14f, 4f, 0.25f);
         }
 
         /// <summary>Une secousse de camera si l'effet eclate pres de toi.</summary>

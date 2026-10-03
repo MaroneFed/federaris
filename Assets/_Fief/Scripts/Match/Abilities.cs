@@ -63,6 +63,9 @@ namespace Fief
         /// </summary>
         public static bool InGodPool(Ability a)
         {
+            // (10/10 -- Martin : "il faut pas teleporter") : plus de Teleportation ni de Chaos
+            // (qui teleporte tout le monde) en Mode Dieu.
+            if (a == Ability.Teleport || a == Ability.Chaos) return false;
             if (IsGod(a)) return true;
             switch (a)
             {
