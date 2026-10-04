@@ -173,7 +173,9 @@ namespace Fief
         {
             GameObject folk = new GameObject("HABITANTS");
             folk.transform.SetParent(worldRoot, false);
-            Eye.PlaceAll(folk.transform);
+            // (12/10, v36 -- Martin : "les gargouilles, tu peux enlever, ca m'enerve fortement") :
+            // plus de gargouilles. Le code reste (Eye.cs) si on les veut un jour ; il suffit de
+            // remettre Eye.PlaceAll(folk.transform) ici.
             Ballista.PlaceAll(folk.transform);
             Thermal.PlaceAll(folk.transform);
             WindRing.PlaceAll(folk.transform);

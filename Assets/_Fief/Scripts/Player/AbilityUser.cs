@@ -73,7 +73,7 @@ namespace Fief
                 else if (Time.time < me.ShoveReadyAt) Sfx.Deny();
                 else
                 {
-                    me.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (me.Has(Ability.Poigne) ? 0.6f : 1f);
+                    me.ShoveReadyAt = Time.time + Seeker.ShoveCooldown;
                     if (Game.Rig != null) Game.Rig.PlaySwing();
                     if (!Combat.Shove(me, eye.forward)) Sfx.Whoosh();
                 }

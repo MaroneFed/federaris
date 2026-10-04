@@ -85,6 +85,9 @@ namespace Fief
             go.transform.position = OnGround(at) + Vector3.up * 0.06f;
             TargetMark m = go.AddComponent<TargetMark>();
             m.Setup(radius, c, seconds, follow);
+            // (v36) Qui l'a lancee et quoi : l'alerte a l'ecran (Warnings) montre l'icone.
+            m.Icon = MarkIcon;
+            m.Owner = MarkBy;
             // (v35) On l'ENTEND arriver : un sifflement qui descend jusqu'a l'impact.
             Sfx.Incoming(go.transform.position, seconds);
             return m;
@@ -93,6 +96,10 @@ namespace Fief
         // ================================================================== les debris
 
         public static int liveDebris;
+
+        /// <summary>(v36) La capacite en train d'etre lancee (AbilityCaster.Cast) : ses cibles au sol portent son icone.</summary>
+        public static string MarkIcon = "cible";
+        public static Seeker MarkBy;
 
         /// <summary>Des morceaux de pierre (et quelques braises a la couleur) qui volent et retombent.</summary>
         public static void Debris(Vector3 at, int count, Color c, float speed)
@@ -465,6 +472,19 @@ namespace Fief
     /// </summary>
     public class TargetMark : MonoBehaviour
     {
+        /// <summary>(v36) Toutes les cibles au sol du moment (Warnings : es-tu dedans ?).</summary>
+        public static readonly System.Collections.Generic.List<TargetMark> All = new System.Collections.Generic.List<TargetMark>();
+        public string Icon = "cible";
+        public Seeker Owner;
+        public float Radius { get { return radius; } }
+        public Color Colour { get { return colour; } }
+        public float Remaining { get { return Mathf.Max(0f, life - age); } }
+        /// <summary>Le lanceur ne craint pas sa propre cible (ses pouvoirs l'epargnent).</summary>
+        public bool Harmless(Seeker s) { return Owner != null && Owner == s; }
+
+        void OnEnable() { All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+
         LineRenderer outer, inner, beam, crossA, crossB;
         Transform follow;
         float radius, life, age, ring;

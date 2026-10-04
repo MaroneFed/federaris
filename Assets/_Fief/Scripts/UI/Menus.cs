@@ -718,17 +718,29 @@ namespace Fief
             }
         }
 
+        /// <summary>
+        /// (12/10, v36 -- Martin : "quand les gens prennent trop de temps a choisir leur capa, il
+        /// faudrait un petit timer, pas trop court, il faut le temps de tout lire") : 20 s par
+        /// tour. Le temps ecoule, la carte que tu vises est prise (sinon, une au hasard de tes gouts).
+        /// </summary>
+        const float PickTime = 20f;
+        float turnStartedAt;
+
+        /// <summary>Les secondes qui restent a celui qui choisit.</summary>
+        float PickLeft { get { return Mathf.Max(0f, PickTime - (Time.unscaledTime - turnStartedAt)); } }
+
         void TickDraft(float dt)
         {
-            // (04/10, en ligne) L'invite ne fait que regarder : l'hote fait choisir les bots.
-            if (NetGame.IsClient) return;
             int turnKey = Match.Draft.Stage * 100 + Match.Draft.Turn;
             if (turnKey != draftTurnKey)
             {
                 draftTurnKey = turnKey;
                 draftWait = 0f;
+                turnStartedAt = Time.unscaledTime;
                 if (botPickTimer < BotPickDelay) botPickTimer = BotPickDelay;
             }
+            // (04/10, en ligne) L'invite ne fait que regarder : l'hote fait choisir les bots.
+            if (NetGame.IsClient) return;
             if (Match.Draft.Done)
             {
                 // Tout le monde a choisi : on part tout seul apres un temps de lecture.
@@ -738,13 +750,22 @@ namespace Fief
             }
             int slot = Match.Draft.Current;
             if (slot < 0 || slot >= Match.Slots.Count) return;
-            // Un ami en ligne choisit chez lui : on l'attend (30 s au plus, puis on choisit pour lui).
+            // Un ami en ligne choisit chez lui : on l'attend (20 s, plus une de marge pour le reseau,
+            // puis on choisit pour lui). Toi aussi : 20 s, puis la carte que tu vises.
             if (Match.Slots[slot].IsRemote && !Match.Slots[slot].IsBot)
             {
                 draftWait += dt;
-                if (draftWait < 30f) return;
+                if (draftWait < PickTime + 1f) return;
             }
-            else if (!Match.Slots[slot].IsBot) return;
+            else if (!Match.Slots[slot].IsBot)
+            {
+                draftWait += dt;
+                if (draftWait < PickTime) return;
+                int mine = selected >= 0 && selected < Match.Draft.Offer.Count && !Match.Slots[slot].Has(Match.Draft.Offer[selected]) ? selected : Match.Draft.BotChoice(slot);
+                if (mine < 0) mine = 0;
+                PickCard(mine);
+                return;
+            }
             botPickTimer -= dt;
             if (botPickTimer > 0f) return;
             botPickTimer = BotPickDelay;
@@ -1868,6 +1889,7 @@ namespace Fief
             {
                 float pulse = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 4f);
                 Headline(y, 34, "À TOI !", new Color(1f, 0.85f, 0.4f, pulse));
+                DrawPickClock(y + UiStyle.S(58));
             }
             else if (!Match.Draft.Done)
             {
@@ -1881,6 +1903,7 @@ namespace Fief
                 float beat = 0.8f + 0.2f * Mathf.Sin(Time.unscaledTime * 8f);
                 Icons.Draw(new Rect(r.x + ph * 0.14f, r.y + ph * 0.12f, ph * 0.76f * beat, ph * 0.76f * beat), "chrono", Color.white);
                 Icons.Number(new Rect(r.x + ph, r.y, r.width - ph * 1.3f, ph), who.Name, fs, Color.white, TextAnchor.MiddleCenter);
+                if (!who.IsBot) DrawPickClock(y + ph + UiStyle.S(10));
             }
             else
             {
@@ -1905,6 +1928,23 @@ namespace Fief
                 }
             }            CardArt.Sparks();
         }
+
+        /// <summary>(v36) Le temps qui reste pour choisir : un chrono et les secondes, rouges a la fin.</summary>
+        void DrawPickClock(float y)
+        {
+            float left = PickLeft;
+            int secs = Mathf.CeilToInt(left);
+            float ph = UiStyle.S(44);
+            float w = ph * 2.4f;
+            Rect r = new Rect(Mathf.Round((Screen.width - w) * 0.5f), Mathf.Round(y), Mathf.Round(w), Mathf.Round(ph));
+            bool hurry = left < 5f;
+            Icons.Pill(r, hurry ? new Color(0.85f, 0.25f, 0.2f) : new Color(0.22f, 0.2f, 0.38f));
+            Icons.Draw(new Rect(r.x + ph * 0.14f, r.y + ph * 0.12f, ph * 0.76f, ph * 0.76f), "chrono", Color.white);
+            Icons.Number(new Rect(r.x + ph, r.y, r.width - ph * 1.15f, ph), secs.ToString(), UiStyle.S(26), Color.white, TextAnchor.MiddleCenter);
+            if (hurry && secs != lastTickSecond) { lastTickSecond = secs; Sfx.Beep(1.2f); }
+        }
+
+        int lastTickSecond = -1;
 
         // (v26) Jusqu'a onze cartes (joueurs + 3) : de la place pour seize.
         float[] cardLift = new float[16];

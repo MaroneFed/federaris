@@ -179,6 +179,9 @@ namespace Fief
 
         public static bool Cast(Seeker s, Ability a, Vector3 eye, Vector3 aim)
         {
+            // (v36) Les cibles au sol posees pendant ce lancer portent l'icone de la capacite.
+            DivineFx.MarkIcon = Icons.Of(a);
+            DivineFx.MarkBy = s;
             if (!AbilityInfo.IsActive(a) || WhyNot(s, a) != null) return false;
             IMover m = MoverOf(s);
             if (m == null) return false;
@@ -1021,6 +1024,8 @@ namespace Fief
             Sfx.WhooshAt(pos);
             // (v35, "il n'y a pas de son") : chaque capacite a sa voix au lancement.
             if (!EchoCast.Echoing) Sfx.Cast(pos, a, s.IsPlayer);
+            // (v36) "GOTAGA  COMETE !" en haut de l'ecran, pour les grosses.
+            if (!EchoCast.Echoing) Warnings.Announce(s, a);
             Flourish(s, a, pos, tint);
             if (s.IsPlayer) Stats.Casts++;
             // (08/10) L'ECHO (divin) : elle repart une seconde fois, une demi-seconde apres.

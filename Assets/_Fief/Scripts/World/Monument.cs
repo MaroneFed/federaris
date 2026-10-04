@@ -10,7 +10,7 @@ namespace Fief
     /// le porteur CHOISIT ou aller -- le plus proche, ou celui que personne ne garde.
     /// Pas de boussole : on les trouve a leurs COLONNES BLEUES.
     ///
-    /// Un grand arc de pierre, deux braseros bleus, un autel vide, et au sol un CERCLE
+    /// Un dallage, deux braseros bleus, six pierres levees (rien qui gene : v36), et au sol un CERCLE
     /// qui luit : le porteur y entre, c'est gagne.
     /// </summary>
     public class Monument : MonoBehaviour, IInteractable
@@ -116,24 +116,20 @@ namespace Fief
             m.Islet = islet;
             All.Add(m);
 
-            // Une clairiere dallee, un arc de six metres, un autel.
+            // Une clairiere dallee, et le cercle.
             Proto.BeginVisualOnly();
             Proto.Cylinder(t, new Vector3(0f, 0.04f, 0f), new Vector3(9f, 0.06f, 9f), StoneDark, "Dallage");
             Proto.Cylinder(t, new Vector3(0f, 0.08f, 0f), new Vector3(6f, 0.06f, 6f), Stone, "Dallage");
             Proto.EndVisualOnly();
+            // (12/10, v36 -- Martin : "les autels sur le truc ou on doit deposer la couronne, il
+            // faut les degager ; quand on essaye de pousser, c'est un bordel pas possible") :
+            // plus d'arc, plus de piliers, plus d'autel au milieu du cercle -- rien a heurter.
+            // Deux braseros bleus, sans collision, au bord du dallage.
             for (int side = -1; side <= 1; side += 2)
             {
-                // (01/10) Des colonnes RONDES (plus de poteaux carres) : fut, base, chapiteau.
-                Proto.Cylinder(t, new Vector3(side * 2.6f, 3f, 0f), new Vector3(1.05f, 3f, 1.05f), Stone, "Pilier");
+                Vector3 b = new Vector3(side * 8.4f, 0f, 0f);
                 Proto.BeginVisualOnly();
-                Proto.Cylinder(t, new Vector3(side * 2.6f, 0.3f, 0f), new Vector3(1.5f, 0.3f, 1.5f), StoneDark, "Base");
-                Proto.Cylinder(t, new Vector3(side * 2.6f, 6.05f, 0f), new Vector3(1.45f, 0.2f, 1.45f), StoneDark, "Chapiteau");
-                Proto.Sphere(t, new Vector3(side * 2.6f, 5.85f, 0f), new Vector3(1.25f, 0.3f, 1.25f), Stone, "Échine");
-                Proto.EndVisualOnly();
-                // Un brasero bleu de chaque cote.
-                Vector3 b = new Vector3(side * 4.6f, 0f, 1.5f);
                 Proto.Cylinder(t, b + new Vector3(0f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0.5f), StoneDark, "Brasero");
-                Proto.BeginVisualOnly();
                 GameObject fire = Proto.Sphere(t, b + new Vector3(0f, 1.15f, 0f), new Vector3(0.42f, 0.56f, 0.42f), Color.white, "Feu bleu");
                 fire.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 3f);
                 fire.AddComponent<Flame>();
@@ -150,17 +146,6 @@ namespace Fief
                 l.renderMode = LightRenderMode.ForceVertex;   // (03/10) fluide : jamais une passe de plus pour elle
                 lg.AddComponent<LampFlicker>();
             }
-            Proto.Cube(t, new Vector3(0f, 6.6f, 0f), new Vector3(6.6f, 0.9f, 1.3f), Stone, "Linteau");
-            Proto.BeginVisualOnly();
-            GameObject rune = Proto.Cube(t, new Vector3(0f, 6.6f, -0.66f), new Vector3(1.2f, 0.5f, 0.04f), Color.white, "Rune");
-            rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 1.8f);
-            Proto.EndVisualOnly();
-            // L'autel, avec la place vide de la couronne.
-            Proto.Cube(t, new Vector3(0f, 0.55f, 0f), new Vector3(1.4f, 1.1f, 0.9f), StoneDark, "Autel");
-            Proto.BeginVisualOnly();
-            GameObject slot = Proto.Cylinder(t, new Vector3(0f, 1.12f, 0f), new Vector3(0.6f, 0.02f, 0.6f), Color.white, "Empreinte");
-            slot.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Blue, 1.4f);
-            Proto.EndVisualOnly();
 
             // LE CERCLE : on le voit de haut en planant -- c'est la qu'il faut entrer.
             Proto.BeginVisualOnly();

@@ -193,30 +193,15 @@ namespace Fief
         /// UN COUP : "velocity" projette le joueur, "stun" l'etourdit (secondes), et s'il
         /// porte la Couronne et que "dropsCrown", il la lache -- sauf Prise ferme.
         /// </summary>
-        /// <summary>
-        /// (10/10) Le porteur, en Mode Dieu, face au pouvoir d'un autre joueur : vrai si le coup
-        /// glisse sur lui. La poussee (quietHit) passe : c'est elle qui vole la Couronne.
-        /// </summary>
-        static bool GodShield(Seeker victim, Seeker by)
-        {
-            if (!Match.GodMode || !victim.CarriesCrown || by == null || by == victim || quietHit) return false;
-            if (Time.time - victim.ShieldFxAt > 0.25f)
-            {
-                victim.ShieldFxAt = Time.time;
-                Fx.Sparks(victim.Body.position + Vector3.up * 1.2f, new Color(1f, 0.82f, 0.36f), 16, 4f);
-                Fx.Ring(victim.Body.position + Vector3.up * 1.2f, new Color(1f, 0.82f, 0.36f), 0.6f, 2.2f, 0.25f, 0.12f, Vector3.up);
-            }
-            return true;
-        }
-
         public static void Hit(Seeker victim, Vector3 velocity, float stun, bool dropsCrown, Seeker by)
         {
             if (victim == null || victim.Body == null) return;
-            // (10/10 -- Martin : "en God Mode, il faut pas taper la couronne, c'est trop cheate")
-            // EN MODE DIEU, LES POUVOIRS NE TOUCHENT PAS LE PORTEUR : la Couronne se vole a la
-            // main -- la poussee (clic droit) et le pique d'aigle -- et les pieges de la tour
-            // restent des pieges. Le reste glisse sur lui dans une gerbe d'or.
-            if (GodShield(victim, by)) return;
+            // (12/10, v36 -- Martin : "quand tu balances un missile, ca fait perdre la couronne ;
+            // a chaque fois que tu balances une capacite, ca fait perdre la couronne") : plus de
+            // bouclier divin (v32). TOUTE capacite qui touche le porteur lui fait lacher la
+            // Couronne -- en Mode Dieu comme en Normal. (La poussee et le pique d'aigle, eux,
+            // la VOLENT : voir Shove et Dive.)
+            if (by != null && by != victim && !quietHit) dropsCrown = true;
             // (04/10, en ligne) LE JOUEUR D'UNE AUTRE MACHINE : le coup part chez lui (par l'hote,
             // qui decide de la Couronne). Ici, on n'en montre que le choc.
             if (victim.Remote) { HitElsewhere(victim, velocity, stun, dropsCrown, by); return; }
@@ -352,7 +337,6 @@ namespace Fief
         public static bool Afflict(Seeker victim, Affliction what, float seconds, Seeker by)
         {
             if (victim == null || victim.Body == null || victim.Graced) return false;
-            if (GodShield(victim, by)) return false;
             // (07/10) MIROIR : le sort revient a l'envoyeur (une seule fois, pas de ping-pong).
             if (victim.Has(Ability.Miroir) && by != null && by != victim && by.Body != null && !mirroring)
             {
@@ -383,6 +367,13 @@ namespace Fief
                     break;
             }
             Mayhem.Show(victim, what, by);
+            // (v36) Un sort sur le porteur : il lache la Couronne (comme un coup).
+            if (!victim.Remote && victim.CarriesCrown && by != null && by != victim)
+            {
+                Crown.KnockOff(victim, by.Body != null ? victim.Body.position - by.Body.position : Vector3.forward);
+                if (by.IsPlayer) Stats.CrownsStolen++;
+                Feed.CrownKnocked(victim, by);
+            }
             Sfx.SpellAt(victim.Body.position);   // (v35) le "dzing" du sort
             if (victim.Remote && by != null && !by.Remote) NetGame.RemoteAfflict(victim, what, seconds, by);
             if (victim.IsPlayer && by != null && what != Affliction.Glue) Shouts.Cursed(by, what);

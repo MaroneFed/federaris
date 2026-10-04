@@ -111,7 +111,7 @@ namespace Fief.Net
         const float PingEvery = 1f;
         const float RosterEvery = 1f;
         const float HelloEvery = 0.5f;
-        const float Timeout = 6f;
+        const float Timeout = 20f;     // (v36) 20 s sans nouvelles avant de lacher quelqu'un (avant : 6 s)
 
         public enum State { Idle, Hosting, Connecting, Connected, Refused, Lost, Closed }
         public enum Refusal : byte { None = 0, Full = 1, BadVersion = 2, Started = 3 }

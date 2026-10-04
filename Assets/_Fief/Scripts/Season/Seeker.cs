@@ -81,13 +81,22 @@ namespace Fief
             return readyAt.TryGetValue(a, out t) ? Mathf.Max(0f, t - now) : 0f;
         }
 
+        /// <summary>La recharge la plus courte possible, quoi qu'on cumule (v36).</summary>
+        public const float MinCooldown = 4f;
+
         public float CooldownOf(Ability a)
         {
-            float k = Has(Ability.Recharge) ? 0.67f : 1f;
-            // (08/10) Le SABLIER (divin) : trois fois plus vite ; le MODE DIEU : tout revient vite.
-            if (Has(Ability.Sablier)) k *= 0.35f;
-            if (Match.GodMode) k *= 0.45f;
-            return AbilityInfo.Cooldown(a) * k;
+            // (12/10, v36 -- Martin : "les temps deconnent complet ; quand tes capacites se
+            // rechargent trois fois plus vite, toutes les trois secondes, ca n'a aucun sens") :
+            // avant, Recharge (x0,67), Sablier (x0,35) et le Mode Dieu (x0,45) se multipliaient --
+            // une capacite de 6 s revenait en moins d'une seconde. Maintenant : Recharge x0,75,
+            // Sablier x0,5, Mode Dieu x0,6, et JAMAIS moins de 4 s (ni moins de 30 % de la recharge
+            // de base) : on a toujours le temps de voir ce qui vient de se passer.
+            float basis = AbilityInfo.Cooldown(a);
+            float k = Has(Ability.Recharge) ? 0.75f : 1f;
+            if (Has(Ability.Sablier)) k *= 0.5f;
+            if (Match.GodMode) k *= 0.6f;
+            return Mathf.Max(basis * k, Mathf.Max(MinCooldown, basis * 0.3f));
         }
 
         /// <summary>Se servir d'une capacite : vrai si elle etait prete (elle repart en recharge).</summary>
@@ -103,7 +112,14 @@ namespace Fief
 
         // ------------------------------------------------------------------ la poussee
 
-        public const float ShoveCooldown = 0.9f;
+        /// <summary>
+        /// (12/10, v36 -- Martin : "j'aimerais qu'on puisse pousser a l'infini, il n'y a pas de
+        /// petit temps d'attente qui est chiant") : a la vitesse ou tu cliques (0,12 s, juste de
+        /// quoi ne pas compter deux fois le meme clic). Les bots gardent leur rythme (BotShoveCooldown),
+        /// sinon ils pousseraient a chaque image.
+        /// </summary>
+        public const float ShoveCooldown = 0.12f;
+        public const float BotShoveCooldown = 0.9f;
         public float ShoveReadyAt;
         /// <summary>Le prochain piqué d'aigle possible (voir Combat.DiveTarget).</summary>
         public float DiveReadyAt;

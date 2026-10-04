@@ -249,14 +249,14 @@ namespace Fief
             // fois dans la Console, pour qu'on la corrige).
             Part(0); Part(1); Part(2); Part(3); Part(4); Part(5); Part(6); Part(7);
             Part(17);
-            Part(8); Part(9); Part(10); Part(11); Part(12); Part(13); Part(16);
+            Part(8); Part(9); Part(10); Part(11); Part(12); Part(13); Part(16); Part(18);
             if (showDiagnostic) Part(14);
             if (FiefInput.ScoresHeld) Part(15);
         }
 
         static readonly string[] PartNames = { "voiles", "porteur", "pseudos", "repere de la Couronne", "haut", "scores", "capacites", "centre",
-                                               "invite", "carte", "astuce", "touches", "fil", "erreur", "diagnostic", "tableau des scores", "cris", "encre" };
-        readonly bool[] partFailed = new bool[18];
+                                               "invite", "carte", "astuce", "touches", "fil", "erreur", "diagnostic", "tableau des scores", "cris", "encre", "alertes" };
+        readonly bool[] partFailed = new bool[19];
 
         void Part(int k)
         {
@@ -282,6 +282,7 @@ namespace Fief
                     case 15: DrawScores(); break;
                     case 16: Shouts.Draw(); break;
                     case 17: DrawInk(); break;
+                    case 18: Warnings.Draw(); break;
                 }
             }
             catch (System.Exception e)
@@ -523,7 +524,7 @@ namespace Fief
             Icons.Draw(new Rect(sr.x + small * 0.16f, sr.y + small * 0.16f, small * 0.68f, small * 0.68f), "pousser", Color.white);
             if (Time.time < me.ShoveReadyAt)
             {
-                float total = Seeker.ShoveCooldown * (me.Has(Ability.Poigne) ? 0.6f : 1f);
+                float total = Seeker.ShoveCooldown;
                 Icons.Cooldown(sr, Mathf.Clamp01((me.ShoveReadyAt - Time.time) / total));
             }
             Icons.Key(new Rect(sr.xMax - small * 0.36f, sr.yMax - small * 0.36f, small * 0.5f, small * 0.5f), AbilityInfo.PushKey, 1f);

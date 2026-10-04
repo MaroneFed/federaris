@@ -94,6 +94,11 @@ namespace Fief
         public static void Apply()
         {
             Load();
+            // (12/10, v36 -- Martin : "quand mon frere change d'onglet en pleine game, la partie se
+            // quitte et il n'y a plus moyen de la rejoindre") : Unity METTAIT LE JEU EN PAUSE des
+            // qu'on changeait de fenetre (Run In Background decoche) -- plus un message envoye,
+            // et au bout de 6 s l'hote le croyait parti. Le jeu tourne maintenant en fond.
+            Application.runInBackground = true;
             AudioListener.volume = Volume;
             if (Game.Config != null) Game.Config.mouseSensitivity = 0.13f * Sensitivity;
             if (Game.Hud != null && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.baseFieldOfView = Fov;

@@ -597,11 +597,17 @@ namespace Fief
             Ballista own = Spawns.BallistaOf(seeker.Index);
             if (own != null && own.Free && own.HasFixedTarget && !Sulks(own))
             {
+                // (12/10, v36 -- Martin : "au debut, tu montes dans ton arbalete, tu planes et tu
+                // passes au-dessus de la premiere phase d'obstacles ; les bots, eux, ne passent pas
+                // au-dessus, ils perdent un temps fou") : comme toi en vol libre, il se fait poser
+                // AU BOUT du couloir piege, juste devant sa porte -- pas sur le parvis.
+                int g = Course.GateFor(gate);
+                Vector3 end = Course.At(g, 4f, 0f) + Vector3.up * 0.05f;
                 ballista = own;
-                ballistaShot = own.FixedVelocity;
+                ballistaShot = Ballista.Lob(own.Seat, end, 12f);
                 ballistaChosen = Time.time;
                 shotGoal = Goal.Raid;
-                shotTarget = gate;
+                shotTarget = end;
                 hasShot = true;
                 goal = Goal.Ballista;
                 target = own.transform.position;
@@ -1001,7 +1007,7 @@ namespace Fief
             if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove && !prey.Graced
                 && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.9f)
             {
-                seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 1.05f);
+                seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 1.05f);
                 if (rig != null) rig.PlaySwing();
                 Combat.Shove(seeker, prey.Body.position - transform.position);
                 if (goal == Goal.Fight && rng.NextDouble() < 0.4) preyTimer = 0f;
@@ -1022,7 +1028,7 @@ namespace Fief
                 if (foe != null && onRamp && !foe.IsPlayer && !foe.CarriesCrown) foe = null;
                 if (foe != null)
                 {
-                    seeker.ShoveReadyAt = Time.time + Seeker.ShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
+                    seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
                     // (01/10 : la poussee projette loin maintenant -- ils la gardent pour les bons moments.)
                     double chance = Match.BotLevel == 1 ? 0.3 + temper * 0.35 : 0.45 + temper * 0.4;
                     if (onRamp && !foe.CarriesCrown) chance *= 0.35;
@@ -1100,6 +1106,7 @@ namespace Fief
             // second chien regarde OU IL EST VRAIMENT, quoi qu'il vise : 2,5 m en 8 s, sinon il
             // s'en sort, en dernier recours sous tes yeux aussi (dans un petit nuage).
             if (WatchStill(step, dt)) return;
+            if (WatchGoal(step, dt)) return;
             if (!body.enabled || gliding || ballistic || leaping || mounted) { noProgress = 0f; unstick = 0; return; }
             // (06/10) Enchaine, englue, aveugle, a l'envers : ce n'est pas etre coince.
             if (seeker.Rooted || seeker.Glued || seeker.Inverted || seeker.Inked || seeker.Ballooned || seeker.Charmed || seeker.Stunned) { noProgress = 0f; return; }
@@ -1144,6 +1151,54 @@ namespace Fief
         int unstick;
         Vector3 stillAnchor;
         float still;
+
+        Goal goalWatched;
+        float goalBest = float.MaxValue;
+        float goalStall;
+
+        /// <summary>
+        /// LE TROISIEME CHIEN DE GARDE (12/10, v36 -- Martin : "les bots sont nuls ; ils n'arrivent
+        /// pas a passer, ils restent coinces") : les deux autres regardent s'il BOUGE ; un bot qui
+        /// fait des allers-retours devant un obstacle bouge... sans jamais avancer. Celui-ci regarde
+        /// s'il se rapproche de son BUT : sur la tour, s'il monte ; ailleurs, s'il s'approche.
+        /// 20 s sans gagner 3 m : nouveau chemin et un bond en avant sur son chemin (dans un petit
+        /// nuage s'il est sous tes yeux). Pas pour une chasse (la cible bouge) ni une attente sous
+        /// un sort.
+        /// </summary>
+        bool WatchGoal(Vector3 step, float dt)
+        {
+            bool moving = goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard || goal == Goal.Roam;
+            if (moving || !body.enabled || mounted || gliding || ballistic || seeker.Rooted || seeker.Glued || seeker.Charmed || seeker.Stunned)
+            {
+                goalStall = 0f;
+                goalBest = float.MaxValue;
+                return false;
+            }
+            Vector3 here = transform.position;
+            float measure = goal == Goal.Raid && Tower.On(here) ? -here.y : Flat(target - here).magnitude;
+            if (goal != goalWatched) { goalWatched = goal; goalBest = measure; goalStall = 0f; return false; }
+            if (measure < goalBest - 3f) { goalBest = measure; goalStall = 0f; return false; }
+            goalStall += dt;
+            if (goalStall < 20f) return false;
+            goalStall = 0f;
+            goalBest = measure;
+            Vector3 from = here;
+            PlanPath(target);
+            Vector3 next = path.Count > 0 ? path[0] : step;
+            if (Nudge(next))
+            {
+                if (SeenByPlayer())
+                {
+                    Fx.Burst(from + Vector3.up, Color.white, 40, 4f, 0.5f, 0.6f, -0.2f, Vector3.up, 180f);
+                    Fx.Burst(transform.position + Vector3.up, Color.white, 40, 4f, 0.5f, 0.6f, -0.2f, Vector3.up, 180f);
+                    Sfx.Pop();
+                }
+                PlanPath(target);
+                progressBest = float.MaxValue;
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>Le second chien de garde : il ne regarde que la position. Vrai s'il vient d'agir.</summary>
         bool WatchStill(Vector3 step, float dt)

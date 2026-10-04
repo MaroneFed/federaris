@@ -80,6 +80,15 @@ namespace Fief
             }
         }
 
+        /// <summary>(v36) Les grosses capacites hors table divine qui meritent l'annonce a l'ecran (Warnings).</summary>
+        public static bool IsBig(Ability a)
+        {
+            switch (a)
+            {
+                default: return false;
+            }
+        }
+
         /// <summary>Peut-on la tirer dans ce match (Mode Dieu : la table divine ; sinon : tout sauf les divines) ?</summary>
         public static bool Allowed(Ability a) { return Match.GodMode ? InGodPool(a) : !IsGod(a); }
         /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
@@ -242,7 +251,7 @@ namespace Fief
                 case Ability.Planeur: return "Tu as toujours des ailes d'or : tu voles plus vite et plus loin.";
                 case Ability.Coureur: return "Tu cours un peu plus vite que les autres.";
                 case Ability.Porteur: return "Quand tu as la Couronne, tu n'es plus ralenti et tu peux pousser.";
-                case Ability.Poigne: return "Ta poussée envoie 2 fois plus loin et revient plus vite.";
+                case Ability.Poigne: return "Ta poussée envoie 2 fois plus loin.";
                 case Ability.Ancrage: return "Quand on te pousse, tu pars 2 fois moins loin.";
                 case Ability.Flair: return "Tu vois ce qui est caché : les mines, les invisibles, à travers la fumée.";
                 case Ability.Ombre: return "Les gargouilles mettent 2 fois plus de temps à te viser.";
@@ -316,7 +325,7 @@ namespace Fief
                 case Ability.Eclair: return "Tu cours beaucoup plus vite, toute la manche.";
                 case Ability.MainLourde: return "Ta poussée touche de plus loin et envoie 2 fois plus loin.";
                 case Ability.Phenix: return "Chaque fois que tu tombes dans les nuages, tu reviens où tu étais.";
-                case Ability.Sablier: return "Ta capacité revient 3 fois plus vite.";
+                case Ability.Sablier: return "Ta capacité revient 2 fois plus vite.";
                 case Ability.Bombardement: return "Des bombes tombent en ligne devant toi, sur 40 m.";
                 case Ability.Singularite: return "Un énorme trou noir aspire tout le monde à 45 m, puis explose.";
                 case Ability.Dragon: return "Pendant 3 s, tu craches du feu devant toi.";
