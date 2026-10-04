@@ -33,6 +33,8 @@ namespace Fief
         /// <summary>Le materiau des particules qui s'ajoutent a la lumiere (etincelles, eclats) : Fx s'en sert aussi.</summary>
         public static Material Additive { get { EnsureMaterials(); return additive; } }
         static Material blended;
+        /// <summary>Le materiau des particules MELANGEES (la brume, la poussiere, la fumee claire).</summary>
+        public static Material Blended { get { EnsureMaterials(); return blended; } }
         static uint sparkleCount;
 
         public static void Build(Transform worldRoot, Transform player, GameConfig cfg)

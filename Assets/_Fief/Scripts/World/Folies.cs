@@ -429,7 +429,7 @@ namespace Fief
                 GameObject foam = Proto.Sphere(seg.transform, new Vector3(0f, 0.9f, 0.3f), new Vector3(1.1f, 0.25f, 1.6f), Color.white, "Ecume");
                 Proto.EndVisualOnly();
                 Renderer r = seg.GetComponent<Renderer>();
-                r.sharedMaterial = MaterialFactory.GetTransparent(water);
+                r.sharedMaterial = MaterialFactory.GetShiny(water, 0.9f, 0.1f);   // (v35) opaque : le transparent sortait noir
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 foam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 w.wall.Add(seg.transform);
@@ -445,9 +445,7 @@ namespace Fief
             for (int i = 0; i < wall.Count; i++)
             {
                 if (wall[i] == null) continue;
-                Renderer r = wall[i].GetComponent<Renderer>();
-                if (r != null) Destroy(r.sharedMaterial);
-                Destroy(wall[i].gameObject);
+                Destroy(wall[i].gameObject);   // (v35) le materiau est partage (GetShiny) : on ne le detruit plus
             }
         }
 

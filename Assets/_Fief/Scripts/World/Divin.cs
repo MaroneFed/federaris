@@ -369,7 +369,7 @@ namespace Fief
         const float Size = 26f;
         Seeker by;
         float age, ring;
-        Transform moon, shadow;
+        Transform moon;
 
         public static void Drop(Seeker by, Vector3 at)
         {
@@ -385,11 +385,10 @@ namespace Fief
             Proto.Sphere(r.transform, new Vector3(0.25f, 0.2f, -0.38f), new Vector3(0.22f, 0.22f, 0.12f), crater, "Cratere");
             Proto.Sphere(r.transform, new Vector3(-0.2f, -0.15f, -0.42f), new Vector3(0.16f, 0.16f, 0.1f), crater, "Cratere");
             Proto.Sphere(r.transform, new Vector3(-0.05f, 0.32f, -0.36f), new Vector3(0.1f, 0.1f, 0.08f), crater, "Cratere");
-            // Son OMBRE au sol : un disque sombre qui grandit -- on voit ou elle va tomber.
-            GameObject sh = Proto.Cylinder(go.transform, new Vector3(0f, 0.08f, 0f), new Vector3(1f, 0.01f, 1f), new Color(0.05f, 0.05f, 0.1f), "Ombre");
             Proto.EndVisualOnly();
             m.moon = r.transform;
-            m.shadow = sh.transform;
+            // (v35) Plus d'ombre en disque sombre (une tache noire de 90 m) : la cible de lumiere.
+            DivineFx.Mark(at, Radius, t, Fall);
             Sfx.Alarm();
         }
 
@@ -402,7 +401,7 @@ namespace Fief
             Color t = AbilityInfo.Tint(Ability.Lune);
             float k = Mathf.Clamp01(age / Fall);
             ring -= dt;
-            if (ring <= 0f && age < Fall) { ring = Mathf.Lerp(0.35f, 0.08f, k); Fx.GroundRing(p, new Color(0.2f, 0.2f, 0.3f), Radius * Mathf.Lerp(0.3f, 1f, k), 0.2f); }
+            if (ring <= 0f && age < Fall) { ring = Mathf.Lerp(0.35f, 0.08f, k); Fx.GroundRing(p, t, Radius * Mathf.Lerp(0.3f, 1f, k), 0.2f); }
             if (moon != null)
             {
                 // Lente, puis de plus en plus vite (k au carre).
@@ -412,7 +411,6 @@ namespace Fief
                 Fx.Burst(moon.position + Vector3.up * Size * 0.4f, new Color(1f, 0.55f, 0.2f), 8, 6f, 2.5f, 1f, -0.3f, Vector3.up, 40f);
                 if (age % 0.6f < dt) AbilityCaster.ShakeNear(p, 0.1f + 0.4f * k);
             }
-            if (shadow != null) { float r = Radius * 2f * Mathf.Lerp(0.15f, 1f, k * k); shadow.localScale = new Vector3(r, 0.01f, r); }
             if (age < Fall) return;
             if (moon != null) Destroy(moon.gameObject);
             Combat.Blast(p, Radius, 48f, 26f, by);

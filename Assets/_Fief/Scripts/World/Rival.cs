@@ -73,6 +73,7 @@ namespace Fief
         Vector3 ballistaShot;
         float ballistaChosen;
         bool mounted;
+        float mountedSince;
 
         // --- corps
         CharacterController body;
@@ -372,6 +373,7 @@ namespace Fief
         public void OnMounted()
         {
             mounted = true;
+            mountedSince = Time.time;
             body.enabled = false;
             path.Clear();
         }
@@ -400,7 +402,16 @@ namespace Fief
             if (preyTimer > 0f) preyTimer -= dt;
             if (barkTimer > 0f) barkTimer -= dt;
             if (castTimer > 0f) castTimer -= dt;
-            if (mounted) { Animate(dt); return; }
+            if (mounted)
+            {
+                // (11/10, v35 -- Martin : "des bots restent coinces a cote de leur arbalete, ils ne
+                // bougent pas de toute la map") : "monte" sur une arbaleste qui ne le porte plus
+                // (relachee, rechargee, detruite) ou depuis trop longtemps (elle tire en 1 s) :
+                // il descend et repart.
+                if (ballista == null || ballista.Rider != seeker) Dismounted(transform.position + Vector3.up * 0.5f);
+                else if (Time.time - mountedSince > 4f) ballista.Dismount();
+                else { Animate(dt); return; }
+            }
 
             think -= dt;
             if (think <= 0f) { think = Match.BotLevel == 2 ? 0.3f : 0.5f; Think(season); }
@@ -422,6 +433,9 @@ namespace Fief
             if (ballistic || gliding) return;
             // En route vers une arbaleste : on y va (sauf si elle est prise, ou si c'est long).
             if (goal == Goal.Ballista && ballista != null && ballista.Free && Time.time - ballistaChosen < 10f && !(seeker.CarriesCrown && Tower.On(me))) return;
+            // (v35) Dix secondes sans y arriver : cette arbaleste-la est boudee un moment (avant, il
+            // la reprenait aussitot pour cible, et se recoinçait contre elle toute la manche).
+            if (goal == Goal.Ballista && ballista != null && Time.time - ballistaChosen >= 10f) { sulkBallista = ballista; sulkUntil = Time.time + 20f; ballista = null; }
 
             // Sur sa plateforme de depart (au debut, apres une chute) : il s'elance vers l'ile.
             if (Spawns.OnPad(me)) { LeaveThePad(was); return; }
@@ -531,7 +545,7 @@ namespace Fief
             for (int i = 0; i < Ballista.All.Count; i++)
             {
                 Ballista b = Ballista.All[i];
-                if (b == null || !b.Free || b.HasFixedTarget) continue;
+                if (b == null || !b.Free || b.HasFixedTarget || Sulks(b)) continue;
                 Vector3 bp = b.transform.position;
                 if (Flat(bp - me).magnitude > 160f) continue;
                 int bIslet = IsletAt(bp);
@@ -565,6 +579,9 @@ namespace Fief
         // comme but, et en vol libre il... revolait vers elle).
         Goal shotGoal;
         Vector3 shotTarget;
+        Ballista sulkBallista;
+        float sulkUntil;
+        bool Sulks(Ballista b) { return b != null && b == sulkBallista && Time.time < sulkUntil; }
         bool hasShot;
         float nextBallistaSearch;
 
@@ -578,7 +595,7 @@ namespace Fief
             Vector3 gate = Spawns.LandingOf(seeker.Index);
             // Son arbaleste : elle le pose sur le parvis devant sa porte.
             Ballista own = Spawns.BallistaOf(seeker.Index);
-            if (own != null && own.Free && own.HasFixedTarget)
+            if (own != null && own.Free && own.HasFixedTarget && !Sulks(own))
             {
                 ballista = own;
                 ballistaShot = own.FixedVelocity;
@@ -695,7 +712,7 @@ namespace Fief
         {
             if (Match.BotLevel == 0 && after != Goal.Deliver) return false;
             Ballista b = Ballista.NearestFree(transform.position, 70f);
-            if (b == null) return false;
+            if (b == null || Sulks(b)) return false;
             Vector3 aim = to + Vector3.up * 1f;
             Vector3 v;
             if (!Ballista.Solve(b.Seat, aim, true, out v) || !b.Lands(v, to, tolerance))
@@ -974,6 +991,10 @@ namespace Fief
             float reach = goal == Goal.Deliver ? 2.5f : goal == Goal.Ballista ? 1.6f
                         : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 1.6f : 1.8f;
             bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
+            // (v35) L'arbaleste : son centre est DANS sa caisse, on ne l'atteint jamais a 1,6 m --
+            // le bot poussait contre elle sans fin. A portee de main (3,4 m, comme toi avec E), il monte.
+            if (goal == Goal.Ballista && ballista != null && Flat(ballista.transform.position - transform.position).magnitude <= 3.4f
+                && Mathf.Abs(ballista.transform.position.y - transform.position.y) < 3f) { arrived = true; path.Clear(); }
 
             // La poussee : des qu'il est a portee de sa proie (y compris en l'air) -- pas sur
             // une proie protegee (le coup ne ferait rien, et il perdrait sa recharge).

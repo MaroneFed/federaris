@@ -10,21 +10,28 @@ namespace Fief
     /// mais rien n'avait de POIDS, on ne savait pas ou ca allait tomber, et rien ne restait.
     /// Les briques qui manquaient, communes a tous les pouvoirs divins :
     ///
-    ///   Mark     LA CIBLE AU SOL : un disque a la couleur du pouvoir, qui se REMPLIT jusqu'a
-    ///            l'impact. On voit ou ca tombe, et quand -- on peut fuir.
+    ///   Mark     LA CIBLE AU SOL : un cercle de lumiere a la couleur du pouvoir, un second qui
+    ///            GRANDIT jusqu'a l'impact, et un rayon qui monte au centre. On voit ou ca tombe,
+    ///            et quand -- on peut fuir.
     ///   Debris   des MORCEAUX DE PIERRE qui volent, retombent, roulent : le poids de l'impact.
-    ///   Scorch   une TRACE BRULEE au sol, qui s'efface en quelques secondes : ca s'est passe ici.
+    ///   Scorch   un CERCLE DE BRAISES au sol, qui s'eteint en quelques secondes : ca s'est passe ici.
     ///   Mushroom le CHAMPIGNON (la bombe atomique, la lune) : une colonne de fumee et sa tete.
     ///   Bolt     un ECLAIR en zigzag entre deux points (la foudre, les sorts qui relient).
     ///   Halo     une AUREOLE qui tourne autour d'un corps pendant quelques secondes.
     ///   Impact   tout ensemble, dose selon la taille : eclair de lumiere, onde, debris, fumee,
     ///            trace, secousse. Chaque grosse explosion divine passe par lui : elles ont toutes
     ///            le meme "langage", et on les reconnait.
+    ///
+    /// (11/10, v35 -- Martin : "des taches noires en plein milieu de la map, on ne capte rien")
+    /// Les traces brulees etaient des DISQUES SOMBRES, et la fumee des BOULES GRISES, dans un
+    /// materiau transparent fabrique a la main : sous la lumiere du jeu, elles sortaient noires
+    /// et opaques, larges comme l'explosion, et restaient dix secondes. Plus rien de sombre ni
+    /// d'opaque ici : que de la LUMIERE (lignes et etincelles additives) et de la POUSSIERE
+    /// claire en particules, comme la mer de nuages (le materiau eprouve d'Ambiance).
     /// </summary>
     public static class DivineFx
     {
         static readonly Color Stone = new Color(0.46f, 0.42f, 0.38f);
-        static readonly Color SmokeGrey = new Color(0.28f, 0.25f, 0.24f);
 
         static bool Far(Vector3 at)
         {
@@ -40,28 +47,46 @@ namespace Fief
             return p;
         }
 
-        /// <summary>Un disque plat (visuel seul) d'un materiau transparent a lui.</summary>
-        static Renderer Disc(Transform parent, Vector3 local, float diameter, Color c, string name)
+        /// <summary>Une ligne de lumiere additive (anneau, rayon) : jamais sombre, jamais opaque.</summary>
+        public static LineRenderer Line(Transform parent, string name, int points, bool loop)
         {
-            Proto.BeginVisualOnly();
-            GameObject d = Proto.Cylinder(parent, local, new Vector3(diameter, 0.01f, diameter), c, name);
-            Proto.EndVisualOnly();
-            Renderer r = d.GetComponent<Renderer>();
-            r.sharedMaterial = MaterialFactory.GetTransparent(c);
-            r.shadowCastingMode = ShadowCastingMode.Off;
-            r.receiveShadows = false;
-            return r;
+            Material m = Ambiance.Additive;
+            if (m == null) return null;
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            LineRenderer l = go.AddComponent<LineRenderer>();
+            l.sharedMaterial = m;
+            l.loop = loop;
+            l.useWorldSpace = false;
+            l.positionCount = points;
+            l.shadowCastingMode = ShadowCastingMode.Off;
+            l.receiveShadows = false;
+            return l;
+        }
+
+        /// <summary>Pose un cercle de rayon "radius" dans une ligne en boucle.</summary>
+        public static void Circle(LineRenderer l, float radius)
+        {
+            if (l == null) return;
+            int n = l.positionCount;
+            for (int i = 0; i < n; i++)
+            {
+                float a = i / (float)n * Mathf.PI * 2f;
+                l.SetPosition(i, new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius));
+            }
         }
 
         // ================================================================== la cible au sol
 
-        /// <summary>LA CIBLE : un disque qui se remplit en "seconds" (et suit "follow" s'il y en a un).</summary>
+        /// <summary>LA CIBLE : un cercle, un second qui grandit en "seconds", un rayon au centre (et suit "follow" s'il y en a un).</summary>
         public static TargetMark Mark(Vector3 at, float radius, Color c, float seconds, Transform follow = null)
         {
             GameObject go = new GameObject("Cible divine");
             go.transform.position = OnGround(at) + Vector3.up * 0.06f;
             TargetMark m = go.AddComponent<TargetMark>();
             m.Setup(radius, c, seconds, follow);
+            // (v35) On l'ENTEND arriver : un sifflement qui descend jusqu'a l'impact.
+            Sfx.Incoming(go.transform.position, seconds);
             return m;
         }
 
@@ -99,69 +124,93 @@ namespace Fief
 
         // ================================================================== la trace brulee
 
-        /// <summary>Une trace sombre au sol, qui s'efface en "seconds".</summary>
+        /// <summary>Un cercle de braises au sol, qui rougeoie puis s'eteint en "seconds".</summary>
         public static void Scorch(Vector3 at, float radius, float seconds)
         {
             if (Far(at)) return;
-            GameObject go = new GameObject("Trace");
-            go.transform.position = OnGround(at) + Vector3.up * 0.04f;
-            Fader f = go.AddComponent<Fader>();
-            f.r = Disc(go.transform, Vector3.zero, radius * 2f, new Color(0.06f, 0.04f, 0.04f, 0.6f), "Brulure");
-            f.r2 = Disc(go.transform, Vector3.up * 0.01f, radius * 1.1f, new Color(0.02f, 0.01f, 0.01f, 0.5f), "Coeur");
-            f.life = seconds;
+            GameObject go = new GameObject("Braises");
+            go.transform.position = OnGround(at) + Vector3.up * 0.12f;
+            GlowRing g = go.AddComponent<GlowRing>();
+            g.line = Line(go.transform, "Cercle", 56, true);
+            if (g.line == null) { Object.Destroy(go); return; }
+            Circle(g.line, radius);
+            g.radius = radius;
+            g.colour = new Color(1f, 0.55f, 0.2f);
+            g.life = Mathf.Min(seconds, 4f);
         }
-
-
 
         // ================================================================== la fumee
 
-        /// <summary>Des boules de fumee qui montent et grossissent.</summary>
+        static readonly Color DustLight = new Color(0.9f, 0.86f, 0.8f, 0.75f);
+        static readonly Color DustWarm = new Color(0.82f, 0.76f, 0.68f, 0.75f);
+
+        /// <summary>De la poussiere claire qui monte et gonfle (des particules, plus des boules).</summary>
         public static void Smoke(Vector3 at, int count, float size, float rise)
         {
             if (Far(at)) return;
-            for (int i = 0; i < count; i++)
-            {
-                Vector3 p = at + new Vector3(Random.Range(-1f, 1f) * size, Random.value * size * 0.5f, Random.Range(-1f, 1f) * size);
-                Puff(p, size * Random.Range(0.6f, 1.1f), SmokeGrey, new Vector3(Random.Range(-0.5f, 0.5f), rise * Random.Range(0.6f, 1.2f), Random.Range(-0.5f, 0.5f)), Random.Range(2f, 3.5f));
-            }
+            Cloud(at, count * 3, size, Vector3.up * rise, size * 0.9f, DustLight, DustWarm, 2.6f);
         }
 
-        /// <summary>Combien de boules de fumee existent : au-dela de 90, on n'en ajoute plus (fluidite).</summary>
+        /// <summary>Combien de nuages de poussiere existent : au-dela de 24, on n'en ajoute plus (fluidite).</summary>
         public static int liveSmoke;
 
-        static void Puff(Vector3 at, float size, Color c, Vector3 velocity, float life)
+        /// <summary>
+        /// UN NUAGE de "count" bouffees claires (materiau melange d'Ambiance, celui de la mer de
+        /// nuages) : elles partent a "velocity", gonflent jusqu'a 2,5 fois "size" et s'effacent.
+        /// </summary>
+        static void Cloud(Vector3 at, int count, float size, Vector3 velocity, float spread, Color a, Color b, float life)
         {
-            if (liveSmoke >= 90) return;
+            if (liveSmoke >= 24 || count <= 0) return;
+            Material m = Ambiance.Blended;
+            if (m == null) return;
             liveSmoke++;
-            Proto.BeginVisualOnly();
-            GameObject g = Proto.Sphere(null, at, Vector3.one * size * 0.4f, c, "Fumee");
-            Proto.EndVisualOnly();
-            Renderer r = g.GetComponent<Renderer>();
-            r.sharedMaterial = MaterialFactory.GetTransparent(new Color(c.r, c.g, c.b, 0.55f));
-            r.shadowCastingMode = ShadowCastingMode.Off;
-            PuffMotion m = g.AddComponent<PuffMotion>();
-            m.velocity = velocity;
-            m.life = life;
-            m.size = size;
-            m.r = r;
+            ParticleSystem ps = Ambiance.NewSystem("Poussiere divine", null, at, m);
+            ps.gameObject.AddComponent<CloudCount>();
+            ParticleSystem.MainModule main = ps.main;
+            main.duration = 0.3f;
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(life * 0.7f, life);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 1.2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(size * 0.7f, size * 1.2f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startColor = new ParticleSystem.MinMaxGradient(a, b);
+            main.maxParticles = count + 4;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)Mathf.Min(count, 120)) });
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = Mathf.Max(0.3f, spread);
+            ParticleSystem.VelocityOverLifetimeModule v = ps.velocityOverLifetime;
+            v.enabled = true;
+            v.space = ParticleSystemSimulationSpace.World;
+            v.x = new ParticleSystem.MinMaxCurve(velocity.x);
+            v.y = new ParticleSystem.MinMaxCurve(velocity.y);
+            v.z = new ParticleSystem.MinMaxCurve(velocity.z);
+            ParticleSystem.SizeOverLifetimeModule grow = ps.sizeOverLifetime;
+            grow.enabled = true;
+            grow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.6f, 1f, 2.5f));
+            Ambiance.FadeInOut(ps, 0.85f);
+            ps.Play();
         }
 
-
-
-        /// <summary>LE CHAMPIGNON : une colonne de fumee, puis une tete large -- la bombe, la lune.</summary>
+        /// <summary>LE CHAMPIGNON : une colonne de poussiere, puis une tete large et claire -- la bombe, la lune.</summary>
         public static void Mushroom(Vector3 at, float size, Color fire)
         {
             if (Far(at)) return;
             Vector3 g = OnGround(at);
-            for (int i = 0; i < 6; i++)
-                Puff(g + Vector3.up * i * size * 0.35f, size * 0.55f, Color.Lerp(fire, SmokeGrey, 0.4f + i * 0.1f), Vector3.up * size * 0.5f, 4f);
-            for (int i = 0; i < 10; i++)
-            {
-                float a = i * Mathf.PI * 0.2f;
-                Vector3 off = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * size * 0.7f;
-                Puff(g + Vector3.up * size * 2.2f + off * 0.4f, size * 0.8f, Color.Lerp(fire, SmokeGrey, 0.65f), Vector3.up * size * 0.45f + off * 0.35f, 4.5f);
-            }
-            Puff(g + Vector3.up * size * 2.4f, size * 1.1f, Color.Lerp(fire, Color.white, 0.2f), Vector3.up * size * 0.5f, 2f);
+            Color hot = Color.Lerp(fire, Color.white, 0.35f);
+            hot.a = 0.8f;
+            // La colonne : des bouffees en file, de plus en plus claires vers le haut.
+            for (int i = 0; i < 3; i++)
+                Cloud(g + Vector3.up * size * (0.4f + i * 0.6f), 10, size * 0.6f, Vector3.up * size * 0.45f, size * 0.25f,
+                      Color.Lerp(hot, DustLight, 0.3f + i * 0.25f), DustWarm, 4f);
+            // La tete : large, qui s'etale.
+            Cloud(g + Vector3.up * size * 2.3f, 26, size * 0.9f, Vector3.up * size * 0.3f, size * 0.8f, DustLight, Color.Lerp(hot, DustLight, 0.6f), 4.5f);
+            // Le coeur de feu, qui s'eteint le premier (de la lumiere, pas de la fumee).
+            Fx.Burst(g + Vector3.up * size * 2.3f, fire, 40, size * 0.8f, size * 0.7f, 1.4f, -0.1f, Vector3.zero, 0f);
+            Fx.Burst(g + Vector3.up * size, fire, 30, size * 1.2f, size * 0.4f, 1.2f, -0.2f, Vector3.up, 12f);
         }
 
         // ================================================================== l'eclair
@@ -186,6 +235,7 @@ namespace Fief
             b.width = width;
             b.life = seconds;
             b.Shape();
+            Sfx.ZapAt(to);
         }
 
 
@@ -247,7 +297,9 @@ namespace Fief
             Smoke(g + Vector3.up * 0.5f, Mathf.RoundToInt(3 + 3 * power), Mathf.Max(1.5f, radius * 0.25f), 2f + power);
             Scorch(g, Mathf.Max(1.5f, radius * 0.45f), 5f + 2f * power);
             AbilityCaster.ShakeNear(g, 0.3f + 0.35f * power);
-            if (loud) Sfx.KoBoom(g, true); else Sfx.CrashAt(g);
+            // (v35, "il n'y a pas de son, mets-en a fond") : le BOUM a la taille du coup, qui porte loin.
+            Sfx.Blast(g, power);
+            if (loud) Sfx.KoBoom(g, false);
             // (v34) Pres de toi, ca te frappe : l'image se resserre, et pour les tres grosses, un
             // eclair blanc d'une image (l'"impact frame" des animes).
             Camera cam = Camera.main;
@@ -295,62 +347,42 @@ namespace Fief
         void OnDestroy() { DivineFx.liveDebris = Mathf.Max(0, DivineFx.liveDebris - 1); }
     }
 
-    /// <summary>Ce qui s'efface tout seul (les traces).</summary>
-    public class Fader : MonoBehaviour
+    /// <summary>Un cercle de braises : il rougeoie, palpite, crache quelques etincelles, et s'eteint.</summary>
+    public class GlowRing : MonoBehaviour
     {
-        public Renderer r;
-        public Renderer r2;
+        public LineRenderer line;
+        public Color colour;
+        public float radius;
         public float life;
-        float age;
-        Color c1, c2;
-
-        void Start()
-        {
-            if (r != null) c1 = r.sharedMaterial.color;
-            if (r2 != null) c2 = r2.sharedMaterial.color;
-        }
-
-        void Update()
-        {
-            age += Time.deltaTime;
-            float k = Mathf.Clamp01(1f - (age - life * 0.5f) / (life * 0.5f));
-            if (r != null) r.sharedMaterial.color = new Color(c1.r, c1.g, c1.b, c1.a * k);
-            if (r2 != null) r2.sharedMaterial.color = new Color(c2.r, c2.g, c2.b, c2.a * k);
-            if (age > life) Destroy(gameObject);
-        }
-
-        void OnDestroy()
-        {
-            if (r != null) Destroy(r.sharedMaterial);
-            if (r2 != null) Destroy(r2.sharedMaterial);
-        }
-    }
-
-    /// <summary>Une boule de fumee : elle monte, gonfle, s'eclaircit.</summary>
-    public class PuffMotion : MonoBehaviour
-    {
-        public Vector3 velocity;
-        public float life;
-        public float size;
-        public Renderer r;
-        float age;
-        Color c;
-
-        void Start() { c = r.sharedMaterial.color; }
+        float age, spark;
 
         void Update()
         {
             float dt = Time.deltaTime;
             age += dt;
-            float k = Mathf.Clamp01(age / life);
-            transform.position += velocity * dt;
-            velocity *= 1f - dt * 0.6f;
-            transform.localScale = Vector3.one * size * Mathf.Lerp(0.4f, 1.6f, Mathf.Sqrt(k));
-            r.sharedMaterial.color = new Color(c.r, c.g, c.b, c.a * (1f - k));
+            float k = Mathf.Clamp01(1f - age / life);
+            if (line != null)
+            {
+                float flick = 0.8f + 0.2f * Mathf.Sin(age * 17f);
+                line.startWidth = line.endWidth = Mathf.Lerp(0.15f, 0.55f, k) * flick;
+                Color c = Color.Lerp(new Color(0.9f, 0.2f, 0.05f), colour, k);
+                line.startColor = line.endColor = new Color(c.r, c.g, c.b, k * 0.9f);
+            }
+            spark -= dt;
+            if (spark <= 0f && k > 0.2f)
+            {
+                spark = 0.18f;
+                float a = Random.value * Mathf.PI * 2f;
+                Fx.Burst(transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius, colour, 3, 2.5f, 0.2f, 0.7f, -0.2f, Vector3.up, 30f);
+            }
             if (age > life) Destroy(gameObject);
         }
+    }
 
-        void OnDestroy() { if (r != null) Destroy(r.sharedMaterial); DivineFx.liveSmoke = Mathf.Max(0, DivineFx.liveSmoke - 1); }
+    /// <summary>Tient le compte des nuages de poussiere vivants (voir DivineFx.liveSmoke).</summary>
+    public class CloudCount : MonoBehaviour
+    {
+        void OnDestroy() { DivineFx.liveSmoke = Mathf.Max(0, DivineFx.liveSmoke - 1); }
     }
 
     public class BoltMotion : MonoBehaviour
@@ -426,10 +458,14 @@ namespace Fief
         }
     }
 
-    /// <summary>LA CIBLE AU SOL : un disque pale a la taille du coup, et dedans un disque qui se remplit.</summary>
+    /// <summary>
+    /// LA CIBLE AU SOL (v35 : plus de disques, qui sortaient noirs) : un cercle de lumiere a la
+    /// taille du coup, un second qui grandit du centre jusqu'au bord a l'impact, une croix, et
+    /// un rayon qui monte du centre -- on voit de loin ou ca va tomber.
+    /// </summary>
     public class TargetMark : MonoBehaviour
     {
-        Renderer outer, inner;
+        LineRenderer outer, inner, beam, crossA, crossB;
         Transform follow;
         float radius, life, age, ring;
         Color colour;
@@ -440,21 +476,24 @@ namespace Fief
             colour = c;
             life = Mathf.Max(0.1f, seconds);
             follow = followThis;
-            outer = MakeDisc(r * 2f, new Color(c.r, c.g, c.b, 0.16f), "Zone");
-            inner = MakeDisc(0.01f, new Color(c.r, c.g, c.b, 0.38f), "Remplissage");
+            outer = DivineFx.Line(transform, "Bord", 64, true);
+            DivineFx.Circle(outer, r);
+            inner = DivineFx.Line(transform, "Remplissage", 48, true);
+            DivineFx.Circle(inner, 1f);
+            crossA = DivineFx.Line(transform, "Croix", 2, false);
+            crossB = DivineFx.Line(transform, "Croix", 2, false);
+            if (crossA != null) { crossA.SetPosition(0, new Vector3(-r * 0.35f, 0.05f, 0f)); crossA.SetPosition(1, new Vector3(r * 0.35f, 0.05f, 0f)); }
+            if (crossB != null) { crossB.SetPosition(0, new Vector3(0f, 0.05f, -r * 0.35f)); crossB.SetPosition(1, new Vector3(0f, 0.05f, r * 0.35f)); }
+            beam = DivineFx.Line(transform, "Rayon", 2, false);
+            if (beam != null) { beam.SetPosition(0, Vector3.zero); beam.SetPosition(1, Vector3.up * 30f); }
             Fx.GroundRing(transform.position, c, r, 0.3f);
         }
 
-        Renderer MakeDisc(float d, Color c, string name)
+        static void Paint(LineRenderer l, Color c, float a, float width)
         {
-            Proto.BeginVisualOnly();
-            GameObject g = Proto.Cylinder(transform, Vector3.zero, new Vector3(d, 0.01f, d), c, name);
-            Proto.EndVisualOnly();
-            Renderer r = g.GetComponent<Renderer>();
-            r.sharedMaterial = MaterialFactory.GetTransparent(c);
-            r.shadowCastingMode = ShadowCastingMode.Off;
-            r.receiveShadows = false;
-            return r;
+            if (l == null) return;
+            l.startWidth = l.endWidth = width;
+            l.startColor = l.endColor = new Color(c.r, c.g, c.b, a);
         }
 
         void Update()
@@ -463,27 +502,28 @@ namespace Fief
             age += dt;
             if (follow != null) transform.position = DivineFx.OnGround(follow.position) + Vector3.up * 0.06f;
             float k = Mathf.Clamp01(age / life);
-            float d = radius * 2f * k;
-            if (inner != null) inner.transform.localScale = new Vector3(d, 0.01f, d);
-            // Le bord bat de plus en plus vite a l'approche du coup.
+            // Le bord bat de plus en plus vite a l'approche du coup, et blanchit.
+            float pulse = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(age * Mathf.Lerp(4f, 20f, k)));
+            Color hot = Color.Lerp(colour, Color.white, k * 0.6f);
+            Paint(outer, hot, pulse, 0.3f + 0.25f * k);
+            if (inner != null) inner.transform.localScale = new Vector3(Mathf.Max(0.05f, radius * k), 1f, Mathf.Max(0.05f, radius * k));
+            Paint(inner, colour, 0.9f, 0.4f);
+            Paint(crossA, hot, 0.5f * pulse, 0.18f);
+            Paint(crossB, hot, 0.5f * pulse, 0.18f);
+            if (beam != null)
+            {
+                beam.startWidth = 0.5f + 1.2f * k;
+                beam.endWidth = 0.05f;
+                beam.startColor = new Color(hot.r, hot.g, hot.b, 0.7f * pulse);
+                beam.endColor = new Color(colour.r, colour.g, colour.b, 0f);
+            }
             ring -= dt;
             if (ring <= 0f)
             {
                 ring = Mathf.Lerp(0.4f, 0.08f, k);
                 Fx.Ring(transform.position + Vector3.up * 0.1f, colour, radius * 0.98f, radius, 0.2f, 0.25f, Vector3.up);
             }
-            if (outer != null)
-            {
-                float pulse = 0.16f + 0.1f * Mathf.Abs(Mathf.Sin(age * Mathf.Lerp(4f, 18f, k)));
-                outer.sharedMaterial.color = new Color(colour.r, colour.g, colour.b, pulse);
-            }
             if (age >= life) Destroy(gameObject);
-        }
-
-        void OnDestroy()
-        {
-            if (outer != null) Destroy(outer.sharedMaterial);
-            if (inner != null) Destroy(inner.sharedMaterial);
         }
     }
 }

@@ -17,6 +17,13 @@ namespace Fief
     ///     des FLAMMES montent de l'horizon, des BRAISES volent partout, des ECLAIRS tombent au loin.
     /// On repasse en Normal : tout revient, doucement.
     ///
+    /// (11/10, v35 -- Martin : "pas que du rouge, ca fait enfer, j'aime pas ; fais que ca change de
+    /// couleur pendant les trucs") : six CIELS DIVINS qui se succedent, fondus l'un dans l'autre --
+    /// le feu (rouge et or), l'aurore (violet et rose), le cosmos (bleu nuit et cyan), l'emeraude
+    /// (vert et turquoise), la rose (rose et peche), l'or (or pale et blanc). Toutes les 22 s au
+    /// match, toutes les 9 s dans les menus ; meteores, couronne, flammes, braises et eclairs
+    /// prennent la couleur du moment.
+    ///
     /// Concept Unity : RenderSettings, c'est l'ambiance de la scene (le ciel, la brume, la lumiere
     /// ambiante) ; on la change par le code, d'une image a l'autre, en melangeant deux palettes.
     /// </summary>
@@ -43,6 +50,91 @@ namespace Fief
         Color[] cloudTint;
         ParticleSystem meteors, ring, horizon, embers;
         float nextBolt;
+
+        /// <summary>Un ciel divin : ciel, sol, brume, ambiance (haut, milieu, bas), soleil, nuages, flammes (a, b).</summary>
+        struct SkyTheme
+        {
+            public Color sky;
+            public Color ground;
+            public Color fog;
+            public Color ambSky;
+            public Color ambEq;
+            public Color ambGround;
+            public Color sun;
+            public Color cloud;
+            public Color fireA;
+            public Color fireB;
+
+            public static SkyTheme Make(Color sky, Color ground, Color fog, Color ambSky, Color ambEq, Color ambGround, Color sun, Color cloud, Color fireA, Color fireB)
+            {
+                SkyTheme t = new SkyTheme();
+                t.sky = sky;
+                t.ground = ground;
+                t.fog = fog;
+                t.ambSky = ambSky;
+                t.ambEq = ambEq;
+                t.ambGround = ambGround;
+                t.sun = sun;
+                t.cloud = cloud;
+                t.fireA = fireA;
+                t.fireB = fireB;
+                return t;
+            }
+
+            public static SkyTheme Mix(SkyTheme a, SkyTheme b, float t)
+            {
+                return Make(Color.Lerp(a.sky, b.sky, t), Color.Lerp(a.ground, b.ground, t), Color.Lerp(a.fog, b.fog, t),
+                    Color.Lerp(a.ambSky, b.ambSky, t), Color.Lerp(a.ambEq, b.ambEq, t), Color.Lerp(a.ambGround, b.ambGround, t),
+                    Color.Lerp(a.sun, b.sun, t), Color.Lerp(a.cloud, b.cloud, t), Color.Lerp(a.fireA, b.fireA, t), Color.Lerp(a.fireB, b.fireB, t));
+            }
+        }
+
+        static readonly SkyTheme[] Themes =
+        {
+            // Le feu
+            SkyTheme.Make(new Color(0.95f, 0.18f, 0.12f), new Color(0.55f, 0.08f, 0.06f), new Color(0.62f, 0.16f, 0.08f),
+                      new Color(0.95f, 0.4f, 0.25f), new Color(0.85f, 0.3f, 0.18f), new Color(0.45f, 0.1f, 0.1f),
+                      new Color(1f, 0.45f, 0.2f), new Color(0.95f, 0.32f, 0.12f), new Color(1f, 0.45f, 0.1f), new Color(1f, 0.85f, 0.35f)),
+            // L'aurore
+            SkyTheme.Make(new Color(0.62f, 0.2f, 0.95f), new Color(0.3f, 0.08f, 0.45f), new Color(0.45f, 0.2f, 0.62f),
+                      new Color(0.75f, 0.5f, 1f), new Color(0.7f, 0.4f, 0.85f), new Color(0.3f, 0.15f, 0.4f),
+                      new Color(1f, 0.6f, 0.95f), new Color(0.75f, 0.4f, 0.95f), new Color(0.85f, 0.35f, 1f), new Color(1f, 0.6f, 0.85f)),
+            // Le cosmos
+            SkyTheme.Make(new Color(0.12f, 0.35f, 1f), new Color(0.05f, 0.1f, 0.35f), new Color(0.15f, 0.28f, 0.6f),
+                      new Color(0.45f, 0.65f, 1f), new Color(0.35f, 0.5f, 0.9f), new Color(0.12f, 0.15f, 0.35f),
+                      new Color(0.6f, 0.85f, 1f), new Color(0.35f, 0.6f, 1f), new Color(0.25f, 0.75f, 1f), new Color(0.75f, 0.95f, 1f)),
+            // L'emeraude
+            SkyTheme.Make(new Color(0.15f, 0.9f, 0.5f), new Color(0.05f, 0.35f, 0.25f), new Color(0.2f, 0.5f, 0.42f),
+                      new Color(0.5f, 1f, 0.75f), new Color(0.4f, 0.85f, 0.65f), new Color(0.12f, 0.3f, 0.22f),
+                      new Color(0.7f, 1f, 0.75f), new Color(0.35f, 0.95f, 0.65f), new Color(0.3f, 1f, 0.55f), new Color(0.75f, 1f, 0.9f)),
+            // La rose
+            SkyTheme.Make(new Color(1f, 0.35f, 0.6f), new Color(0.5f, 0.15f, 0.3f), new Color(0.75f, 0.38f, 0.5f),
+                      new Color(1f, 0.65f, 0.75f), new Color(0.95f, 0.55f, 0.6f), new Color(0.45f, 0.2f, 0.28f),
+                      new Color(1f, 0.7f, 0.65f), new Color(1f, 0.55f, 0.7f), new Color(1f, 0.4f, 0.7f), new Color(1f, 0.8f, 0.6f)),
+            // L'or
+            SkyTheme.Make(new Color(1f, 0.75f, 0.25f), new Color(0.5f, 0.35f, 0.12f), new Color(0.8f, 0.62f, 0.3f),
+                      new Color(1f, 0.9f, 0.6f), new Color(0.95f, 0.8f, 0.5f), new Color(0.45f, 0.35f, 0.18f),
+                      new Color(1f, 0.92f, 0.6f), new Color(1f, 0.85f, 0.45f), new Color(1f, 0.8f, 0.25f), new Color(1f, 1f, 0.85f)),
+        };
+
+        /// <summary>Le ciel divin du moment (un melange de deux, pendant les fondus).</summary>
+        static SkyTheme current = Themes[0];
+        /// <summary>Les deux couleurs de flamme du moment (pour les menus et les effets).</summary>
+        public static Color FireA { get { return current.fireA; } }
+        public static Color FireB { get { return current.fireB; } }
+
+        /// <summary>Le ciel du moment : chaque palette tient "hold" secondes, puis fond 5 s dans la suivante.</summary>
+        static SkyTheme Cycle()
+        {
+            float hold = MenuGod && !Match.Active ? 9f : 22f;
+            float fade = 5f;
+            float t = Time.unscaledTime / (hold + fade);
+            int i = Mathf.FloorToInt(t) % Themes.Length;
+            float inside = (t - Mathf.Floor(t)) * (hold + fade);
+            float m = Mathf.Clamp01((inside - hold) / fade);
+            m = m * m * (3f - 2f * m);
+            return SkyTheme.Mix(Themes[i], Themes[(i + 1) % Themes.Length], m);
+        }
 
         /// <summary>Le batir avec le monde (GameBootstrap).</summary>
         public static void Build(Transform worldRoot)
@@ -95,8 +187,9 @@ namespace Fief
             float dt = Time.unscaledDeltaTime;
             k = Mathf.MoveTowards(k, on ? 1f : 0f, dt * (on ? 1.4f : 0.6f));
             Flash = Mathf.MoveTowards(Flash, 0f, dt * 0.9f);
+            current = Cycle();
             Blend(k);
-            if (k > 0.01f) EnsureFx();
+            if (k > 0.01f) { EnsureFx(); Tint(); }
             SetRate(meteors, 9f * k);
             SetRate(ring, 160f * k);
             SetRate(horizon, 70f * k);
@@ -112,7 +205,7 @@ namespace Fief
                 float a = Random.value * Mathf.PI * 2f;
                 float r = Random.Range(220f, 420f);
                 Vector3 p = new Vector3(Mathf.Cos(a) * r, -45f, Mathf.Sin(a) * r);
-                Color c = Random.value < 0.5f ? new Color(1f, 0.85f, 0.5f) : new Color(1f, 0.4f, 0.25f);
+                Color c = Random.value < 0.5f ? current.fireB : current.fireA;
                 Fx.Column(p, c, 320f, 0.25f, 3f);
                 Fx.Flash(p + Vector3.up * 120f, c, 400f, 6f, 0.25f);
                 Sfx.CrashAt(p);
@@ -123,7 +216,7 @@ namespace Fief
         void Boom()
         {
             Flash = 1f;
-            Color fire = new Color(1f, 0.45f, 0.15f);
+            Color fire = current.fireA;
             Vector3 top = new Vector3(0f, 105f, 0f);
             Fx.Column(new Vector3(0f, -40f, 0f), fire, 400f, 1.5f, 10f);
             Fx.Shock(top, fire, 120f, 1.2f);
@@ -141,22 +234,22 @@ namespace Fief
             float e = t * t * (3f - 2f * t);
             if (sky != null)
             {
-                if (sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint", Color.Lerp(skyTint, new Color(0.95f, 0.18f, 0.12f), e));
-                if (sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor", Color.Lerp(skyGround, new Color(0.55f, 0.08f, 0.06f), e));
+                if (sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint", Color.Lerp(skyTint, current.sky, e));
+                if (sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor", Color.Lerp(skyGround, current.ground, e));
                 if (sky.HasProperty("_Exposure")) sky.SetFloat("_Exposure", Mathf.Lerp(exposure, 1.8f, e));
                 if (sky.HasProperty("_AtmosphereThickness")) sky.SetFloat("_AtmosphereThickness", Mathf.Lerp(thickness, 3.2f, e));
                 if (sky.HasProperty("_SunSize")) sky.SetFloat("_SunSize", Mathf.Lerp(sunSize, 0.16f, e));
             }
-            RenderSettings.fogColor = Color.Lerp(fogColor, new Color(0.62f, 0.16f, 0.08f), e);
+            RenderSettings.fogColor = Color.Lerp(fogColor, current.fog, e);
             RenderSettings.fogDensity = Mathf.Lerp(fogDensity, fogDensity * 0.8f, e);
-            RenderSettings.ambientSkyColor = Color.Lerp(ambSky, new Color(0.95f, 0.4f, 0.25f), e);
-            RenderSettings.ambientEquatorColor = Color.Lerp(ambEq, new Color(0.85f, 0.3f, 0.18f), e);
-            RenderSettings.ambientGroundColor = Color.Lerp(ambGround, new Color(0.45f, 0.1f, 0.1f), e);
+            RenderSettings.ambientSkyColor = Color.Lerp(ambSky, current.ambSky, e);
+            RenderSettings.ambientEquatorColor = Color.Lerp(ambEq, current.ambEq, e);
+            RenderSettings.ambientGroundColor = Color.Lerp(ambGround, current.ambGround, e);
             Camera cam = Camera.main;
             if (cam != null && cam.clearFlags == CameraClearFlags.SolidColor) cam.backgroundColor = RenderSettings.fogColor;
             if (Atmosphere.Sun != null)
             {
-                Atmosphere.Sun.color = Color.Lerp(sunColor, new Color(1f, 0.45f, 0.2f), e);
+                Atmosphere.Sun.color = Color.Lerp(sunColor, current.sun, e);
                 Atmosphere.Sun.intensity = Mathf.Lerp(sunIntensity, sunIntensity * 1.3f, e);
             }
             if (clouds != null)
@@ -165,8 +258,25 @@ namespace Fief
                     if (clouds[i] == null) continue;
                     Renderer r = clouds[i].GetComponent<Renderer>();
                     if (r == null || r.material == null || !r.material.HasProperty("_TintColor")) continue;
-                    r.material.SetColor("_TintColor", Color.Lerp(cloudTint[i], new Color(0.95f, 0.32f, 0.12f, cloudTint[i].a), e));
+                    r.material.SetColor("_TintColor", Color.Lerp(cloudTint[i], new Color(current.cloud.r, current.cloud.g, current.cloud.b, cloudTint[i].a), e));
                 }
+        }
+
+        /// <summary>Meteores, couronne, flammes et braises a la couleur du ciel du moment.</summary>
+        void Tint()
+        {
+            Color a = current.fireA, b = current.fireB;
+            Paint(meteors, a, b, 1f);
+            Paint(ring, a, b, 0.9f);
+            Paint(horizon, a, b, 0.8f);
+            Paint(embers, a, b, 1f);
+        }
+
+        static void Paint(ParticleSystem ps, Color a, Color b, float alpha)
+        {
+            if (ps == null) return;
+            ParticleSystem.MainModule m = ps.main;
+            m.startColor = new ParticleSystem.MinMaxGradient(new Color(a.r, a.g, a.b, alpha), new Color(b.r, b.g, b.b, alpha));
         }
 
         static void SetRate(ParticleSystem ps, float rate)
@@ -285,10 +395,11 @@ namespace Fief
                     float f = 1f - i / 8f;
                     float al = 0.09f * f * a * (0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 3f));
                     float d = edge * i / 8f;
-                    UiStyle.Fill(new Rect(0f, h - d - edge / 8f, w, edge / 8f), new Color(1f, 0.3f, 0.05f, al * 1.6f));
-                    UiStyle.Fill(new Rect(0f, d, w, edge / 8f), new Color(0.8f, 0.1f, 0.05f, al));
-                    UiStyle.Fill(new Rect(d, 0f, edge / 8f, h), new Color(0.8f, 0.15f, 0.05f, al));
-                    UiStyle.Fill(new Rect(w - d - edge / 8f, 0f, edge / 8f, h), new Color(0.8f, 0.15f, 0.05f, al));
+                    Color lo = current.fireA, hi = current.sky;
+                    UiStyle.Fill(new Rect(0f, h - d - edge / 8f, w, edge / 8f), new Color(lo.r, lo.g, lo.b, al * 1.6f));
+                    UiStyle.Fill(new Rect(0f, d, w, edge / 8f), new Color(hi.r, hi.g, hi.b, al));
+                    UiStyle.Fill(new Rect(d, 0f, edge / 8f, h), new Color(hi.r, hi.g, hi.b, al));
+                    UiStyle.Fill(new Rect(w - d - edge / 8f, 0f, edge / 8f, h), new Color(hi.r, hi.g, hi.b, al));
                 }
                 // Des flammes qui montent du bas de l'ecran (trois tailles fixes : nettes).
                 int[] sizes = { UiStyle.S(90), UiStyle.S(130), UiStyle.S(170) };
@@ -299,7 +410,7 @@ namespace Fief
                     float bob = Mathf.Sin(Time.unscaledTime * (3f + (i % 4)) + i * 1.7f) * s * 0.12f;
                     float x = i * UiStyle.S(110f) - s * 0.3f;
                     float y = h - s * 0.78f + bob + s * 0.25f * (1f - a);
-                    Color c = (i % 2 == 0) ? new Color(1f, 0.45f, 0.1f, 0.85f * a) : new Color(1f, 0.75f, 0.25f, 0.75f * a);
+                    Color c = (i % 2 == 0) ? new Color(current.fireA.r, current.fireA.g, current.fireA.b, 0.85f * a) : new Color(current.fireB.r, current.fireB.g, current.fireB.b, 0.75f * a);
                     Icons.Draw(Icons.Snap(new Rect(x, y, s, s)), "flammes", c);
                 }
                 // Les braises qui montent.
@@ -321,7 +432,8 @@ namespace Fief
                         sparks[i] = p;
                     }
                     int ds = dots[(int)p.w];
-                    Icons.Pill(new Rect(Mathf.Round(p.x * w), Mathf.Round(p.y * h), ds, ds), new Color(1f, 0.6f + 0.3f * ((i * 13) % 10) / 10f, 0.2f, 0.9f * a));
+                    Color sc = Color.Lerp(current.fireA, current.fireB, ((i * 13) % 10) / 10f);
+                    Icons.Pill(new Rect(Mathf.Round(p.x * w), Mathf.Round(p.y * h), ds, ds), new Color(sc.r, sc.g, sc.b, 0.9f * a));
                 }
             }
         }
@@ -333,7 +445,7 @@ namespace Fief
             if (Flash > 0.01f)
             {
                 float f = Flash;
-                Color c = f > 0.75f ? new Color(1f, 1f, 0.95f, Mathf.Clamp01((f - 0.6f) * 2.5f)) : new Color(1f, 0.45f, 0.1f, f * 0.8f);
+                Color c = f > 0.75f ? new Color(1f, 1f, 0.95f, Mathf.Clamp01((f - 0.6f) * 2.5f)) : new Color(current.fireA.r, current.fireA.g, current.fireA.b, f * 0.8f);
                 UiStyle.Fill(new Rect(0f, 0f, w, h), c);
             }
         }

@@ -210,6 +210,15 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
   droit) et le piqué d'aigle. Les pièges de la tour, eux, le touchent toujours. **La Téléportation
   et le Chaos ne sont plus tirés** en Mode Dieu.
 - **Les règles ne bougent pas** : le sceau, la tour qui se monte à pied, la Couronne lourde.
+- **Pas de raccourci sur la tour, pas de Couronne à distance** (11/10, v35 — Martin : « la
+  couronne se TP sur un gars, il finit le truc en 10 secondes ; il ne faut pas des capacités où on
+  peut se TP en haut de la tour ou prendre la couronne direct ») : la Couronne ne se prend plus
+  qu'**à deux pas** d'elle (2,6 m de son socle, la portée « en passant » à terre), pour toi, les
+  bots et les invités en ligne — avant, l'hôte acceptait une prise de n'importe où. **Sur la
+  tour**, les capacités qui font monter sans marcher sont refusées (rendues) : Bond, Ressort,
+  Pogo, Grappin, Catapulte, Échange, Taupe, Fusée, Météore, Geyser, Frappe du ciel, Téléportation.
+  Partout, le Clignement, la Taupe et le Grappin refusent de te poser **plus haut sur la tour** ;
+  l'Échange refuse le porteur et quiconque est sur la tour.
 
 ### Le ciel de feu (v30)
 
@@ -232,6 +241,27 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 
 Le ciel reste en feu **tout le match** en Mode Dieu (mais rien de plus à l'écran pendant la
 manche : l'écran reste épuré). Repasser en Normal : tout revient doucement.
+
+**Six ciels qui se succèdent** (11/10, v35 — Martin : « pas que du rouge, ça fait enfer, j'aime
+pas ; fais que ça change de couleur ») : **le feu** (rouge et or), **l'aurore** (violet et rose),
+**le cosmos** (bleu nuit et cyan), **l'émeraude** (vert et turquoise), **la rose** (rose et pêche),
+**l'or** (or pâle et blanc). Chacun tient 22 s pendant le match (9 s dans les menus), puis fond
+en 5 s dans le suivant ; météores, couronne, flammes, braises, éclairs et bords des menus prennent
+la couleur du moment.
+
+**Lisible et bruyant** (v35 — « on ne comprend rien aux effets, des taches noires en plein milieu
+de la map » ; « il n'y a pas de son, mets-en à fond ») :
+- **Plus aucune tache noire** : les traces brûlées (des disques sombres) et la fumée (des boules
+  grises) sortaient noires et opaques ; ce sont maintenant **un cercle de braises** qui s'éteint
+  et **de la poussière claire** en particules. L'ombre de la Lune et le cœur du Trou noir géant
+  ne sont plus noirs non plus.
+- **La cible au sol** : un cercle de lumière à la taille du coup, un second qui grandit jusqu'à
+  l'impact, une croix et **un rayon qui monte du centre** — on voit de loin où ça va tomber.
+- **Les sons** : chaque capacité a **sa voix au lancement** (huit « ziou » différents ; une divine
+  y ajoute un grondement, un accord de cristal et un boum), **un sifflement qui descend** jusqu'à
+  l'impact, **un BOUM à la taille du coup** qui porte loin, **un crépitement** sous les éclairs,
+  **un « dzing »** à chaque sort, **un grondement** pour le Séisme, le Volcan, le Tsunami et le
+  Cataclysme (`Sfx.Cast`, `Incoming`, `Blast`, `ZapAt`, `SpellAt`, `RumbleAt`).
 
 **Les actives divines** (`World/Dieu.cs` et les autres effets réutilisés) :
 

@@ -92,6 +92,8 @@ namespace Fief
         const float BowZ = 4.4f;
 
         public bool Free { get { return rider == null && Time.time >= readyAt; } }
+        /// <summary>Qui est dessus (null : personne).</summary>
+        public Seeker Rider { get { return rider; } }
 
         // --- les arbalestes des plateformes (29/09) : elles ne visent pas, elles posent.
         bool hasFixed;
@@ -581,7 +583,14 @@ namespace Fief
                 loaded = true;
                 Fx.Sparks(bolt.position + bolt.forward * 1.5f, Rune, 20, 3f);
             }
-            if (rider == null || rider.Body == null) { if (rider != null) Release(); Pose(); return; }
+            if (rider == null || rider.Body == null)
+            {
+                // (v35) Un bot qu'on lache sans le faire descendre restait "monte" a cote d'elle
+                // toute la manche : on le fait toujours descendre.
+                if (rider != null) { if (riderBot != null) riderBot.Dismounted(transform.position + Vector3.up); Release(); }
+                Pose();
+                return;
+            }
             if (rider.Stunned) { Dismount(); return; }
 
             if (rider.IsPlayer)

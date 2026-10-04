@@ -155,8 +155,26 @@ namespace Fief
             // (06/10) Le Fantome : avec la Couronne, il gagnerait au Monument sans qu'on puisse rien faire.
             if ((a == Ability.Fantome || a == Ability.Catapulte || a == Ability.Teleport || a == Ability.Invincible) && s.CarriesCrown) return "Trop lourd";
             if (s.Rooted) return "Enchaîné";
+            // (11/10 -- Martin : "il ne faut pas des capacites ou on peut se TP en haut de la tour,
+            // c'est beaucoup trop fort") : SUR LA TOUR, rien qui fasse monter sans marcher -- pas de
+            // grand saut, de trampoline, de grappin, de catapulte, d'echange, de taupe.
+            if (Tower.On(s.Body.position) && ClimbsWithoutWalking(a)) return "Pas sur la tour";
             if (!s.Ready(a, Time.time)) return "Recharge";
             return null;
+        }
+
+        /// <summary>(11/10) Les capacites qui feraient gagner des etages de tour sans marcher.</summary>
+        public static bool ClimbsWithoutWalking(Ability a)
+        {
+            return a == Ability.Bond || a == Ability.Ressort || a == Ability.Pogo || a == Ability.Grappin || a == Ability.Catapulte
+                || a == Ability.Echange || a == Ability.Taupe || a == Ability.Fusee || a == Ability.Meteore || a == Ability.Geyser
+                || a == Ability.FrappeCiel || a == Ability.Teleport;
+        }
+
+        /// <summary>(11/10) Arriver sur la tour plus haut qu'on n'etait : c'est un raccourci, refuse.</summary>
+        public static bool TowerShortcut(Vector3 from, Vector3 to)
+        {
+            return Tower.On(to) && to.y > from.y + 2f;
         }
 
         public static bool Cast(Seeker s, Ability a, Vector3 eye, Vector3 aim)
@@ -219,6 +237,8 @@ namespace Fief
                     // au-dessus, pour arriver PAR-DESSUS le rebord et s'y hisser.
                     Vector3 grip = hit.point + hit.normal * 0.6f;
                     if (Mathf.Abs(hit.normal.y) < 0.5f) grip += Vector3.up * 1.4f;
+                    // (11/10) Jamais sur la tour plus haut qu'on n'est : elle se monte a pied.
+                    if (TowerShortcut(pos, grip) || Tower.On(hit.point) && Castle.Inside(pos)) { s.Refund(a); Fx.Sparks(hit.point, Ward.Rune, 14, 3f); return false; }
                     m.PullTo(grip, 32f);
                     Tether.Show(s.Body, null, hit.point, 0.8f, tint);
                     // Le croc qui mord la pierre : gerbe, anneau, eclair.
@@ -265,6 +285,7 @@ namespace Fief
                 case Ability.Clignement:
                 {
                     Vector3 dest = BlinkDestination(s, flat);
+                    if (TowerShortcut(pos, dest)) { s.Refund(a); Fx.Sparks(dest, Ward.Rune, 14, 3f); return false; }
                     // On implose ici, on explose la-bas, et un fil de lumiere relie les deux.
                     Fx.Shock(chest, tint, 1.2f, 0.25f);
                     Fx.Burst(chest, tint, 50, 5f, 0.15f, 0.5f, 0f, Vector3.zero, 0f);
@@ -330,7 +351,7 @@ namespace Fief
                     // Pas d'echange a travers la muraille : on entre dans la citadelle par une
                     // porte, jamais en prenant la place de quelqu'un qui y est deja. Et un
                     // protege ne se deplace pas.
-                    if (t.Graced || Castle.Inside(mine) != Castle.Inside(theirs))
+                    if (t.Graced || Castle.Inside(mine) != Castle.Inside(theirs) || Tower.On(mine) || Tower.On(theirs) || t.CarriesCrown)
                     {
                         s.Refund(a);
                         Fx.Sparks(t.Body.position + Vector3.up * 1.1f, Ward.Rune, 14, 3f);
@@ -473,6 +494,7 @@ namespace Fief
 
                 case Ability.Seisme:
                 {
+                    Sfx.RumbleAt(pos, 1f);
                     // Tous ceux qui sont DEBOUT a 25 m (pas ceux qui volent) decollent.
                     for (int i = 0; i < Game.Seekers.Count; i++)
                     {
@@ -527,6 +549,7 @@ namespace Fief
                     RaycastHit g;
                     if (Physics.Raycast(dest + Vector3.up * 2.5f, Vector3.down, out g, 6f, ~0, QueryTriggerInteraction.Ignore)) dest.y = g.point.y + 0.05f;
                     else dest = BlinkDestination(s, flat);
+                    if (TowerShortcut(pos, dest)) { s.Refund(a); Fx.Sparks(dest, Ward.Rune, 14, 3f); return false; }
                     Color dirt = new Color(0.55f, 0.42f, 0.3f);
                     Fx.Burst(pos + Vector3.up * 0.2f, dirt, 70, 7f, 0.35f, 0.8f, 0.6f, Vector3.up, 70f);
                     m.Blink(dest);
@@ -674,6 +697,7 @@ namespace Fief
                 }
                 case Ability.Cataclysme:
                 {
+                    Sfx.RumbleAt(pos, 1f);
                     int n = 0;
                     for (int i = 0; i < Game.Seekers.Count; i++)
                     {
@@ -747,6 +771,7 @@ namespace Fief
                     break;
                 }
                 case Ability.Tsunami:
+                    Sfx.RumbleAt(pos, 1f);
                     TidalWave.Roll(s, pos, 60f, 2.2f, 32f);
                     break;
                 case Ability.FoudreChaine:
@@ -786,6 +811,7 @@ namespace Fief
                     RaycastHit hit;
                     Vector3 where = RayFrom(s, eye, aim, 60f, out hit) ? hit.point : pos + flat * 20f;
                     Volcano.Raise(s, where);
+                    Sfx.RumbleAt(where, 1f);
                     break;
                 }
                 case Ability.FrappeOrbitale:
@@ -993,6 +1019,8 @@ namespace Fief
                 }
             }
             Sfx.WhooshAt(pos);
+            // (v35, "il n'y a pas de son") : chaque capacite a sa voix au lancement.
+            if (!EchoCast.Echoing) Sfx.Cast(pos, a, s.IsPlayer);
             Flourish(s, a, pos, tint);
             if (s.IsPlayer) Stats.Casts++;
             // (08/10) L'ECHO (divin) : elle repart une seconde fois, une demi-seconde apres.

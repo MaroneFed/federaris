@@ -79,7 +79,7 @@ namespace Fief
                 Color blue = AbilityInfo.Tint(Ability.ArretTemps);
                 Proto.BeginVisualOnly();
                 GameObject block = Proto.Capsule(go.transform, new Vector3(0f, 1.1f, 0f), new Vector3(1.6f, 1.3f, 1.6f), blue, "Glace");
-                block.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetTransparent(new Color(blue.r, blue.g, blue.b, 0.45f));
+                block.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Color.Lerp(blue, Color.white, 0.4f), 0.8f);   // (v35) de la glace qui luit, plus un bloc transparent qui sortait noir
                 Proto.EndVisualOnly();
                 All.Add(c);
                 Fx.Burst(s.Body.position + Vector3.up, new Color(0.8f, 0.95f, 1f), 40, 4f, 0.2f, 0.8f, 0.2f, Vector3.zero, 0f);

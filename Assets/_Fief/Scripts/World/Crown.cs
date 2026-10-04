@@ -412,6 +412,11 @@ namespace Fief
             if (s == null || s.Body == null || s.Stunned || state == State.Carried || state == State.Delivered) return false;
             if (Game.Season == null || !Game.Season.Running) return false;
             if (Time.time < s.CrownLockUntil) return false;
+            // (11/10 -- Martin : "la couronne se TP sur un gars, il finit le truc en 10 secondes")
+            // LA CAUSE : rien ne verifiait qu'on etait A COTE d'elle. Un bot qui "arrivait" au bout
+            // de son chemin -- parfois loin d'elle -- la prenait d'ou il etait, et elle sautait
+            // dans ses mains. Maintenant, il faut la toucher (un peu de marge pour le reseau).
+            if (!Within(s, 1.5f)) return false;
             // (04/10, en ligne) Un invite DEMANDE a l'hote ; c'est sa reponse (Mirror) qui la lui donne.
             if (NetGame.IsClient) { if (!s.Remote) NetGame.AskCrown(NetGame.Ask.Take, s, s.Body.position); return false; }
             bool fromPedestal = state == State.OnPedestal;
@@ -574,6 +579,15 @@ namespace Fief
 
         /// <summary>A quelle distance on ramasse la Couronne en passant : a terre, et sur son socle (du centre).</summary>
         public const float TouchGround = 2.3f;
+
+        /// <summary>(11/10) "s" est-il assez pres pour la toucher (marge "slack" en metres) ?</summary>
+        bool Within(Seeker s, float slack)
+        {
+            Vector3 p = s.Body.position;
+            if (state == State.OnPedestal)
+                return new Vector2(p.x - pedestal.x, p.z - pedestal.z).magnitude <= TouchPedestal + slack && p.y > pedestal.y - 1.5f && p.y < pedestal.y + 5f;
+            return (p + Vector3.up * 0.9f - visual.position).magnitude <= TouchGround + slack;
+        }
         public const float TouchPedestal = 2.6f;
 
         /// <summary>Qui vient de perdre (ou de se faire voler) la Couronne ne peut pas la reprendre avant...</summary>

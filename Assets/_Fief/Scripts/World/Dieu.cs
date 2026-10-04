@@ -315,8 +315,9 @@ namespace Fief
             Singularity v = go.AddComponent<Singularity>();
             v.by = by;
             Proto.BeginVisualOnly();
-            GameObject core = Proto.Sphere(go.transform, new Vector3(0f, 3f, 0f), new Vector3(4f, 4f, 4f), Color.black, "Coeur");
-            core.GetComponent<Renderer>().sharedMaterial = MaterialFactory.Get(new Color(0.02f, 0f, 0.05f));
+            // (v35) Un coeur qui BRILLE (violet et blanc) : la boule noire faisait une tache noire.
+            GameObject core = Proto.Sphere(go.transform, new Vector3(0f, 3f, 0f), new Vector3(4f, 4f, 4f), AbilityInfo.Tint(Ability.Singularite), "Coeur");
+            core.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Color.Lerp(AbilityInfo.Tint(Ability.Singularite), Color.white, 0.3f), 2.5f);
             Proto.EndVisualOnly();
             v.core = core.transform;
             DivineFx.Mark(at, 45f, AbilityInfo.Tint(Ability.Singularite), 2.5f);

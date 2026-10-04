@@ -331,7 +331,7 @@ namespace Fief
             source = host.AddComponent<AudioSource>();
             source.playOnAwake = false;
             source.spatialBlend = 0f;
-            source.volume = 0.75f;
+            source.volume = 0.9f;   // (v35, "il n'y a pas de son" : plus fort)
 
             rng = new System.Random(7);
 
@@ -518,7 +518,7 @@ namespace Fief
         //
         // Concept Unity : une AudioSource avec spatialBlend = 1 est "dans le monde" ; c'est
         // l'AudioListener (sur la camera, a tes yeux) qui l'entend, avec la distance et le
-        // cote. On en garde seize, qu'on deplace a tour de role (un "pool").
+        // cote. On en garde trente-deux, qu'on deplace a tour de role (un "pool").
 
         static AudioSource[] pool;
         static int poolNext;
@@ -531,7 +531,7 @@ namespace Fief
         {
             if (pool == null)
             {
-                pool = new AudioSource[16];
+                pool = new AudioSource[32];   // (v35 : bien plus de sons en meme temps)
                 for (int i = 0; i < pool.Length; i++)
                 {
                     GameObject go = new GameObject("Son 3D");
@@ -552,11 +552,16 @@ namespace Fief
             if (p == null) return;
             p.transform.position = spot;
             p.pitch = pitch;
+            // (v35) Les gros bruits portent loin : plein jusqu'a "spotNear" metres.
+            p.minDistance = spotNear;
+            p.maxDistance = Mathf.Max(140f, spotNear * 12f);
             p.PlayOneShot(clip, volume);
         }
 
-        static void Begin3D(Vector3 at) { spotOn = true; spot = at; }
-        static void End3D() { spotOn = false; }
+        static float spotNear = 6f;
+        static void Begin3D(Vector3 at) { spotOn = true; spot = at; spotNear = 6f; }
+        static void Begin3D(Vector3 at, float near) { spotOn = true; spot = at; spotNear = near; }
+        static void End3D() { spotOn = false; spotNear = 6f; }
 
         /// <summary>Les bruits du monde, joues LA OU ILS ARRIVENT (voir plus haut).</summary>
         public static void CrashAt(Vector3 at) { Begin3D(at); Crash(); End3D(); }
@@ -966,6 +971,233 @@ namespace Fief
                 Normalize(data, 0.9f);
                 trapSnap = FromSamples("piège", data);
             }
+        }
+
+        // ------------------------------------------------------------- LES CAPACITES (v35)
+        //
+        // (11/10 -- Martin : "il n'y a pas de son, il n'y a rien ; mets vraiment plein de sons a
+        // fond, pour toutes les capas") : jusqu'ici, chaque capacite ne faisait qu'un petit
+        // "whoosh" commun. Desormais :
+        //   Cast      AU LANCEMENT, un "ZIOU" magique qui monte -- huit voix differentes selon la
+        //             capacite --, un coup sourd et un eclat ; une divine y ajoute un grondement,
+        //             un accord de cristal et un BOUM : on l'entend de tres loin ;
+        //   Incoming  CA ARRIVE : un sifflement qui descend jusqu'a l'impact (la cible au sol) ;
+        //   Blast     L'EXPLOSION : boum de canon, grave qui cogne, fracas, a la taille du coup,
+        //             et qui porte loin (plein jusqu'a 20-60 m) ;
+        //   ZapAt     un crepitement electrique (les eclairs) ;
+        //   SpellAt   un "dzing" de sortilege (prison, encre, mini, hypnose...) ;
+        //   RumbleAt  un grondement de terre (seisme, volcan, tsunami).
+        // Tout est fabrique ici : aucun fichier a ajouter.
+
+        static AudioClip[] zaps;
+        static AudioClip shimmer, crackle, rumble, spell, blastBoom;
+        static float lastBlast = -1f, lastZap = -1f;
+        static Vector3 lastBlastAt;
+        static readonly Dictionary<int, AudioClip> whistles = new Dictionary<int, AudioClip>();
+
+        /// <summary>Une note qui GLISSE de "from" a "to" Hz, riche (harmoniques, un peu saturee), avec une attaque nette.</summary>
+        static AudioClip Glide(string name, float from, float to, float seconds, float grit, int seed)
+        {
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(seed);
+            float phase = 0f, phase2 = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float k = t / seconds;
+                float f = from * Mathf.Pow(to / from, Mathf.Sqrt(k));
+                phase += 2f * Mathf.PI * f / Rate;
+                phase2 += 2f * Mathf.PI * f * 1.503f / Rate;
+                float env = Mathf.Min(1f, t * 200f) * Mathf.Pow(1f - k, 1.6f);
+                float tone = Mathf.Sin(phase) + 0.45f * Mathf.Sin(phase * 2f) + 0.3f * Mathf.Sin(phase2) + 0.2f * Mathf.Sin(phase * 3f);
+                float noise = ((float)r.NextDouble() * 2f - 1f) * grit * (0.3f + 0.7f * Mathf.Exp(-12f * t));
+                float v = (tone * 0.5f + noise) * env;
+                data[i] = v / (1f + Mathf.Abs(v));   // saturation douce : ca claque sans griller
+            }
+            Normalize(data, 0.95f);
+            return FromSamples(name, data);
+        }
+
+        static AudioClip MakeShimmer()
+        {
+            float seconds = 1.4f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            float[] notes = { 880f, 1108.7f, 1318.5f, 1760f, 2217.5f };
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float v = 0f;
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    float start = n * 0.035f;
+                    if (t < start) continue;
+                    float u = t - start;
+                    v += Mathf.Sin(2f * Mathf.PI * notes[n] * u) * Mathf.Exp(-2.4f * u) * Mathf.Min(1f, u * 300f);
+                }
+                data[i] = v * (0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * 9f * t));
+            }
+            Normalize(data, 0.8f);
+            return FromSamples("cristal divin", data);
+        }
+
+        static AudioClip MakeCrackle()
+        {
+            float seconds = 0.6f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(77);
+            float hold = 0f;
+            int left = 0;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                if (left <= 0) { hold = ((float)r.NextDouble() * 2f - 1f); left = r.Next(4, 60); }
+                left--;
+                float buzz = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * 120f * t)) * 0.25f;
+                float click = r.NextDouble() < 0.004 ? 1f : 0f;
+                data[i] = (hold * 0.7f + buzz + click) * Mathf.Exp(-4f * t) * Mathf.Min(1f, t * 500f);
+            }
+            Normalize(data, 0.9f);
+            return FromSamples("crepitement", data);
+        }
+
+        static AudioClip MakeRumble()
+        {
+            float seconds = 2.2f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(5);
+            float low = 0f, low2 = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float n = (float)r.NextDouble() * 2f - 1f;
+                low += (n - low) * 0.02f;
+                low2 += (low - low2) * 0.05f;
+                float env = Mathf.Min(1f, t * 3f) * Mathf.Clamp01((seconds - t) / 0.8f);
+                data[i] = (low2 * 6f + 0.35f * Mathf.Sin(2f * Mathf.PI * 38f * t)) * env;
+            }
+            Normalize(data, 0.95f);
+            return FromSamples("grondement", data);
+        }
+
+        /// <summary>Un sifflement qui DESCEND pendant "seconds" (une bombe qui tombe), de plus en plus fort.</summary>
+        static AudioClip MakeWhistle(float seconds)
+        {
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float k = t / seconds;
+                float f = Mathf.Lerp(1700f, 320f, k * k) * (1f + 0.012f * Mathf.Sin(2f * Mathf.PI * 7f * t));
+                phase += 2f * Mathf.PI * f / Rate;
+                float env = Mathf.Min(1f, t * 8f) * Mathf.Lerp(0.25f, 1f, k);
+                data[i] = (Mathf.Sin(phase) + 0.15f * Mathf.Sin(phase * 2f)) * env;
+            }
+            Normalize(data, 0.7f);
+            return FromSamples("sifflement", data);
+        }
+
+        static void EnsureAbilitySounds()
+        {
+            if (zaps != null) return;
+            zaps = new AudioClip[8];
+            float[] from = { 220f, 300f, 180f, 420f, 260f, 520f, 150f, 360f };
+            float[] to = { 1400f, 1800f, 900f, 2400f, 1200f, 2900f, 700f, 2000f };
+            for (int i = 0; i < zaps.Length; i++) zaps[i] = Glide("ziou" + i, from[i], to[i], 0.32f + (i % 3) * 0.06f, 0.35f, 40 + i);
+            shimmer = MakeShimmer();
+            crackle = MakeCrackle();
+            rumble = MakeRumble();
+            spell = Glide("dzing", 900f, 300f, 0.5f, 0.1f, 9);
+            blastBoom = Sweep("boum d'explosion", 80f, 28f, 1.4f, 0.9f);
+            if (subThump == null) subThump = Sweep("grave de poussee", 70f, 35f, 0.34f, 0.35f);
+            if (boom == null) boom = Sweep("boum du KO", 55f, 24f, 1.1f, 0.6f);
+        }
+
+        /// <summary>LE LANCEMENT d'une capacite : le tien en plein, ceux des autres la ou ils sont (et de loin).</summary>
+        public static void Cast(Vector3 at, Ability a, bool mine)
+        {
+            if (Muted || source == null) return;
+            EnsureAbilitySounds();
+            bool divine = AbilityInfo.IsGod(a);
+            if (!mine) Begin3D(at, divine ? 30f : 12f);
+            int v = ((int)a * 7) % zaps.Length;
+            Play(zaps[v], 1f);
+            Play(subThump, mine ? 0.8f : 0.6f);
+            PlayReal("Pop", 0.6f);
+            if (divine)
+            {
+                Play(shimmer, 0.9f);
+                Play(boom, 0.75f);
+                Play(rumble, 0.6f);
+            }
+            End3D();
+        }
+
+        /// <summary>CA ARRIVE : un sifflement qui descend jusqu'a l'impact, dans "seconds".</summary>
+        public static void Incoming(Vector3 at, float seconds)
+        {
+            if (Muted || source == null || seconds < 0.4f) return;
+            int key = Mathf.Clamp(Mathf.RoundToInt(seconds * 4f), 2, 24);
+            AudioClip w;
+            if (!whistles.TryGetValue(key, out w) || w == null) { w = MakeWhistle(key / 4f); whistles[key] = w; }
+            Begin3D(at + Vector3.up * 8f, 35f);
+            Play(w, 0.9f);
+            End3D();
+        }
+
+        /// <summary>L'EXPLOSION d'une capacite, "power" de 0,5 (une bombe) a 3 (la lune).</summary>
+        public static void Blast(Vector3 at, float power)
+        {
+            if (Muted || source == null) return;
+            // Une meme explosion peut passer par deux chemins (l'effet et le coup) : un seul BOUM.
+            if (Time.time - lastBlast < 0.12f && (at - lastBlastAt).sqrMagnitude < 36f) return;
+            lastBlast = Time.time;
+            lastBlastAt = at;
+            EnsureAbilitySounds();
+            Begin3D(at, Mathf.Clamp(14f + 16f * power, 14f, 70f));
+            Play(blastBoom, 1f);
+            Play(subThump, 1f);
+            PlayReal("Fracas", 1f);
+            PlayReal("Choc", 0.8f);
+            if (power >= 1.5f) { Play(boom, 1f); Play(rumble, 0.9f); }
+            End3D();
+        }
+
+        /// <summary>Un crepitement electrique la ou tombe un eclair.</summary>
+        public static void ZapAt(Vector3 at)
+        {
+            if (Muted || source == null || Time.time - lastZap < 0.15f) return;
+            lastZap = Time.time;
+            EnsureAbilitySounds();
+            Begin3D(at, 14f);
+            Play(crackle, 0.9f);
+            End3D();
+        }
+
+        /// <summary>Un "dzing" de sortilege sur celui qu'il frappe.</summary>
+        public static void SpellAt(Vector3 at)
+        {
+            if (Muted || source == null) return;
+            EnsureAbilitySounds();
+            Begin3D(at, 10f);
+            Play(spell, 0.9f);
+            Play(shimmer, 0.45f);
+            End3D();
+        }
+
+        /// <summary>Un grondement de terre.</summary>
+        public static void RumbleAt(Vector3 at, float volume)
+        {
+            if (Muted || source == null) return;
+            EnsureAbilitySounds();
+            Begin3D(at, 25f);
+            Play(rumble, Mathf.Clamp01(volume));
+            End3D();
         }
 
         static AudioClip FromSamples(string name, float[] data)

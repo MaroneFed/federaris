@@ -383,6 +383,7 @@ namespace Fief
                     break;
             }
             Mayhem.Show(victim, what, by);
+            Sfx.SpellAt(victim.Body.position);   // (v35) le "dzing" du sort
             if (victim.Remote && by != null && !by.Remote) NetGame.RemoteAfflict(victim, what, seconds, by);
             if (victim.IsPlayer && by != null && what != Affliction.Glue) Shouts.Cursed(by, what);
             return true;
@@ -447,6 +448,7 @@ namespace Fief
         /// <summary>L'ONDE DE CHOC : tout le monde dans le rayon (sauf "by") part loin du centre.</summary>
         public static int Blast(Vector3 centre, float radius, float force, float up, Seeker by)
         {
+            Sfx.Blast(centre, Mathf.Clamp(radius / 12f, 0.5f, 3f));   // (v35) toute onde de choc s'entend
             int n = 0;
             for (int i = 0; i < Game.Seekers.Count; i++)
             {
