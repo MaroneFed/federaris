@@ -1200,6 +1200,155 @@ namespace Fief
             End3D();
         }
 
+        // ------------------------------------------------------------- LES CLASSIQUES (v36)
+        //
+        // Les voix des capacites copiees des grands jeux, fabriquees ici : le BEE du mouton (Worms),
+        // le CHOEUR "Alleluia" de la sainte grenade, le BOUM-TCHI de la bombe disco, la MECHE qui
+        // siffle (TNT), l'ASPIRATION (Kirby, le poing du faucon qui se charge), le DING du home run,
+        // et un POP en 3D.
+
+        static AudioClip sheep, choir, disco, fuse, inhale, ding;
+
+        static AudioClip MakeSheep()
+        {
+            float seconds = 0.7f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float k = t / seconds;
+                // "BEEEE" : une note nasillarde qui chevrote (vibrato rapide), qui monte un peu puis retombe.
+                float f = 330f * (1f + 0.06f * Mathf.Sin(2f * Mathf.PI * 22f * t)) * (1f + 0.08f * Mathf.Sin(Mathf.PI * k));
+                phase += 2f * Mathf.PI * f / Rate;
+                float v = 0f;
+                for (int h = 1; h <= 6; h++) v += Mathf.Sin(phase * h) / h * (h == 3 || h == 4 ? 1.6f : 1f);
+                data[i] = v * Mathf.Min(1f, t * 30f) * Mathf.Clamp01((seconds - t) / 0.2f);
+            }
+            Normalize(data, 0.8f);
+            return FromSamples("bee", data);
+        }
+
+        static AudioClip MakeChoir()
+        {
+            float seconds = 1.8f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            // "A-LLE-LU-IA" : quatre accords qui montent, des voix qui chevrotent un peu.
+            float[][] chords = { new[] { 261.6f, 329.6f, 392f }, new[] { 293.7f, 370f, 440f }, new[] { 329.6f, 415.3f, 493.9f }, new[] { 392f, 493.9f, 587.3f, 784f } };
+            float[] starts = { 0f, 0.35f, 0.7f, 1.05f };
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                int c = 0;
+                for (int k = 0; k < starts.Length; k++) if (t >= starts[k]) c = k;
+                float u = t - starts[c];
+                float env = Mathf.Min(1f, u * 12f) * (c == 3 ? Mathf.Clamp01((seconds - t) / 0.5f) : Mathf.Clamp01(1f - (u - 0.3f) * 8f));
+                float v = 0f;
+                for (int n = 0; n < chords[c].Length; n++)
+                {
+                    float f = chords[c][n] * (1f + 0.006f * Mathf.Sin(2f * Mathf.PI * (5f + n) * t));
+                    v += Mathf.Sin(2f * Mathf.PI * f * t) + 0.3f * Mathf.Sin(4f * Mathf.PI * f * t);
+                }
+                data[i] = v * env;
+            }
+            Normalize(data, 0.85f);
+            return FromSamples("alleluia", data);
+        }
+
+        static AudioClip MakeDisco()
+        {
+            float seconds = 2f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(3);
+            // Quatre temps a 120 : la grosse caisse sur le temps, le charleston entre, une basse qui saute.
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float beat = t % 0.5f;
+                float off = (t + 0.25f) % 0.5f;
+                float kick = Mathf.Sin(2f * Mathf.PI * (60f + 90f * Mathf.Exp(-beat * 30f)) * beat) * Mathf.Exp(-beat * 9f);
+                float hat = ((float)r.NextDouble() * 2f - 1f) * Mathf.Exp(-off * 60f) * 0.35f;
+                int step = (int)(t / 0.25f);
+                float bassF = (step % 2 == 0) ? 110f : 220f;
+                float bass = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * bassF * t)) * 0.18f * Mathf.Exp(-(t % 0.25f) * 8f);
+                data[i] = kick + hat + bass;
+            }
+            Normalize(data, 0.9f);
+            return FromSamples("disco", data);
+        }
+
+        static AudioClip MakeFuse()
+        {
+            float seconds = 0.5f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(8);
+            float hp = 0f, prev = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float n = (float)r.NextDouble() * 2f - 1f;
+                hp = 0.85f * (hp + n - prev);
+                prev = n;
+                float t = (float)i / Rate;
+                data[i] = hp * (0.6f + 0.4f * Mathf.Sin(2f * Mathf.PI * 13f * t)) * Mathf.Min(1f, t * 40f);
+            }
+            Normalize(data, 0.5f);
+            return FromSamples("meche", data);
+        }
+
+        static AudioClip MakeInhale()
+        {
+            float seconds = 0.6f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(4);
+            float low = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float k = t / seconds;
+                float n = (float)r.NextDouble() * 2f - 1f;
+                low += (n - low) * Mathf.Lerp(0.05f, 0.5f, k);
+                data[i] = low * Mathf.Lerp(0.2f, 1f, k) * Mathf.Clamp01((seconds - t) / 0.05f);
+            }
+            Normalize(data, 0.8f);
+            return FromSamples("aspiration", data);
+        }
+
+        static AudioClip MakeDing()
+        {
+            float seconds = 1f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                data[i] = (Mathf.Sin(2f * Mathf.PI * 1568f * t) + 0.5f * Mathf.Sin(2f * Mathf.PI * 2349f * t) + 0.3f * Mathf.Sin(2f * Mathf.PI * 3136f * t))
+                          * Mathf.Exp(-4f * t) * Mathf.Min(1f, t * 400f);
+            }
+            Normalize(data, 0.8f);
+            return FromSamples("ding", data);
+        }
+
+        static void At(Vector3 at, float near, AudioClip clip, float volume)
+        {
+            if (Muted || source == null || clip == null) return;
+            Begin3D(at, near);
+            Play(clip, volume);
+            End3D();
+        }
+
+        public static void Sheep(Vector3 at) { if (sheep == null) sheep = MakeSheep(); At(at, 10f, sheep, 0.9f); }
+        public static void Choir(Vector3 at) { if (choir == null) choir = MakeChoir(); At(at, 30f, choir, 1f); }
+        public static void Disco(Vector3 at) { if (disco == null) disco = MakeDisco(); At(at, 20f, disco, 1f); }
+        public static void Fuse(Vector3 at) { if (fuse == null) fuse = MakeFuse(); At(at, 8f, fuse, 0.8f); }
+        public static void Inhale(Vector3 at) { if (inhale == null) inhale = MakeInhale(); At(at, 12f, inhale, 1f); }
+        public static void Ding(Vector3 at) { if (ding == null) ding = MakeDing(); At(at, 25f, ding, 1f); }
+        public static void PopAt(Vector3 at) { Begin3D(at, 10f); Pop(); End3D(); }
+
         static AudioClip FromSamples(string name, float[] data)
         {
             // Petit fondu de fin : sans lui, la coupure nette fait un "clic".

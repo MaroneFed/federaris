@@ -28,6 +28,7 @@ namespace Fief
             if (s.Has(Ability.Orage)) StormAura.Keep(s);
             if (s.Has(Ability.Orbes)) FireOrbs.Keep(s);
             if (s.Has(Ability.Titan)) TitanSteps.Keep(s);
+            Classiques.KeepPassives(s);
         }
 
         /// <summary>Le plus proche des autres (pas protege) a moins de "range" m de "at" ; null s'il n'y a personne.</summary>

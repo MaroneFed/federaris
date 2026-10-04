@@ -560,6 +560,20 @@ namespace Fief
                 case Ability.Titan: return "titan";
                 case Ability.Explosif: return "explosif";
                 case Ability.Lave: return "lave";
+                case Ability.BouletBleu: return "boulet-bleu";
+                case Ability.Mouton: return "mouton";
+                case Ability.SainteGrenade: return "sainte-grenade";
+                case Ability.PoingFaucon: return "poing-faucon";
+                case Ability.GobeTout: return "gobe-tout";
+                case Ability.RoueFolle: return "roue-folle";
+                case Ability.Charge: return "charge";
+                case Ability.Tnt: return "tnt";
+                case Ability.Buche: return "buche";
+                case Ability.Tonneau: return "tonneau";
+                case Ability.Disco: return "disco";
+                case Ability.ForceImparable: return "force-imparable";
+                case Ability.SautMario: return "saut-mario";
+                case Ability.HomeRun: return "home-run";
                 default: return "echo";
             }
         }

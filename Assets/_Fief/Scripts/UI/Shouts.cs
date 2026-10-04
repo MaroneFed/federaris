@@ -105,6 +105,7 @@ namespace Fief
                 case Combat.Affliction.Balloon: after = "t'a gonflé comme un ballon !"; break;
                 case Combat.Affliction.Charmed: after = "t'a hypnotisé !"; break;
                 case Combat.Affliction.Frozen: after = "a arrêté le temps !"; break;
+                case Combat.Affliction.Dance: after = "t'a fait danser !"; break;
                 default: return;
             }
             Add(null, by, after, what == Combat.Affliction.Prison);

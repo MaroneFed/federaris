@@ -1605,6 +1605,42 @@ namespace Fief
                         // Le porteur poursuivi seme le feu, les pieges -- ou rebondit pour s'echapper.
                         go = carrying && Chasers(10f) > 0 && body.isGrounded && !gliding && (a != Ability.Pogo || !Tower.On(me));
                         break;
+                    // ---- les classiques (v36)
+                    case Ability.BouletBleu:
+                        // Il le lance des que quelqu'un d'autre a la Couronne : il la trouve tout seul.
+                        go = holder != null && holder != seeker;
+                        break;
+                    case Ability.Mouton:
+                    case Ability.RoueFolle:
+                    case Ability.Buche:
+                    case Ability.Charge:
+                        go = prey != null && preyD > 4f && preyD < (a == Ability.Charge ? 20f : a == Ability.Buche ? 34f : 26f)
+                             && (prey.CarriesCrown || goal == Goal.Fight) && (!Tower.On(me) || prey.CarriesCrown);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.SainteGrenade:
+                    case Ability.Tonneau:
+                    case Ability.Disco:
+                        go = !carrying && (prey != null && prey.CarriesCrown && preyD < 24f && preyD > 6f || contender != null && (contender.Body.position - me).magnitude < 24f);
+                        aim = prey != null && prey.CarriesCrown ? toPrey : contender != null ? contender.Body.position - eye : transform.forward;
+                        break;
+                    case Ability.Tnt:
+                        go = !carrying && (near >= 2 || prey != null && prey.CarriesCrown && preyD < 5f);
+                        aim = prey != null ? Flat(toPrey) : transform.forward;
+                        break;
+                    case Ability.PoingFaucon:
+                        go = prey != null && preyD < 5f && (prey.CarriesCrown || goal == Goal.Fight);
+                        aim = Flat(toPrey);
+                        break;
+                    case Ability.GobeTout:
+                        go = victim != null && (victim.Body.position - me).magnitude < 14f || prey != null && preyD < 13f && goal == Goal.Fight;
+                        aim = victim != null ? toVictim : toPrey;
+                        break;
+                    case Ability.ForceImparable:
+                        go = !Tower.On(me) && prey != null && prey.CarriesCrown && preyD > 6f && preyD < 22f
+                             && Castle.Inside(prey.Body.position) == Castle.Inside(me) && !Tower.On(prey.Body.position);
+                        aim = toPrey;
+                        break;
                     case Ability.Catapulte:
                     {
                         Vector3 land = me + Flat(toWaypoint).normalized * 22f;

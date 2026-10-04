@@ -51,6 +51,13 @@ namespace Fief
                 case Combat.Affliction.Inverted:
                     Dizzy.Begin(victim);
                     break;
+                case Combat.Affliction.Dance:
+                {
+                    CharacterRig rig = CharacterRig.Of(victim);
+                    if (rig != null) rig.Celebrate(3f);
+                    Fx.Confetti(head, new[] { new Color(1f, 0.3f, 0.6f), new Color(0.3f, 0.8f, 1f), new Color(1f, 0.9f, 0.3f) }, 30, 6f, Vector3.up, 60f);
+                    break;
+                }
                 case Combat.Affliction.Ink:
                     Fx.Burst(head, new Color(0.08f, 0.06f, 0.16f), 60, 6f, 0.3f, 0.8f, 0.3f, Vector3.zero, 0f);
                     Sfx.ChipAt(victim.Body.position);

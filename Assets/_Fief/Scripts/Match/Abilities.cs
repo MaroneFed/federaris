@@ -36,6 +36,12 @@ namespace Fief
         Bombardement, Singularite, Dragon, Comete, Cataclysme, Chaos, AnneauFeu, Geole, Tsunami, FoudreChaine,
         // (09/10, v31 -- "encore plus de capacites divines, des trucs de malade") la troisieme fournee divine
         Armee, Volcan, FrappeOrbitale, Rocher, Lune, Ouragan, FrappeCiel, Enclumes, Lilliput, Demence,
+        // (12/10, v36 -- Martin : "regarde dans tous les autres jeux ce qui plait le plus comme capa,
+        // et mets-les, en version FIEF du chateau") : LES CLASSIQUES -- la carapace bleue (Mario
+        // Kart), le mouton et la sainte grenade (Worms), le Falcon Punch (Smash), l'aspiration de
+        // Kirby, la roue de Junkrat et la charge de Reinhardt (Overwatch), la TNT (Minecraft), la
+        // buche et le tonneau (Clash Royale), la bombe disco (Fortnite), la force imparable (LoL)
+        BouletBleu, Mouton, SainteGrenade, PoingFaucon, GobeTout, RoueFolle, Charge, Tnt, Buche, Tonneau, Disco, ForceImparable,
         // --- passives (DoubleSaut est la premiere : IsActive s'en sert)
         DoubleSaut, Planeur, Coureur, Porteur, Poigne, Ancrage, Flair, Ombre, PriseFerme, Recharge, Rebond,
         // (05/10) les passives neuves
@@ -47,15 +53,17 @@ namespace Fief
         // (08/10) les passives divines (Mode Dieu)
         Colosse, Eclair, MainLourde, Phenix, Sablier,
         Explosif, Lave, Echo,
-        Orage, Orbes, Titan
+        Orage, Orbes, Titan,
+        // (12/10, v36) les passives classiques : le saut de Mario, le home run (Smash)
+        SautMario, HomeRun
     }
 
     public static class AbilityInfo
     {
-        public const int Count = 119;
+        public const int Count = 133;
 
         /// <summary>(08/10) Une capacite DIVINE : seulement en Mode Dieu.</summary>
-        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.Demence || a >= Ability.Colosse; }
+        public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.Demence || a >= Ability.Colosse && a <= Ability.Titan; }
 
         /// <summary>
         /// (08/10) LA TABLE DU MODE DIEU : les divines, et les plus folles des autres. Rien de
@@ -76,6 +84,11 @@ namespace Fief
                 case Ability.Kamikaze: case Ability.Riposte: case Ability.Miroir: case Ability.Rage: case Ability.Vampire:
                 case Ability.Planeur: case Ability.Poigne: case Ability.TeteDure:
                     return true;
+                // (v36) les classiques : tous dans la table divine aussi
+                case Ability.BouletBleu: case Ability.Mouton: case Ability.SainteGrenade: case Ability.PoingFaucon:
+                case Ability.GobeTout: case Ability.RoueFolle: case Ability.Charge: case Ability.Tnt: case Ability.Buche:
+                case Ability.Tonneau: case Ability.Disco: case Ability.ForceImparable: case Ability.SautMario: case Ability.HomeRun:
+                    return true;
                 default: return false;
             }
         }
@@ -83,10 +96,7 @@ namespace Fief
         /// <summary>(v36) Les grosses capacites hors table divine qui meritent l'annonce a l'ecran (Warnings).</summary>
         public static bool IsBig(Ability a)
         {
-            switch (a)
-            {
-                default: return false;
-            }
+            return a >= Ability.BouletBleu && a <= Ability.ForceImparable;
         }
 
         /// <summary>Peut-on la tirer dans ce match (Mode Dieu : la table divine ; sinon : tout sauf les divines) ?</summary>
@@ -224,6 +234,20 @@ namespace Fief
                 case Ability.Orage: return "Orage";
                 case Ability.Orbes: return "Orbes de feu";
                 case Ability.Titan: return "Pas de titan";
+                case Ability.BouletBleu: return "Boulet bleu";
+                case Ability.Mouton: return "Mouton explosif";
+                case Ability.SainteGrenade: return "Sainte grenade";
+                case Ability.PoingFaucon: return "Poing du faucon";
+                case Ability.GobeTout: return "Gobe-tout";
+                case Ability.RoueFolle: return "Roue folle";
+                case Ability.Charge: return "Charge du chevalier";
+                case Ability.Tnt: return "Caisse de TNT";
+                case Ability.Buche: return "La bûche";
+                case Ability.Tonneau: return "Tonneau de haricots";
+                case Ability.Disco: return "Bombe disco";
+                case Ability.ForceImparable: return "Force imparable";
+                case Ability.SautMario: return "Saut sur la tête";
+                case Ability.HomeRun: return "Home run";
                 default: return "Double lancer";
             }
         }
@@ -351,6 +375,20 @@ namespace Fief
                 case Ability.Orage: return "Toutes les 3 s, la foudre tombe sur le joueur le plus proche de toi.";
                 case Ability.Orbes: return "3 boules de feu tournent autour de toi. Qui les touche est éjecté.";
                 case Ability.Titan: return "Quand tu retombes de haut, le sol tremble et repousse ceux autour.";
+                case Ability.BouletBleu: return "Un boulet bleu vole tout seul jusqu'au porteur de la Couronne et explose sur lui.";
+                case Ability.Mouton: return "Un mouton fonce devant toi en sautillant et explose au bout de 4 s.";
+                case Ability.SainteGrenade: return "Tu lances une grenade dorée. Elle chante, puis explose très fort (12 m).";
+                case Ability.PoingFaucon: return "Tu charges ton poing en feu, puis tu frappes : le joueur touché part très loin.";
+                case Ability.GobeTout: return "Tu aspires le joueur devant toi (15 m), puis tu le recraches très loin.";
+                case Ability.RoueFolle: return "Une roue en feu fonce devant toi et explose sur le premier joueur touché.";
+                case Ability.Charge: return "Tu fonces 25 m. Le premier joueur touché est emporté et écrasé au bout.";
+                case Ability.Tnt: return "Tu poses une caisse de TNT. Elle clignote 3 s, puis explose (10 m).";
+                case Ability.Buche: return "Une bûche géante roule devant toi sur 40 m et renverse tout le monde.";
+                case Ability.Tonneau: return "Tu lances un tonneau : il éclate et 4 petits haricots kamikazes en sortent.";
+                case Ability.Disco: return "Tu lances une boule disco : tous ceux à 9 m dansent 3 s sans pouvoir bouger.";
+                case Ability.ForceImparable: return "Tu sautes là où tu vises (24 m) et tu retombes : tout le monde autour décolle.";
+                case Ability.SautMario: return "Retombe sur la tête d'un joueur : il est écrasé 1 s et tu rebondis très haut.";
+                case Ability.HomeRun: return "Toutes les 4 poussées réussies, la suivante envoie 3 fois plus loin.";
                 default: return "Ta capacité part 2 fois de suite.";
             }
         }
@@ -440,6 +478,18 @@ namespace Fief
                 case Ability.Enclumes: return 24f;
                 case Ability.Lilliput: return 18f;
                 case Ability.Demence: return 20f;
+                case Ability.BouletBleu: return 22f;
+                case Ability.Mouton: return 11f;
+                case Ability.SainteGrenade: return 16f;
+                case Ability.PoingFaucon: return 9f;
+                case Ability.GobeTout: return 12f;
+                case Ability.RoueFolle: return 12f;
+                case Ability.Charge: return 12f;
+                case Ability.Tnt: return 12f;
+                case Ability.Buche: return 13f;
+                case Ability.Tonneau: return 15f;
+                case Ability.Disco: return 16f;
+                case Ability.ForceImparable: return 14f;
                 default: return 0f;
             }
         }
@@ -505,6 +555,20 @@ namespace Fief
                 case Ability.FrappeCiel: return new Color(1f, 0.75f, 0.3f);
                 case Ability.Enclumes: return new Color(0.55f, 0.58f, 0.66f);
                 case Ability.Lilliput: case Ability.Demence: return new Color(0.95f, 0.45f, 0.95f);
+                case Ability.BouletBleu: return new Color(0.25f, 0.55f, 1f);
+                case Ability.Mouton: return new Color(0.96f, 0.95f, 0.9f);
+                case Ability.SainteGrenade: return new Color(1f, 0.85f, 0.35f);
+                case Ability.PoingFaucon: return new Color(1f, 0.45f, 0.15f);
+                case Ability.GobeTout: return new Color(1f, 0.6f, 0.75f);
+                case Ability.RoueFolle: return new Color(1f, 0.55f, 0.2f);
+                case Ability.Charge: return new Color(0.7f, 0.78f, 0.9f);
+                case Ability.Tnt: return new Color(0.95f, 0.25f, 0.2f);
+                case Ability.Buche: return new Color(0.7f, 0.5f, 0.3f);
+                case Ability.Tonneau: return new Color(0.55f, 0.85f, 0.35f);
+                case Ability.Disco: return new Color(0.85f, 0.45f, 1f);
+                case Ability.ForceImparable: return new Color(0.75f, 0.6f, 0.45f);
+                case Ability.SautMario: return new Color(1f, 0.3f, 0.25f);
+                case Ability.HomeRun: return new Color(1f, 0.95f, 0.55f);
                 default: return new Color(1f, 0.85f, 0.4f);
             }
         }

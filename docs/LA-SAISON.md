@@ -172,7 +172,7 @@ plateforme de départ**, dans une **colonne de lumière** à sa couleur, protég
 | Touche | Ce qu'elle fait |
 |---|---|
 | **Clic gauche** | **TA capacité active** — une seule, nouvelle à chaque manche (le don d'un sanctuaire la remplace pour la manche) |
-| **Clic droit** | **POUSSER** (3,2 m, recharge 0,9 s) : **le poussé part en cloche à une quinzaine de mètres** (01/10), en faisant des saltos — pousser le porteur, c'est lui **voler** la Couronne ; **en l'air, sur le porteur : le piqué d'aigle** |
+| **Clic droit** | **POUSSER** (3,2 m, **à la vitesse où tu cliques** depuis le 12/10 — « pousser à l'infini ») : **le poussé part en cloche à une quinzaine de mètres** (01/10), en faisant des saltos — pousser le porteur, c'est lui **voler** la Couronne ; **en l'air, sur le porteur : le piqué d'aigle** |
 | **E** | **interagir** : prendre la Couronne, un don ; **monter sur une arbaleste** (et en descendre) |
 | **Espace** | sauter ; en vol, replier ou rouvrir les ailes |
 | **Sur l'arbaleste de ta plateforme** | clic gauche : elle te pose devant ta porte |
@@ -203,7 +203,7 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
   Déluge, Missile, Raz-de-marée, Lasso, Geyser, Hypnose, Souffle, Apesanteur ; passives :
   Kamikaze, Riposte, Miroir, Rage, Vampire, Planeur, Poigne, Tête dure). Les sanctuaires
   donnent aussi des divines.
-- **Tout se recharge en 45 % du temps.**
+- **Tout se recharge en 60 % du temps** (45 % jusqu'au 12/10), **jamais en moins de 4 s**.
 - **Le porteur est intouchable par les pouvoirs** (10/10, v32 — Martin : « en God Mode, il faut
   pas taper la couronne, c'est trop cheaté ; il faut pas téléporter ») : les coups et les sorts des
   autres glissent sur lui dans une gerbe d'or. La Couronne se vole **à la main** : la poussée (clic
@@ -314,7 +314,37 @@ de la map » ; « il n'y a pas de son, mets-en à fond ») :
 | **Orbes de feu** (v31) | Trois boules de feu tournent autour de toi ; qui les touche est projeté. |
 | **Pas de titan** (v31) | Chaque fois que tu retombes d'au moins 4 m, le sol tremble (onde de 7 m). |
 
-## Les 119 capacités
+## Les 133 capacités
+
+> **v36 (12/10) — les CLASSIQUES** (Martin : « regarde dans tous les autres jeux ce qui plaît le
+> plus comme capa, et mets-les, en version FIEF du château ») — `World/Classiques.cs`, et toutes
+> dans la table du Mode Dieu :
+>
+> | Capacité | D'où elle vient | Ce que ça fait | Recharge |
+> |---|---|---|---|
+> | **Boulet bleu** | la carapace bleue (Mario Kart) | vole tout seul jusqu'au porteur de la Couronne et explose sur lui | 22 s |
+> | **Mouton explosif** | Worms | fonce en sautillant, demi-tour contre un mur, explose au bout de 4 s | 11 s |
+> | **Sainte grenade** | Worms | « Alléluia » pendant 1,7 s, puis une explosion de 12 m | 16 s |
+> | **Poing du faucon** | le Falcon Punch (Smash) | le poing se charge en feu une demi-seconde, puis le joueur touché part très loin | 9 s |
+> | **Gobe-tout** | Kirby | aspire le joueur visé (15 m), puis le recrache très loin | 12 s |
+> | **Roue folle** | la roue de Junkrat (Overwatch) | une roue en feu fonce et explose sur le premier touché | 12 s |
+> | **Charge du chevalier** | Reinhardt (Overwatch) | on fonce 25 m ; le premier touché est emporté et écrasé au bout | 12 s |
+> | **Caisse de TNT** | Minecraft | posée devant toi, elle clignote 3 s, puis explose (10 m) | 12 s |
+> | **La bûche** | Clash Royale | un tronc géant roule 40 m et renverse tout le monde | 13 s |
+> | **Tonneau de haricots** | le tonneau de Clash Royale | il éclate et 4 petits haricots kamikazes en sortent | 15 s |
+> | **Bombe disco** | la Boogie Bomb (Fortnite) | tous ceux à 9 m dansent 3 s sans pouvoir bouger | 16 s |
+> | **Force imparable** | Malphite (League of Legends) | un bond de 24 m, et tout le monde autour de l'arrivée décolle | 14 s |
+> | **Saut sur la tête** (passive) | Mario | retomber sur un joueur l'écrase 1 s, et tu rebondis très haut | — |
+> | **Home run** (passive) | la batte de Smash | toutes les 4 poussées réussies, la suivante envoie 3 fois plus loin | — |
+>
+> **v36 — les règles des capacités** (Martin : « quand tu balances un missile, ça fait perdre la
+> couronne » ; « les temps déconnent complet, toutes les trois secondes, ça n'a aucun sens ») :
+> **toute capacité qui touche le porteur lui fait lâcher la Couronne** (sorts compris, en Normal comme
+> en Mode Dieu — plus de bouclier divin) ; **jamais moins de 4 s de recharge** (Recharge rapide ×0,75,
+> Recharge éclair ×0,5, Mode Dieu ×0,6). **On voit ce qui arrive** : quand un autre lance une grosse
+> capacité, un bandeau en haut — son icône, son pseudo, son nom (« GOTAGA  COMÈTE ! ») ; quand tu es
+> dans une cible au sol, les bords de l'écran battent à sa couleur, avec son icône et les secondes
+> qui restent (`UI/Warnings.cs`).
 
 > **v33 (10/10) — les noms et les phrases des cartes réécrits** (Martin : « des fois, on ne comprend
 > rien du tout à la carte »). Les phrases disent « tu fais ça → il arrive ça », avec des chiffres.
@@ -570,6 +600,10 @@ récompense de ceux qui y vont en planant ou par l'arbaleste).
 
 ### Les gargouilles (pas de PNJ humains)
 
+> **RETIRÉES le 12/10 (v36)** — Martin : « les gargouilles, tu peux enlever, ça m'énerve
+> fortement ». Le code reste (`World/Eye.cs`) ; elles ne sont plus posées
+> (`GameBootstrap.BuildInhabitants`). Ce qui suit est l'historique.
+
 **Seize gargouilles** (28/09, à la place des Yeux : « un truc plus moyenâgeux » ; plus
 dures le 29/09 : elles voient à 42 m, chargent en moins d'une seconde, et leur jet de
 feu **EXPLOSE** — 3,6 m autour — et **projette hors de la rampe** : on redescend) :
@@ -778,6 +812,9 @@ fois, les bots sont vraiment trop forts »).
 - Le 01/10 : **la victoire au chrono** (tenir la Couronne à la fin ne gagne plus), **le
   maintien de E** (Couronne, sanctuaires), l'écharpe (le haricot entier est à sa couleur),
   les dernières phrases des menus.
+- Le 12/10 (v36) : **les gargouilles** ; **l'arc, les piliers et l'autel des Monuments** (on s'y
+  cognait en poussant : il reste le dallage, le cercle, les pierres levées et deux braseros sans
+  collision) ; **le bouclier divin du porteur** (v32) ; **le temps d'attente de la poussée**.
 
 ## Phases
 

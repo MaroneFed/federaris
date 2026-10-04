@@ -41,6 +41,8 @@ namespace Fief
             "foudre-chaine", "explosif", "lave", "echo",
             "armee", "volcan", "orbitale", "rocher", "lune", "ouragan", "frappe-ciel", "enclume", "lilliput", "demence",
             "orage", "orbes", "titan",
+            "boulet-bleu", "mouton", "sainte-grenade", "poing-faucon", "gobe-tout", "roue-folle", "charge", "tnt",
+            "buche", "tonneau", "disco", "force-imparable", "saut-mario", "home-run",
             "etourdi", "chute", "ko", "clip"
         };
 
@@ -1134,6 +1136,131 @@ namespace Fief
                     float small = Box(x - 0.66f, y - 0.44f, 0.13f, 0.24f, 0.13f);
                     float arrow = Min(Seg(x, y, -0.08f, 0.02f, 0.26f, 0.28f, 0.065f), Poly(x, y, 0.14f, 0.38f, 0.38f, 0.12f, 0.44f, 0.42f));
                     return Min(Min(big, small), arrow);
+                }
+                // ============================================ les classiques (v36)
+                case "boulet-bleu":
+                {
+                    // La carapace : un dome a pointes, un bord, deux petites ailes.
+                    float dome = Max(Circle(x, y - 0.18f, 0.56f), y - 0.12f);
+                    float rim = Box(x, y - 0.2f, 0.66f, 0.1f, 0.08f);
+                    float spikes = Min(Poly(x, y, -0.34f, -0.18f, -0.14f, -0.2f, -0.26f, -0.62f), Min(Poly(x, y, -0.1f, -0.32f, 0.1f, -0.32f, 0f, -0.82f), Poly(x, y, 0.14f, -0.2f, 0.34f, -0.18f, 0.26f, -0.62f)));
+                    float wing = Min(Box(x + 0.78f, y + 0.02f, 0.2f, 0.07f, 0.07f), Box(x - 0.78f, y + 0.02f, 0.2f, 0.07f, 0.07f));
+                    float shadow = Box(x, y - 0.62f, 0.5f, 0.06f, 0.06f);
+                    return Min(Min(Min(dome, rim), spikes), Min(wing, shadow));
+                }
+                case "mouton":
+                {
+                    float wool = Cloud(x * 1.1f - 0.12f, y + 0.08f);
+                    float head = Sub(Box(x + 0.72f, y + 0.02f, 0.22f, 0.26f, 0.2f), Circle(x + 0.78f, y + 0.08f, 0.05f));
+                    float legs = Min(Seg(x, y, -0.35f, 0.38f, -0.35f, 0.72f, 0.07f), Seg(x, y, 0.35f, 0.38f, 0.35f, 0.72f, 0.07f));
+                    float fuse = Min(Seg(x, y, 0.2f, -0.45f, 0.42f, -0.72f, 0.04f), Star(x - 0.48f, y + 0.8f, 0.13f, 0.06f, 5));
+                    return Min(Min(wool, head), Min(legs, fuse));
+                }
+                case "sainte-grenade":
+                {
+                    float body = Circle(x, y - 0.18f, 0.5f);
+                    float cross = Min(Box(x, y + 0.56f, 0.07f, 0.28f, 0.02f), Box(x, y + 0.62f, 0.2f, 0.07f, 0.02f));
+                    float neck = Box(x, y + 0.34f, 0.14f, 0.08f, 0.02f);
+                    float rays = Min(Seg(x, y, 0.62f, -0.6f, 0.86f, -0.82f, 0.04f), Seg(x, y, -0.62f, -0.6f, -0.86f, -0.82f, 0.04f));
+                    return Min(Min(Sub(body, Box(x, y - 0.18f, 0.5f, 0.03f, 0f)), Min(cross, neck)), rays);
+                }
+                case "poing-faucon":
+                {
+                    float fist = Box(x - 0.08f, y, 0.42f, 0.34f, 0.18f);
+                    float thumb = Box(x - 0.08f, y - 0.36f, 0.24f, 0.08f, 0.08f);
+                    float gaps = Min(Box(x + 0.34f, y - 0.11f, 0.08f, 0.015f, 0f), Box(x + 0.34f, y + 0.11f, 0.08f, 0.015f, 0f));
+                    float fire = Min(Flame(-(y) * 1f, (x + 0.72f) * 1f, 0.42f), Flame(-(y + 0.38f), x + 0.62f, 0.26f));
+                    return Min(Sub(Min(fist, thumb), gaps), fire);
+                }
+                case "gobe-tout":
+                {
+                    // Une grosse boule qui ouvre grand la bouche vers la gauche, et une etoile aspiree.
+                    float ball = Circle(x - 0.22f, y, 0.62f);
+                    float mouth = Poly(x, y, 0.22f, 0.02f, -0.6f, -0.56f, -0.6f, 0.6f);
+                    float eye = Circle(x - 0.38f, y + 0.3f, 0.09f);
+                    float star = Star(x + 0.66f, y, 0.2f, 0.09f, 5);
+                    float lines = Min(Seg(x, y, -0.98f, -0.34f, -0.72f, -0.16f, 0.045f), Seg(x, y, -0.98f, 0.34f, -0.72f, 0.16f, 0.045f));
+                    return Min(Sub(Sub(ball, mouth), eye), Min(star, lines));
+                }
+                case "roue-folle":
+                {
+                    float tyre = Ring(x + 0.1f, y, 0.52f, 0.13f);
+                    float hub = Circle(x + 0.1f, y, 0.16f);
+                    float spokes = Min(Seg(x, y, 0.1f, -0.42f, 0.1f, 0.42f, 0.05f), Seg(x, y, -0.32f, 0f, 0.52f, 0f, 0.05f));
+                    float lines = Min(Seg(x, y, -0.95f, -0.3f, -0.58f, -0.3f, 0.05f), Min(Seg(x, y, -0.98f, 0f, -0.62f, 0f, 0.05f), Seg(x, y, -0.95f, 0.3f, -0.58f, 0.3f, 0.05f)));
+                    float flame = Flame(x - 0.1f, y + 0.66f, 0.28f);
+                    return Min(Min(Min(tyre, hub), spokes), Min(lines, flame));
+                }
+                case "charge":
+                {
+                    float shield = Poly4(x, y, -0.05f, -0.7f, 0.65f, -0.5f, 0.6f, 0.25f, -0.05f, 0.25f);
+                    shield = Min(shield, Poly(x, y, -0.05f, 0.2f, 0.6f, 0.2f, 0.28f, 0.78f));
+                    shield = Sub(shield, Min(Box(x - 0.28f + 0.55f, y - 0.05f, 0.05f, 0.42f, 0f), Box(x + 0.28f, y - 0.12f, 0.24f, 0.05f, 0f)));
+                    float lines = Min(Seg(x, y, -0.95f, -0.35f, -0.3f, -0.35f, 0.06f), Min(Seg(x, y, -0.95f, 0f, -0.25f, 0f, 0.06f), Seg(x, y, -0.95f, 0.35f, -0.3f, 0.35f, 0.06f)));
+                    return Min(shield, lines);
+                }
+                case "tnt":
+                {
+                    float crate = Box(x, y + 0.12f, 0.62f, 0.56f, 0.06f);
+                    float band = Box(x, y + 0.12f, 0.62f, 0.16f, 0f);
+                    float body = Sub(crate, Sub(band, Box(x, y + 0.12f, 0.54f, 0.1f, 0f)));
+                    float fuse = Seg(x, y, 0f, -0.44f, 0.22f, -0.72f, 0.05f);
+                    float spark = Star(x - 0.3f, y + 0.8f, 0.2f, 0.08f, 6);
+                    return Min(Min(body, fuse), spark);
+                }
+                case "buche":
+                {
+                    float log = Box(x + 0.15f, y, 0.72f, 0.36f, 0.34f);
+                    float end = Ring(x - 0.56f + 0.0f, y, 0.22f, 0.05f);
+                    log = Sub(log, Circle(x - 0.56f, y, 0.3f));
+                    float rings = Min(Circle(x - 0.56f, y, 0.06f), end);
+                    float lines = Min(Seg(x, y, 0.95f, -0.25f, 0.95f, 0.25f, 0.05f), Seg(x, y, -0.2f, 0.52f, 0.6f, 0.52f, 0.05f));
+                    return Min(Min(log, rings), lines);
+                }
+                case "tonneau":
+                {
+                    float barrel = Box(x - 0.18f, y, 0.42f, 0.66f, 0.3f);
+                    float hoops = Min(Box(x - 0.18f, y - 0.36f, 0.46f, 0.04f, 0f), Box(x - 0.18f, y + 0.36f, 0.46f, 0.04f, 0f));
+                    barrel = Sub(barrel, hoops);
+                    float bean = Box(x + 0.62f, y + 0.2f, 0.17f, 0.3f, 0.17f);
+                    bean = Sub(bean, Min(Circle(x + 0.56f, y + 0.08f, 0.05f), Circle(x + 0.68f, y + 0.08f, 0.05f)));
+                    return Min(barrel, bean);
+                }
+                case "disco":
+                {
+                    float ball = Circle(x, y + 0.1f, 0.56f);
+                    float grid = Min(Box(x, y + 0.1f, 0.6f, 0.025f, 0f), Min(Box(x, y - 0.12f, 0.6f, 0.025f, 0f), Box(x, y + 0.32f, 0.6f, 0.025f, 0f)));
+                    grid = Min(grid, Min(Box(x - 0.2f, y + 0.1f, 0.025f, 0.6f, 0f), Box(x + 0.2f, y + 0.1f, 0.025f, 0.6f, 0f)));
+                    float string_ = Seg(x, y, 0f, -0.46f, 0f, -0.9f, 0.04f);
+                    float sparkle = Min(Star(x - 0.72f, y + 0.62f, 0.16f, 0.05f, 4), Star(x + 0.74f, y - 0.5f, 0.16f, 0.05f, 4));
+                    return Min(Min(Sub(ball, grid), string_), sparkle);
+                }
+                case "force-imparable":
+                {
+                    float arrow = ArrowUp(x, -(y - 0.05f), 0.6f);
+                    float ground = Box(x, y - 0.74f, 0.92f, 0.07f, 0.03f);
+                    float burst = Min(Seg(x, y, -0.38f, 0.58f, -0.82f, 0.32f, 0.06f), Seg(x, y, 0.38f, 0.58f, 0.82f, 0.32f, 0.06f));
+                    float rocks = Min(Circle(x - 0.55f, y - 0.1f, 0.1f), Circle(x + 0.6f, y - 0.05f, 0.08f));
+                    return Min(Min(arrow, ground), Min(burst, rocks));
+                }
+                case "saut-mario":
+                {
+                    // Un haricot tout ecrase, et celui qui lui retombe dessus.
+                    float squashed = Box(x, y - 0.66f, 0.6f, 0.16f, 0.16f);
+                    float jumper = Box(x, y + 0.2f, 0.22f, 0.34f, 0.22f);
+                    jumper = Sub(jumper, Min(Circle(x - 0.08f, y + 0.08f, 0.05f), Circle(x + 0.08f, y + 0.08f, 0.05f)));
+                    float stars = Min(Star(x - 0.74f, y - 0.4f, 0.14f, 0.06f, 5), Star(x + 0.74f, y - 0.4f, 0.14f, 0.06f, 5));
+                    float lines = Min(Seg(x, y, -0.42f, -0.85f, -0.42f, -0.55f, 0.04f), Seg(x, y, 0.42f, -0.85f, 0.42f, -0.55f, 0.04f));
+                    return Min(Min(squashed, jumper), Min(stars, lines));
+                }
+                case "home-run":
+                {
+                    float ball = Circle(x + 0.22f, y + 0.1f, 0.42f);
+                    float seams = Min(Max(Ring(x + 0.62f, y + 0.1f, 0.3f, 0.04f), x + 0.08f - 0.22f), Max(Ring(x - 0.18f, y + 0.1f, 0.3f, 0.04f), -(x - 0.36f)));
+                    ball = Sub(ball, seams);
+                    float lines = Min(Seg(x, y, -0.95f, 0.45f, -0.35f, 0.25f, 0.05f), Min(Seg(x, y, -0.95f, 0.1f, -0.32f, 0.08f, 0.05f), Seg(x, y, -0.9f, -0.25f, -0.38f, -0.12f, 0.05f)));
+                    float spark = Star(x - 0.62f, y + 0.72f, 0.18f, 0.07f, 5);
+                    return Min(Min(ball, lines), spark);
                 }
                 case "demence":
                 {

@@ -139,7 +139,8 @@ namespace Fief
                 || a == Ability.Bombardement || a == Ability.Singularite || a == Ability.Dragon || a == Ability.Comete
                 || a == Ability.Cataclysme || a == Ability.Chaos || a == Ability.Geole || a == Ability.Tsunami || a == Ability.FoudreChaine
                 || a == Ability.Armee || a == Ability.Volcan || a == Ability.FrappeOrbitale || a == Ability.Rocher || a == Ability.Lune
-                || a == Ability.Ouragan || a == Ability.FrappeCiel || a == Ability.Enclumes || a == Ability.Lilliput || a == Ability.Demence;
+                || a == Ability.Ouragan || a == Ability.FrappeCiel || a == Ability.Enclumes || a == Ability.Lilliput || a == Ability.Demence
+                || a >= Ability.BouletBleu && a <= Ability.ForceImparable;
         }
 
         /// <summary>Pourquoi "s" ne peut pas lancer "a" maintenant (null : il peut).</summary>
@@ -168,7 +169,7 @@ namespace Fief
         {
             return a == Ability.Bond || a == Ability.Ressort || a == Ability.Pogo || a == Ability.Grappin || a == Ability.Catapulte
                 || a == Ability.Echange || a == Ability.Taupe || a == Ability.Fusee || a == Ability.Meteore || a == Ability.Geyser
-                || a == Ability.FrappeCiel || a == Ability.Teleport;
+                || a == Ability.FrappeCiel || a == Ability.Teleport || a == Ability.ForceImparable;
         }
 
         /// <summary>(11/10) Arriver sur la tour plus haut qu'on n'etait : c'est un raccourci, refuse.</summary>
@@ -796,6 +797,63 @@ namespace Fief
                         Lightning.Call(s, near[i].Body.position);
                         DivineFx.Bolt(t.Body.position + Vector3.up, near[i].Body.position + Vector3.up, tint, 0.5f, 0.6f);
                     }
+                    break;
+                }
+
+                // ---- les classiques (12/10, v36 : "regarde ce qui plait le plus dans tous les jeux")
+                case Ability.BouletBleu:
+                    BlueShell.Fire(s, pos + flat * 1.5f);
+                    break;
+                case Ability.Mouton:
+                    Sheep.Release(s, pos + flat * 1.6f, flat);
+                    break;
+                case Ability.SainteGrenade:
+                    HolyGrenade.Throw(s, chest + flat * 0.8f, Classiques.AimPoint(s, eye, aim, 28f));
+                    break;
+                case Ability.PoingFaucon:
+                    FalconPunch.Begin(s, flat);
+                    break;
+                case Ability.GobeTout:
+                {
+                    Seeker t = Combat.Aimed(s, eye, aim, 15f, AimAngle);
+                    if (t == null) { s.Refund(a); return false; }
+                    Inhale.Begin(s, t, flat);
+                    break;
+                }
+                case Ability.RoueFolle:
+                    RipTire.Roll(s, pos + flat * 1.8f, flat);
+                    break;
+                case Ability.Charge:
+                    KnightCharge.Begin(s, flat);
+                    break;
+                case Ability.Tnt:
+                {
+                    Vector3 spot = pos + flat * 2.6f;
+                    Vector3 g = spot;
+                    if (Divin.Ground(ref g, 3f, 6f)) spot = g;
+                    TntCrate.Place(s, spot);
+                    break;
+                }
+                case Ability.Buche:
+                    GiantLog.Roll(s, pos + flat * 2.5f, flat);
+                    break;
+                case Ability.Tonneau:
+                    BeanBarrel.Throw(s, chest + flat * 0.8f, Classiques.AimPoint(s, eye, aim, 30f));
+                    break;
+                case Ability.Disco:
+                    DiscoBomb.Throw(s, chest + flat * 0.8f, Classiques.AimPoint(s, eye, aim, 25f));
+                    break;
+                case Ability.ForceImparable:
+                {
+                    Vector3 to = Classiques.AimPoint(s, eye, aim, 24f);
+                    // Jamais par-dessus la muraille, jamais plus haut sur la tour (le sceau, la tour a pied).
+                    if (Castle.Inside(to) != Castle.Inside(pos) || TowerShortcut(pos, to) || (to - pos).magnitude < 3f)
+                    {
+                        s.Refund(a);
+                        Fx.Sparks(to, Ward.Rune, 14, 3f);
+                        return false;
+                    }
+                    Unstoppable.Leap(s, to);
                     break;
                 }
 

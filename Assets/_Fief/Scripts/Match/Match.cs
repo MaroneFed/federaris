@@ -437,7 +437,11 @@ namespace Fief
                                     // (09/10, v31) la troisieme fournee divine
                                     Ability.Lune, Ability.Orage, Ability.Armee, Ability.Orbes, Ability.FrappeOrbitale, Ability.Titan,
                                     Ability.Volcan, Ability.Rocher, Ability.Enclumes, Ability.Ouragan, Ability.FrappeCiel,
-                                    Ability.Lilliput, Ability.Demence };
+                                    Ability.Lilliput, Ability.Demence,
+                                    // (12/10, v36) les classiques
+                                    Ability.BouletBleu, Ability.Tonneau, Ability.HomeRun, Ability.Buche, Ability.SainteGrenade,
+                                    Ability.SautMario, Ability.Mouton, Ability.RoueFolle, Ability.Disco, Ability.PoingFaucon,
+                                    Ability.Charge, Ability.Tnt, Ability.GobeTout, Ability.ForceImparable };
                 int shift = slot * 5;
                 for (int t = 0; t < taste.Length; t++)
                 {

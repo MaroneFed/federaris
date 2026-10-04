@@ -109,7 +109,7 @@ Martin : « fais le vrai mode en ligne ». Ce qui est fait :
   (« Internet  Martin  2/8 ») ; **Rejoindre** accepte ce code ; **Inviter un ami** ouvre
   l'overlay Steam ; une **invitation acceptée** (ou « Rejoindre la partie » sur un ami) fait
   entrer dans le salon.
-- **Protocole v10** (v35) : les deux PC doivent avoir la même version.
+- **Protocole v11** (v36) : les deux PC doivent avoir la même version.
 
 **Pour tester** : deux PC, **deux comptes Steam** (Steam ouvert et connecté sur chacun ; un même
 compte ne joue pas sur deux PC à la fois). On ne peut **pas** tester Steam sur un seul PC.

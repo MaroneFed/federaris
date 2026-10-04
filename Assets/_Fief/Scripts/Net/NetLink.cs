@@ -105,7 +105,7 @@ namespace Fief.Net
 
     public sealed class NetLink : IDisposable
     {
-        public const int Version = 10;    // 10 (11/10) : plus de prise de Couronne a distance, raccourcis interdits sur la tour ; 9 (10/10) : bouclier divin du porteur ; 8 (09/10) : Steam, 119 capacites ; 7 (08/10) : ciel de feu, 106 capacites ; 6 (08/10) : le Mode Dieu, 93 capacites ; 5 (07/10) : 78 capacites, la liste des parties ; 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
+        public const int Version = 11;    // 11 (12/10) : 133 capacites, la danse ; 10 (11/10) : plus de prise de Couronne a distance, raccourcis interdits sur la tour ; 9 (10/10) : bouclier divin du porteur ; 8 (09/10) : Steam, 119 capacites ; 7 (08/10) : ciel de feu, 106 capacites ; 6 (08/10) : le Mode Dieu, 93 capacites ; 5 (07/10) : 78 capacites, la liste des parties ; 4 (06/10) : 58 capacites, les sorts ; 3 (05/10) : 39 capacites ; 2 (04/10) : les messages du jeu
         public const int DefaultPort = 7777;
         const uint Magic = 0x46494546;           // "FIEF"
         const float PingEvery = 1f;

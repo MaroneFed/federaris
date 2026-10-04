@@ -61,6 +61,22 @@ namespace Fief
             }
             if (best == null) return false;
             if (kick) { force *= 3f; by.SuperShoveUntil = -1f; Fx.Shock(best.Body.position + Vector3.up, AbilityInfo.Tint(Ability.CoupDePied), 3f, 0.3f); }
+            // (v36) LE HOME RUN : toutes les 4 poussees reussies, la suivante envoie 3 fois plus loin.
+            if (by.Has(Ability.HomeRun) && !best.Graced)
+            {
+                if (by.HomeRunCount >= 4)
+                {
+                    by.HomeRunCount = 0;
+                    force *= 3f;
+                    Vector3 hp = best.Body.position + Vector3.up * 1.2f;
+                    Fx.Shock(hp, AbilityInfo.Tint(Ability.HomeRun), 4f, 0.35f);
+                    Fx.Burst(hp, new Color(1f, 0.95f, 0.5f), 70, 16f, 0.3f, 0.7f, 0f, Vector3.zero, 0f);
+                    Fx.Trail(best.Body, AbilityInfo.Tint(Ability.HomeRun), 1.6f, 1.4f);
+                    Sfx.Ding(hp);
+                    if (by.IsPlayer) Hud.HitStop(0.14f);
+                }
+                else by.HomeRunCount++;
+            }
             Vector3 push = Flat(best.Body.position - by.Body.position).normalized;
             if (push.sqrMagnitude < 0.01f) push = f;
             // POUSSER LE PORTEUR, C'EST LUI VOLER LA COURONNE (27/09 -- Martin : "il se la
@@ -326,7 +342,7 @@ namespace Fief
         /// touchent pas un ami -- il a les siens, chez lui, au bon endroit.
         /// </summary>
         /// <summary>Ce que les capacites de fou font a leur cible (06/10).</summary>
-        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6, Charmed = 7, Frozen = 8 }
+        public enum Affliction : byte { Prison = 1, Glue = 2, Inverted = 3, Tiny = 4, Ink = 5, Balloon = 6, Charmed = 7, Frozen = 8, Dance = 9 }
 
         /// <summary>
         /// LES SORTS DES CAPACITES DE FOU (06/10 -- Martin : "une prison qui t'enchaine au sol
@@ -355,6 +371,8 @@ namespace Fief
                 case Affliction.Prison: victim.RootedUntil = Mathf.Max(victim.RootedUntil, until); break;
                 // (08/10) LE TEMPS S'ARRETE : comme la prison (un coup libere), dans un bloc de glace.
                 case Affliction.Frozen: victim.RootedUntil = Mathf.Max(victim.RootedUntil, until); break;
+                // (v36) LA BOMBE DISCO : il danse sur place (comme la prison, un coup libere).
+                case Affliction.Dance: victim.RootedUntil = Mathf.Max(victim.RootedUntil, until); break;
                 case Affliction.Glue: victim.GluedUntil = Mathf.Max(victim.GluedUntil, until); break;
                 case Affliction.Inverted: victim.InvertedUntil = Mathf.Max(victim.InvertedUntil, until); break;
                 case Affliction.Tiny: victim.TinyUntil = Mathf.Max(victim.TinyUntil, until); break;

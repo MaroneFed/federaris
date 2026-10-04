@@ -121,6 +121,8 @@ namespace Fief
         public const float ShoveCooldown = 0.12f;
         public const float BotShoveCooldown = 0.9f;
         public float ShoveReadyAt;
+        /// <summary>(v36) Le compte du HOME RUN : les poussees reussies depuis le dernier.</summary>
+        public int HomeRunCount;
         /// <summary>Le prochain piqué d'aigle possible (voir Combat.DiveTarget).</summary>
         public float DiveReadyAt;
 
