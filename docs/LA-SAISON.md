@@ -195,8 +195,8 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 > Martin, le 08/10 : « une version God Mode de la map : un bouton où tu cliques et tu n'as que
 > des gods capacités, des trucs de malade mental, de vraiment, vraiment malade mental ».
 
-- **Le bouton** : « **Mode Dieu** » sur l'écran-titre, juste sous Jouer (une fanfare) ; il ouvre
-  le salon en Mode Dieu (le titre dit « MODE DIEU », en or qui bat). Dans le salon — et dans le
+- **Où le choisir** (v37.1) : l'écran-titre n'a plus que **Jouer**, Réglages, Commandes, Quitter ; **Jouer** ouvre le choix — **Contre les bots**, **En ligne**, et **Mode : Normal / DIEU** (une fanfare, le ciel s'embrase). Le salon
+  s'ouvre alors en Mode Dieu (le titre dit « MODE DIEU », en or qui bat). Dans le salon — et dans le
   salon en ligne, où l'hôte décide pour tout le monde — la ligne **Mode : Normal / DIEU**.
 - **La table divine** : on ne pioche que les **quarante-six divines** (trente-cinq actives, onze passives) et les plus folles des autres
   (Météore, Tornade, Trou noir, Boulet, Géant, Foudre, Prison, Bombe, Ballon, Séisme, Gant,

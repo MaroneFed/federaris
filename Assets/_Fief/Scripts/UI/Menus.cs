@@ -32,7 +32,7 @@ namespace Fief
     /// </summary>
     public class Menus : MonoBehaviour
     {
-        public enum State { Title, Lobby, Online, Briefing, Playing, Paused, RoundOver, Draft, Ended }
+        public enum State { Title, Lobby, Online, Briefing, Playing, Paused, RoundOver, Draft, Ended, Play }
 
         public State Current { get; private set; }
 
@@ -124,7 +124,7 @@ namespace Fief
             if (SteamNet.Invited)
             {
                 SteamNet.Invited = false;
-                if (Current == State.Title || Current == State.Lobby) Go(State.Online);
+                if (Current == State.Title || Current == State.Play || Current == State.Lobby) Go(State.Online);
                 else if (Current != State.Online && !leaving) { Match.Abandon(); openOnline = true; Curtain(Reload); }
             }
             NetGame.LocalPhase = PhaseNow();
@@ -189,7 +189,7 @@ namespace Fief
         {
             OrbitCamera cam = Game.Hud != null ? Game.Hud.orbitCamera : null;
             if (cam == null) return;
-            bool establishing = !Match.Launched && (Current == State.Title || Current == State.Lobby || Current == State.Online);
+            bool establishing = !Match.Launched && (Current == State.Title || Current == State.Play || Current == State.Lobby || Current == State.Online);
             bool outside = !Match.Launched && Current == State.Draft;
             if (!establishing && cam.wide) LeaveEstablishingShot(cam);
             if (establishing)
@@ -319,10 +319,11 @@ namespace Fief
             if (FiefInput.CancelPressed)
             {
                 confirmAbandon = false;
-                if (showSettings) { showSettings = false; selected = Current == State.Title ? 2 : 1; }
+                if (showSettings) { showSettings = false; selected = 1; }
                 else if (showControls) { showControls = false; selected = 0; }
                 else if (Current == State.Online && NetSession.Link != null) NetSession.Leave();
-                else if (Current == State.Lobby || Current == State.Online) Go(State.Title);
+                else if (Current == State.Lobby || Current == State.Online) Go(State.Play);
+                else if (Current == State.Play) Go(State.Title);
                 else if (Current == State.Briefing) Enter();
                 else if (Current == State.Playing && countdown <= 0f) Pause();
                 else if (Current == State.Paused) Resume();
@@ -400,6 +401,7 @@ namespace Fief
             switch (Current)
             {
                 case State.Title: return TitleItems.Length;
+                case State.Play: return 4;
                 case State.Lobby: return LobbyRows + 2;
                 case State.Online: return NetSession.Link == null ? 4 + FoundCount + SteamCount : HostingSalon ? OnlineRows + (NetSession.OverSteam ? 3 : 2) : 1;
                 case State.Paused: return PauseItems.Length;
@@ -410,7 +412,12 @@ namespace Fief
         }
 
         // (08/10 -- "une version God Mode, un bouton ou tu cliques") : MODE DIEU, juste sous Jouer.
-        static readonly string[] TitleItems = { "Jouer", "Mode Dieu", "En ligne", "Réglages", "Commandes", "Quitter" };
+        // (13/10, v37 -- Martin : "sur le menu d'accueil, enleve le mode Dieu et le mode en ligne, ca fait
+        // trop ; une seule categorie Jouer, ou tu choisis en ligne ou contre les bots, et l'option mode
+        // Dieu") : quatre boutons. JOUER ouvre l'ecran du choix (State.Play).
+        static readonly string[] TitleItems = { "Jouer", "Réglages", "Commandes", "Quitter" };
+        /// <summary>L'ecran JOUER : contre les bots, en ligne, le mode (Normal / DIEU), retour.</summary>
+        string[] PlayItems { get { return new[] { "Contre les bots", "En ligne", lobbyGod ? "Mode : DIEU" : "Mode : Normal", "Retour" }; } }
         /// <summary>Le Mode Dieu choisi au salon (le bouton du titre l'allume, Jouer l'eteint).</summary>
         bool lobbyGod;
         static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
@@ -432,17 +439,21 @@ namespace Fief
             switch (Current)
             {
                 case State.Title:
-                    if (i == 0) { lobbyGod = false; Go(State.Lobby); }
-                    else if (i == 1) { lobbyGod = true; Sfx.Discovery(); Go(State.Lobby); }
-                    else if (i == 2) Go(State.Online);
-                    else if (i == 3) { showSettings = true; selected = 0; }
-                    else if (i == 4) { showControls = true; selected = 0; }
+                    if (i == 0) Go(State.Play);
+                    else if (i == 1) { showSettings = true; selected = 0; }
+                    else if (i == 2) { showControls = true; selected = 0; }
                     else Quit();
+                    break;
+                case State.Play:
+                    if (i == 0) Go(State.Lobby);
+                    else if (i == 1) Go(State.Online);
+                    else if (i == 2) { lobbyGod = !lobbyGod; if (lobbyGod) Sfx.Discovery(); selected = 2; }
+                    else Go(State.Title);
                     break;
                 case State.Lobby:
                     if (i < LobbyRows) Adjust(i, 1);
                     else if (i == LobbyRows) StartMatch();
-                    else Go(State.Title);
+                    else Go(State.Play);
                     break;
                 case State.Online:
                     // (04/10, le jeu en ligne, etape 1) Heberger, Rejoindre (l'adresse tapee au-dessus),
@@ -464,7 +475,7 @@ namespace Fief
                         NetSession.HostInternet();
                     }
                     else if (i == 2) NetSession.Join(joinAddress);
-                    else if (i == 3) Go(State.Title);
+                    else if (i == 3) Go(State.Play);
                     // (06/10) Une partie du reseau local : un clic, on la rejoint.
                     else if (i - 4 < FoundCount)
                     {
@@ -976,11 +987,11 @@ namespace Fief
             if (Event.current.type == EventType.Repaint) lastMouse = mouse;
             hoverFollows = mouseMoved;
 
-            if (Current == State.Title || Current == State.Lobby || Current == State.Online) GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
+            if (Current == State.Title || Current == State.Play || Current == State.Lobby || Current == State.Online) GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
             // (08/10 -- "quand tu appuies sur la pastille, tout l'ecran se met dans un autre truc") :
             // le salon en Mode Dieu allume le ciel de feu (GodSky) ; l'ecran rougeoie et brule.
-            GodSky.MenuGod = lobbyGod && (Current == State.Lobby || Current == State.Online && HostingSalon);
-            if (Current == State.Lobby || Current == State.Online || Current == State.Draft) GodSky.DrawOverlay(true);
+            GodSky.MenuGod = lobbyGod && (Current == State.Play || Current == State.Lobby || Current == State.Online && HostingSalon);
+            if (Current == State.Play || Current == State.Lobby || Current == State.Online || Current == State.Draft) GodSky.DrawOverlay(true);
             if (veil > 0.001f) UiStyle.Fill(screen, new Color(0.015f, 0.014f, 0.012f, 0.84f * veil));
 
             // (02/10) Un ecran qui plante ne laisse plus la couleur ou le zoom de travers (sinon
@@ -995,6 +1006,7 @@ namespace Fief
                     switch (Current)
                     {
                         case State.Title: DrawTitle(); break;
+                        case State.Play: DrawPlay(); break;
                         case State.Lobby: DrawLobby(); break;
                         case State.Online: DrawOnline(); break;
                         case State.Briefing: DrawBriefing(); break;
@@ -1060,7 +1072,8 @@ namespace Fief
             if (text.StartsWith("Héberger sur Internet") || text.StartsWith("Internet")) return "internet";
             if (text.StartsWith("Inviter")) return "joueur";
             if (text.StartsWith("En ligne") || text.StartsWith("Héberger")) return "en-ligne";
-            if (text.StartsWith("Mode Dieu")) return "dieu";
+            if (text.StartsWith("Mode Dieu") || text.StartsWith("Mode :")) return "dieu";
+            if (text.StartsWith("Contre les bots")) return "bot";
             if (text.StartsWith("Rejoindre")) return "joueur";
             if (text.StartsWith("Quitter le salon")) return "retour";
             if (text.StartsWith("Réglages")) return "reglages";
@@ -1181,6 +1194,37 @@ namespace Fief
             // La version, en bas a droite : c'est elle qui dit quel code tourne.
             UiStyle.Tinted(new Rect(0f, Screen.height - UiStyle.S(30), Screen.width - UiStyle.S(24), UiStyle.S(20)), Game.Version,
                            Style(UiStyle.Tiny, 0, TextAnchor.MiddleRight), new Color(UiStyle.InkFaint.r, UiStyle.InkFaint.g, UiStyle.InkFaint.b, late));
+        }
+
+        /// <summary>
+        /// (v37) L'ECRAN JOUER : contre les bots (le salon), en ligne (l'ecran En ligne), et le mode --
+        /// Normal ou DIEU (un clic : le ciel s'embrase). Le choix suit dans le salon.
+        /// </summary>
+        void DrawPlay()
+        {
+            float ease = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(stateTime / 0.35f));
+            float x = Left;
+            float w = Mathf.Min(UiStyle.S(640), Screen.width - x * 2f);
+            float y = Screen.height * 0.5f - UiStyle.S(200);
+            Glide(new Rect(0f, 0f, Mathf.Max(UiStyle.S(760), Screen.width * 0.55f), Screen.height), new Color(0.02f, 0.015f, 0.03f, 0.8f * ease));
+            Icons.Number(new Rect(x, y, w, UiStyle.S(100)), "JOUER", UiStyle.S(84), new Color(1f, 0.84f, 0.3f, ease), TextAnchor.MiddleLeft);
+            y += UiStyle.S(120);
+            string[] items = PlayItems;
+            for (int i = 0; i < items.Length; i++)
+            {
+                bool primary = i == 0;
+                float h = UiStyle.S(primary ? 70 : 56);
+                // Le mode : en or quand c'est DIEU.
+                if (i == 2 && lobbyGod)
+                {
+                    float beat = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
+                    Icons.Pill(new Rect(x - UiStyle.S(6), y - UiStyle.S(3), UiStyle.S(412), h + UiStyle.S(6)), new Color(1f, 0.45f + 0.3f * beat, 0.1f, 0.85f * ease));
+                }
+                if (Entry(new Rect(x, y, UiStyle.S(primary ? 440 : 400), h), items[i], i, primary, ease) && ease > 0.9f) Activate(i);
+                y += h + UiStyle.S(10);
+                if (i == 1) y += UiStyle.S(14);
+            }
+            PseudoBadge(ease);
         }
 
         // ------------------------------------------------------------------ le pseudo
