@@ -96,6 +96,7 @@ namespace Fief
         // ================================================================== les debris
 
         public static int liveDebris;
+        static float lastThunder = -99f;
 
         /// <summary>(v36) La capacite en train d'etre lancee (AbilityCaster.Cast) : ses cibles au sol portent son icone.</summary>
         public static string MarkIcon = "cible";
@@ -243,6 +244,8 @@ namespace Fief
             b.life = seconds;
             b.Shape();
             Sfx.ZapAt(to);
+            // (v37) Un eclair de plus de 20 m : son tonnerre (un par seconde au plus, ca suffit).
+            if ((to - from).magnitude > 20f && Time.time - lastThunder > 1f) { lastThunder = Time.time; Sfx.Thunder(to, Camera.main != null && (Camera.main.transform.position - to).magnitude < 70f); }
         }
 
 
@@ -293,6 +296,9 @@ namespace Fief
             Vector3 g = OnGround(at);
             Vector3 mid = g + Vector3.up * Mathf.Min(3f, radius * 0.2f);
             Fx.Flash(mid, c, radius * 3f, 4f + 4f * power, 0.25f + 0.15f * power);
+            // (v37 -- "on est en mode god, pas en mode bebe") : la BOULE DE FEU qui gonfle d'un coup
+            // et retombe -- le coeur de l'explosion, qu'on voit de loin.
+            if (!Far(g)) Fireball.Burst(mid, c, Mathf.Clamp(radius * 0.55f, 1.5f, 22f), 0.35f + 0.15f * power);
             Fx.Flash(mid, Color.white, radius * 1.5f, 6f * power, 0.12f);
             Fx.Shock(mid, c, radius, 0.35f + 0.15f * power);
             Fx.Shock(mid, Color.white, radius * 0.45f, 0.2f + 0.1f * power);
@@ -317,6 +323,44 @@ namespace Fief
                 if (near > 0f && Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Punch(4f + 6f * power * near);
                 if (power >= 2f && near > 0.2f) Game.Hud.Flash(new Color(1f, 1f, 1f, 0.55f * near));
             }
+        }
+    }
+
+    /// <summary>(v37) La boule de feu d'une explosion : un coeur blanc, une boule a la couleur, qui gonflent et retombent.</summary>
+    public class Fireball : MonoBehaviour
+    {
+        float size, life, age;
+        Transform core, shell;
+
+        public static void Burst(Vector3 at, Color c, float size, float life)
+        {
+            GameObject go = new GameObject("Boule de feu");
+            go.transform.position = at;
+            Fireball f = go.AddComponent<Fireball>();
+            f.size = size;
+            f.life = life;
+            Proto.BeginVisualOnly();
+            GameObject shell = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.1f, c, "Feu");
+            shell.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Color.Lerp(c, new Color(1f, 0.6f, 0.2f), 0.3f), 2.6f);
+            shell.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+            GameObject core = Proto.Sphere(go.transform, Vector3.zero, Vector3.one * 0.1f, Color.white, "Coeur");
+            core.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.95f, 0.8f), 3.5f);
+            core.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+            Proto.EndVisualOnly();
+            f.shell = shell.transform;
+            f.core = core.transform;
+        }
+
+        void Update()
+        {
+            age += Time.deltaTime;
+            float k = Mathf.Clamp01(age / life);
+            // Gonfle tres vite (un quart du temps), puis retombe en douceur.
+            float grow = k < 0.25f ? Mathf.Sqrt(k / 0.25f) : 1f - Mathf.SmoothStep(0f, 1f, (k - 0.25f) / 0.75f);
+            if (shell != null) shell.localScale = Vector3.one * size * 2f * grow;
+            if (core != null) core.localScale = Vector3.one * size * 1.1f * grow * (k < 0.5f ? 1f : 1f - (k - 0.5f) * 2f);
+            transform.position += Vector3.up * Time.deltaTime * size * 0.6f;
+            if (age >= life) Destroy(gameObject);
         }
     }
 

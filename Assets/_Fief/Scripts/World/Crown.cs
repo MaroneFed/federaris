@@ -357,7 +357,52 @@ namespace Fief
         /// </summary>
         public static void FellWith(Seeker s)
         {
-            if (s != null) FellWith(s, LastGroundOf(s));
+            // (v37) La ou il est tombe : la terre la plus proche, sous lui (plus son dernier sol --
+            // le sommet, s'il avait saute de la tour avec elle).
+            if (s != null) FellWith(s, s.Body != null ? Below(s.Body.position) : LastGroundOf(s));
+        }
+
+        /// <summary>
+        /// (v37) Ou retombe une Couronne lachee en "p" : le sol juste EN DESSOUS (l'ile, un ilot, la
+        /// rampe en dessous) ; au-dessus du vide, la terre LA PLUS PROCHE a l'horizontale -- le bord
+        /// de l'ile, ou le dessus d'un ilot. Jamais le sommet s'il n'est pas sous elle.
+        /// </summary>
+        public static Vector3 Below(Vector3 p)
+        {
+            RaycastHit hit;
+            if (Physics.Raycast(p + Vector3.up * 1f, Vector3.down, out hit, 400f, ~0, QueryTriggerInteraction.Ignore) && Reachable(hit.point))
+                return hit.point;
+            Vector3 flat = new Vector3(p.x, 0f, p.z);
+            Vector3 best = Vector3.zero;
+            float bestD = float.MaxValue;
+            // L'ile : en allant de "p" vers son centre, le premier point de terre, trois metres a l'interieur.
+            Vector3 toCentre = -flat.normalized;
+            for (float d = 0f; d < flat.magnitude; d += 2f)
+            {
+                Vector3 q = flat + toCentre * d;
+                if (!Ground.OnIsland(q.x, q.z)) continue;
+                q += toCentre * 3f;
+                Vector3 g = Ground.Place(q.x, q.z, 0f);
+                if (Physics.Raycast(new Vector3(q.x, g.y + 40f, q.z), Vector3.down, out hit, 80f, ~0, QueryTriggerInteraction.Ignore)) g = hit.point;
+                best = g;
+                bestD = d;
+                break;
+            }
+            // Les ilots : le bord du dessus le plus proche.
+            for (int i = 0; i < Ground.IsletCount; i++)
+            {
+                Ground.Islet it = Ground.GetIslet(i);
+                Vector3 c = new Vector3(it.Top.x, 0f, it.Top.z);
+                Vector3 away = flat - c;
+                float d = away.magnitude - it.Radius;
+                if (d >= bestD) continue;
+                Vector3 q = c + (away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward) * Mathf.Max(0f, Mathf.Min(away.magnitude, it.Radius - 1.5f));
+                Vector3 g = new Vector3(q.x, it.Top.y, q.z);
+                if (Physics.Raycast(g + Vector3.up * 6f, Vector3.down, out hit, 12f, ~0, QueryTriggerInteraction.Ignore)) g = hit.point;
+                best = g;
+                bestD = d;
+            }
+            return bestD < float.MaxValue ? best : Tower.CrownSpot;
         }
 
         /// <summary>Pareil, en disant ou etait son dernier sol (un invite le dit a l'hote).</summary>
@@ -476,18 +521,27 @@ namespace Fief
             float y;
             if (Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 5.5f, ~0, QueryTriggerInteraction.Ignore)) y = hit.point.y;
             else if (Physics.Raycast(fallback + Vector3.up * 1.5f, Vector3.down, out hit, 5.5f, ~0, QueryTriggerInteraction.Ignore)) { at = fallback; y = hit.point.y; }
-            else if (was != null && AbilityCaster.MoverOf(was) != null)
+            else
             {
-                at = LastGroundOf(was);
-                y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : at.y;
+                // (13/10, v37 -- Martin : "quand tu perds la couronne en l'air, elle revient sur la
+                // tour ; elle doit redescendre EN DESSOUS de nous, le plus pres possible") : en l'air,
+                // elle TOMBE -- sur le sol juste en dessous, ou, au-dessus du vide, sur la terre la
+                // plus proche (le bord de l'ile, un ilot). Avant : le dernier sol de son porteur --
+                // le sommet de la tour, s'il en avait saute.
+                at = Below(fallback);
+                y = at.y;
             }
-            else y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 30f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : Ground.Sample(at.x, at.z);
             // (02/10) Au-dessus du vide, sur un toit, hors d'atteinte : elle se pose la ou son
             // porteur a touche le sol pour la derniere fois (elle ne rentre plus au sommet).
-            if (!Reachable(new Vector3(at.x, y, at.z)) && was != null)
+            if (!Reachable(new Vector3(at.x, y, at.z)))
             {
-                at = LastGroundOf(was);
-                y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : at.y;
+                at = Below(new Vector3(at.x, y, at.z));
+                y = at.y;
+                if (!Reachable(at) && was != null)
+                {
+                    at = LastGroundOf(was);
+                    y = Physics.Raycast(at + Vector3.up * 1.5f, Vector3.down, out hit, 4f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : at.y;
+                }
             }
             // Celui qui vient de la perdre ne la reprend pas tout de suite (trois secondes).
             if (was != null) was.CrownLockUntil = Time.time + LockSeconds;
@@ -538,7 +592,10 @@ namespace Fief
         {
             if (Instance == null || Holder != holder) return;
             if (NetGame.IsClient) { NetGame.AskCrown(NetGame.Ask.Slip, holder, lastGround); return; }
-            Instance.Drop(lastGround);
+            // (v37) Assomme en plein vol : elle tombe sous lui (ou sur la terre la plus proche),
+            // plus la ou il avait quitte le sol (le sommet, s'il avait saute de la tour).
+            Vector3 spot = holder.Body != null ? Below(holder.Body.position) : lastGround;
+            Instance.Drop(spot, spot);
             Feed.CrownSlipped(holder);
         }
 
@@ -588,7 +645,9 @@ namespace Fief
                 return new Vector2(p.x - pedestal.x, p.z - pedestal.z).magnitude <= TouchPedestal + slack && p.y > pedestal.y - 1.5f && p.y < pedestal.y + 5f;
             return (p + Vector3.up * 0.9f - visual.position).magnitude <= TouchGround + slack;
         }
-        public const float TouchPedestal = 2.6f;
+        // (v37) 3,1 m : il suffit de poser le pied sur la premiere marche (2,6 m de rayon) -- les
+        // bots qui butaient contre la marche ne l'atteignaient jamais.
+        public const float TouchPedestal = 3.1f;
 
         /// <summary>Qui vient de perdre (ou de se faire voler) la Couronne ne peut pas la reprendre avant...</summary>
         public const float LockSeconds = 3f;

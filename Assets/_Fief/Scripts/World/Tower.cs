@@ -331,7 +331,16 @@ namespace Fief
                 for (int i = 0; i < Spikes[r].Count; i++)
                 {
                     float u = Spikes[r][i];
-                    SpikeTrap.Build(t, RampPoint(r, u), Slope(r, u), RampWidth - 0.4f, 2.6f, 3.2f / h, r * 0.7f + i);
+                    // (13/10, v37 -- Martin : "les picots sur la tour, toujours pas bien cadres, la partie
+                    // a gauche est encore dans l'escalier") : la rampe est faite de DALLES DROITES, chacune
+                    // un peu tournee par rapport a la precedente (une helice en morceaux). La herse,
+                    // plus longue qu'une dalle, debordait sur la suivante : cote fut (a gauche en montant),
+                    // son coin rentrait de 15 cm dans la marche d'apres. Elle est maintenant posee SUR
+                    // UNE SEULE DALLE, exactement a sa place et a son angle, et un peu moins large.
+                    int seg = Mathf.Clamp(Mathf.FloorToInt(u * SegmentsPerRamp), 0, SegmentsPerRamp - 1);
+                    Vector3 sa = RampPoint(r, seg / (float)SegmentsPerRamp), sb = RampPoint(r, (seg + 1) / (float)SegmentsPerRamp);
+                    Vector3 top = (sa + sb) * 0.5f + Vector3.up * ((seg % 2 == 0 ? 0f : 0.03f) + 0.012f);
+                    SpikeTrap.Build(t, top, (sb - sa).normalized, RampWidth - 1f, (sb - sa).magnitude * 0.8f, 3.2f / h, r * 0.7f + i);   // 80 % : hors du chevauchement des dalles voisines
                 }
             }
             BoulderChute.Build(t);

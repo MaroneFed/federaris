@@ -212,6 +212,8 @@ namespace Fief
         public static void Hit(Seeker victim, Vector3 velocity, float stun, bool dropsCrown, Seeker by)
         {
             if (victim == null || victim.Body == null) return;
+            // (v37) La capacite d'un ami, rejouee ici pour la voir : ses coups ne comptent que chez lui.
+            if (Echoed(by)) return;
             // (12/10, v36 -- Martin : "quand tu balances un missile, ca fait perdre la couronne ;
             // a chaque fois que tu balances une capacite, ca fait perdre la couronne") : plus de
             // bouclier divin (v32). TOUTE capacite qui touche le porteur lui fait lacher la
@@ -350,9 +352,13 @@ namespace Fief
         /// l'envers, le mini, l'encre, le ballon. Une seule porte, comme Combat.Hit : un protege
         /// n'est pas touche ; le joueur d'une autre machine l'est CHEZ LUI (NetGame.RemoteAfflict).
         /// </summary>
+        /// <summary>(v37) Vrai si "by" est la marionnette d'un ami : sa capacite est rejouee ici pour la voir, sans effet.</summary>
+        public static bool Echoed(Seeker by) { return by != null && by.Remote && !NetGame.Applying; }
+
         public static bool Afflict(Seeker victim, Affliction what, float seconds, Seeker by)
         {
             if (victim == null || victim.Body == null || victim.Graced) return false;
+            if (Echoed(by)) return false;
             // (07/10) MIROIR : le sort revient a l'envoyeur (une seule fois, pas de ping-pong).
             if (victim.Has(Ability.Miroir) && by != null && by != victim && by.Body != null && !mirroring)
             {
@@ -457,6 +463,7 @@ namespace Fief
         /// <summary>L'ONDE DE CHOC : tout le monde dans le rayon (sauf "by") part loin du centre.</summary>
         public static int Blast(Vector3 centre, float radius, float force, float up, Seeker by)
         {
+            if (Echoed(by)) { Sfx.Blast(centre, Mathf.Clamp(radius / 12f, 0.5f, 3f)); return 0; }
             Sfx.Blast(centre, Mathf.Clamp(radius / 12f, 0.5f, 3f));   // (v35) toute onde de choc s'entend
             int n = 0;
             for (int i = 0; i < Game.Seekers.Count; i++)

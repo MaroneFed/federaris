@@ -368,7 +368,8 @@ namespace Fief
                     if (b.Tension > 0.02f) Icons.Pill(new Rect(bar.x, bar.y, Mathf.Max(bar.height, bar.width * b.Tension), bar.height), Wings.Gold);
                 }
             }
-            DrawTowerGauge();
+            // (13/10, v37 -- Martin : "la petite jauge a gauche avec les couleurs, qui te dit ou tu
+            // es sur la tour, degage-la, elle est buggee et nulle") : plus dessinee.
         }
 
         /// <summary>
@@ -426,32 +427,6 @@ namespace Fief
             if (mine) { }
             else if (number != null) Icons.Number(right, number, fs, Color.white, TextAnchor.MiddleLeft);
             else Icons.Draw(new Rect(right.x, r.y + (h - ic) * 0.5f, ic, ic), second, Color.white);
-        }
-
-        /// <summary>
-        /// LA JAUGE DE LA TOUR (a gauche, quand on y est) : les six bandes de couleur, du
-        /// pied au sommet, et ta pastille a ta hauteur. La Couronne en haut.
-        /// </summary>
-        void DrawTowerGauge()
-        {
-            Seeker me = Game.Me;
-            if (me == null || me.Body == null || !Tower.On(me.Body.position)) return;
-            float x = UiStyle.S(30), w = UiStyle.S(16), h = Mathf.Min(UiStyle.S(300), Screen.height * 0.38f);
-            float top = Screen.height * 0.5f - h * 0.5f;
-            Icons.Pill(new Rect(x - UiStyle.S(4), top - UiStyle.S(4), w + UiStyle.S(8), h + UiStyle.S(8)), new Color(0.1f, 0.1f, 0.18f, 0.85f));
-            for (int k = 0; k < Tower.Turns; k++)
-            {
-                float seg = h / Tower.Turns;
-                Color c = Tower.ColourAt((k + 0.5f) * Tower.Height / Tower.Turns);
-                UiStyle.Fill(new Rect(x, top + h - (k + 1) * seg + 1f, w, seg - 2f), c);
-            }
-            Icons.Draw(new Rect(x + w * 0.5f - UiStyle.S(20), top - UiStyle.S(46), UiStyle.S(40), UiStyle.S(40)), "couronne", new Color(1f, 0.86f, 0.35f));
-            float p = Mathf.Clamp01(Tower.Progress(me.Body.position));
-            float my = top + h * (1f - p);
-            float s = UiStyle.S(34);
-            Rect mark = new Rect(x + w * 0.5f - s * 0.5f, my - s * 0.5f, s, s);
-            Icons.Pill(mark, Wings.Gold);
-            Icons.Draw(new Rect(mark.x + s * 0.14f, mark.y + s * 0.14f, s * 0.72f, s * 0.72f), "joueur", Color.white, false);
         }
 
         /// <summary>

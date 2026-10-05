@@ -42,7 +42,7 @@ namespace Fief
         public const int FlagGoldWings = 64;
         public const int FlagSlowed = 128;
 
-        enum Kind : byte { State = 1, Snapshot = 2, Self = 3, Hit = 4, Blink = 5, CrownAsk = 6, Pick = 7, Afflict = 8 }
+        enum Kind : byte { State = 1, Snapshot = 2, Self = 3, Hit = 4, Blink = 5, CrownAsk = 6, Pick = 7, Afflict = 8, Cast = 9 }
 
         /// <summary>Ou en est le match chez l'hote.</summary>
         public enum Phase : byte { Lobby = 0, Draft = 1, Round = 2, RoundOver = 3, Ended = 4 }
@@ -485,7 +485,59 @@ namespace Fief
             if (v == null || v.Remote || v.Body == null) return;
             if (!v.Graced && launch > 0f) v.Launch(launch);
             if (!v.Graced && slow > 0f) v.SlowUntil = Mathf.Max(v.SlowUntil, Time.time + slow);
-            Combat.Hit(v, velocity, stun, drops, by);
+            Applying = true;
+            try { Combat.Hit(v, velocity, stun, drops, by); }
+            finally { Applying = false; }
+        }
+
+        /// <summary>
+        /// (v37) Vrai pendant qu'on applique un coup ou un sort ARRIVE PAR LE RESEAU. Hors de la, un
+        /// coup dont l'auteur est la marionnette d'un ami (sa capacite rejouee ici, pour la VOIR) ne
+        /// fait rien : c'est la machine du lanceur qui decide, et elle envoie ses vrais coups.
+        /// </summary>
+        public static bool Applying;
+
+        // ================================================================== les capacites (v37)
+
+        /// <summary>
+        /// (13/10, v37 -- Martin : "quand on lance une capacite, on est le seul a la voir, les autres
+        /// ne voient pas la capacite qu'on lance, ca n'a aucun sens") : chaque capacite lancee part
+        /// chez les autres (par l'hote), qui la REJOUENT pour la voir et l'entendre -- les effets,
+        /// les projectiles, les sons. Les coups, eux, ne comptent qu'une fois : chez le lanceur.
+        /// </summary>
+        public static void SendCast(Seeker s, Ability a, Vector3 eye, Vector3 aim)
+        {
+            if (!Active || s == null || s.Remote || !InRound) return;
+            byte[] data = Pack(w =>
+            {
+                w.Write((byte)Kind.Cast);
+                w.Write(RoundToken);
+                w.Write((byte)s.Index);
+                w.Write((byte)a);
+                WriteVector(w, eye);
+                WriteVector(w, aim);
+            });
+            if (IsHost) Link.Broadcast(data, true);
+            else Link.Send(0, data, true);
+        }
+
+        static void ReadCast(int from, BinaryReader r, byte[] raw)
+        {
+            int token = r.ReadInt32();
+            Seeker s = Game.SeekerOf(r.ReadByte());
+            Ability a = (Ability)r.ReadByte();
+            Vector3 eye = ReadVector(r);
+            Vector3 aim = ReadVector(r);
+            if (token != RoundToken || !InRound || s == null || s.Body == null || (int)a >= AbilityInfo.Count) return;
+            // Un invite ne lance qu'avec SON joueur ; l'hote le rejoue chez lui et le relaie aux autres.
+            if (Link.IsHost)
+            {
+                if (from <= 0 || s.Slot.NetOwner != from) return;
+                Link.Broadcast(raw, true, from);
+            }
+            else if (from != 0) return;
+            if (!s.Remote) return;
+            AbilityCaster.Replay(s, a, eye, aim);
         }
 
         static byte[] WriteHit(Seeker v, Seeker by, Vector3 velocity, float stun, float launch, float slow, bool drops, bool steal)
@@ -573,7 +625,12 @@ namespace Fief
             if (token != RoundToken || !InRound || v == null) return;
             // Un invite ne lance de sort qu'avec SON joueur.
             if (Link.IsHost && from > 0 && (by == null || by.Slot.NetOwner != from)) return;
-            if (!v.Remote) Combat.Afflict(v, what, seconds, by);
+            if (!v.Remote)
+            {
+                Applying = true;
+                try { Combat.Afflict(v, what, seconds, by); }
+                finally { Applying = false; }
+            }
             else if (Link.IsHost && v.Slot.NetOwner > 0) Link.Send(v.Slot.NetOwner, raw, true);
         }
 
@@ -690,6 +747,7 @@ namespace Fief
                     case Kind.Afflict: ReadAfflict(from, r, data); break;
                     case Kind.CrownAsk: ReadCrownAsk(from, r); break;
                     case Kind.Pick: ReadPick(from, r); break;
+                    case Kind.Cast: ReadCast(from, r, data); break;
                 }
             }
         }

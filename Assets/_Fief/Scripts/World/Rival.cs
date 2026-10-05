@@ -868,7 +868,17 @@ namespace Fief
             {
                 // Le couloir de la porte : ses chicanes, ses moulinets (28/09).
                 path.AddRange(Course.Route(from));
-                path.AddRange(Castle.EntryFrom(from));
+                // (13/10, v37 -- Martin : "apres avoir saute les obstacles, ils retournent en arriere et
+                // sautent au-dessus du mur a droite") : la porte, c'etait DEUX reperes -- 9 m devant le
+                // mur, puis 9 m dedans. Pose par son arbaleste a 4 m du mur, le bot repartait d'abord
+                // 5 m EN ARRIERE... au milieu du dernier piege du couloir, qui le jetait par-dessus le
+                // muret. Deja plus pres du mur que le premier repere : on va droit a la porte.
+                Vector3[] entry = Castle.EntryFrom(from);
+                Vector3 axis = Flat(entry[0]).normalized;
+                float fromWall = Vector3.Dot(Flat(from), axis) - Castle.HalfSize;
+                bool inLane = Mathf.Abs(Vector3.Dot(Flat(from), new Vector3(axis.z, 0f, -axis.x))) < Castle.GateWidth;
+                if (!(fromWall < 10f && inLane)) path.Add(entry[0]);
+                path.Add(entry[1]);
             }
             if (toTower)
             {
@@ -984,7 +994,7 @@ namespace Fief
             // (05/10 -- "les bots ne peuvent pas prendre la Couronne") : a deux pas d'elle, il la
             // prend, ou que le mene son chemin (avant : il fallait finir le chemin, au metre pres).
             if ((goal == Goal.Raid || goal == Goal.Grab) && Crown.Instance != null && Crown.Where != Crown.State.Carried
-                && Flat(Crown.Position - transform.position).magnitude < 2.6f && Mathf.Abs(Crown.Position.y - transform.position.y) < 3.5f
+                && Flat(Crown.Position - transform.position).magnitude < (Crown.Where == Crown.State.OnPedestal ? Crown.TouchPedestal : 2.6f) && Mathf.Abs(Crown.Position.y - transform.position.y) < 3.5f
                 && Crown.Instance.TryTakeFor(seeker))
             {
                 Bark("À moi !");
@@ -995,7 +1005,7 @@ namespace Fief
             float dy = Mathf.Abs(target.y - transform.position.y);
             // (La Couronne sur son socle : il monte sur les marches -- elle se prend en passant.)
             float reach = goal == Goal.Deliver ? 2.5f : goal == Goal.Ballista ? 1.6f
-                        : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 1.6f : 1.8f;
+                        : goal == Goal.Raid && Crown.Where == Crown.State.OnPedestal ? 2.6f : 1.8f;
             bool arrived = path.Count == 0 && distance <= reach && dy < 2.5f;
             // (v35) L'arbaleste : son centre est DANS sa caisse, on ne l'atteint jamais a 1,6 m --
             // le bot poussait contre elle sans fin. A portee de main (3,4 m, comme toi avec E), il monte.
@@ -1652,6 +1662,10 @@ namespace Fief
                 }
                 if (!go) continue;
                 if (aim.sqrMagnitude < 0.01f) aim = transform.forward;
+                // (v37 -- "quand ils sautent tout en haut, ils sont bloques par un mur invisible") : un
+                // bond, une fusee, une catapulte vers la citadelle les envoyait contre le SCEAU (le mur
+                // invisible qui renvoie qui entre par les airs). Jamais un deplacement par-dessus la muraille.
+                if (MovesMe(a) && Castle.Inside(me + Flat(aim).normalized * 24f) != Castle.Inside(me)) continue;
                 if (AbilityCaster.Cast(seeker, a, eye, aim.normalized))
                 {
                     if (rig != null) rig.PlaySwing();
@@ -1659,6 +1673,14 @@ namespace Fief
                     return;
                 }
             }
+        }
+
+        /// <summary>(v37) Les capacites qui deplacent le lanceur (un bond, un elan, un tir).</summary>
+        static bool MovesMe(Ability a)
+        {
+            return a == Ability.Ruee || a == Ability.Clignement || a == Ability.Bond || a == Ability.Boulet || a == Ability.Fusee
+                || a == Ability.Ressort || a == Ability.Taupe || a == Ability.Catapulte || a == Ability.Pogo || a == Ability.Charge
+                || a == Ability.ForceImparable || a == Ability.FrappeCiel || a == Ability.Teleport || a == Ability.Grappin;
         }
 
         /// <summary>Combien d'autres joueurs a moins de "metres".</summary>

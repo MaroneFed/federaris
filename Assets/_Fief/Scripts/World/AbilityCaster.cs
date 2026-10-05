@@ -178,12 +178,25 @@ namespace Fief
             return Tower.On(to) && to.y > from.y + 2f;
         }
 
+        /// <summary>(v37) Vrai pendant qu'on rejoue ici la capacite d'un ami (voir NetGame.SendCast).</summary>
+        public static bool Replaying;
+
+        /// <summary>(v37) Rejouer la capacite "a" d'un ami, pour la voir : sans verifier, sans recharge, sans renvoi.</summary>
+        public static void Replay(Seeker s, Ability a, Vector3 eye, Vector3 aim)
+        {
+            if (s == null || s.Body == null || !AbilityInfo.IsActive(a)) return;
+            Replaying = true;
+            try { Cast(s, a, eye, aim); }
+            catch (System.Exception e) { Debug.LogWarning("[FIEF] capacite rejouee : " + e.Message); }
+            finally { Replaying = false; }
+        }
+
         public static bool Cast(Seeker s, Ability a, Vector3 eye, Vector3 aim)
         {
             // (v36) Les cibles au sol posees pendant ce lancer portent l'icone de la capacite.
             DivineFx.MarkIcon = Icons.Of(a);
             DivineFx.MarkBy = s;
-            if (!AbilityInfo.IsActive(a) || WhyNot(s, a) != null) return false;
+            if (!AbilityInfo.IsActive(a) || !Replaying && WhyNot(s, a) != null) return false;
             IMover m = MoverOf(s);
             if (m == null) return false;
             float now = Time.time;
@@ -191,7 +204,7 @@ namespace Fief
             Vector3 flat = new Vector3(aim.x, 0f, aim.z);
             flat = flat.sqrMagnitude > 0.001f ? flat.normalized : s.Body.forward;
             Color tint = AbilityInfo.Tint(a);
-            if (!s.TrySpend(a, now)) return false;
+            if (!Replaying && !s.TrySpend(a, now)) return false;
 
             Vector3 chest = pos + Vector3.up * 1.1f;
             switch (a)
@@ -1086,6 +1099,9 @@ namespace Fief
             if (!EchoCast.Echoing) Warnings.Announce(s, a);
             Flourish(s, a, pos, tint);
             if (s.IsPlayer) Stats.Casts++;
+            // (v37) Les autres la voient : elle part chez eux (rejouee la-bas, sans effet).
+            if (Replaying) return true;
+            NetGame.SendCast(s, a, eye, aim);
             // (08/10) L'ECHO (divin) : elle repart une seconde fois, une demi-seconde apres.
             if (s.Has(Ability.Echo) && !EchoCast.Echoing) { s.Refund(a); EchoCast.Schedule(s, a); }
             // (07/10) CHANCEUX : une fois sur trois, la capacite revient tout de suite.

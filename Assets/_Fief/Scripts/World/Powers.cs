@@ -367,6 +367,10 @@ namespace Fief
             Lightning l = go.AddComponent<Lightning>();
             l.by = s;
             Sfx.ChipAt(at);
+            // (v37) Ca se charge : un crepitement, et la cible au sol.
+            Sfx.ZapAt(at);
+            DivineFx.MarkIcon = "foudre";
+            DivineFx.Mark(at, Radius + 1f, AbilityInfo.Tint(Ability.Foudre), Delay);
         }
 
         void Update()
@@ -395,16 +399,38 @@ namespace Fief
                 Combat.Hit(s, Vector3.up * 16f + away * 8f, 0.7f, true, by);
             }
             // (v33) Un VRAI eclair en zigzag tombe du ciel, et le sol est noirci.
-            DivineFx.Bolt(p + Vector3.up * 70f + new Vector3(Random.Range(-6f, 6f), 0f, Random.Range(-6f, 6f)), p, c, 1.1f, 0.35f);
-            DivineFx.Bolt(p + Vector3.up * 40f, p, Color.white, 0.5f, 0.25f);
-            DivineFx.Scorch(p, 1.8f, 4f);
-            DivineFx.Debris(p + Vector3.up * 0.3f, 4, c, 7f);
-            Fx.Column(p, c, 70f, 0.5f, 1.2f);
-            Fx.Shock(p + Vector3.up, c, Radius + 1f, 0.35f);
-            Fx.Flash(p + Vector3.up * 3f, c, 40f, 10f, 0.4f);
-            Fx.Burst(p + Vector3.up * 0.3f, c, 90, 14f, 0.15f, 0.5f, 0.2f, Vector3.up, 80f);
-            AbilityCaster.ShakeNear(p, 0.4f);
-            Sfx.KoBoom(p, by != null && by.IsPlayer);
+            // (v37 -- "les eclairs, je veux des trucs de fou") : un tronc enorme qui tombe de 120 m,
+            // deux eclairs qui l'accompagnent, des branches, le ciel qui blanchit, le TONNERRE.
+            Vector3 sky = p + Vector3.up * 120f + new Vector3(Random.Range(-10f, 10f), 0f, Random.Range(-10f, 10f));
+            DivineFx.Bolt(sky, p, c, 2.6f, 0.5f);
+            DivineFx.Bolt(sky + new Vector3(3f, -10f, 2f), p, Color.white, 1.2f, 0.4f);
+            DivineFx.Bolt(p + Vector3.up * 50f + new Vector3(-6f, 0f, 4f), p, Color.Lerp(c, Color.white, 0.5f), 0.8f, 0.3f);
+            for (int k = 0; k < 4; k++)
+            {
+                Vector3 from = Vector3.Lerp(sky, p, 0.4f + k * 0.12f);
+                Vector3 branch = from + new Vector3(Random.Range(-14f, 14f), -Random.Range(6f, 16f), Random.Range(-14f, 14f));
+                DivineFx.Bolt(from, branch, c, 0.5f, 0.3f);
+            }
+            // Au sol, l'eclair rampe dans toutes les directions.
+            for (int k = 0; k < 6; k++)
+            {
+                float a = k / 6f * Mathf.PI * 2f + Random.value;
+                DivineFx.Bolt(p + Vector3.up * 0.3f, p + new Vector3(Mathf.Cos(a), 0.2f, Mathf.Sin(a)) * Random.Range(4f, 7f), c, 0.35f, 0.35f);
+            }
+            DivineFx.Scorch(p, 2.4f, 4f);
+            DivineFx.Debris(p + Vector3.up * 0.3f, 10, c, 10f);
+            Fx.Column(p, Color.white, 120f, 0.35f, 2.4f);
+            Fx.Column(p, c, 90f, 0.7f, 1.4f);
+            Fx.Shock(p + Vector3.up, c, Radius + 3f, 0.4f);
+            Fx.Shock(p + Vector3.up, Color.white, Radius + 1f, 0.2f);
+            Fx.Flash(p + Vector3.up * 3f, Color.white, 90f, 16f, 0.25f);
+            Fx.Flash(p + Vector3.up * 3f, c, 60f, 10f, 0.6f);
+            Fx.Burst(p + Vector3.up * 0.3f, c, 160, 18f, 0.18f, 0.6f, 0.2f, Vector3.up, 85f);
+            AbilityCaster.ShakeNear(p, 0.6f);
+            Camera cam = Camera.main;
+            float near = cam != null ? (cam.transform.position - p).magnitude : 999f;
+            if (near < 60f && Game.Hud != null) Game.Hud.Flash(new Color(1f, 1f, 1f, 0.45f * (1f - near / 60f)));
+            Sfx.Thunder(p, near < 70f);
             Destroy(gameObject);
         }
     }

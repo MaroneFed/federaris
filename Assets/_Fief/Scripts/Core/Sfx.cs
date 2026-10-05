@@ -1349,6 +1349,75 @@ namespace Fief
         public static void Ding(Vector3 at) { if (ding == null) ding = MakeDing(); At(at, 25f, ding, 1f); }
         public static void PopAt(Vector3 at) { Begin3D(at, 10f); Pop(); End3D(); }
 
+        // ------------------------------------------------------------- LE TONNERRE (v37)
+        //
+        // (13/10 -- Martin : "quand il y a des eclairs, je veux des sons d'eclairs, des bruits
+        // incroyables") : un vrai coup de tonnerre, fabrique ici, en trois versions. D'abord le
+        // CRAQUEMENT (un claquement sec, des crepitements aigus), puis le GRONDEMENT qui roule
+        // trois secondes, par vagues, de plus en plus grave. Tout pres : plein pot ; de loin, on
+        // entend surtout le grondement.
+
+        static AudioClip[] thunder;
+
+        static AudioClip MakeThunder(int seed)
+        {
+            float seconds = 3.4f;
+            int count = Mathf.RoundToInt(Rate * seconds);
+            float[] data = new float[count];
+            System.Random r = new System.Random(seed);
+            float low = 0f, low2 = 0f, band = 0f;
+            // Les vagues du grondement : trois ou quatre "rouleaux" a des instants au hasard.
+            float[] rolls = { 0.25f + (float)r.NextDouble() * 0.3f, 0.9f + (float)r.NextDouble() * 0.5f, 1.7f + (float)r.NextDouble() * 0.6f, 2.4f + (float)r.NextDouble() * 0.5f };
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / Rate;
+                float n = (float)r.NextDouble() * 2f - 1f;
+                // Le craquement : un bruit blanc tres court, et des clics qui crepitent 0,25 s.
+                float crack = n * Mathf.Exp(-t * 28f) * 1.4f;
+                if (t < 0.3f && r.NextDouble() < 0.02) crack += ((float)r.NextDouble() * 2f - 1f) * 1.6f * (1f - t / 0.3f);
+                // Le grondement : du bruit filtre de plus en plus grave, gonfle par les rouleaux.
+                float cut = Mathf.Lerp(0.12f, 0.015f, t / seconds);
+                low += (n - low) * cut;
+                low2 += (low - low2) * cut;
+                band += (low2 - band) * 0.5f;
+                float swell = 0.25f;
+                for (int k = 0; k < rolls.Length; k++)
+                {
+                    float u = t - rolls[k];
+                    if (u > 0f) swell += Mathf.Exp(-u * 2.2f) * Mathf.Min(1f, u * 8f) * (1f - k * 0.18f);
+                }
+                float rumble = band * 9f * swell * Mathf.Clamp01((seconds - t) / 1.2f);
+                float sub = Mathf.Sin(2f * Mathf.PI * 32f * t) * 0.25f * Mathf.Exp(-t * 0.9f) * Mathf.Min(1f, t * 20f);
+                float v = crack + rumble + sub;
+                data[i] = v / (1f + Mathf.Abs(v) * 0.6f);
+            }
+            Normalize(data, 0.97f);
+            return FromSamples("tonnerre" + seed, data);
+        }
+
+        /// <summary>UN COUP DE TONNERRE en "at" : plein pot tout pres, le grondement s'entend de toute l'ile.</summary>
+        static float lastThunderAt = -99f;
+
+        public static void Thunder(Vector3 at, bool near)
+        {
+            if (Muted || source == null || Time.time - lastThunderAt < 0.3f) return;
+            lastThunderAt = Time.time;
+            if (thunder == null)
+            {
+                thunder = new AudioClip[3];
+                for (int i = 0; i < thunder.Length; i++) thunder[i] = MakeThunder(101 + i * 17);
+            }
+            AudioClip clip = thunder[rng.Next(thunder.Length)];
+            Begin3D(at, 45f);
+            Play(clip, 1f);
+            End3D();
+            // De loin aussi : un grondement un peu plus doux, partout (comme un vrai orage).
+            if (!near) { Play(clip, 0.35f); return; }
+            Play(clip, 0.8f);
+            EnsureAbilitySounds();
+            Play(crackle, 0.9f);
+        }
+
         static AudioClip FromSamples(string name, float[] data)
         {
             // Petit fondu de fin : sans lui, la coupure nette fait un "clic".

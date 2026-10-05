@@ -208,7 +208,7 @@ namespace Fief
                 Color c = Random.value < 0.5f ? current.fireB : current.fireA;
                 Fx.Column(p, c, 320f, 0.25f, 3f);
                 Fx.Flash(p + Vector3.up * 120f, c, 400f, 6f, 0.25f);
-                Sfx.CrashAt(p);
+                if (Random.value < 0.5f) Sfx.Thunder(p, false);   // (v37) le tonnerre roule au loin
             }
         }
 

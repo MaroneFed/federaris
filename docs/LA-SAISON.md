@@ -220,6 +220,20 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
   Partout, le Clignement, la Taupe et le Grappin refusent de te poser **plus haut sur la tour** ;
   l'Échange refuse le porteur et quiconque est sur la tour.
 
+### En ligne, tout le monde voit tout (v37)
+
+> Martin, le 13/10 : « quand on lance une capacité, on est le seul à la voir, les autres ne voient
+> pas la capacité qu'on lance, ça n'a aucun sens ».
+
+Chaque capacité lancée part chez les autres joueurs (par l'hôte), qui la **rejouent** : les effets,
+les projectiles, les sons, l'annonce en haut de l'écran. Les **coups** ne comptent qu'une fois, sur
+la machine du lanceur, qui les envoie comme avant.
+
+**Le tonnerre et la boule de feu** (v37 — « on est en mode god, pas en mode bébé ; des sons d'éclairs
+incroyables ») : chaque éclair tombe de 120 m avec ses branches, rampe au sol, blanchit l'écran tout
+près, et **tonne** (un craquement sec, puis un grondement qui roule trois secondes) ; chaque grosse
+explosion a sa **boule de feu** qui gonfle et retombe.
+
 ### Le ciel de feu (v30)
 
 > Martin, le 08/10 : « quand on sélectionne le mode Dieu, tu as tout l'écran qui se met dans un
