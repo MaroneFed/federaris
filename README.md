@@ -13,7 +13,7 @@ Ce dossier est le projet Unity. Les règles du jeu : `docs/LA-SAISON.md`.
 ne contient qu'un ancien site web).
 
 **Comment savoir quelle version tourne :** en bas à droite de l'écran-titre est écrit
-`La Couronne · Castle · v37.1 · menu Jouer · 13/10` (et la même ligne dans la Console au lancement : `[FIEF] La
+`La Couronne · Castle · v37.2 · le mode au salon · 13/10` (et la même ligne dans la Console au lancement : `[FIEF] La
 Couronne…`). Si tu ne vois pas ça — ou si le menu dit encore « Entrer dans la sylve » —,
 Unity fait tourner une vieille copie.
 

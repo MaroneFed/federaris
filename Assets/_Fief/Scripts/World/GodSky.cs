@@ -212,10 +212,10 @@ namespace Fief
             }
         }
 
-        /// <summary>LE PASSAGE EN MODE DIEU : un eclair sur tout l'ecran, une colonne de feu sur la tour, un BOUM.</summary>
+        /// <summary>LE PASSAGE EN MODE DIEU : une colonne de feu sur la tour, un BOUM. (v37.2 : plus d'eclair
+        /// blanc puis orange sur tout l'ecran -- Martin : "pas le flash du debut du mode".)</summary>
         void Boom()
         {
-            Flash = 1f;
             Color fire = current.fireA;
             Vector3 top = new Vector3(0f, 105f, 0f);
             Fx.Column(new Vector3(0f, -40f, 0f), fire, 400f, 1.5f, 10f);

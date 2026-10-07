@@ -401,7 +401,7 @@ namespace Fief
             switch (Current)
             {
                 case State.Title: return TitleItems.Length;
-                case State.Play: return 4;
+                case State.Play: return PlayItems.Length;
                 case State.Lobby: return LobbyRows + 2;
                 case State.Online: return NetSession.Link == null ? 4 + FoundCount + SteamCount : HostingSalon ? OnlineRows + (NetSession.OverSteam ? 3 : 2) : 1;
                 case State.Paused: return PauseItems.Length;
@@ -416,8 +416,12 @@ namespace Fief
         // trop ; une seule categorie Jouer, ou tu choisis en ligne ou contre les bots, et l'option mode
         // Dieu") : quatre boutons. JOUER ouvre l'ecran du choix (State.Play).
         static readonly string[] TitleItems = { "Jouer", "Réglages", "Commandes", "Quitter" };
-        /// <summary>L'ecran JOUER : contre les bots, en ligne, le mode (Normal / DIEU), retour.</summary>
-        string[] PlayItems { get { return new[] { "Contre les bots", "En ligne", lobbyGod ? "Mode : DIEU" : "Mode : Normal", "Retour" }; } }
+        /// <summary>
+        /// L'ecran JOUER : contre les bots, en ligne, retour. (15/10, v37.2 -- Martin : "le mode Normal /
+        /// Dieu, tu le choisis une fois que tu joues, en ligne ou contre les bots") : le mode se regle
+        /// DANS le salon (contre les bots) et dans le salon en ligne, plus ici.
+        /// </summary>
+        static readonly string[] PlayItems = { "Contre les bots", "En ligne", "Retour" };
         /// <summary>Le Mode Dieu choisi au salon (le bouton du titre l'allume, Jouer l'eteint).</summary>
         bool lobbyGod;
         static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
@@ -447,7 +451,6 @@ namespace Fief
                 case State.Play:
                     if (i == 0) Go(State.Lobby);
                     else if (i == 1) Go(State.Online);
-                    else if (i == 2) { lobbyGod = !lobbyGod; if (lobbyGod) Sfx.Discovery(); selected = 2; }
                     else Go(State.Title);
                     break;
                 case State.Lobby:
@@ -990,8 +993,8 @@ namespace Fief
             if (Current == State.Title || Current == State.Play || Current == State.Lobby || Current == State.Online) GUI.DrawTexture(screen, vignette, ScaleMode.StretchToFill);
             // (08/10 -- "quand tu appuies sur la pastille, tout l'ecran se met dans un autre truc") :
             // le salon en Mode Dieu allume le ciel de feu (GodSky) ; l'ecran rougeoie et brule.
-            GodSky.MenuGod = lobbyGod && (Current == State.Play || Current == State.Lobby || Current == State.Online && HostingSalon);
-            if (Current == State.Play || Current == State.Lobby || Current == State.Online || Current == State.Draft) GodSky.DrawOverlay(true);
+            GodSky.MenuGod = lobbyGod && (Current == State.Lobby || Current == State.Online && HostingSalon);
+            if (Current == State.Lobby || Current == State.Online || Current == State.Draft) GodSky.DrawOverlay(true);
             if (veil > 0.001f) UiStyle.Fill(screen, new Color(0.015f, 0.014f, 0.012f, 0.84f * veil));
 
             // (02/10) Un ecran qui plante ne laisse plus la couleur ou le zoom de travers (sinon
@@ -1024,7 +1027,7 @@ namespace Fief
             }
             GUI.color = Color.white;
             GUI.matrix = Matrix4x4.identity;
-            GodSky.DrawFlash();
+            // (v37.2) Plus de flash blanc puis orange au passage en Mode Dieu : le ciel change, c'est tout.
 
             // Le rideau passe par-dessus tout, y compris le texte.
             if (curtain > 0.001f) UiStyle.Fill(screen, new Color(0f, 0f, 0f, curtain));
@@ -1197,8 +1200,8 @@ namespace Fief
         }
 
         /// <summary>
-        /// (v37) L'ECRAN JOUER : contre les bots (le salon), en ligne (l'ecran En ligne), et le mode --
-        /// Normal ou DIEU (un clic : le ciel s'embrase). Le choix suit dans le salon.
+        /// (v37) L'ECRAN JOUER : contre les bots (le salon), en ligne (l'ecran En ligne). Le mode
+        /// (Normal / DIEU) se choisit ensuite dans le salon.
         /// </summary>
         void DrawPlay()
         {
@@ -1212,15 +1215,9 @@ namespace Fief
             string[] items = PlayItems;
             for (int i = 0; i < items.Length; i++)
             {
-                bool primary = i == 0;
+                bool primary = i < 2;
                 float h = UiStyle.S(primary ? 70 : 56);
-                // Le mode : en or quand c'est DIEU.
-                if (i == 2 && lobbyGod)
-                {
-                    float beat = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
-                    Icons.Pill(new Rect(x - UiStyle.S(6), y - UiStyle.S(3), UiStyle.S(412), h + UiStyle.S(6)), new Color(1f, 0.45f + 0.3f * beat, 0.1f, 0.85f * ease));
-                }
-                if (Entry(new Rect(x, y, UiStyle.S(primary ? 440 : 400), h), items[i], i, primary, ease) && ease > 0.9f) Activate(i);
+                if (Entry(new Rect(x, y, UiStyle.S(440), h), items[i], i, primary, ease) && ease > 0.9f) Activate(i);
                 y += h + UiStyle.S(10);
                 if (i == 1) y += UiStyle.S(14);
             }

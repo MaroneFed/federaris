@@ -195,9 +195,7 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
 > Martin, le 08/10 : « une version God Mode de la map : un bouton où tu cliques et tu n'as que
 > des gods capacités, des trucs de malade mental, de vraiment, vraiment malade mental ».
 
-- **Où le choisir** (v37.1) : l'écran-titre n'a plus que **Jouer**, Réglages, Commandes, Quitter ; **Jouer** ouvre le choix — **Contre les bots**, **En ligne**, et **Mode : Normal / DIEU** (une fanfare, le ciel s'embrase). Le salon
-  s'ouvre alors en Mode Dieu (le titre dit « MODE DIEU », en or qui bat). Dans le salon — et dans le
-  salon en ligne, où l'hôte décide pour tout le monde — la ligne **Mode : Normal / DIEU**.
+- **Où le choisir** (v37.2) : l'écran-titre n'a plus que **Jouer**, Réglages, Commandes, Quitter ; **Jouer** ouvre le choix — **Contre les bots** ou **En ligne**, rien d'autre (13/10, Martin : « tu vas pas mettre mode jeu en dessous, ça n'a aucun sens »). Le mode se choisit **ensuite, dans le salon** — celui des bots, ou le salon en ligne, où l'hôte décide pour tout le monde — par la ligne **Mode : Normal / DIEU** (une fanfare, le ciel s'embrase, le titre dit « MODE DIEU », en or qui bat).
 - **La table divine** : on ne pioche que les **quarante-six divines** (trente-cinq actives, onze passives) et les plus folles des autres
   (Météore, Tornade, Trou noir, Boulet, Géant, Foudre, Prison, Bombe, Ballon, Séisme, Gant,
   Déluge, Missile, Raz-de-marée, Lasso, Geyser, Hypnose, Souffle, Apesanteur ; passives :
@@ -243,7 +241,8 @@ explosion a sa **boule de feu** qui gonfle et retombe.
 `World/GodSky.cs`. Au moment où l'on passe en Mode Dieu (le bouton du titre, la pastille
 **Mode** du salon) :
 
-- **le BOUM** : tout l'écran blanchit puis vire à l'orange, une colonne de feu jaillit de la
+- **le BOUM** (plus d'éclair blanc puis orange sur tout l'écran depuis v37.2 — Martin : « pas le flash
+  du début du mode » ; les flashs EN JEU restent) : une colonne de feu jaillit de la
   tour, une onde, un grondement, l'écran tremble ;
 - **le ciel vire au rouge sang et à l'or**, la brume devient braise, le soleil grossit et
   rougit, **la mer de nuages prend feu** ;
