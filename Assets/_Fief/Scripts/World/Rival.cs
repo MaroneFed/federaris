@@ -509,6 +509,17 @@ namespace Fief
             Vector3 hp = holder.Body.position;
             Monument dest = Monument.Nearest(hp);
             bool guard = dest != null && Guardian(dest) == this;
+            // (v40) Le porteur est sur MON ilot : on lui saute dessus.
+            if (IsletAt(hp) >= 0 && IsletAt(hp) == IsletAt(me)) { SetGoal(Goal.Hunt, hp, was); return; }
+            // (v40 -- Martin : "une fois qu'on a la couronne tout en haut, les bots n'ont pas le temps de
+            // nous rattraper, c'est des victoires faciles ; il faut qu'ils se disent : il est trop haut,
+            // on n'arrivera jamais a remonter, on va aux arbaletes pour aller le defoncer, et on ne le
+            // lache jamais") : L'EMBUSCADE. Le porteur est haut sur la tour et je ne suis pas juste
+            // derriere lui : courir apres lui dans la rampe ne sert a rien -- il sautera bien avant.
+            // J'attends ou il VA : un des trois Monuments (chacun le sien, pour les couvrir tous), par
+            // l'arbaleste la plus proche, et j'y monte la garde. Le porteur en vol : tout le monde
+            // se rabat sur le Monument vers lequel il file.
+            if (Ambush(holder, hp, was)) return;
             if (OnFoot(hp))
             {
                 if (guard && Flat(hp - dest.transform.position).magnitude > 60f
@@ -528,6 +539,58 @@ namespace Fief
             if (TryAnyBallistaTo(aimAt, 14f, guard ? Goal.Guard : Goal.Hunt, hp, was)) return;
             // Personne a portee : au bord de l'ile, face a lui.
             SetGoal(Goal.Guard, EdgeToward(hp), was);
+        }
+
+        /// <summary>
+        /// L'EMBUSCADE (v40). Vrai s'il s'en occupe (il y va, ou il y monte deja la garde).
+        /// </summary>
+        bool Ambush(Seeker holder, Vector3 hp, Goal was)
+        {
+            if (Match.BotLevel == 0 || Monument.All.Count == 0) return false;
+            Vector3 me = transform.position;
+            bool inAir = !OnFoot(hp) && IsletAt(hp) < 0;
+            bool highOnTower = Tower.On(hp) && hp.y > 22f;
+            // Juste derriere lui sur la tour (moins de 16 m plus bas) : on continue de le chasser a pied.
+            bool closeBehind = Tower.On(me) && hp.y - me.y < 16f && me.y - hp.y < 30f;
+            if (!(highOnTower && !closeBehind || inAir)) return false;
+            // En vol : le Monument vers lequel il file (dans 4 s, a sa vitesse). Sinon : chacun le sien.
+            Monument m;
+            if (inAir) m = Monument.Nearest(hp + Vector3.ClampMagnitude(preyVelocity, 25f) * 4f);
+            else m = Monument.All[Mathf.Abs(seeker.Index) % Monument.All.Count];
+            if (m == null) return false;
+            Vector3 mp = m.transform.position;
+            // Sa place autour du cercle (pas tous au meme endroit : on se gene, et on se fait pousser ensemble).
+            float a = seeker.Index * 2.399f;
+            Vector3 post = mp + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Monument.DeliverRadius + 1.5f);
+            int myIslet = IsletAt(me);
+            if (myIslet >= 0 && myIslet == m.Islet) { SetGoal(Goal.Guard, post, was); return true; }
+            // Deja sur l'ilot d'un AUTRE Monument pendant que le porteur vole : je garde le mien, s'il
+            // reste a garder (sinon le porteur va ailleurs et je dois le suivre).
+            if (myIslet >= 0 && !inAir)
+            {
+                for (int i = 0; i < Monument.All.Count; i++)
+                    if (Monument.All[i] != null && Monument.All[i].Islet == myIslet)
+                    {
+                        Vector3 here = Monument.All[i].transform.position;
+                        SetGoal(Goal.Guard, here + (Flat(me - here).sqrMagnitude > 0.01f ? Flat(me - here).normalized : Vector3.forward) * (Monument.DeliverRadius + 1.5f), was);
+                        return true;
+                    }
+            }
+            // L'arbaleste qui m'y pose (je vole droit sur ma place, en vol libre).
+            if (TryAnyBallistaTo(mp, 14f, Goal.Guard, post, was)) return true;
+            if (goal == Goal.Ballista && ballista != null) return true;    // deja en route vers la sienne
+            // Rien pour l'instant (la recherche ne se fait que toutes les 2 s) : sortir de la citadelle,
+            // vers le bord de l'ile du cote du Monument -- les arbalestes sont la.
+            if (Castle.Inside(me) || OnFoot(me)) { SetGoal(Goal.Guard, EdgeToward(mp), was); return true; }
+            // Sur un ilot sans tir possible : il ne se jette pas dans le vide, il garde l'endroit.
+            if (myIslet >= 0)
+            {
+                Monument mine = null;
+                for (int i = 0; i < Monument.All.Count; i++) if (Monument.All[i] != null && Monument.All[i].Islet == myIslet) mine = Monument.All[i];
+                SetGoal(Goal.Guard, mine != null ? mine.transform.position + Flat(me - mine.transform.position).normalized * (Monument.DeliverRadius + 1.5f) : me, was);
+                return true;
+            }
+            return false;
         }
 
         /// <summary>Un point au bord de l'ile (dehors, sur l'herbe), du cote de "p".</summary>

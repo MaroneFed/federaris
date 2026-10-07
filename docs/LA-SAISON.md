@@ -865,6 +865,23 @@ ou alors comme des cons ».
   (mine, colle, bananes, loup, feu) quand quelqu'un le suit de près ; **géant, fantôme, invincible**
   quand ça chauffe autour de lui. Les bots faciles réfléchissent moins.
 
+
+**L'embuscade (v40)** — Martin, 13/10 : « une fois qu'on a la couronne tout en haut, les bots n'ont
+pas le temps de nous rattraper, c'est des victoires faciles ; il faut qu'ils se disent : il est trop
+haut, on n'arrivera jamais à remonter, on va aux arbalètes pour aller le défoncer, et on ne le lâche
+jamais ».
+
+- **Le porteur est haut sur la tour** (plus de 22 m) et le bot **n'est pas juste derrière lui** (à
+  moins de 16 m plus bas) : il ne le suit plus dans la rampe. Il va l'attendre **là où il va** :
+  chaque bot prend **un des trois Monuments** (les trois sont couverts), y va par **l'arbaleste** la
+  plus proche — en ressortant de la citadelle par sa porte s'il le faut — et, tiré, vole droit sur
+  sa place ; arrivé, il **monte la garde** autour du cercle, chacun à sa place (pas tous en tas).
+- **Le porteur en vol** : tout le monde se rabat sur le Monument vers lequel il file (on prolonge sa
+  course de 4 s).
+- **Le porteur se pose sur son îlot** : le bot lui saute dessus (poussée = vol de la Couronne).
+- Ceux qui sont **juste derrière lui** sur la tour continuent de le chasser à pied. Les bots faciles
+  ne tendent pas d'embuscade.
+
 ## Retiré
 
 - Le 26/09 : stèles, butin, ressources, camp et caches, construction, Autels,
