@@ -196,6 +196,13 @@ namespace Fief
         public static void Draw(Rect card, Color tint, string name, string line, float cooldown, string key, string replaces,
                                 bool owned, bool on, float lift, float enter, string icon)
         {
+            Draw(card, tint, name, line, cooldown, key, replaces, owned, on, lift, enter, icon, -1);
+        }
+
+        /// <summary>(v41) La carte avec son RANG (-1 : sans) : cadre, joyau et ruban a sa couleur.</summary>
+        public static void Draw(Rect card, Color tint, string name, string line, float cooldown, string key, string replaces,
+                                bool owned, bool on, float lift, float enter, string icon, int tier)
+        {
             Ensure();
             if (Event.current.type != EventType.Repaint) return;
             float time = Time.unscaledTime;
@@ -234,7 +241,16 @@ namespace Fief
             // L'ombre franche, le liseré sombre.
             Round(new Rect(card.x, card.y + UiStyle.S(9), card.width, card.height), new Color(0f, 0f, 0.05f, 0.4f), radius, false);
             if (on) Round(Grow(card, line4 * 2f), new Color(1f, 0.9f, 0.45f, 0.5f + 0.5f * lift), radius + line4 * 2, false);
-            Round(Grow(card, line4), on ? new Color(1f, 0.9f, 0.45f) : Icons.Ink, radius + line4, false);
+            Color rank = tier >= 0 ? AbilityInfo.TierColour(tier) : Icons.Ink;
+            // (v41) Le cadre a la couleur du rang ; une legendaire et une divine rayonnent toujours un peu.
+            if (tier >= 3 && turn >= 0.5f)
+            {
+                float pulse = 0.5f + 0.5f * Mathf.Sin(time * 3f);
+                float gg = card.width * 0.22f;
+                Tex(new Rect(card.x - gg, card.y - gg, card.width + gg * 2f, card.height + gg * 2f), glow, new Color(rank.r, rank.g, rank.b, (tier == 4 ? 0.45f : 0.3f) + 0.15f * pulse));
+            }
+            if (tier >= 0 && !on) Round(Grow(card, line4 * 1.6f), new Color(rank.r * 0.55f, rank.g * 0.55f, rank.b * 0.55f), radius + Mathf.RoundToInt(line4 * 1.6f), false);
+            Round(Grow(card, line4), on ? new Color(1f, 0.9f, 0.45f) : tier >= 0 ? rank : Icons.Ink, radius + line4, false);
 
             if (!showFace)
             {
@@ -327,8 +343,30 @@ namespace Fief
                 Icons.Number(new Rect(rb.x + rb.height, rb.y, rb.width - rb.height * 1.3f, rb.height), replaces, Mathf.RoundToInt(rb.height * 0.56f), Color.white, TextAnchor.MiddleCenter);
             }
 
-            // Le reflet qui traverse la carte visee.
-            if (on)
+            // (v41) LE JOYAU DU RANG, a cheval sur le haut de la carte, et son nom sur un ruban.
+            if (tier >= 0)
+            {
+                int rs = Mathf.RoundToInt(Mathf.Clamp(card.width * 0.075f, UiStyle.S(11), UiStyle.S(15)));
+                string rn = AbilityInfo.TierName(tier);
+                float rw = Icons.Width(rn, rs) + rs * 2.2f;
+                float rh = Mathf.Round(rs * 1.7f);
+                Rect ribbon = Icons.Snap(new Rect(card.center.x - rw * 0.5f, card.y - rh * 0.55f, rw, rh));
+                Icons.Pill(Grow(ribbon, 2f), new Color(0.08f, 0.06f, 0.16f));
+                Icons.Pill(ribbon, new Color(rank.r * 0.85f, rank.g * 0.85f, rank.b * 0.85f));
+                Icons.Number(ribbon, rn, rs, Color.white, TextAnchor.MiddleCenter);
+                // Les gemmes : une par rang au-dessus de "commune", sous le ruban.
+                float gem = Mathf.Round(rs * 0.8f);
+                float gx = card.center.x - (tier * gem + (tier - 1) * gem * 0.4f) * 0.5f;
+                for (int k = 0; k < tier; k++)
+                {
+                    Rect gr = Icons.Snap(new Rect(gx + k * gem * 1.4f, ribbon.yMax + UiStyle.S(3), gem, gem));
+                    Icons.Pill(Grow(gr, 1f), new Color(0.08f, 0.06f, 0.16f));
+                    Icons.Pill(gr, Color.Lerp(rank, Color.white, 0.25f));
+                }
+            }
+
+            // Le reflet qui traverse la carte visee (et, v41, toujours celui des legendaires et divines).
+            if (on || tier >= 3)
             {
                 float sweep = Mathf.Repeat(time * 0.7f, 1.8f) - 0.4f;
                 Matrix4x4 rm = GUI.matrix;
@@ -398,7 +436,7 @@ namespace Fief
             if (mine) Sfx.Pop();
         }
 
-        static void Emit(Vector2 at, Vector2 velocity, float life, Color c)
+        public static void Emit(Vector2 at, Vector2 velocity, float life, Color c)
         {
             if (sparkPos.Count > 400) return;
             sparkPos.Add(at);

@@ -2150,9 +2150,27 @@ namespace Fief
             // (01/10) Plus de bande rouge "remplace ..." : les capacites changent a chaque
             // manche, elle s'affichait sur TOUTES les cartes et ne disait rien.
             bool active = AbilityInfo.IsActive(p);
+            int tier = AbilityInfo.Tier(p);
             CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), AbilityInfo.Line(p),
-                         active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, null, owned, on, lift, enter, Icons.Of(p));
+                         active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, null, owned, on, lift, enter, Icons.Of(p), tier);
+            // (v41) UNE LEGENDAIRE (ou une divine) SE RETOURNE AVEC FRACAS : un son, une gerbe a la
+            // couleur du rang, une seule fois par carte.
+            int slot = System.Array.IndexOf(cardRects, card);
+            if (Event.current.type == EventType.Repaint && tier >= 3 && enter >= 0.5f && slot >= 0 && slot < revealed.Length && !revealed[slot])
+            {
+                revealed[slot] = true;
+                Sfx.Discovery();
+                Color rc = AbilityInfo.TierColour(tier);
+                for (int k = 0; k < (tier == 4 ? 40 : 24); k++)
+                {
+                    float a = k * 0.7f;
+                    CardArt.Emit(new Vector2(card.center.x, card.y + card.height * 0.3f), new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * Random.Range(120f, 320f), 0.9f, Color.Lerp(rc, Color.white, 0.3f));
+                }
+            }
+            if (Event.current.type == EventType.Repaint && enter < 0.5f && slot >= 0 && slot < revealed.Length) revealed[slot] = false;
         }
+
+        readonly bool[] revealed = new bool[16];
 
         // ------------------------------------------------------------------ fin du match
 

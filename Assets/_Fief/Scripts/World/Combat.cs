@@ -239,6 +239,8 @@ namespace Fief
             // Couronne -- en Mode Dieu comme en Normal. (La poussee et le pique d'aigle, eux,
             // la VOLENT : voir Shove et Dive.)
             if (by != null && by != victim && !quietHit) dropsCrown = true;
+            // (v41) Ta capacite touche quelqu'un : croix de touche, "ding", combo (pas la poussee : elle a son BOUM).
+            if (!quietHit && by != null && by != victim && !victim.Graced) CastFeel.Hit(by, victim, velocity.magnitude);
             // (04/10, en ligne) LE JOUEUR D'UNE AUTRE MACHINE : le coup part chez lui (par l'hote,
             // qui decide de la Couronne). Ici, on n'en montre que le choc.
             if (victim.Remote) { HitElsewhere(victim, velocity, stun, dropsCrown, by); return; }
@@ -397,6 +399,7 @@ namespace Fief
             // INCREVABLE : les sorts durent deux fois moins longtemps.
             if (victim.Has(Ability.Increvable)) seconds *= 0.5f;
             seconds = Mathf.Clamp(seconds, 0f, 12f);
+            CastFeel.Hit(by, victim, 12f);      // (v41) ta capacite a touche : croix, ding, combo
             float until = Time.time + seconds;
             switch (what)
             {

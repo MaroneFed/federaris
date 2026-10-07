@@ -480,6 +480,17 @@ namespace Fief
             float big = UiStyle.S(96), small = UiStyle.S(66);
             float y = Screen.height - UiStyle.S(30) - big;
 
+            // (v41) Le rond de ta capacite est cercle de la couleur de son RANG ; legendaire et divine,
+            // pretes, il bat doucement.
+            if (me.HasActive)
+            {
+                int tier = AbilityInfo.Tier(me.CurrentActive);
+                Color rc = AbilityInfo.TierColour(tier);
+                bool ready = me.Ready(me.CurrentActive, now);
+                float beat = tier >= 3 && ready ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f) : 0f;
+                float g = Mathf.Round(UiStyle.S(5) + beat * UiStyle.S(4));
+                Icons.Pill(new Rect(cx - big * 0.5f - g, y - g, big + g * 2f, big + g * 2f), new Color(rc.r, rc.g, rc.b, 0.85f));
+            }
             if (me.HasActive) AbilityTile(new Rect(cx - big * 0.5f, y, big, big), AbilityInfo.Keys[0], me.CurrentActive, me, now, me.HasGift, AbilityUser.AimingSlot == 0);
 
             // La passive, a gauche.

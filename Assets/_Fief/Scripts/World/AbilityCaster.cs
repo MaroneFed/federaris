@@ -1097,6 +1097,7 @@ namespace Fief
             // (v36) "GOTAGA  COMETE !" en haut de l'ecran, pour les grosses.
             if (!EchoCast.Echoing) Warnings.Announce(s, a);
             Flourish(s, a, pos, tint);
+            if (!EchoCast.Echoing) CastFeel.Cast(s, a);     // (v41) le depart, dans TES yeux
             if (s.IsPlayer) Stats.Casts++;
             // (v37) Les autres la voient : elle part chez eux (rejouee la-bas, sans effet).
             if (Replaying) return true;

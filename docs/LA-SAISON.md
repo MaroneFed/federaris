@@ -399,6 +399,39 @@ GAUCHE / PASSIVE), le nom, un fleuron, la phrase, la recharge. Celle qu'on vise 
 soulève, s'entoure de **rayons qui tournent** et d'étincelles ; la prendre : un éclair,
 une gerbe d'étincelles, un **coup de phonk**.
 
+### L'ADN des capacités (v41)
+
+> Martin, 14/10 : « refais tout le design de toutes les capacités ; je veux des dingueries, que ce
+> soit exceptionnel pour celui qui la porte ; il faut donner au jeu une ADN incroyable ».
+
+**Le rang.** Chaque capacité a un rang (`AbilityInfo.Tier`) : **COMMUNE** (ardoise), **RARE**
+(bleu), **ÉPIQUE** (violet), **LÉGENDAIRE** (or), **DIVINE** (couleurs qui changent, Mode Dieu). Le
+rang ne change rien à ce qu'elle fait : il dit **combien elle frappe fort**. Les petits plus (courir
+vite, double saut, fumée…) sont communs ; les sorts et attaques, épiques ; les showstoppers
+(Souffle, Trou noir, Météore, Prison, Boulet, Tornade, Séisme, Raz-de-marée, Missile, Lasso, Géant,
+Fusée, Hypnose, Kamikaze, Riposte, et tous les classiques), légendaires ; les divines, divines.
+
+- **Sur la carte** : le cadre à la couleur du rang, un **ruban** avec son nom à cheval sur le haut,
+  une **gemme** par rang au-dessus de commune ; légendaires et divines ont un halo et un reflet
+  permanents, et **se retournent avec fracas** (un son, une gerbe d'étincelles à leur couleur).
+- **Au HUD** : le rond de ta capacité est cerclé de la couleur de son rang ; une légendaire ou une
+  divine prête **bat** doucement.
+
+**La sensation pour celui qui la lance** (`UI/CastFeel.cs`) — en première personne on ne se voit pas
+lancer ; jusqu'ici on entendait un son, et l'effet partait devant. Maintenant, trois temps, dosés par
+le rang :
+
+1. **Le départ** : ta caméra **encaisse** (le champ de vision s'ouvre d'un coup, une secousse), une
+   gerbe à la couleur de la capacité jaillit **du viseur** ; légendaire et divine : un coup sourd, et
+   **les bords de l'écran s'embrasent** un instant.
+2. **La touche** : ta capacité touche quelqu'un → une **croix de touche** s'allume autour du viseur
+   (blanc et couleur de la capacité), un **« ding » qui monte d'une note** à chaque joueur touché, et
+   un **temps d'arrêt** (hit-stop) sur les gros coups.
+3. **Le combo** : plusieurs joueurs touchés en moins d'1,5 s → **« x2 », « x3 »…** à côté du viseur,
+   de plus en plus gros (et un temps d'arrêt au troisième).
+
+Rien de tout ça ne se voit chez les autres : c'est **ta** sensation. (La poussée garde son BOUM.)
+
 ### La montée (v38)
 
 > Martin, 13/10 : « les capas doivent être de plus en plus cheatées ; plus on avance dans le temps,

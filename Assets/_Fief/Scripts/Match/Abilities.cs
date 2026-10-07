@@ -93,6 +93,53 @@ namespace Fief
             }
         }
 
+        // ================================================================== le rang (v41)
+
+        /// <summary>
+        /// LE RANG D'UNE CAPACITE (14/10, v41 -- Martin : "je veux une dinguerie, que le jeu ait une
+        /// ADN incroyable") : 0 COMMUNE, 1 RARE, 2 EPIQUE, 3 LEGENDAIRE, 4 DIVINE. Il ne change pas ce
+        /// que la capacite fait : il dit COMBIEN elle frappe fort. La carte porte sa couleur (cadre,
+        /// joyau, ruban), une legendaire se retourne avec fracas, et au lancer ton ecran le sent
+        /// d'autant plus (CastFeel).
+        /// </summary>
+        public static int Tier(Ability a)
+        {
+            if (IsGod(a)) return 4;
+            if (IsBig(a)) return 3;
+            switch (a)
+            {
+                case Ability.Souffle: case Ability.TrouNoir: case Ability.Meteore: case Ability.Prison: case Ability.Boulet:
+                case Ability.Tornade: case Ability.Seisme: case Ability.Raz: case Ability.Missile: case Ability.Lasso:
+                case Ability.Geant: case Ability.Fusee: case Ability.Hypnose: case Ability.Kamikaze: case Ability.Riposte:
+                    return 3;
+                case Ability.Coureur: case Ability.Ombre: case Ability.Flair: case Ability.Recharge: case Ability.Rebond:
+                case Ability.Sprinter: case Ability.Chanceux: case Ability.Increvable: case Ability.Rappel: case Ability.Nuee:
+                case Ability.DoubleSaut: case Ability.Kangourou: case Ability.BrasLongs: case Ability.PriseFerme:
+                    return 0;
+            }
+            if (InGodPool(a)) return 2;
+            if (IsActive(a) && AbilityCaster.Offensive(a)) return 2;
+            return 1;
+        }
+
+        public static string TierName(int t)
+        {
+            switch (t) { case 0: return "COMMUNE"; case 1: return "RARE"; case 2: return "ÉPIQUE"; case 3: return "LÉGENDAIRE"; default: return "DIVINE"; }
+        }
+
+        /// <summary>La couleur du rang : ardoise, bleu, violet, or, et la divine qui change de teinte.</summary>
+        public static Color TierColour(int t)
+        {
+            switch (t)
+            {
+                case 0: return new Color(0.62f, 0.68f, 0.78f);
+                case 1: return new Color(0.3f, 0.62f, 1f);
+                case 2: return new Color(0.72f, 0.38f, 1f);
+                case 3: return new Color(1f, 0.74f, 0.18f);
+                default: return Color.HSVToRGB(Mathf.Repeat(Time.unscaledTime * 0.25f, 1f), 0.55f, 1f);
+            }
+        }
+
         /// <summary>(v36) Les grosses capacites hors table divine qui meritent l'annonce a l'ecran (Warnings).</summary>
         public static bool IsBig(Ability a)
         {

@@ -49,6 +49,7 @@ namespace Fief
             DrawDanger();
             DrawCast();
             DrawSurge();
+            CastFeel.Draw();
         }
 
         // (v38) LA MONTEE : a chaque palier (x1,5, x2, x2,5), un bandeau en or et un son.
