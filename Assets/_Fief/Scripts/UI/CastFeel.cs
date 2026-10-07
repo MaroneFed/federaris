@@ -33,6 +33,7 @@ namespace Fief
         static int combo;
         static float comboAt = -99f;
         static bool bigHit;
+        static readonly System.Collections.Generic.List<Seeker> touched = new System.Collections.Generic.List<Seeker>();
 
         const float CastLife = 0.45f;
         const float HitLife = 0.32f;
@@ -59,13 +60,19 @@ namespace Fief
         {
             if (by == null || !by.IsPlayer || victim == null || victim == by) return;
             float now = Time.unscaledTime;
-            if (now - comboAt > ComboWindow) combo = 0;
+            if (now - comboAt > ComboWindow) { combo = 0; touched.Clear(); }
+            hitAt = now;
+            // (v42, le gamer) Le combo compte des JOUEURS DIFFERENTS : le Dragon qui brule le meme
+            // joueur dix fois affichait "x10" pour un seul.
+            if (touched.Contains(victim)) { Sfx.Beep(1f + Mathf.Min(combo - 1, 6) * 0.12f); return; }
+            touched.Add(victim);
             combo++;
             comboAt = now;
-            hitAt = now;
             hitTint = by.HasActive ? AbilityInfo.Tint(by.CurrentActive) : Color.white;
             bigHit = force > 20f || combo >= 3;
             Sfx.Beep(1f + Mathf.Min(combo - 1, 6) * 0.12f);
+            // (v42, le logicien) Pas de temps d'arret en ligne : il ralentissait TA machine seule.
+            if (Match.Online) return;
             if (combo == 1 && force > 22f) Hud.HitStop(0.05f);
             else if (combo == 3) Hud.HitStop(0.08f);
         }

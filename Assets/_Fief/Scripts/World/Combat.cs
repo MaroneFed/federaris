@@ -65,7 +65,8 @@ namespace Fief
             if (by.Giant) force *= 1.6f;
             if (by.Has(Ability.MainLourde)) force *= 2.5f;
             // (06/10) RAGE : chaque coup recu depuis ta derniere poussee la rend plus forte (x2,5 au plus).
-            if (by.Rage > 0) { force *= 1f + 0.25f * by.Rage; by.Rage = 0; }
+            // (v42, le logicien) La Rage ne se vide plus sur une poussee dans le vide : seulement si elle touche.
+            float rage = by.Rage > 0 ? 1f + 0.25f * by.Rage : 1f;
             // (07/10) COUP DE PIED : cette poussee-ci envoie trois fois plus loin.
             bool kick = Time.time < by.SuperShoveUntil;
             float reach = ReachOf(by);
@@ -79,6 +80,7 @@ namespace Fief
                 if (d < bestD) { bestD = d; best = s; }
             }
             if (best == null) return false;
+            if (rage > 1f) { force *= rage; by.Rage = 0; }
             if (kick) { force *= 3f; by.SuperShoveUntil = -1f; Fx.Shock(best.Body.position + Vector3.up, AbilityInfo.Tint(Ability.CoupDePied), 3f, 0.3f); }
             // (v36) LE HOME RUN : toutes les 4 poussees reussies, la suivante envoie 3 fois plus loin.
             if (by.Has(Ability.HomeRun) && !best.Graced)
@@ -240,7 +242,11 @@ namespace Fief
             // la VOLENT : voir Shove et Dive.)
             if (by != null && by != victim && !quietHit) dropsCrown = true;
             // (v41) Ta capacite touche quelqu'un : croix de touche, "ding", combo (pas la poussee : elle a son BOUM).
-            if (!quietHit && by != null && by != victim && !victim.Graced) CastFeel.Hit(by, victim, velocity.magnitude);
+            if (!quietHit && by != null && by != victim && !victim.Graced)
+            {
+                CastFeel.Hit(by, victim, velocity.magnitude);
+                Highlights.CapacityHit(by, victim);
+            }
             // (04/10, en ligne) LE JOUEUR D'UNE AUTRE MACHINE : le coup part chez lui (par l'hote,
             // qui decide de la Couronne). Ici, on n'en montre que le choc.
             if (victim.Remote) { HitElsewhere(victim, velocity, stun, dropsCrown, by); return; }
@@ -271,6 +277,13 @@ namespace Fief
             }
             // (06/10) Le MINI part deux fois plus loin.
             if (victim.Tiny) velocity = new Vector3(velocity.x * 2f, velocity.y * 1.3f, velocity.z * 2f);
+            // (v42, le logicien) LE PLAFOND : puissance x2,5, Rage x2,5, Mini x2... une projection
+            // pouvait depasser 150 m/s et faire traverser un mur en une image. 70 m/s a plat, 60 en haut.
+            {
+                Vector3 flat = new Vector3(velocity.x, 0f, velocity.z);
+                if (flat.magnitude > 70f) flat = flat.normalized * 70f;
+                velocity = new Vector3(flat.x, Mathf.Clamp(velocity.y, -40f, 60f), flat.z);
+            }
             // La PRISON : le premier coup brise la cage (sinon dix secondes, c'est horrible).
             if (victim.Rooted) victim.RootedUntil = -1f;
             // La RAGE monte a chaque coup recu d'un joueur.
@@ -399,7 +412,11 @@ namespace Fief
             // INCREVABLE : les sorts durent deux fois moins longtemps.
             if (victim.Has(Ability.Increvable)) seconds *= 0.5f;
             seconds = Mathf.Clamp(seconds, 0f, 12f);
-            CastFeel.Hit(by, victim, 12f);      // (v41) ta capacite a touche : croix, ding, combo
+            // (v42, le logicien) Apres le Miroir (avant, ta croix de touche s'allumait meme quand ton
+            // sort te revenait dessus) ; et le sort compte comme un coup : enchaine puis pousse dans
+            // le vide, le KO est a celui qui l'a enchaine.
+            CastFeel.Hit(by, victim, 12f);
+            if (by != null && by != victim) { victim.LastHitBy = by; victim.LastHitByAt = Time.time; }
             float until = Time.time + seconds;
             switch (what)
             {

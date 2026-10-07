@@ -38,7 +38,7 @@ namespace Fief
     /// </summary>
     public static class Highlights
     {
-        public enum Kind { KO, DoubleKO, AirSteal, SacreStopped, Buzzer, Remontada, DoublePush, Revenge, HotPotato, Sniped, Dodge, Summit }
+        public enum Kind { KO, DoubleKO, AirSteal, SacreStopped, Buzzer, Remontada, DoublePush, Revenge, HotPotato, Sniped, Dodge, Summit, Multi }
 
         static readonly Dictionary<Seeker, float> lastShoveAt = new Dictionary<Seeker, float>();
         static readonly Dictionary<Seeker, Seeker> lastShoved = new Dictionary<Seeker, Seeker>();
@@ -85,6 +85,7 @@ namespace Fief
             lastShoved.Clear();
             lastKoAt.Clear();
             crownChanges.Clear();
+            recentHits.Clear();
         }
 
         static bool Live { get { return Game.Season != null && Game.Season.Running; } }
@@ -181,6 +182,26 @@ namespace Fief
             if (s.Slot.Wins == 0 && lead >= 2) Show(Kind.Remontada, s, null, s.Body != null ? s.Body.position : Vector3.zero);
         }
 
+        // (v42, le clipper) Les gargouilles sont parties (v36) : "ABATTU EN VOL" et "ESQUIVE" ne
+        // tombaient plus jamais. Deux moments de capacite les remplacent :
+        //   ABATTU EN VOL   ta capacite touche le porteur en plein ciel ;
+        //   TRIPLE !        ta capacite touche trois joueurs differents en 1,2 s.
+        static readonly Dictionary<Seeker, List<KeyValuePair<Seeker, float>>> recentHits = new Dictionary<Seeker, List<KeyValuePair<Seeker, float>>>();
+
+        /// <summary>Une capacite de "by" vient de toucher "victim" (Combat.Hit).</summary>
+        public static void CapacityHit(Seeker by, Seeker victim)
+        {
+            if (!Live || by == null || victim == null || victim.Body == null) return;
+            if (victim.CarriesCrown && !Physics.Raycast(victim.Body.position + Vector3.up * 0.3f, Vector3.down, 4f, ~0, QueryTriggerInteraction.Ignore))
+                Show(Kind.Sniped, by, victim, victim.Body.position);
+            List<KeyValuePair<Seeker, float>> list;
+            if (!recentHits.TryGetValue(by, out list)) { list = new List<KeyValuePair<Seeker, float>>(); recentHits[by] = list; }
+            float now = Time.time;
+            list.RemoveAll(h => now - h.Value > 1.2f || h.Key == victim);
+            list.Add(new KeyValuePair<Seeker, float>(victim, now));
+            if (list.Count >= 3) { list.Clear(); Show(Kind.Multi, by, null, victim.Body.position); }
+        }
+
         /// <summary>Une gargouille a touche le porteur en plein vol (Eye.Fire).</summary>
         public static void Sniped(Seeker victim)
         {
@@ -210,6 +231,7 @@ namespace Fief
                 case Kind.HotPotato: return "couronne";
                 case Kind.Sniped: return "chute";
                 case Kind.Summit: return "tour";
+                case Kind.Multi: return "clip";
                 default: return "ailes";
             }
         }
@@ -229,6 +251,7 @@ namespace Fief
                 case Kind.HotPotato: return "PATATE CHAUDE !";
                 case Kind.Sniped: return "LE PORTEUR ABATTU !";
                 case Kind.Summit: return "VIRÉ DU SOMMET !";
+                case Kind.Multi: return "TRIPLÉ !";
                 default: return "ESQUIVE !";
             }
         }
@@ -262,7 +285,7 @@ namespace Fief
                 if (actor != null && (k == Kind.KO || k == Kind.DoubleKO)) kos[actor.Index] = (kos.TryGetValue(actor.Index, out n) ? n : 0) + 1;
             }
             // La foule fait "OOOOH" sur les plus gros (le clipper fou n° 499).
-            if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal || k == Kind.SacreStopped || k == Kind.HotPotato || k == Kind.Summit)
+            if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal || k == Kind.SacreStopped || k == Kind.HotPotato || k == Kind.Summit || k == Kind.Sniped || k == Kind.Multi)
                 Sfx.Crowd(k == Kind.DoubleKO || k == Kind.AirSteal ? 0.8f : 0.55f);
             Color gold = new Color(1f, 0.82f, 0.4f);
             bool mine = actor != null && actor.IsPlayer;

@@ -26,7 +26,9 @@ namespace Fief
         /// <summary>Les capacites qui meritent l'annonce : les divines et les plus folles.</summary>
         public static bool Worth(Ability a)
         {
-            return AbilityInfo.IsActive(a) && (AbilityInfo.IsGod(a) || AbilityInfo.InGodPool(a) || AbilityInfo.IsBig(a));
+            // (v42, le gamer) Depuis que les bots lancent leurs capacites (v39), le bandeau tombait
+            // sans arret : seulement les LEGENDAIRES et les DIVINES.
+            return AbilityInfo.IsActive(a) && AbilityInfo.Tier(a) >= 3;
         }
 
         /// <summary>"by" vient de lancer "a" (AbilityCaster.Cast).</summary>
@@ -35,6 +37,8 @@ namespace Fief
             if (by == null || by.IsPlayer || by.Body == null || !Worth(a)) return;
             Camera cam = Camera.main;
             if (cam != null && (cam.transform.position - by.Body.position).magnitude > 170f) return;
+            // Un bandeau a la fois : le suivant attend 1,5 s, sauf s'il annonce plus gros.
+            if (castBy != null && Time.unscaledTime - castAt < 1.5f && AbilityInfo.Tier(a) <= AbilityInfo.Tier(castWhat)) return;
             castBy = by;
             castWhat = a;
             castAt = Time.unscaledTime;

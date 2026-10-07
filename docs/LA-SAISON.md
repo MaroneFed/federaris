@@ -939,6 +939,22 @@ jamais ».
   cognait en poussant : il reste le dallage, le cercle, les pierres levées et deux braseros sans
   collision) ; **le bouclier divin du porteur** (v32) ; **le temps d'attente de la poussée**.
 
+## Les quatre chiants (v42)
+
+Après la porte 3 (14/10), quatre relectures de cent points chacune — le gamer, la designer, le
+logicien, le clipper : `docs/QUATRE-CHIANTS.md`. Corrigé tout de suite :
+
+- un **sort** (prison, hypnose…) compte comme un coup pour le **KO** ;
+- la **croix de touche** ne s'allume plus quand ton sort est renvoyé par un Miroir ;
+- **pas de temps d'arrêt en ligne** (il ralentissait ta machine seule) ;
+- le **combo** compte des joueurs **différents** ;
+- le **bandeau d'annonce** des capacités : seulement les légendaires et les divines, un à la fois ;
+- deux moments à clipper neufs à la place de ceux des gargouilles : **ABATTU EN VOL** (ta capacité
+  touche le porteur en plein ciel) et **TRIPLÉ !** (trois joueurs différents en 1,2 s) ;
+- le **rang** des capacités dans la bulle du draft ;
+- une projection ne dépasse plus **70 m/s** à plat (60 vers le haut) : plus de traversée de mur ;
+- la **Rage** ne se vide plus sur une poussée dans le vide.
+
 ## Phases
 
 - **Phase 1 (ici)** : le match complet contre des bots, avec le salon.

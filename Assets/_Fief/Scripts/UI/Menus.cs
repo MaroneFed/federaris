@@ -2064,13 +2064,14 @@ namespace Fief
                 if (active) Icons.Key(new Rect(ir.x - icon * 0.16f, ir.yMax - icon * 0.44f, icon * 0.48f, icon * 0.48f), AbilityInfo.Keys[0], 1f);
                 float tx = ir.xMax + pad;
                 string name = AbilityInfo.Name(a).ToUpperInvariant();
-                string kind = active ? "ACTIVE" : "PASSIVE";
+                // (v42, le designer) Le rang aussi, a sa couleur : on lit d'un coup d'oeil "il a une legendaire".
+                string kind = AbilityInfo.TierName(AbilityInfo.Tier(a));
                 int kindFs = Mathf.RoundToInt(UiStyle.S(15));
                 float kw = Icons.Width(kind, kindFs);
                 int fs = nameFs;
                 while (fs > 12 && Icons.Width(name, fs) > textW - kw - UiStyle.S(10)) fs--;   // un nom long rapetisse, jamais coupe
                 Icons.Text(new Rect(tx, cy, textW, UiStyle.S(28)), name, fs, Color.white, TextAnchor.MiddleLeft, true);
-                Icons.Text(new Rect(x + w - pad - kw, cy, kw, UiStyle.S(28)), kind, kindFs, active ? new Color(1f, 0.84f, 0.36f) : new Color(0.6f, 0.8f, 1f), TextAnchor.MiddleRight, false);
+                Icons.Text(new Rect(x + w - pad - kw, cy, kw, UiStyle.S(28)), kind, kindFs, AbilityInfo.TierColour(AbilityInfo.Tier(a)), TextAnchor.MiddleRight, false);
                 GUI.Label(new Rect(tx, cy + UiStyle.S(30), textW, rowH[k] - UiStyle.S(30)), AbilityInfo.Line(a), peekLine);
                 cy += rowH[k] + pad;
             }
