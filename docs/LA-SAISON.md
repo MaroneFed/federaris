@@ -955,8 +955,38 @@ logicien, le clipper : `docs/QUATRE-CHIANTS.md`. Corrigé tout de suite :
 - une projection ne dépasse plus **70 m/s** à plat (60 vers le haut) : plus de traversée de mur ;
 - la **Rage** ne se vide plus sur une poussée dans le vide.
 
+## Les chiants corrigés (v43)
+
+Le 14/10, Martin : « corrige tout ce qu'ont dit les mecs chiants ». 49 points corrigés (le bilan
+est en tête de `docs/QUATRE-CHIANTS.md`). Ce qui change pour le joueur :
+
+- **Réglages** : *Inverser la souris* et *Son en arrière-plan* ; le choix des cartes dure **15 s**.
+- **Viser** : le clic droit pendant la visée l'**annule** (au lieu de pousser).
+- **En vol** : un **anneau lumineux au sol** sous toi (dès 4 m) dit où tu vas te poser ; à moins
+  de 15 m de la muraille, les **runes du sceau crépitent** avant de te renvoyer.
+- **La Couronne lâchée** ne réapparaît plus : on la **voit tomber** en cloche (0,6 s) ; au-dessus
+  du vide loin de tout, elle va au bord de l'île, jamais au sommet.
+- **Le HUD** : le chrono vire à l'orange avec la montée, un seul flash à la fois, la passive
+  s'allume quand elle joue (Riposte, Armure, Vampire, Home run…), le viseur prend la couleur de la
+  capacité prête, le bandeau « PUISSANCE » passe sous la barre du sacre.
+- **Le rang se voit en jeu** : un second anneau à sa couleur sous le lanceur, et une pastille de
+  rang avec l'icône au-dessus de son pseudo. Le **Légendaire passe à l'orange** (l'or pâle est à
+  la Couronne). Les gemmes sont des losanges ; le dos de la carte prend la couleur du rang en se
+  retournant, et une légendaire **tremble** avant.
+- **Qui a fait quoi** : la croix des cibles au sol, la bague de la prison, la traînée d'un gros coup
+  et le bout des plumes sont **à la couleur du joueur** ; une icône du Mini à côté du pseudo d'un
+  joueur rétréci ; la mine clignote, vite quand tu t'en approches.
+- **Mode Dieu** : **un ciel par manche** (il changeait toutes les 22 s) ; la comète met **2,2 s** à
+  tomber (on l'entend venir).
+- **Moments** : **TRIPLE KO** (trois en 12 s), **VOLÉE AU MONUMENT** (prise dans le cercle pendant
+  le sacre, dès 25 %), **L'ENFILADE** (les quatre anneaux avec la Couronne), **RETOUR À
+  L'ENVOYEUR** (le Miroir), **HOME RUN** ; la patate chaude passe à **cinq** mains ; la colonne du
+  KO monte à **200 m** ; le **moment du match** est rappelé au podium.
+
 ## Phases
 
-- **Phase 1 (ici)** : le match complet contre des bots, avec le salon.
-- **Phase 3** : le jeu en ligne (voir `docs/RESEAU.md` : les bots cèdent leur place à
+- **Phase 1** : le match complet contre des bots, avec le salon (porte passée le 04/10).
+- **Phase 4 (ici, depuis le 14/10)** : le match complet — anti-snowball, événements,
+  équilibrage fin. (La Phase 2, le conflit, attend toujours.)
+- **Phase 3** (porte passée le 14/10) : le jeu en ligne (voir `docs/RESEAU.md` : les bots cèdent leur place à
   des joueurs, rien d'autre ne change).
