@@ -100,7 +100,12 @@ namespace Fief
         }
 
         /// <summary>Peut-on la tirer dans ce match (Mode Dieu : la table divine ; sinon : tout sauf les divines) ?</summary>
-        public static bool Allowed(Ability a) { return Match.GodMode ? InGodPool(a) : !IsGod(a); }
+        public static bool Allowed(Ability a) { return !Retired(a) && (Match.GodMode ? InGodPool(a) : !IsGod(a)); }
+
+        /// <summary>(v37.3) Les capacites RETIREES : elles restent dans l'enum (le reseau compte sur les
+        /// numeros) mais ne sont plus jamais tirees. L'ENCRE (Martin : "la pire capa du monde, tu vois
+        /// rien, je veux que tu la degages").</summary>
+        public static bool Retired(Ability a) { return a == Ability.Encre; }
         /// <summary>29/09 (Martin : "qu'on n'ait qu'un passif et un clic gauche, pas d'autres conneries") : une seule active.</summary>
         public const int MaxActives = 1;
 
@@ -297,7 +302,7 @@ namespace Fief
                 case Ability.Plume: return "Avec la Couronne, tu voles aussi vite que les autres.";
                 case Ability.Prison: return "Vise un joueur : il est enfermé dans une cage 10 s. Un coup le libère.";
                 case Ability.Bombe: return "Vise un joueur : une bombe se colle à lui et explose 2 s après.";
-                case Ability.Inversion: return "Vise un joueur : ses touches sont inversées pendant 6 secondes.";
+                case Ability.Inversion: return "Vise un joueur : sa gauche et sa droite sont inversées pendant 6 secondes.";
                 case Ability.Mini: return "Vise un joueur : il devient tout petit, lent, et s'envole au moindre coup.";
                 case Ability.Glu: return "Tu poses une flaque de colle. Ceux qui marchent dedans restent collés.";
                 case Ability.Banane: return "Tu laisses 3 peaux de banane derrière toi. Ceux qui marchent dessus glissent.";
@@ -371,7 +376,7 @@ namespace Fief
                 case Ability.FrappeCiel: return "Tu sautes dans le ciel et tu retombes là où tu regardes, avec une explosion.";
                 case Ability.Enclumes: return "Une enclume tombe sur la tête de chaque autre joueur.";
                 case Ability.Lilliput: return "Tous ceux à 60 m de toi deviennent tout petits 6 s.";
-                case Ability.Demence: return "Tous ceux à 60 m de toi ont les touches inversées et l'écran taché d'encre.";
+                case Ability.Demence: return "Tous ceux à 60 m de toi ont la gauche et la droite inversées 5 secondes.";
                 case Ability.Orage: return "Toutes les 3 s, la foudre tombe sur le joueur le plus proche de toi.";
                 case Ability.Orbes: return "3 boules de feu tournent autour de toi. Qui les touche est éjecté.";
                 case Ability.Titan: return "Quand tu retombes de haut, le sol tremble et repousse ceux autour.";

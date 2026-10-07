@@ -309,7 +309,7 @@ de la map » ; « il n'y a pas de son, mets-en à fond ») :
 | **Frappe du ciel** (v31) | Tu bondis à une trentaine de mètres et tu t'écrases là où tu regardes (60 m) : onde de 18 m. Jamais depuis ou vers la citadelle, jamais sur la tour, jamais avec la Couronne. | 16 s |
 | **Pluie d'enclumes** (v31) | Une ombre suit **chaque** autre joueur, où qu'il soit, 1,2 s… puis une enclume lui tombe dessus. | 24 s |
 | **Lilliput** (v31) | Tous les autres à 60 m deviennent minuscules (6 s). | 18 s |
-| **Démence** (v31) | Tous les autres à 60 m ont la tête à l'envers (5 s) et de l'encre plein l'écran (4 s). | 20 s |
+| **Démence** (v31) | Tous les autres à 60 m ont la gauche et la droite inversées (5 s). (Plus d'encre depuis v37.3.) | 20 s |
 
 **Les passives divines** :
 
@@ -378,6 +378,11 @@ des capacités beaucoup, beaucoup plus large ») : **(joueurs + 3) cartes, six a
 neuf à six joueurs, onze à huit — sur **deux rangées** au-delà de six (flèches haut/bas au
 clavier).
 
+> **Au choix des cartes, la souris sur un joueur** (v37.3, Martin : « je veux pouvoir passer ma
+> souris dessus pour voir les capas des autres, l'active comme la passive ») : sur la file des
+> pastilles en haut, survoler celle d'un joueur ouvre une bulle — son pseudo, puis sa **passive**
+> et son **active**, chacune avec son icône, son nom et la phrase de la carte (`Menus.DrawDraftPeek`).
+
 **Les cartes** (refaites le 28/09) : elles arrivent **face cachée** (un dos de velours,
 un losange d'or) et **se retournent** une à une ; la face : une pierre granuleuse, un
 lavis à la couleur de la capacité, un **cadre d'or** ouvragé, un ruban (ACTIVE · CLIC
@@ -429,7 +434,7 @@ frappent l'ami **chez lui**. C'est la seule exception à « on n'est jamais éto
 |---|---|---|
 | **Prison** | Vise un joueur (40 m) : une cage l'**enchaîne au sol dix secondes** (il ne bouge plus, ne saute plus, ne vole plus, ne lance rien — il peut encore pousser). **Le premier coup reçu le libère.** Sur le porteur : tout le monde vient la lui voler. | 16 s |
 | **Bombe collante** | Vise un joueur : une bombe se colle à lui, sa mèche crépite plus vite… BOUM 2 s après (il part très loin, et ceux collés à lui aussi). | 12 s |
-| **Tête à l'envers** | Vise un joueur : ses commandes sont inversées six secondes. | 13 s |
+| **Tête à l'envers** | Vise un joueur : sa gauche et sa droite sont inversées six secondes (v37.3 : avancer reste avancer). | 13 s |
 | **Mini** | Vise un joueur : minuscule sept secondes — 25 % plus lent, et poussé deux fois plus loin. | 13 s |
 | **Glu** | Une flaque de glu de 7 m devant toi, dix secondes : qui marche dedans est englué (très lent, ne saute plus). | 12 s |
 | **Peau de banane** | Trois peaux en éventail derrière toi : qui marche dessus glisse et fait un salto. | 8 s |
@@ -440,7 +445,7 @@ frappent l'ami **chez lui**. C'est la seule exception à « on n'est jamais éto
 | **Taupe** | Tu plonges sous terre et ressors vingt mètres plus loin en éjectant tout ce qui est au-dessus. | 9 s |
 | **Déluge** | Sept météores tombent en 2,5 s autour de là où tu vises (une cible au sol les annonce). | 14 s |
 | **Toupie** | Quatre secondes : tu tournes, tu cours plus vite, et qui te touche est éjecté. | 13 s |
-| **Encre** | Vise un joueur : de l'encre lui couvre l'écran cinq secondes (un bot avance au hasard). | 12 s |
+| ~~**Encre**~~ | **RETIRÉE le 13/10 (v37.3)** — Martin : « la pire capa du monde, tu vois rien ». Plus jamais tirée (`AbilityInfo.Retired`). | — |
 
 **La deuxième fournée** (07/10, v28 — Martin : « fais encore plus de capas, plus, plus, plus » ;
 `World/Folies.cs`) :

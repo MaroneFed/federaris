@@ -1796,7 +1796,13 @@ namespace Fief
             if (grounded || !seeker.CanGlide) gliding = false;
             // (06/10) TETE A L'ENVERS : il part a reculons ; ENCRE : il avance au hasard, en zigzag.
             if (seeker.Charmed) { Vector3 toCharmer = Flat(seeker.CharmedBy.Body.position - transform.position); if (toCharmer.sqrMagnitude > 1f) { dir = toCharmer.normalized; if (speed > 0f) speed = Mathf.Max(speed, WalkSpeed); } }
-            else if (seeker.Inverted) dir = -dir;
+            else if (seeker.Inverted)
+            {
+                // (v37.3) Seules la gauche et la droite s'inversent, comme pour toi : la direction voulue
+                // est renvoyee en miroir de part et d'autre de la ou il regarde.
+                Vector3 fwd = Flat(transform.forward);
+                if (fwd.sqrMagnitude > 0.01f) { fwd.Normalize(); float along = Vector3.Dot(dir, fwd); dir = fwd * (2f * along) - dir; }
+            }
             else if (seeker.Inked) dir = Quaternion.Euler(0f, Mathf.Sin(Time.time * 2.3f + seeker.Index) * 80f, 0f) * dir;
             // LE NINJA : immobile une seconde au sol (sans la Couronne), il disparait.
             if (seeker.Has(Ability.Ninja) && grounded && speed < 0.3f && !seeker.CarriesCrown)

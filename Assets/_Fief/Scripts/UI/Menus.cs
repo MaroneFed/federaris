@@ -1967,7 +1967,98 @@ namespace Fief
                     Icons.Draw(new Rect(r.x + s * 0.16f, r.y + s * 0.16f, s * 0.68f, s * 0.68f), Icons.Of(mine[i]), Color.white);
                     if (AbilityInfo.IsActive(mine[i])) Icons.Key(new Rect(r.x - s * 0.18f, r.yMax - s * 0.46f, s * 0.5f, s * 0.5f), AbilityInfo.Keys[0], 1f);
                 }
-            }            CardArt.Sparks();
+            }
+            CardArt.Sparks();
+            DrawDraftPeek();
+        }
+
+        // (v37.3) Les pastilles de la file des joueurs, pour le survol.
+        readonly Rect[] orderChips = new Rect[16];
+        readonly int[] orderSlots = new int[16];
+        int orderCount;
+        GUIStyle peekLine;
+
+        /// <summary>
+        /// (v37.3 -- Martin : "quand tu es dans le menu, tu ne vois pas les capas des autres ; je veux
+        /// que tu puisses passer ta souris dessus pour voir, l'active comme la passive") : la souris
+        /// sur la pastille d'un joueur ouvre une bulle -- sa passive et son active, l'icone, le nom
+        /// et la phrase de la carte.
+        /// </summary>
+        void DrawDraftPeek()
+        {
+            Vector2 m = Event.current.mousePosition;
+            int hit = -1;
+            for (int i = 0; i < orderCount; i++) if (orderChips[i].Contains(m)) { hit = i; break; }
+            if (hit < 0) return;
+            PlayerSlot s = Match.Slots[orderSlots[hit]];
+            List<Ability> has = new List<Ability>();
+            for (int k = 0; k < s.Abilities.Count; k++) if (!AbilityInfo.IsActive(s.Abilities[k])) has.Add(s.Abilities[k]);
+            for (int k = 0; k < s.Abilities.Count; k++) if (AbilityInfo.IsActive(s.Abilities[k])) has.Add(s.Abilities[k]);
+
+            if (peekLine == null || peekLine.fontSize != Mathf.RoundToInt(UiStyle.S(17)))
+            {
+                peekLine = new GUIStyle(UiStyle.Small);
+                peekLine.fontSize = Mathf.RoundToInt(UiStyle.S(17));
+                peekLine.wordWrap = true;
+                peekLine.alignment = TextAnchor.UpperLeft;
+                peekLine.normal.textColor = Color.white;
+            }
+            float pad = Mathf.Round(UiStyle.S(16));
+            float w = Mathf.Round(Mathf.Min(UiStyle.S(460), Screen.width - UiStyle.S(32)));
+            float icon = Mathf.Round(UiStyle.S(58));
+            int nameFs = Mathf.RoundToInt(UiStyle.S(24));
+            float headH = Mathf.Round(UiStyle.S(40));
+            float textW = w - pad * 3f - icon;
+            float[] rowH = new float[has.Count];
+            float h = pad + headH + pad;
+            for (int k = 0; k < has.Count; k++)
+            {
+                float lineH = peekLine.CalcHeight(new GUIContent(AbilityInfo.Line(has[k])), textW);
+                rowH[k] = Mathf.Round(Mathf.Max(icon, UiStyle.S(30) + lineH));
+                h += rowH[k] + pad;
+            }
+            if (has.Count == 0) h += Mathf.Round(UiStyle.S(30)) + pad;
+
+            Rect chip = orderChips[hit];
+            float x = Mathf.Round(Mathf.Clamp(chip.center.x - w * 0.5f, UiStyle.S(16), Screen.width - UiStyle.S(16) - w));
+            float y = Mathf.Round(chip.yMax + UiStyle.S(6));
+            int radius = Mathf.RoundToInt(UiStyle.S(18));
+            CardArt.Panel(new Rect(x - 3f, y - 3f, w + 6f, h + 6f), s.Colour, radius + 3);
+            CardArt.Panel(new Rect(x, y, w, h), new Color(0.09f, 0.08f, 0.17f, 0.97f), radius);
+
+            // L'en-tete : son pseudo, dans une pastille a sa couleur.
+            float cy = y + pad;
+            float nw = Icons.Width(s.Name, nameFs) + headH;
+            Rect namePill = new Rect(x + pad, cy, Mathf.Round(nw), headH);
+            Icons.Pill(namePill, s.Colour);
+            Icons.Text(namePill, s.Name, nameFs, Color.white, TextAnchor.MiddleCenter, true);
+            cy += headH + pad;
+
+            if (has.Count == 0)
+            {
+                Icons.Text(new Rect(x + pad, cy, w - pad * 2f, UiStyle.S(30)), "Rien pour l'instant", Mathf.RoundToInt(UiStyle.S(20)), new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleLeft, false);
+                return;
+            }
+            for (int k = 0; k < has.Count; k++)
+            {
+                Ability a = has[k];
+                bool active = AbilityInfo.IsActive(a);
+                Rect ir = new Rect(x + pad, cy, icon, icon);
+                Icons.Pill(ir, AbilityInfo.Tint(a));
+                Icons.Draw(new Rect(ir.x + icon * 0.15f, ir.y + icon * 0.15f, icon * 0.7f, icon * 0.7f), Icons.Of(a), Color.white);
+                if (active) Icons.Key(new Rect(ir.x - icon * 0.16f, ir.yMax - icon * 0.44f, icon * 0.48f, icon * 0.48f), AbilityInfo.Keys[0], 1f);
+                float tx = ir.xMax + pad;
+                string name = AbilityInfo.Name(a).ToUpperInvariant();
+                string kind = active ? "ACTIVE" : "PASSIVE";
+                int kindFs = Mathf.RoundToInt(UiStyle.S(15));
+                float kw = Icons.Width(kind, kindFs);
+                int fs = nameFs;
+                while (fs > 12 && Icons.Width(name, fs) > textW - kw - UiStyle.S(10)) fs--;   // un nom long rapetisse, jamais coupe
+                Icons.Text(new Rect(tx, cy, textW, UiStyle.S(28)), name, fs, Color.white, TextAnchor.MiddleLeft, true);
+                Icons.Text(new Rect(x + w - pad - kw, cy, kw, UiStyle.S(28)), kind, kindFs, active ? new Color(1f, 0.84f, 0.36f) : new Color(0.6f, 0.8f, 1f), TextAnchor.MiddleRight, false);
+                GUI.Label(new Rect(tx, cy + UiStyle.S(30), textW, rowH[k] - UiStyle.S(30)), AbilityInfo.Line(a), peekLine);
+                cy += rowH[k] + pad;
+            }
         }
 
         /// <summary>(v36) Le temps qui reste pour choisir : un chrono et les secondes, rouges a la fin.</summary>
@@ -2000,6 +2091,7 @@ namespace Fief
             // (01/10) Des pastilles rondes a la couleur de chacun (toi : cerne d'or), celle qui
             // choisit grossit et bat ; sous qui a choisi, l'icone de ce qu'il a pris.
             List<int> order = Match.Draft.Order;
+            orderCount = 0;
             float gap = UiStyle.S(12);
             float chipW = Mathf.Min(UiStyle.S(160), (Screen.width - UiStyle.S(80)) / Mathf.Max(1, order.Count) - gap);
             float ch = UiStyle.S(36);
@@ -2011,6 +2103,8 @@ namespace Fief
                 bool now = !Match.Draft.Done && Match.Draft.Current == order[i];
                 bool done = i < Match.Draft.Turn;
                 Rect chip = new Rect(ox + i * (chipW + gap), y, chipW, ch);
+                // (v37.3) La pastille et l'icone dessous : la zone qu'on survole pour voir ses capacites.
+                if (i < orderChips.Length) { orderChips[i] = new Rect(chip.x, chip.y, chip.width, UiStyle.S(82)); orderSlots[i] = order[i]; orderCount = i + 1; }
                 if (now)
                 {
                     float g = UiStyle.S(4) * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));

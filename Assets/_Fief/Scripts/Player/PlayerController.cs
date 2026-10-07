@@ -200,8 +200,9 @@ namespace Fief
             if (me != null && me.Has(Ability.Lave)) LavaBody.Keep(me);
             if (me != null) Divin.KeepPassives(me);
             Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
-            // (06/10) TETE A L'ENVERS : avant/arriere, gauche/droite, tout s'inverse.
-            if (me != null && me.Inverted) input = -input;
+            // (06/10) TETE A L'ENVERS. (v37.3, Martin : "je veux juste que ca soit gauche, droite") :
+            // seules la gauche et la droite s'inversent ; avancer reste avancer.
+            if (me != null && me.Inverted) input.x = -input.x;
             Vector3 forward = Vector3.forward, right = Vector3.right;
             if (cameraTransform != null)
             {

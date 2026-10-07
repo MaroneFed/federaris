@@ -141,6 +141,9 @@ namespace Fief
             GUI.color = was;
         }
 
+        /// <summary>(v37.3) Un panneau aux coins arrondis (la bulle des capacites d'un joueur, au choix).</summary>
+        public static void Panel(Rect r, Color c, int radius) { Ensure(); Round(r, c, radius, false); }
+
         static Rect Grow(Rect r, float by)
         {
             return new Rect(r.x - by, r.y - by, r.width + by * 2f, r.height + by * 2f);

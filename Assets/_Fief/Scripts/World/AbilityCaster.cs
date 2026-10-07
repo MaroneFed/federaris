@@ -952,7 +952,6 @@ namespace Fief
                         if (o == s || o.Body == null || (o.Body.position - pos).magnitude > 60f) continue;
                         bool hit = a == Ability.Lilliput ? Combat.Afflict(o, Combat.Affliction.Tiny, 6f, s)
                                                          : Combat.Afflict(o, Combat.Affliction.Inverted, 5f, s);
-                        if (a == Ability.Demence && hit) Combat.Afflict(o, Combat.Affliction.Ink, 4f, s);
                         if (hit)
                         {
                             n++;
