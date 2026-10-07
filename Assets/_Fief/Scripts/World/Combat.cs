@@ -38,6 +38,25 @@ namespace Fief
         /// POUSSER (clic droit) : le premier joueur devant soi, a 3 m, part en arriere
         /// et en l'air. Le porteur de la Couronne la lache. Vrai si on a touche quelqu'un.
         /// </summary>
+        /// <summary>
+        /// LA MONTEE (13/10, v38 -- Martin : "les capas doivent etre de plus en plus cheatees ; plus
+        /// on avance dans le temps, plus on pousse loin ; a la fin, quand tout le monde est au meme
+        /// endroit, c'est impossible de poser la Couronne") : la force des coups des joueurs
+        /// (capacites et poussees). x1 au depart, +0,22 par minute de manche, +0,06 par manche deja
+        /// jouee, x2,5 au plus. Les recharges raccourcissent avec (Seeker.CooldownOf). Les pieges,
+        /// eux, ne changent pas. Le temps de la manche vient de l'hote : tout le monde a la meme.
+        /// </summary>
+        public static float Power
+        {
+            get
+            {
+                Season season = Game.Season;
+                float minutes = season != null ? season.Elapsed / 60f : 0f;
+                return Mathf.Clamp(1f + 0.22f * minutes + 0.06f * (Match.RoundNumber - 1), 1f, MaxPower);
+            }
+        }
+        public const float MaxPower = 2.5f;
+
         public static bool Shove(Seeker by, Vector3 forward)
         {
             if (by == null || by.Body == null || !by.CanShove) return false;
@@ -240,6 +259,13 @@ namespace Fief
                 Fx.Sparks(victim.Body.position + Vector3.up * 1.1f, Color.white, 20, 5f);
                 Sfx.ClangAt(victim.Body.position);
                 return;
+            }
+            // (v38) LA MONTEE : plus la manche avance, plus les coups des joueurs (capacites et
+            // poussees) envoient loin. Applique ici, chez la victime (en ligne, une seule fois).
+            if (by != null && by != victim)
+            {
+                float pw = Power;
+                velocity = new Vector3(velocity.x * pw, velocity.y * Mathf.Sqrt(pw), velocity.z * pw);
             }
             // (06/10) Le MINI part deux fois plus loin.
             if (victim.Tiny) velocity = new Vector3(velocity.x * 2f, velocity.y * 1.3f, velocity.z * 2f);

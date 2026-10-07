@@ -48,6 +48,46 @@ namespace Fief
         {
             DrawDanger();
             DrawCast();
+            DrawSurge();
+        }
+
+        // (v38) LA MONTEE : a chaque palier (x1,5, x2, x2,5), un bandeau en or et un son.
+        static int surgeTier;
+        static float surgeAt = -99f;
+        const float SurgeLife = 2.6f;
+
+        static void DrawSurge()
+        {
+            float p = Combat.Power;
+            int tier = Mathf.FloorToInt((p - 1f) / 0.5f + 0.001f);
+            if (tier < surgeTier) surgeTier = tier;          // nouvelle manche : on repart d'en bas
+            if (tier > surgeTier)
+            {
+                surgeTier = tier;
+                surgeAt = Time.unscaledTime;
+                Sfx.Discovery();
+                if (Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.6f, 0.15f, 0.25f));
+            }
+            float age = Time.unscaledTime - surgeAt;
+            if (age > SurgeLife) return;
+            float a = Mathf.Clamp01(age / 0.12f) * Mathf.Clamp01((SurgeLife - age) / 0.4f);
+            int fs = Mathf.RoundToInt(UiStyle.S(34));
+            float h = Mathf.Round(fs * 1.7f);
+            float mult = 1f + surgeTier * 0.5f;
+            string what = "PUISSANCE x" + (mult % 1f == 0f ? mult.ToString("0") : mult.ToString("0.0").Replace('.', ',')) + " !";
+            float icon = Mathf.Round(h * 0.86f);
+            float gap = Mathf.Round(fs * 0.4f);
+            float ww = Icons.Width(what, fs);
+            float total = icon + gap + ww;
+            float pad = Mathf.Round(fs * 0.6f);
+            float x = Mathf.Round((Screen.width - total) * 0.5f);
+            float y = Mathf.Round(Screen.height * 0.16f);
+            Color hot = new Color(1f, 0.55f, 0.15f);
+            Icons.Pill(new Rect(x - pad, y, total + pad * 2f, h), new Color(0.12f, 0.05f, 0.04f, 0.65f * a));
+            Rect ir = new Rect(x, y + Mathf.Round((h - icon) * 0.5f), icon, icon);
+            Icons.Pill(ir, new Color(hot.r, hot.g, hot.b, a));
+            Icons.Draw(new Rect(ir.x + icon * 0.16f, ir.y + icon * 0.16f, icon * 0.68f, icon * 0.68f), Icons.Of(Ability.Foudre), new Color(1f, 1f, 1f, a));
+            Icons.Text(new Rect(x + icon + gap, y, ww, h), what, fs, new Color(1f, 0.84f, 0.36f, a), TextAnchor.MiddleLeft, true);
         }
 
         static void DrawCast()

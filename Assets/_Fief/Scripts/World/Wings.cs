@@ -466,8 +466,19 @@ namespace Fief
     }
 
     /// <summary>
-    /// LES AILES DANS LE DOS d'un bot (ou d'un joueur en ligne) : repliees tant qu'il
-    /// marche, grandes ouvertes quand il plane. Les ailes d'or ont un liseré d'or.
+    /// LES AILES DANS LE DOS d'un bot (ou d'un joueur en ligne).
+    ///
+    /// (13/10, v38 -- Martin : "les ailes des persos sont completement buggees, fais un truc
+    /// sympa") : avant, une planche de toile et de bois d'une seule piece, qu'on tournait en
+    /// bloc -- repliee, elle se dressait comme une plaque derriere la tete ; ouverte, elle
+    /// traversait le haricot. Maintenant, DEUX VRAIES AILES D'OISEAU, chacune sur son epaule :
+    /// un gros plumage rond et cinq plumes en eventail, blanches au bout colore (or pour les
+    /// ailes d'or). Au sol, elles se replient le long du dos, petites ; en vol, elles s'ouvrent
+    /// a plat et BATTENT, chacune de son cote -- plus vite quand il remonte, lentement quand il
+    /// plane.
+    ///
+    /// Concept Unity : chaque aile a son propre Transform "epaule" ; tourner l'epaule fait
+    /// tourner toutes les plumes qui en sont les enfants. C'est la hierarchie des GameObjects.
     /// </summary>
     public class WingsOnBack : MonoBehaviour
     {
@@ -476,13 +487,19 @@ namespace Fief
         public bool Flying;
         Transform wings;
         Transform goldWings;
+        readonly Transform[] shoulders = new Transform[4];   // 0-1 : les blanches, 2-3 : les d'or
         float open;
+        float lastY;
+        float climb;
+
+        static readonly Color Feather = new Color(0.97f, 0.97f, 1f);
+        static readonly Color GoldFeather = new Color(1f, 0.86f, 0.45f);
 
         public static WingsOnBack Attach(Transform body, Seeker s)
         {
             GameObject go = new GameObject("Ailes dans le dos");
             go.transform.SetParent(body, false);
-            go.transform.localPosition = new Vector3(0f, 1.32f, -0.36f);
+            go.transform.localPosition = new Vector3(0f, 1.25f, -0.42f);
             WingsOnBack w = go.AddComponent<WingsOnBack>();
             w.seeker = s;
             w.wings = new GameObject("Ailes").transform;
@@ -490,11 +507,46 @@ namespace Fief
             w.goldWings = new GameObject("Ailes d'or").transform;
             w.goldWings.SetParent(go.transform, false);
             Proto.BeginVisualOnly();
-            Wings.Model(w.wings, 1f, 0f, Wings.Glow);
-            Wings.Model(w.goldWings, 1.1f, 0f, Wings.Gold);
+            w.shoulders[0] = Build(w.wings, -1, 1f, Feather, Wings.Glow);
+            w.shoulders[1] = Build(w.wings, 1, 1f, Feather, Wings.Glow);
+            w.shoulders[2] = Build(w.goldWings, -1, 1.12f, GoldFeather, Wings.Gold);
+            w.shoulders[3] = Build(w.goldWings, 1, 1.12f, GoldFeather, Wings.Gold);
             Proto.EndVisualOnly();
             w.goldWings.gameObject.SetActive(false);
+            w.lastY = body.position.y;
+            w.Pose(0f, 0f, 0);
             return w;
+        }
+
+        /// <summary>UNE AILE (side : -1 a gauche, +1 a droite) : l'epaule, le plumage, cinq plumes en eventail.</summary>
+        static Transform Build(Transform parent, int side, float size, Color feather, Color tip)
+        {
+            Transform shoulder = new GameObject(side < 0 ? "Epaule gauche" : "Epaule droite").transform;
+            shoulder.SetParent(parent, false);
+            shoulder.localPosition = new Vector3(side * 0.16f, 0f, 0f);
+            Material soft = MaterialFactory.GetShiny(feather, 0.45f, 0f);
+            Material tipMat = MaterialFactory.GetShiny(Color.Lerp(feather, tip, 0.75f), 0.6f, 0.1f, 0.35f);
+            // Le plumage : une grosse goutte ronde et plate, de l'epaule vers le bout.
+            GameObject cover = Proto.Sphere(shoulder, new Vector3(side * 0.42f * size, 0f, -0.02f), new Vector3(0.95f * size, 0.09f, 0.5f * size), feather, "Plumage");
+            cover.GetComponent<Renderer>().sharedMaterial = soft;
+            GameObject knob = Proto.Sphere(shoulder, Vector3.zero, Vector3.one * 0.2f, feather, "Attache");
+            knob.GetComponent<Renderer>().sharedMaterial = soft;
+            // Les cinq plumes : du bout de l'aile (vers l'exterieur) jusqu'a l'arriere, en eventail.
+            Vector3 root = new Vector3(side * 0.62f * size, 0f, -0.12f * size);
+            for (int k = 0; k < 5; k++)
+            {
+                float a = (8f + k * 17f) * Mathf.Deg2Rad;           // 8 deg (vers le dehors) a 76 deg (vers l'arriere)
+                float len = (0.95f - k * 0.1f) * size;
+                Vector3 dir = new Vector3(side * Mathf.Cos(a), 0f, -Mathf.Sin(a));
+                GameObject f = Proto.Sphere(shoulder, root + dir * len * 0.5f + Vector3.down * 0.01f * k, new Vector3(len, 0.06f, 0.2f * size), feather, "Plume");
+                f.transform.localRotation = Quaternion.FromToRotation(Vector3.right, dir);
+                f.GetComponent<Renderer>().sharedMaterial = soft;
+                // Le bout colore de chaque plume.
+                GameObject t = Proto.Sphere(shoulder, root + dir * len * 0.86f, new Vector3(len * 0.32f, 0.07f, 0.17f * size), tip, "Bout de plume");
+                t.transform.localRotation = f.transform.localRotation;
+                t.GetComponent<Renderer>().sharedMaterial = tipMat;
+            }
+            return shoulder;
         }
 
         void Update()
@@ -506,11 +558,36 @@ namespace Fief
             if (off.gameObject.activeSelf) off.gameObject.SetActive(false);
             if (on.gameObject.activeSelf != show) on.gameObject.SetActive(show);
             if (!show) return;
-            open = Mathf.MoveTowards(open, Flying ? 1f : 0f, Time.deltaTime * 4f);
-            // Repliees : petites et relevees en V ; ouvertes : a plat, pleine envergure, qui battent un peu.
-            float flap = Flying ? Mathf.Sin(Time.time * 2.2f) * 3f : 0f;
-            on.localScale = Vector3.one * Mathf.Lerp(0.4f, 1.3f, open);
-            on.localRotation = Quaternion.Euler(Mathf.Lerp(-70f, -6f, open) + flap, 0f, 0f);
+            float dt = Time.deltaTime;
+            if (dt <= 0f) return;
+            // Monte-t-il ? (dans un courant, un anneau) : alors il bat des ailes plus fort.
+            float y = transform.position.y;
+            climb = Mathf.Lerp(climb, Mathf.Clamp01((y - lastY) / dt / 4f), dt * 3f);
+            lastY = y;
+            open = Mathf.MoveTowards(open, Flying ? 1f : 0f, dt * 3.2f);
+            float o = Mathf.SmoothStep(0f, 1f, open);
+            // Le battement : lent quand il plane, ample quand il remonte.
+            float speed = Mathf.Lerp(2.4f, 7f, climb);
+            float amp = Mathf.Lerp(7f, 26f, climb) * o;
+            float flap = Mathf.Sin(Time.time * speed + (seeker != null ? seeker.Index : 0)) * amp;
+            Pose(o, flap, gold ? 2 : 0);
+        }
+
+        /// <summary>Repliees (o = 0) le long du dos, petites ; ouvertes (o = 1) a plat, avec le battement.</summary>
+        void Pose(float o, float flap, int first)
+        {
+            for (int k = 0; k < 2; k++)
+            {
+                Transform sh = shoulders[first + k];
+                if (sh == null) continue;
+                float side = k == 0 ? -1f : 1f;
+                // Repliee : l'aile pivote vers l'arriere (80 deg) et tombe un peu, collee au dos.
+                float yaw = Mathf.Lerp(78f, 6f, o) * side;
+                float roll = (Mathf.Lerp(-28f, 10f, o) + flap) * side;
+                float pitch = Mathf.Lerp(-12f, 0f, o);
+                sh.localRotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(pitch, 0f, roll);
+                sh.localScale = Vector3.one * Mathf.Lerp(0.5f, 1.15f, o);
+            }
         }
     }
 

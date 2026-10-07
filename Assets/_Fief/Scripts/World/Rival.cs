@@ -315,6 +315,8 @@ namespace Fief
             if (seeker.Remote) return;
             // Tire : il prend le but du tir (le porteur a chasser, le Monument, le parvis).
             if (hasShot) { goal = shotGoal; target = shotTarget; hasShot = false; }
+            padFlight = padShotPending;
+            padShotPending = false;
             ballistic = true;
             launchAge = 0f;
             flight = new Vector3(velocity.x, 0f, velocity.z);
@@ -584,6 +586,10 @@ namespace Fief
         bool Sulks(Ballista b) { return b != null && b == sulkBallista && Time.time < sulkUntil; }
         bool hasShot;
         float nextBallistaSearch;
+        // (v38) Le tir de depart (sa plateforme -> le bout du couloir) : en se posant, deux
+        // secondes et demie de protection -- le dernier piege du couloir (un moulinet balaie
+        // jusqu'au mur) le cueillait a l'atterrissage et le jetait par-dessus le muret.
+        bool padShotPending, padFlight;
 
         /// <summary>
         /// QUITTER SA PLATEFORME (28/09) : son arbaleste l'envoie devant la porte la plus
@@ -602,13 +608,19 @@ namespace Fief
                 // au-dessus, ils perdent un temps fou") : comme toi en vol libre, il se fait poser
                 // AU BOUT du couloir piege, juste devant sa porte -- pas sur le parvis.
                 int g = Course.GateFor(gate);
-                Vector3 end = Course.At(g, 4f, 0f) + Vector3.up * 0.05f;
+                // (v38 -- Martin : "ils se mettent, ils retournent, ils se font pousser a travers le mur,
+                // ils perdent du temps") : les deux bots d'une meme porte visaient le MEME point, 4 m
+                // devant le mur -- ils s'y cognaient, et le moindre ecart du tir les envoyait dans le
+                // sceau, qui les rejetait dehors. Chacun son cote de l'axe, a 6 m du mur.
+                float lateral = (seeker.Index % 2 == 0 ? -1f : 1f) * 2.2f;
+                Vector3 end = Course.At(g, 6f, lateral) + Vector3.up * 0.05f;
                 ballista = own;
                 ballistaShot = Ballista.Lob(own.Seat, end, 12f);
                 ballistaChosen = Time.time;
                 shotGoal = Goal.Raid;
                 shotTarget = end;
                 hasShot = true;
+                padShotPending = true;
                 goal = Goal.Ballista;
                 target = own.transform.position;
                 if (was != Goal.Ballista || path.Count == 0) { path.Clear(); path.Add(target); }
@@ -1791,7 +1803,11 @@ namespace Fief
 
             bool grounded = body.isGrounded;
             launchAge += dt;
-            if (ballistic && grounded && launchAge > 0.2f) ballistic = false;
+            if (ballistic && grounded && launchAge > 0.2f)
+            {
+                ballistic = false;
+                if (padFlight) { seeker.GraceUntil = Mathf.Max(seeker.GraceUntil, Time.time + 2.5f); padFlight = false; }
+            }
             Wings.Tick(seeker, grounded);
             if (grounded || !seeker.CanGlide) gliding = false;
             // (06/10) TETE A L'ENVERS : il part a reculons ; ENCRE : il avance au hasard, en zigzag.
@@ -1935,6 +1951,14 @@ namespace Fief
                 else fallSpeed = Mathf.Max(fallSpeed, 5f);
             }
             Vector3 before = transform.position;
+            // (v38) TIRE PAR UNE ARBALESTE, il ne finit jamais sa course dans le sceau : un tir un
+            // peu long l'y envoyait, et le sceau le rejetait 16 m dehors, dans les pieges du
+            // couloir. A la muraille, il se laisse tomber, droit, devant.
+            if (ballistic && !Castle.Inside(before))
+            {
+                Vector3 next = before + (walk + extra + knock) * dt;
+                if (Castle.Inside(next)) { walk = Vector3.zero; flight = Vector3.zero; extra = Vector3.zero; knock = Vector3.zero; }
+            }
             body.Move((walk + extra + knock + Vector3.up * fallSpeed) * dt);
             // Le sceau de la citadelle : renvoye dehors s'il y entre par les airs.
             if (Ward.Crossing(before, transform.position))

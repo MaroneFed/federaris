@@ -96,6 +96,8 @@ namespace Fief
             float k = Has(Ability.Recharge) ? 0.75f : 1f;
             if (Has(Ability.Sablier)) k *= 0.5f;
             if (Match.GodMode) k *= 0.6f;
+            // (v38) LA MONTEE : les recharges raccourcissent avec la force des coups (x0,6 au plus fort).
+            k *= Mathf.Lerp(1f, 0.6f, (Combat.Power - 1f) / (Combat.MaxPower - 1f));
             return Mathf.Max(basis * k, Mathf.Max(MinCooldown, basis * 0.3f));
         }
 

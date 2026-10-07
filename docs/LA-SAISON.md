@@ -160,6 +160,15 @@ tour à gravir à plusieurs, bourrée d'obstacles) et un peu de **deltaplane**.
   avec la vitesse, le vent souffle, des filets d'air filent autour ; l'écran dit
   « EN VOL — 90 km/h ».
 
+
+**Les ailes des autres** (v38 — Martin : « les ailes des persos sont complètement buggées, fais un
+truc sympa ») : avant, une planche de toile et de bois d'une seule pièce, tournée en bloc (repliée,
+elle se dressait derrière la tête ; ouverte, elle traversait le haricot). Maintenant **deux vraies
+ailes d'oiseau**, chacune sur son épaule : un plumage rond et **cinq plumes en éventail**, blanches au
+bout bleu clair (dorées au bout d'or pour les ailes d'or). Au sol, **repliées le long du dos**,
+petites ; en vol, **ouvertes à plat et qui battent** — lentement quand on plane, fort quand on remonte
+(`WingsOnBack`).
+
 ### Tomber dans les nuages
 
 On ne meurt pas. Qui tombe de l'île (ou rate l'îlot) **réapparaît sur sa
@@ -389,6 +398,20 @@ lavis à la couleur de la capacité, un **cadre d'or** ouvragé, un ruban (ACTIV
 GAUCHE / PASSIVE), le nom, un fleuron, la phrase, la recharge. Celle qu'on vise se
 soulève, s'entoure de **rayons qui tournent** et d'étincelles ; la prendre : un éclair,
 une gerbe d'étincelles, un **coup de phonk**.
+
+### La montée (v38)
+
+> Martin, 13/10 : « les capas doivent être de plus en plus cheatées ; plus on avance dans le temps,
+> plus on pousse loin — à la fin, quand tout le monde est au même endroit, c'est impossible de poser
+> la Couronne ».
+
+**Plus la manche avance, plus les coups des joueurs envoient loin** — capacités ET poussées
+(`Combat.Power`) : ×1 au départ, **+0,22 par minute** de manche, **+0,06 par manche déjà jouée**,
+**×2,5 au plus** (vers la 7e minute). L'élan à l'horizontale est multiplié par la puissance, la
+hauteur par sa racine (on part loin, pas dans la stratosphère). **Les recharges raccourcissent avec**
+(×0,6 au plus fort, jamais sous 4 s). Les pièges de la tour et des couloirs ne changent pas. À chaque
+palier (**×1,5, ×2, ×2,5**), un bandeau en or « PUISSANCE ×2 ! » et un son (`Warnings.DrawSurge`).
+Le temps de la manche vient de l'hôte : en ligne, tout le monde a la même puissance.
 
 ### Actives (le clic gauche)
 
@@ -809,6 +832,15 @@ porteur poursuivi sème glu et bananes derrière lui, et un bot enchaîné ou av
 « coincé » (il ne se fait pas replacer). Ils se servent de toutes leurs capacités — mais plus de Souffle lancé de
 l'autre bout de l'île (45 m au plus) ni d'Échange à tout bout de champ (05/10 : « des
 fois, les bots sont vraiment trop forts »).
+
+
+**L'arbaleste de départ des bots** (v38 — Martin : « ils se mettent, ils retournent, ils se font
+pousser à travers le mur, ils perdent du temps ») : les deux bots d'une même porte visaient **le même
+point**, 4 m devant le mur — ils s'y cognaient, et un tir un peu long les envoyait dans le sceau, qui
+les rejetait 16 m dehors, dans les pièges du couloir. Maintenant **chacun son côté**, à 6 m du mur ;
+un bot tiré par une arbaleste **ne finit jamais sa course dans le sceau** (à la muraille, il se laisse
+tomber droit devant) ; et en se posant au bout du couloir, **2,5 s de protection** (un moulinet du
+dernier piège balaie jusqu'au mur).
 
 ## Retiré
 
