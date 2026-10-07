@@ -402,7 +402,11 @@ namespace Fief
                 best = g;
                 bestD = d;
             }
-            return bestD < float.MaxValue ? best : Tower.CrownSpot;
+            if (bestD < float.MaxValue) return best;
+            // (v43, le logicien) Rien trouve : le bord de l'ile du cote de "p" -- jamais plus le sommet.
+            float ang = Mathf.Atan2(p.z, p.x);
+            float er = Ground.EdgeAt(ang) - 6f;
+            return Ground.Place(Mathf.Cos(ang) * er, Mathf.Sin(ang) * er, 0.1f);
         }
 
         /// <summary>Pareil, en disant ou etait son dernier sol (un invite le dit a l'hote).</summary>

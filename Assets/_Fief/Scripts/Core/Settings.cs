@@ -35,6 +35,10 @@ namespace Fief
         /// regle de la manche, les astuces). Non : zero texte, comme le veut Martin (30/09).
         /// </summary>
         public static bool Help = false;
+        /// <summary>(v43, le gamer) Inverser la souris de haut en bas.</summary>
+        public static bool InvertY = false;
+        /// <summary>(v43, le gamer) Le son quand le jeu n'est pas la fenetre active (oui par defaut).</summary>
+        public static bool BackgroundSound = true;
         /// <summary>TON PSEUDO (29/09 : "il faut mettre le pseudo, les persos c'est quasi tous les memes").</summary>
         public static string Pseudo = "Joueur";
         public const int PseudoLength = 16;
@@ -73,6 +77,8 @@ namespace Fief
             // (06/10 -- Martin : "trop d'infos, ca doit etre hyper intuitif") : NON par defaut. Une
             // nouvelle cle, pour que l'ancien "oui" enregistre ne revienne pas.
             Help = PlayerPrefs.GetInt("fief.aide2", 0) == 1;
+            InvertY = PlayerPrefs.GetInt("fief.inverserY", 0) == 1;
+            BackgroundSound = PlayerPrefs.GetInt("fief.sonFond", 1) == 1;
         }
 
         public static void Save()
@@ -87,6 +93,8 @@ namespace Fief
             PlayerPrefs.SetInt("fief.touchePousser", PushBind);
             PlayerPrefs.SetString("fief.pseudo", Pseudo);
             PlayerPrefs.SetInt("fief.aide2", Help ? 1 : 0);
+            PlayerPrefs.SetInt("fief.inverserY", InvertY ? 1 : 0);
+            PlayerPrefs.SetInt("fief.sonFond", BackgroundSound ? 1 : 0);
             PlayerPrefs.Save();
         }
 
@@ -118,6 +126,8 @@ namespace Fief
             else if (row == 6) PushBind = NextBind(PushBind, step, ActiveBind);
             else if (row == 7) Help = !Help;
             else if (row == 8) Music = Mathf.Clamp(Mathf.Round((Music + step * 0.1f) * 10f) / 10f, 0f, 1f);
+            else if (row == 9) InvertY = !InvertY;
+            else if (row == 10) BackgroundSound = !BackgroundSound;
             Apply();
             Save();
         }
@@ -133,6 +143,8 @@ namespace Fief
             if (row == 5) return FiefInput.BindNames[ActiveBind];
             if (row == 7) return Help ? "oui" : "non";
             if (row == 8) return Mathf.RoundToInt(Music * 100f) + " %";
+            if (row == 9) return InvertY ? "oui" : "non";
+            if (row == 10) return BackgroundSound ? "oui" : "non";
             return FiefInput.BindNames[PushBind];
         }
 
@@ -149,6 +161,6 @@ namespace Fief
             return from;
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique", "Inverser la souris", "Son en arrière-plan" };
     }
 }

@@ -242,6 +242,7 @@ namespace Fief
             Round(new Rect(card.x, card.y + UiStyle.S(9), card.width, card.height), new Color(0f, 0f, 0.05f, 0.4f), radius, false);
             if (on) Round(Grow(card, line4 * 2f), new Color(1f, 0.9f, 0.45f, 0.5f + 0.5f * lift), radius + line4 * 2, false);
             Color rank = tier >= 0 ? AbilityInfo.TierColour(tier) : Icons.Ink;
+            if (owned && tier >= 0) rank = Color.Lerp(rank, new Color(0.35f, 0.35f, 0.42f), 0.6f);   // (v43) deja a toi : le rang s'eteint
             // (v41) Le cadre a la couleur du rang ; une legendaire et une divine rayonnent toujours un peu.
             if (tier >= 3 && turn >= 0.5f)
             {

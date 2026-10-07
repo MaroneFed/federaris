@@ -88,6 +88,13 @@ namespace Fief
             Time.timeScale = 1f;
         }
 
+        // (v43, le gamer) Le jeu tourne en fond (v36) : le son se coupe si on l'a demande.
+        void OnApplicationFocus(bool focus)
+        {
+            Settings.Load();
+            AudioListener.volume = focus || Settings.BackgroundSound ? Settings.Volume : 0f;
+        }
+
         void Go(State s)
         {
             // La voix de l'arene (Kenney) : "round 2", "final round", "tie breaker" a l'annonce
@@ -738,7 +745,7 @@ namespace Fief
         /// faudrait un petit timer, pas trop court, il faut le temps de tout lire") : 20 s par
         /// tour. Le temps ecoule, la carte que tu vises est prise (sinon, une au hasard de tes gouts).
         /// </summary>
-        const float PickTime = 20f;
+        const float PickTime = 15f;     // (v43, le gamer : 20 s x 2 tours x 8 joueurs, c'etait long)
         float turnStartedAt;
 
         /// <summary>Les secondes qui restent a celui qui choisit.</summary>
@@ -1936,7 +1943,7 @@ namespace Fief
                 float lift = Mathf.SmoothStep(0f, 1f, cardLift[i]);
                 Rect card = new Rect(hit.x, hit.y + (1f - enter) * UiStyle.S(40), cw, ch);     // (10/10) elle ne monte plus quand on la vise
                 cardRects[i] = card;
-                Card(card, p, owned, on, lift, enter, me);
+                Card(card, p, owned, on, lift, enter, me, i);
                 if (myTurn && enter > 0.9f && GUI.Button(hit, GUIContent.none, GUIStyle.none)) { selected = i; PickCard(i); }
             }
             y += ch * rows + gap * (rows - 1) + UiStyle.S(26);
@@ -2146,7 +2153,7 @@ namespace Fief
         }
 
         /// <summary>UNE CARTE (28/09 : dessinee par CardArt -- dos, retournement, cadre d'or, rayons, etincelles).</summary>
-        void Card(Rect card, Ability p, bool owned, bool on, float lift, float enter, int me)
+        void Card(Rect card, Ability p, bool owned, bool on, float lift, float enter, int me, int slot)
         {
             // (01/10) Plus de bande rouge "remplace ..." : les capacites changent a chaque
             // manche, elle s'affichait sur TOUTES les cartes et ne disait rien.
@@ -2156,7 +2163,6 @@ namespace Fief
                          active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, null, owned, on, lift, enter, Icons.Of(p), tier);
             // (v41) UNE LEGENDAIRE (ou une divine) SE RETOURNE AVEC FRACAS : un son, une gerbe a la
             // couleur du rang, une seule fois par carte.
-            int slot = System.Array.IndexOf(cardRects, card);
             if (Event.current.type == EventType.Repaint && tier >= 3 && enter >= 0.5f && slot >= 0 && slot < revealed.Length && !revealed[slot])
             {
                 revealed[slot] = true;

@@ -70,7 +70,8 @@ namespace Fief
             {
                 surgeTier = tier;
                 surgeAt = Time.unscaledTime;
-                Sfx.Discovery();
+                // (v43, le logicien) Son propre : le gong (Discovery, c'est la Couronne et les legendaires).
+                if (Game.PlayerTransform != null) Sfx.GongAt(Game.PlayerTransform.position); else Sfx.Discovery();
                 if (Game.Hud != null) Game.Hud.Flash(new Color(1f, 0.6f, 0.15f, 0.25f));
             }
             float age = Time.unscaledTime - surgeAt;

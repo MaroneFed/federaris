@@ -153,7 +153,7 @@ namespace Fief
                 yaw += look.x * sensitivity;
                 float lowLimit = cinematic ? minPitch : -82f;
                 float highLimit = cinematic ? maxPitch : 82f;
-                pitch = Mathf.Clamp(pitch - look.y * sensitivity, lowLimit, highLimit);
+                pitch = Mathf.Clamp(pitch - look.y * sensitivity * (Settings.InvertY ? -1f : 1f), lowLimit, highLimit);
                 distance = Mathf.Clamp(distance - FiefInput.ZoomNotches * 1.6f, minD, maxD);
             }
 

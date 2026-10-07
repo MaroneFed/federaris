@@ -60,7 +60,8 @@ namespace Fief
 
     public static class AbilityInfo
     {
-        public const int Count = 133;
+        // (v43, le logicien) Calcule depuis l'enum : une capacite ajoutee n'est plus oubliee.
+        public static readonly int Count = System.Enum.GetValues(typeof(Ability)).Length;
 
         /// <summary>(08/10) Une capacite DIVINE : seulement en Mode Dieu.</summary>
         public static bool IsGod(Ability a) { return a >= Ability.Apocalypse && a <= Ability.Demence || a >= Ability.Colosse && a <= Ability.Titan; }

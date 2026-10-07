@@ -434,7 +434,10 @@ namespace Fief
             // En vol, on ne change pas d'avis : on vise ou l'on va.
             if (ballistic || gliding) return;
             // En route vers une arbaleste : on y va (sauf si elle est prise, ou si c'est long).
-            if (goal == Goal.Ballista && ballista != null && ballista.Free && Time.time - ballistaChosen < 10f && !(seeker.CarriesCrown && Tower.On(me))) return;
+            // (v43, le logicien) 10 s pour atteindre son arbaleste ; 6 s quand quelqu'un porte la Couronne
+            // (le porteur bouge : il faut pouvoir changer d'avis).
+            float patience = Crown.Holder != null && Crown.Holder != seeker ? 6f : 10f;
+            if (goal == Goal.Ballista && ballista != null && ballista.Free && Time.time - ballistaChosen < patience && !(seeker.CarriesCrown && Tower.On(me))) return;
             // (v35) Dix secondes sans y arriver : cette arbaleste-la est boudee un moment (avant, il
             // la reprenait aussitot pour cible, et se recoinçait contre elle toute la manche).
             if (goal == Goal.Ballista && ballista != null && Time.time - ballistaChosen >= 10f) { sulkBallista = ballista; sulkUntil = Time.time + 20f; ballista = null; }
@@ -544,6 +547,9 @@ namespace Fief
         /// <summary>
         /// L'EMBUSCADE (v40). Vrai s'il s'en occupe (il y va, ou il y monte deja la garde).
         /// </summary>
+        Monument ambushMonument;
+        float ambushUntil;
+
         bool Ambush(Seeker holder, Vector3 hp, Goal was)
         {
             if (Match.BotLevel == 0 || Monument.All.Count == 0) return false;
@@ -554,9 +560,29 @@ namespace Fief
             bool closeBehind = Tower.On(me) && hp.y - me.y < 16f && me.y - hp.y < 30f;
             if (!(highOnTower && !closeBehind || inAir)) return false;
             // En vol : le Monument vers lequel il file (dans 4 s, a sa vitesse). Sinon : chacun le sien.
-            Monument m;
-            if (inAir) m = Monument.Nearest(hp + Vector3.ClampMagnitude(preyVelocity, 25f) * 4f);
-            else m = Monument.All[Mathf.Abs(seeker.Index) % Monument.All.Count];
+            // (v43, le logicien) Il GARDE son choix un moment (6 s a pied, 2 s en vol) : avant, il
+            // pouvait hesiter entre deux Monuments a chaque reflexion. Et on se repartit par la
+            // distance et le nombre de gardes deja la, plutot que par le numero de chacun.
+            Monument m = ambushMonument != null && Monument.All.Contains(ambushMonument) && Time.time < ambushUntil ? ambushMonument : null;
+            if (m == null)
+            {
+                if (inAir) m = Monument.Nearest(hp + Vector3.ClampMagnitude(preyVelocity, 25f) * 4f);
+                else
+                {
+                    float best = float.MaxValue;
+                    for (int i = 0; i < Monument.All.Count; i++)
+                    {
+                        Monument mo = Monument.All[i];
+                        if (mo == null) continue;
+                        int guards = 0;
+                        for (int k = 0; k < All.Count; k++) if (All[k] != null && All[k] != this && All[k].ambushMonument == mo && Time.time < All[k].ambushUntil) guards++;
+                        float score = guards * 90f + Flat(mo.transform.position - me).magnitude;
+                        if (score < best) { best = score; m = mo; }
+                    }
+                }
+                ambushMonument = m;
+                ambushUntil = Time.time + (inAir ? 2f : 6f);
+            }
             if (m == null) return false;
             Vector3 mp = m.transform.position;
             // Sa place autour du cercle (pas tous au meme endroit : on se gene, et on se fait pousser ensemble).
@@ -1224,7 +1250,8 @@ namespace Fief
             float u = Tower.Progress(me);
             Vector3 mid = Tower.RampPoint(r, u);
             if (Mathf.Abs(me.y - mid.y) > 3f || Flat(me - mid).magnitude > Tower.RampWidth) return false;   // pas vraiment sur une rampe
-            if (railBest < 0f) { railBest = u; railStall = 0f; railKick = 0; }
+            // (v43, le gamer) Un bot sur deux prend le couloir du milieu : ils ne bouchent plus tous le cote mur.
+            if (railBest < 0f) { railBest = u; railStall = 0f; railKick = 0; railLane = seeker.Index % 2 == 0 ? -1.4f : -0.3f; }
 
             Vector3 dest;
             if (u > 0.985f) dest = Tower.CrownSpot;                   // le haut de la rampe : on entre sur le sommet

@@ -83,6 +83,8 @@ namespace Fief
         public static void HitStop(float seconds)
         {
             if (!Mathf.Approximately(Time.timeScale, 1f)) return;
+            // (v43, le logicien) Jamais en ligne : le temps ralenti n'est que sur TA machine.
+            if (Match.Online) return;
             Time.timeScale = 0.05f;
             hitStop = seconds;
         }
