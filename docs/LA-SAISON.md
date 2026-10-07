@@ -842,6 +842,29 @@ un bot tiré par une arbaleste **ne finit jamais sa course dans le sceau** (à l
 tomber droit devant) ; et en se posant au bout du couloir, **2,5 s de protection** (un moulinet du
 dernier piège balaie jusqu'au mur).
 
+
+**Les bots refaits (v39)** — Martin, 13/10 : « ils prennent l'arbalète, ils passent, puis ils se
+barrent littéralement à droite ; ils ne savent pas monter la tour ; ils n'utilisent jamais leur capa,
+ou alors comme des cons ».
+
+- **Plus de détour au départ** : chaque bot allait chercher un sanctuaire jusqu'à 60 m, dos à la tour
+  (« ils se barrent à droite »). Seulement s'il est à 15 m, maintenant.
+- **La montée sur un rail** (`Rival.RailClimb`) : sur la rampe, plus de liste de repères calculée au
+  pied (bousculé d'un mètre, elle ne voulait plus rien dire : demi-tours, tours en rond). À chaque
+  image, il lit **sur quelle rampe et à quelle hauteur** il est et vise le point de cette rampe
+  **2,5 m plus haut, côté mur**. Poussé sur une autre rampe : il continue sur celle-là. Le radar des
+  obstacles marche comme avant. 3 s sans monter : un saut et l'autre couloir ; 12 s, hors de ta vue,
+  reposé 3 m plus haut. Au bout de la rampe, droit sur la Couronne.
+- **Pas de vengeance lointaine** pendant la course : il ne quitte son chemin que pour qui l'a frappé
+  à moins de 10 m (25 m avant).
+- **Le cerveau des capacités** (`Rival.Opportunity`) : avant, presque toutes les règles attendaient
+  un porteur de la Couronne — le reste du temps, rien. Maintenant chaque capacité offensive a **sa
+  portée** (autour de lui, ou visée) et part dès qu'une bonne cible y est, **en ligne de vue** : le
+  porteur, celui qui va prendre la Couronne avant lui, celui qui **le devance** sur la tour, toi (s'il
+  est rancunier), puis le plus proche. Sur la rampe, jamais sur un bot derrière lui. **Les pièges**
+  (mine, colle, bananes, loup, feu) quand quelqu'un le suit de près ; **géant, fantôme, invincible**
+  quand ça chauffe autour de lui. Les bots faciles réfléchissent moins.
+
 ## Retiré
 
 - Le 26/09 : stèles, butin, ressources, camp et caches, construction, Autels,

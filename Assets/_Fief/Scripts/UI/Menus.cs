@@ -144,6 +144,7 @@ namespace Fief
             if (goFlash > 0f) goFlash = Mathf.Max(0f, goFlash - dt * 1.2f);
             if (Current == State.RoundOver && stateTime > 9f && !leaving && !NetGame.IsClient) AfterRound();
 
+            if (quitAsked) { quitAsked = false; QuitNow(); return; }
             if (!leaving) Keyboard();
             DriveCamera();
 
@@ -945,8 +946,22 @@ namespace Fief
             Time.timeScale = 1f;
         }
 
-        void Quit()
+        // (v39 -- Martin : "bug quand j'appuie sur Quitter le jeu") : on quittait EN PLEIN DESSIN des
+        // menus (OnGUI), parfois en pause (le temps arrete) ou en pleine partie en ligne. Maintenant
+        // le clic demande seulement a quitter ; on quitte a l'image suivante, proprement : le temps
+        // repart, on quitte la partie en ligne, puis le jeu s'arrete.
+        bool quitAsked;
+        bool quitting;
+
+        void Quit() { quitAsked = true; }
+
+        void QuitNow()
         {
+            if (quitting) return;
+            quitting = true;
+            Time.timeScale = 1f;
+            try { if (NetSession.Link != null || Match.Online) NetSession.Leave(); }
+            catch (System.Exception e) { Debug.LogWarning("[FIEF] Quitter : " + e.Message); }
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else

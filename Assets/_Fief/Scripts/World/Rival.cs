@@ -452,7 +452,10 @@ namespace Fief
 
             Seeker holder = Crown.Holder;
             if (holder != null && holder != seeker && holder.Body != null) { HuntCarrier(holder, was); return; }
-            if (prey != null && preyTimer > 0f && prey.Body != null && !prey.Hidden && seeker.CanShove && (prey.Body.position - me).magnitude < 25f && OnFoot(prey.Body.position))
+            // (v39) Pendant la course a la tour, il ne quitte plus son chemin pour se venger a 25 m :
+            // seulement si l'autre est a portee de bras (10 m).
+            float grudge = Crown.Where == Crown.State.OnPedestal ? 10f : 25f;
+            if (prey != null && preyTimer > 0f && prey.Body != null && !prey.Hidden && seeker.CanShove && (prey.Body.position - me).magnitude < grudge && OnFoot(prey.Body.position))
             {
                 SetGoal(Goal.Fight, prey.Body.position, was);
                 return;
@@ -460,9 +463,12 @@ namespace Fief
             prey = null;
 
             // Le debut : un sanctuaire proche (sur l'ile), s'il n'a pas de don.
+            // (v39 -- Martin : "ils prennent l'arbalete, ils passent, puis ils se barrent litteralement a
+            // droite") : c'etait CA -- au debut, chaque bot allait chercher un sanctuaire jusqu'a 60 m,
+            // en tournant le dos a la tour. Seulement s'il est a deux pas (15 m) et sur son chemin.
             if (season.Elapsed < scoutUntil && !seeker.HasGift)
             {
-                if (shrine == null || shrine.Spent) shrine = NearestShrine(60f);
+                if (shrine == null || shrine.Spent) shrine = NearestShrine(15f);
                 if (shrine != null && OnFoot(shrine.transform.position)) { SetGoal(Goal.Shrine, shrine.transform.position, was); return; }
             }
 
@@ -1068,6 +1074,15 @@ namespace Fief
             if (!arrived)
             {
                 work = 0f;
+                if (RailClimb(dt)) return;
+                // Tombe du rail (pousse, ejecte) : le chemin a pied est refait des qu'il retouche le sol.
+                if (railBest >= 0f && body.isGrounded && !gliding && !ballistic && !leaping)
+                {
+                    railBest = -1f;
+                    PlanPath(target);
+                    progressBest = float.MaxValue;
+                    step = Waypoint();
+                }
                 WatchProgress(step, dt);
                 Walk(step, speed, dt);
                 return;
@@ -1112,6 +1127,78 @@ namespace Fief
         /// chemin perime), il en refait un, part de biais et saute. Avant, il pouvait pousser
         /// contre la meme pierre jusqu'a la fin de la manche.
         /// </summary>
+        // ================================================================== la montee (v39)
+
+        float railBest = -1f;
+        float railStall;
+        int railKick;
+        float railLane = -1.4f;
+
+        /// <summary>
+        /// MONTER LA TOUR SUR UN RAIL (13/10, v39 -- Martin : "ils ne savent pas monter la tour, ils
+        /// deconnent completement, fais des dingueries pour les bots"). Avant, sur la rampe, le bot
+        /// suivait une LISTE de reperes calculee au pied : bouscule d'un metre, pousse sur la rampe
+        /// d'en dessous, un repere saute par le chien de garde... et la liste ne voulait plus rien
+        /// dire -- il faisait demi-tour, visait un point dans le vide, tournait en rond.
+        ///
+        /// Maintenant, sur la rampe, il ne suit plus de liste : a chaque image, il regarde OU IL EST
+        /// sur la spirale (quelle rampe, a quelle hauteur) et vise le point de cette rampe 2,5 m plus
+        /// haut, cote mur (le cote sur). Pousse, tombe sur une autre rampe : il continue sur celle-la,
+        /// sans rien recalculer. Au bout, le sommet. Le radar des obstacles (attendre le pendule,
+        /// passer de l'autre cote d'un boulet) marche comme avant, puisque c'est toujours Walk.
+        /// Et s'il ne monte plus (12 s sans gagner un metre, sans attendre un obstacle) : un saut et
+        /// un changement de couloir, puis, hors de ta vue, il est repose un peu plus haut.
+        /// Vrai s'il a marche sur le rail cette image.
+        /// </summary>
+        bool RailClimb(float dt)
+        {
+            if (!(goal == Goal.Raid || goal == Goal.Grab || goal == Goal.Deliver)) return false;
+            if (gliding || ballistic || leaping || mounted || !body.enabled || diveTime > 0f) return false;
+            Vector3 me = transform.position;
+            if (!Tower.On(me) || Tower.Summit(me)) return false;
+            if (target.y < me.y + 2f) return false;                    // son but n'est pas plus haut : la marche normale
+            int r = Tower.RampOf(me);
+            float u = Tower.Progress(me);
+            Vector3 mid = Tower.RampPoint(r, u);
+            if (Mathf.Abs(me.y - mid.y) > 3f || Flat(me - mid).magnitude > Tower.RampWidth) return false;   // pas vraiment sur une rampe
+            if (railBest < 0f) { railBest = u; railStall = 0f; railKick = 0; }
+
+            Vector3 dest;
+            if (u > 0.985f) dest = Tower.CrownSpot;                   // le haut de la rampe : on entre sur le sommet
+            else dest = Tower.RampPoint(r, Mathf.Min(1f, u + 0.025f), railLane);
+
+            // Le chien de garde du rail : monte-t-il ?
+            bool waiting = hazardWait > 0f && hazardWait < HazardPatience;
+            if (u > railBest + 0.01f) { railBest = u; railStall = 0f; railKick = 0; }
+            else if (!waiting && !seeker.Stunned && !seeker.Rooted && !seeker.Glued && !seeker.Charmed) railStall += dt;
+            if (railKick == 0 && railStall > 3f)
+            {
+                railKick = 1;
+                railLane = railLane < 0f ? 0.6f : -1.4f;             // l'autre couloir
+                if (body.isGrounded && !seeker.NoJump) fallSpeed = 8f * JumpBoost;
+            }
+            else if (railKick == 1 && railStall > 7f)
+            {
+                railKick = 2;
+                railLane = railLane < 0f ? 0.6f : -1.4f;
+                if (body.isGrounded && !seeker.NoJump) fallSpeed = 8f * JumpBoost;
+            }
+            else if (railStall > 12f)
+            {
+                railStall = 0f;
+                railKick = 0;
+                if (!SeenByPlayer())
+                {
+                    Vector3 up = Tower.RampPoint(r, Mathf.Min(0.98f, u + 0.03f), -1.4f);
+                    Teleport(up + Vector3.up * 0.5f);
+                }
+                railBest = u;
+            }
+            path.Clear();
+            Walk(dest, RunSpeed * seeker.SpeedFactor, dt);
+            return true;
+        }
+
         void WatchProgress(Vector3 step, float dt)
         {
             // (05/10 -- Martin : "ils sont bloques a chaque fois, ils font les cons") : avant, un
@@ -1672,6 +1759,8 @@ namespace Fief
                         break;
                     }
                 }
+                // (v39) Sinon, la regle de tous les jours : une cible a portee, et on tire.
+                if (!go) go = Opportunity(a, eye, contender, ref aim);
                 if (!go) continue;
                 if (aim.sqrMagnitude < 0.01f) aim = transform.forward;
                 // (v37 -- "quand ils sautent tout en haut, ils sont bloques par un mur invisible") : un
@@ -1685,6 +1774,166 @@ namespace Fief
                     return;
                 }
             }
+        }
+
+        // ================================================================== le cerveau des capacites (v39)
+
+        /// <summary>
+        /// LA REGLE DE TOUS LES JOURS (13/10, v39 -- Martin : "ils n'utilisent jamais leur capa, ou
+        /// alors comme des cons"). Les regles ci-dessus attendaient presque toutes UN PORTEUR de la
+        /// Couronne : le reste de la manche (la course a la tour, la bagarre au pied), le bot gardait
+        /// sa capacite en poche. Maintenant, si aucune regle precise n'a joue, il fait comme un
+        /// joueur : il connait la PORTEE de sa capacite (autour de lui, ou visee) et la lance des
+        /// qu'une bonne cible y est -- le porteur d'abord, puis celui qui va prendre la Couronne avant
+        /// lui, celui qui le DEVANCE sur la tour, toi (s'il est rancunier), puis le plus proche. Sur la
+        /// rampe, jamais sur un bot qui est derriere lui (ca ne sert a rien, et ca vide la tour). Les
+        /// pieges (mine, colle, bananes, loup, feu) se posent quand quelqu'un le suit de pres. Vrai :
+        /// on lance ("aim" est rempli).
+        /// </summary>
+        bool Opportunity(Ability a, Vector3 eye, Seeker contender, ref Vector3 aim)
+        {
+            if (Match.BotLevel == 0 && rng.NextDouble() < 0.6) return false;      // les faciles reflechissent moins
+            if (seeker.CarriesCrown || MovesMe(a)) return false;
+            Vector3 me = transform.position;
+            // Les pieges : quelqu'un le suit de pres (derriere lui, a moins de 9 m).
+            if (a == Ability.Mine || a == Ability.Glu || a == Ability.Banane || a == Ability.PiegeLoup || a == Ability.Flammes)
+            {
+                if (!body.isGrounded) return false;
+                for (int i = 0; i < Game.Seekers.Count; i++)
+                {
+                    Seeker o = Game.Seekers[i];
+                    if (o == seeker || o.Body == null || o.Graced) continue;
+                    Vector3 rel = o.Body.position - me;
+                    if (rel.magnitude < 9f && Vector3.Dot(Flat(rel), transform.forward) < 0f && Mathf.Abs(rel.y) < 3f) { aim = transform.forward; return true; }
+                }
+                return false;
+            }
+            // Se faire geant, fantome : quand ca chauffe autour de lui.
+            if (a == Ability.Geant || a == Ability.Fantome || a == Ability.Invincible)
+                return Chasers(5f) >= 1 && (Tower.On(me) || goal == Goal.Fight || goal == Goal.Hunt);
+            if (!AbilityCaster.Offensive(a)) return false;
+            float reach;
+            bool around;
+            if (!Reach(a, out reach, out around)) return false;
+            Seeker t = BestTarget(reach, contender, around);
+            if (t == null) return false;
+            Vector3 chest = t.Body.position + Vector3.up * 1.1f;
+            aim = around ? Flat(chest - me) : chest - eye;
+            return true;
+        }
+
+        /// <summary>La meilleure cible a moins de "reach" metres (null s'il n'y en a pas de bonne).</summary>
+        Seeker BestTarget(float reach, Seeker contender, bool around)
+        {
+            Vector3 me = transform.position;
+            Vector3 eye = me + Vector3.up * 1.6f;
+            bool onRamp = Tower.On(me) && !Tower.Summit(me);
+            Seeker best = null;
+            float bestScore = float.MaxValue;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker o = Game.Seekers[i];
+                if (o == seeker || o.Body == null || o.Graced || o.Hidden) continue;
+                Vector3 p = o.Body.position;
+                float d = (p - me).magnitude;
+                if (d > reach) continue;
+                // Sur la rampe : le porteur, toi, ou qui le devance -- jamais un bot derriere lui.
+                if (onRamp && !o.CarriesCrown && !o.IsPlayer && o != contender && p.y < me.y + 1f) continue;
+                if (!around && !InSight(eye, o)) continue;
+                float score = d;
+                if (o.CarriesCrown) score -= 200f;
+                if (o == contender) score -= 100f;
+                if (Tower.On(p) && p.y > me.y + 1f) score -= 30f;            // il le devance
+                if (o.IsPlayer) score -= 12f * temper;
+                if (o == prey) score -= 20f;
+                if (score < bestScore) { bestScore = score; best = o; }
+            }
+            return best;
+        }
+
+        /// <summary>Rien entre son oeil et la poitrine de "o" (un mur, la tour) ?</summary>
+        bool InSight(Vector3 eye, Seeker o)
+        {
+            Vector3 to = o.Body.position + Vector3.up * 1.1f;
+            RaycastHit hit;
+            if (!Physics.Linecast(eye, to, out hit, ~0, QueryTriggerInteraction.Ignore)) return true;
+            return hit.transform == o.Body || hit.transform.IsChildOf(o.Body) || hit.transform == transform || hit.transform.IsChildOf(transform);
+        }
+
+        /// <summary>
+        /// LA PORTEE de chaque capacite offensive, pour un bot : "around" -- elle part de lui (une onde,
+        /// une vague, une explosion autour) ; sinon on la vise sur la cible. Faux : il ne sait pas
+        /// s'en servir seul (la regle precise, plus haut, s'en charge).
+        /// </summary>
+        static bool Reach(Ability a, out float reach, out bool around)
+        {
+            around = true;
+            switch (a)
+            {
+                // autour de lui
+                case Ability.Onde: reach = AbilityCaster.OndeRadius - 1f; return true;
+                case Ability.Meteore: reach = 8f; return true;
+                case Ability.Seisme: reach = 20f; return true;
+                case Ability.Toupie: reach = 3.5f; return true;
+                case Ability.Apesanteur: reach = 8f; return true;
+                case Ability.Raz: reach = 16f; return true;
+                case Ability.Tnt: reach = 5f; return true;
+                case Ability.Apocalypse: reach = 18f; return true;
+                case Ability.ArretTemps: reach = 20f; return true;
+                case Ability.Tempete: reach = 16f; return true;
+                case Ability.GraviteZero: reach = 32f; return true;
+                case Ability.Singularite: reach = 36f; return true;
+                case Ability.Cataclysme: reach = 70f; return true;
+                case Ability.AnneauFeu: reach = 7f; return true;
+                case Ability.Geole: reach = 40f; return true;
+                case Ability.Tsunami: reach = 45f; return true;
+                case Ability.Armee: reach = 45f; return true;
+                case Ability.Ouragan: reach = 8f; return true;
+                case Ability.Enclumes: reach = 200f; return true;
+                case Ability.Essaim: reach = 60f; return true;
+                case Ability.Lilliput: reach = 50f; return true;
+                case Ability.Demence: reach = 50f; return true;
+                case Ability.Nuke: reach = 12f; return true;
+                case Ability.Cri: reach = 8f; return true;
+            }
+            around = false;
+            switch (a)
+            {
+                // visees sur la cible
+                case Ability.Gel: reach = 22f; return true;
+                case Ability.Tornade: reach = 20f; return true;
+                case Ability.TrouNoir: reach = 18f; return true;
+                case Ability.Gant: reach = 8f; return true;
+                case Ability.Deluge: reach = 24f; return true;
+                case Ability.Foudre: reach = AbilityCaster.FoudreRange - 3f; return true;
+                case Ability.Crochet: reach = AbilityCaster.CrochetRange - 4f; return true;
+                case Ability.Souffle: reach = 30f; return true;
+                case Ability.Missile: reach = 35f; return true;
+                case Ability.Boomerang: reach = 18f; return true;
+                case Ability.Oreillers: reach = 15f; return true;
+                case Ability.Mouton: reach = 15f; return true;
+                case Ability.SainteGrenade: reach = 20f; return true;
+                case Ability.PoingFaucon: reach = 4f; return true;
+                case Ability.GobeTout: reach = 13f; return true;
+                case Ability.RoueFolle: reach = 20f; return true;
+                case Ability.BouletBleu: reach = 80f; return true;
+                case Ability.Buche: reach = 30f; return true;
+                case Ability.Tonneau: reach = 18f; return true;
+                case Ability.Disco: reach = 15f; return true;
+                case Ability.Rayon: reach = 24f; return true;
+                case Ability.Dragon: reach = 10f; return true;
+                case Ability.Comete: reach = 35f; return true;
+                case Ability.Volcan: reach = 25f; return true;
+                case Ability.Rocher: reach = 30f; return true;
+                case Ability.Lune: reach = 40f; return true;
+                case Ability.Bombardement: reach = 35f; return true;
+                case Ability.Prison: case Ability.Bombe: case Ability.Inversion: case Ability.Mini: case Ability.Ballon:
+                case Ability.Lasso: case Ability.Hypnose: case Ability.Geyser: case Ability.MainDeDieu: case Ability.FoudreChaine:
+                case Ability.FrappeOrbitale:
+                    reach = AbilityCaster.CurseRange - 3f; return true;
+            }
+            reach = 0f;
+            return false;
         }
 
         /// <summary>(v37) Les capacites qui deplacent le lanceur (un bond, un elan, un tir).</summary>
