@@ -1108,8 +1108,10 @@ namespace Fief
             else if (s.Has(Ability.Chanceux) && Random.value < 0.33f)
             {
                 s.Refund(a);
-                Fx.Sparks(chest, AbilityInfo.Tint(Ability.Chanceux), 25, 4f);
-                if (s.IsPlayer) Sfx.Pop();
+                // (v43, le gamer) Plus visible : une gerbe et un anneau, et la passive s'allume au HUD.
+                Fx.Sparks(chest, AbilityInfo.Tint(Ability.Chanceux), 60, 7f);
+                Fx.Ring(chest, AbilityInfo.Tint(Ability.Chanceux), 0.4f, 3f, 0.35f, 0.15f, Vector3.up);
+                if (s.IsPlayer) { Sfx.Pop(); Hud.PassivePing(); }
             }
             return true;
         }

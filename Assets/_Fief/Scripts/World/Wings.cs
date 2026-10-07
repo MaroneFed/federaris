@@ -69,6 +69,8 @@ namespace Fief
         /// A appeler a chaque image pour un joueur (toi ou un bot) : il prend des ailes
         /// d'or au sommet, il les perd en se posant ailleurs.
         /// </summary>
+        static float nextRune;
+
         public static void Tick(Seeker s, bool grounded)
         {
             if (s == null || s.Body == null) return;
@@ -78,6 +80,19 @@ namespace Fief
             // cote des obstacles") : le vol libre s'arrete A LA MURAILLE. Dans la citadelle, on
             // marche et on monte la tour a pied.
             if (s.FreeFlight && Castle.Inside(p)) s.FreeFlight = false;
+            // (v43, le gamer : "le vol libre s'arrete net a la muraille, ca surprend") : a 15 m du mur,
+            // en l'air et dehors, les runes du sceau s'allument sur la muraille devant toi.
+            if (s.IsPlayer && !grounded && !Castle.Inside(p) && p.y > Castle.WallHeight - 4f && Time.time >= nextRune)
+            {
+                float edge = Castle.HalfSize + Castle.WallThickness * 0.5f;
+                float dx = Mathf.Max(0f, Mathf.Abs(p.x) - edge), dz = Mathf.Max(0f, Mathf.Abs(p.z) - edge);
+                if (Mathf.Sqrt(dx * dx + dz * dz) < 15f)
+                {
+                    nextRune = Time.time + 0.2f;
+                    Vector3 wall = new Vector3(Mathf.Clamp(p.x, -edge, edge), p.y, Mathf.Clamp(p.z, -edge, edge));
+                    Fx.Sparks(wall + new Vector3(Random.Range(-3f, 3f), Random.Range(-2f, 2f), Random.Range(-3f, 3f)), Ward.Rune, 10, 2.5f);
+                }
+            }
             if (Tower.Summit(p))
             {
                 if (!s.HasWings) Grant(s, true);
@@ -588,6 +603,46 @@ namespace Fief
                 sh.localRotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(pitch, 0f, roll);
                 sh.localScale = Vector3.one * Mathf.Lerp(0.5f, 1.15f, o);
             }
+        }
+    }
+
+    /// <summary>
+    /// (v43, le gamer : "en vol, rien ne dit ou je vais toucher") LE REPERE D'ATTERRISSAGE : en
+    /// l'air, a plus de 4 m du sol, un anneau de lumiere au sol juste sous toi -- plus petit et plus
+    /// net a mesure que tu descends. Le Mario 64 de l'ombre, sans noir (v35 : jamais de tache sombre).
+    /// </summary>
+    public class LandingMark : MonoBehaviour
+    {
+        Transform ring;
+        float shown;
+
+        public static LandingMark Create()
+        {
+            GameObject go = new GameObject("Repere d'atterrissage");
+            LandingMark m = go.AddComponent<LandingMark>();
+            Proto.BeginVisualOnly();
+            GameObject r = Proto.Cylinder(go.transform, Vector3.zero, new Vector3(1f, 0.01f, 1f), Color.white, "Anneau");
+            r.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(0.75f, 0.9f, 1f), 0.9f);
+            GameObject dot = Proto.Cylinder(go.transform, Vector3.up * 0.005f, new Vector3(0.82f, 0.012f, 0.82f), Color.white, "Creux");
+            dot.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(new Color(0.55f, 0.62f, 0.75f), 0.2f, 0f);
+            Proto.EndVisualOnly();
+            m.ring = go.transform;
+            go.SetActive(false);
+            return m;
+        }
+
+        /// <summary>Chaque image : ou tu es, et si tu es en l'air.</summary>
+        public void Track(Vector3 feet, bool airborne)
+        {
+            RaycastHit hit;
+            bool show = airborne && Physics.Raycast(feet + Vector3.up * 0.2f, Vector3.down, out hit, 120f, ~0, QueryTriggerInteraction.Ignore) && hit.distance > 4f;
+            if (!show) { if (gameObject.activeSelf) gameObject.SetActive(false); return; }
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+            Physics.Raycast(feet + Vector3.up * 0.2f, Vector3.down, out hit, 120f, ~0, QueryTriggerInteraction.Ignore);
+            float size = Mathf.Lerp(0.9f, 3.2f, Mathf.Clamp01(hit.distance / 60f));
+            ring.position = hit.point + hit.normal * 0.06f;
+            ring.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+            ring.localScale = new Vector3(size, 1f, size);
         }
     }
 

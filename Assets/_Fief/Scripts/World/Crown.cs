@@ -309,7 +309,14 @@ namespace Fief
             // (01/10) Sur son socle comme a terre : on la prend EN PASSANT DESSUS.
             if (state == State.Dropped || state == State.OnPedestal) PickUpByTouch();
             visual.Rotate(0f, (state == State.Carried ? 90f : 30f) * Time.deltaTime, 0f, Space.World);
-            if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
+            if (fallTimer > 0f && state == State.Dropped)
+            {
+                fallTimer -= Time.deltaTime;
+                float t = Mathf.Clamp01(1f - fallTimer / FallTime);
+                float arc = Mathf.Min(6f, (fallTo - fallFrom).magnitude * 0.25f);
+                visual.position = Vector3.Lerp(fallFrom, fallTo, t * t) + Vector3.up * Mathf.Sin(t * Mathf.PI) * arc;
+            }
+            else if (state != State.Carried) visual.position = new Vector3(visual.position.x, BaseHeight() + Mathf.Sin(Time.time * 1.6f) * 0.05f, visual.position.z);
             if (beam != null) beam.source = new Vector3(visual.position.x, visual.position.y - 1.5f, visual.position.z);
             if (glow != null) glow.intensity = 1.1f * (0.85f + 0.15f * Mathf.Sin(Time.time * 4f));
             if (runeRing != null) runeRing.Rotate(0f, 12f * Time.deltaTime, 0f, Space.Self);
@@ -345,6 +352,9 @@ namespace Fief
         }
 
         bool shownForWinner;
+        Vector3 fallFrom, fallTo;
+        float fallTimer;
+        const float FallTime = 0.6f;
         float groundY;
         bool hiddenForMe;
         Vector3 pedestal;
@@ -512,6 +522,7 @@ namespace Fief
         {
             if (state != State.Carried) return;
             Seeker was = Holder;
+            fallFrom = visual.position;
             state = State.Dropped;
             Holder = null;
             // Par terre, un peu devant : on la voit rouler.
@@ -555,7 +566,11 @@ namespace Fief
             // apres elle la decalerait d'autant), puis la couronne elle-meme.
             transform.position = new Vector3(at.x, y - 1.05f, at.z);
             visual.position = new Vector3(at.x, groundY, at.z);
-            Sfx.ThudAt(visual.position);
+            // (v43, le gamer : "on ne la voit pas tomber, elle apparait") : de loin, elle vole en cloche
+            // jusqu'a son point de chute en 0,6 s.
+            fallTo = visual.position;
+            if ((fallTo - fallFrom).magnitude > 3f) { fallTimer = FallTime; visual.position = fallFrom; }
+            Sfx.ThudAt(fallTo);
             Ambiance.Burst(null, visual.position, Gold);
             // (02/10 -- "on ne voit pas tres bien quand on perd la Couronne") : une gerbe d'or
             // qui monte haut et un anneau au sol, la ou elle tombe ; le repere a l'ecran de

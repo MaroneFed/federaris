@@ -88,6 +88,7 @@ namespace Fief
                 if (by.HomeRunCount >= 4)
                 {
                     by.HomeRunCount = 0;
+                    if (by.IsPlayer) Hud.PassivePing();
                     force *= 3f;
                     Vector3 hp = best.Body.position + Vector3.up * 1.2f;
                     Fx.Shock(hp, AbilityInfo.Tint(Ability.HomeRun), 4f, 0.35f);
@@ -263,6 +264,7 @@ namespace Fief
             if (by != null && by != victim && victim.Has(Ability.Armure) && !victim.ArmorUsed)
             {
                 victim.ArmorUsed = true;
+                if (victim.IsPlayer) Hud.PassivePing();
                 Fx.Shock(victim.Body.position + Vector3.up * 1.1f, AbilityInfo.Tint(Ability.Armure), 2.2f, 0.3f);
                 Fx.Sparks(victim.Body.position + Vector3.up * 1.1f, Color.white, 20, 5f);
                 Sfx.ClangAt(victim.Body.position);
@@ -295,13 +297,14 @@ namespace Fief
             else if (by == null && Tower.On(victim.Body.position) && !Tower.Summit(victim.Body.position))
                 velocity = Tumble(victim, velocity);
             // VAMPIRE : chaque coup donne fait courir plus vite.
-            if (by != null && by != victim && by.Has(Ability.Vampire)) by.RushUntil = Time.time + 3f;
+            if (by != null && by != victim && by.Has(Ability.Vampire)) { by.RushUntil = Time.time + 3f; if (by.IsPlayer) Hud.PassivePing(); }
             // RIPOSTE : qui te frappe se prend un retour de baton (pas en cascade).
             if (by != null && by != victim && by.Body != null && victim.Has(Ability.Riposte) && !riposting)
             {
                 Vector3 back = Flat(by.Body.position - victim.Body.position);
                 back = back.sqrMagnitude > 0.01f ? back.normalized : -Flat(velocity).normalized;
                 riposting = true;
+                if (victim.IsPlayer) Hud.PassivePing();
                 Hit(by, back * 16f + Vector3.up * 6f, 0.25f, true, victim);
                 riposting = false;
                 Fx.Ring(victim.Body.position + Vector3.up * 1.1f, AbilityInfo.Tint(Ability.Riposte), 0.4f, 2.6f, 0.3f, 0.2f, back);
@@ -310,6 +313,7 @@ namespace Fief
             if (by != null && by != victim && victim.Has(Ability.Kamikaze) && !exploding)
             {
                 exploding = true;
+                if (victim.IsPlayer) Hud.PassivePing();
                 Vector3 c = victim.Body.position;
                 Blast(c, 7f, 26f, 12f, victim);
                 Color k = AbilityInfo.Tint(Ability.Kamikaze);
@@ -404,6 +408,7 @@ namespace Fief
             if (victim.Has(Ability.Miroir) && by != null && by != victim && by.Body != null && !mirroring)
             {
                 mirroring = true;
+                if (victim.IsPlayer) Hud.PassivePing();
                 Fx.Shock(victim.Body.position + Vector3.up * 1.2f, AbilityInfo.Tint(Ability.Miroir), 2f, 0.3f);
                 bool back = Afflict(by, what, seconds, victim);
                 mirroring = false;
@@ -782,11 +787,12 @@ namespace Fief
             }
             s.GraceUntil = Time.time + Grace;
             // (05/10) SECOND SOUFFLE : on repart protege six secondes, avec des ailes d'or.
-            if (s.Has(Ability.SecondSouffle)) { s.GraceUntil = Time.time + 6f; Wings.Grant(s, true); }
+            if (s.Has(Ability.SecondSouffle)) { s.GraceUntil = Time.time + 6f; Wings.Grant(s, true); if (s.IsPlayer) Hud.PassivePing(); }
             s.StunnedUntil = -1f;
             s.SlowUntil = -1f;
             // Les sorts des capacites de fou ne survivent pas au plongeon.
             s.RootedUntil = s.GluedUntil = s.InvertedUntil = s.TinyUntil = s.InkUntil = s.BalloonUntil = s.CharmedUntil = -1f;
+            if (angel && s.IsPlayer) Hud.PassivePing();
             if (angel) Fx.Column(at, AbilityInfo.Tint(phoenix ? Ability.Phenix : Ability.AngeGardien), 30f, 0.6f, 1.2f);
             if (angel && phoenix)
             {

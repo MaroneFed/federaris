@@ -66,7 +66,9 @@ namespace Fief
             FoeInReach = me.CanShove && Combat.FoeAhead(me, eye.forward);
             // En l'air, le porteur dans le viseur : la poussee devient le PIQUE D'AIGLE.
             DiveAt = player.Airborne && !player.Diving ? Combat.DiveTarget(me, eye.position, eye.forward) : null;
-            if (FiefInput.PushPressed && DiveAt != null) Combat.Dive(me, DiveAt);
+            // (v43, le gamer) En pleine visee, le bouton de poussee ANNULE la visee (rien ne part).
+            if (FiefInput.PushPressed && AimingSlot >= 0) { StopAiming(); Sfx.Pop(); }
+            else if (FiefInput.PushPressed && DiveAt != null) Combat.Dive(me, DiveAt);
             else if (FiefInput.PushPressed)
             {
                 if (!me.CanShove) Refuse(me.Stunned ? "Étourdi" : "Mains prises");

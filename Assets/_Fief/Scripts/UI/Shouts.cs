@@ -23,15 +23,21 @@ namespace Fief
         {
             "t'a dégagé !", "t'a envoyé valser !", "t'a mis une patate !", "t'a fait décoller !", "t'a éjecté !",
             "t'a balayé !", "t'a atomisé !", "t'a expédié !", "t'a mis au tapis !", "t'a fumé !", "t'a renvoyé chez toi !",
-            "t'a catapulté !"
+            "t'a catapulté !", "t'a mis en orbite !", "t'a fait voir du pays !", "t'a envoyé en vacances !",
+            "t'a soufflé !", "t'a pulvérisé !", "t'a fait faire un salto !", "t'a mis une claque !", "t'a fait la misère !",
+            "t'a envoyé promener !", "t'a fait la totale !"
         };
         static readonly string[] YouPushed =
         {
             "Tu as dégagé", "Tu as envoyé valser", "Tu as mis une patate à", "Tu as fait décoller", "Tu as éjecté",
-            "Tu as balayé", "Tu as atomisé", "Tu as expédié", "Tu as mis au tapis", "Tu as fumé", "Tu as catapulté"
+            "Tu as balayé", "Tu as atomisé", "Tu as expédié", "Tu as mis au tapis", "Tu as fumé", "Tu as catapulté",
+            "Tu as mis en orbite", "Tu as envoyé en vacances", "Tu as soufflé", "Tu as pulvérisé", "Tu as mis une claque à",
+            "Tu as fait la misère à", "Tu as envoyé promener"
         };
-        static readonly string[] KoYou = { "t'a envoyé dans les nuages !", "t'a sorti de l'île !", "t'a fait faire le grand plongeon !", "t'a envoyé au tapis... des nuages !" };
-        static readonly string[] YouKo = { "Tu as envoyé dans les nuages", "Tu as sorti de l'île", "Tu as fait plonger" };
+        static readonly string[] KoYou = { "t'a envoyé dans les nuages !", "t'a sorti de l'île !", "t'a fait faire le grand plongeon !", "t'a envoyé au tapis... des nuages !",
+            "t'a offert un aller simple !", "t'a fait goûter les nuages !", "t'a rayé de la carte !", "t'a envoyé faire coucou aux nuages !" };
+        static readonly string[] YouKo = { "Tu as envoyé dans les nuages", "Tu as sorti de l'île", "Tu as fait plonger",
+            "Tu as offert un aller simple à", "Tu as fait goûter les nuages à", "Tu as rayé de la carte" };
 
         sealed class ShoutLine
         {

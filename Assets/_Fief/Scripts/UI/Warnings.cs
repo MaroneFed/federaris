@@ -87,7 +87,8 @@ namespace Fief
             float total = icon + gap + ww;
             float pad = Mathf.Round(fs * 0.6f);
             float x = Mathf.Round((Screen.width - total) * 0.5f);
-            float y = Mathf.Round(Screen.height * 0.16f);
+            // (v43, le gamer) Sous la barre du sacre quand quelqu'un se fait sacrer.
+            float y = Mathf.Round(Screen.height * (Monument.Sacring != null ? 0.26f : 0.16f));
             Color hot = new Color(1f, 0.55f, 0.15f);
             Icons.Pill(new Rect(x - pad, y, total + pad * 2f, h), new Color(0.12f, 0.05f, 0.04f, 0.65f * a));
             Rect ir = new Rect(x, y + Mathf.Round((h - icon) * 0.5f), icon, icon);

@@ -455,7 +455,11 @@ namespace Fief
             FlightFov = Mathf.Lerp(FlightFov, Gliding ? 6f + fast * 20f : 0f, 1f - Mathf.Exp(-4f * dt));
             if (feel == null && cameraTransform != null) feel = GlideFeel.Attach(cameraTransform);
             if (feel != null) feel.Set(Gliding ? 0.25f + fast * 0.75f : 0f, Gliding ? airspeed : 0f);
+            if (landing == null) landing = LandingMark.Create();
+            if (landing != null) landing.Track(transform.position, Airborne);
         }
+
+        LandingMark landing;
 
         /// <summary>Retomber : une secousse, et avec le Rebond une onde de choc si l'on tombait de haut.</summary>
         void Land(Seeker me)

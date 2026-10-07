@@ -71,9 +71,15 @@ namespace Fief
 
         public void Flash(Color tint)
         {
+            // (v43, le gamer) Un seul flash a la fois : un plus faible n'ecrase pas celui qui brille encore.
+            if (flash > 0.45f && tint.a < flashTint.a * flash) return;
             flash = 1f;
             flashTint = tint;
         }
+
+        /// <summary>(v43, le gamer) Ta passive vient de se declencher : son rond s'illumine.</summary>
+        public static void PassivePing() { passivePingAt = Time.unscaledTime; }
+        static float passivePingAt = -99f;
 
         /// <summary>
         /// LA MICRO-PAUSE D'IMPACT : quand ta poussee touche, le temps s'arrete un
@@ -313,7 +319,9 @@ namespace Fief
             Rect pill = new Rect(cx - pw * 0.5f, UiStyle.S(14), pw, ph);
             bool late = left <= 10f && left > 0f;
             float beat = late ? Mathf.Pow(1f - Mathf.Repeat(left, 1f), 2f) : 0f;
-            Color fill = late ? Color.Lerp(new Color(0.78f, 0.16f, 0.22f), new Color(1f, 0.42f, 0.3f), beat) : new Color(0.22f, 0.3f, 0.72f);
+            // (v43, le gamer) Le chrono chauffe avec la MONTEE : bleu roi a x1, braise a x2,5.
+            float heat = Mathf.Clamp01((Combat.Power - 1f) / (Combat.MaxPower - 1f));
+            Color fill = late ? Color.Lerp(new Color(0.78f, 0.16f, 0.22f), new Color(1f, 0.42f, 0.3f), beat) : Color.Lerp(new Color(0.22f, 0.3f, 0.72f), new Color(0.85f, 0.4f, 0.15f), heat);
             if (late) { float g = UiStyle.S(10) * beat; pill = new Rect(pill.x - g, pill.y - g * 0.4f, pill.width + g * 2f, pill.height + g * 0.8f); }
             Icons.Pill(pill, fill);
             float ic = pill.height * 0.7f;
@@ -501,6 +509,13 @@ namespace Fief
             {
                 if (AbilityInfo.IsActive(all[i])) continue;
                 Rect pr = new Rect(cx - big * 0.5f - UiStyle.S(26) - small, y + big - small, small, small);
+                float ping = Mathf.Clamp01(1f - (Time.unscaledTime - passivePingAt) / 0.8f);
+                if (ping > 0f)
+                {
+                    float g = UiStyle.S(10) * ping;
+                    Color pc = AbilityInfo.Tint(all[i]);
+                    Icons.Pill(new Rect(pr.x - g, pr.y - g, pr.width + g * 2f, pr.height + g * 2f), new Color(pc.r, pc.g, pc.b, ping));
+                }
                 Icons.Pill(pr, Color.Lerp(AbilityInfo.Tint(all[i]), new Color(0.2f, 0.18f, 0.36f), 0.55f));
                 Icons.Draw(new Rect(pr.x + small * 0.16f, pr.y + small * 0.16f, small * 0.68f, small * 0.68f), Icons.Of(all[i]), Color.white);
                 break;
@@ -614,7 +629,10 @@ namespace Fief
             bool foe = AbilityUser.FoeInReach;
             float d = UiStyle.S(foe ? 8 : 5);
             Icons.Dot(new Rect(cx - d * 0.5f - 1.5f, cy - d * 0.5f - 1.5f, d + 3f, d + 3f), new Color(0f, 0f, 0f, 0.5f));
-            Icons.Dot(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : new Color(1f, 1f, 1f, 0.85f));
+            // (v43, la designer) Le point prend la couleur de ta capacite quand elle est prete.
+            Color dot = new Color(1f, 1f, 1f, 0.85f);
+            if (me != null && me.HasActive && me.Ready(me.CurrentActive, Time.time)) dot = Color.Lerp(AbilityInfo.Tint(me.CurrentActive), Color.white, 0.35f);
+            Icons.Dot(new Rect(cx - d * 0.5f, cy - d * 0.5f, d, d), foe ? new Color(1f, 0.35f, 0.28f, 0.95f) : dot);
             // Le pique d'aigle : le porteur est dans ton viseur, en l'air -- la cible d'or, et l'aigle.
             if (AbilityUser.DiveAt != null)
             {
