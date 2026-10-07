@@ -272,7 +272,8 @@ namespace Fief
             transform.position = p + Vector3.up * Mathf.Abs(Mathf.Sin(hop)) * 0.7f;
             transform.rotation = Quaternion.LookRotation(dir) * Quaternion.Euler(Mathf.Sin(hop) * 10f, 0f, 0f);
             bleat -= dt;
-            if (bleat <= 0f) { bleat = 1.1f; Sfx.Sheep(p); }
+            // (v43, le clipper) Il beele de plus en plus vite juste avant d'exploser.
+            if (bleat <= 0f) { bleat = age > Life - 1.2f ? 0.3f : 1.1f; Sfx.Sheep(p); }
             if (!marked && age > Life - 1.2f)
             {
                 marked = true;

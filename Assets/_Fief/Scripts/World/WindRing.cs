@@ -118,6 +118,7 @@ namespace Fief
                 Fx.Burst(Centre, Wings.Gold, 90, 18f, 0.3f, 1f, 0f, Vector3.zero, 0f);
                 Fx.Flash(Centre, Wings.Gold, 25f, 4f, 0.4f);
                 if (s.IsPlayer) Sfx.Moment();
+                Highlights.Enfilade(s);
                 s.RingChain = 0;
             }
         }

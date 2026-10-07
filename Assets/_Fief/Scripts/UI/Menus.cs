@@ -2253,7 +2253,28 @@ namespace Fief
                 Icons.Draw(new Rect(r.x + ps * 0.12f, r.y + ps * 0.1f, ps * 0.8f, ps * 0.8f), icons[i], i < 2 ? new Color(1f, 0.86f, 0.35f, a) : new Color(1f, 1f, 1f, a));
                 Icons.Number(new Rect(r.x + ps, r.y, pw - ps * 1.15f, ps), counts[i].ToString(), Mathf.RoundToInt(ps * 0.5f), new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
             }
-            y += ps + UiStyle.S(34);
+            y += ps + UiStyle.S(18);
+
+            // (v43, le clipper) LE MOMENT DU MATCH : la claquette, son icone, et qui l'a fait.
+            string mi = Highlights.MomentIcon;
+            int mb = Highlights.MomentBy;
+            if (mi != null && mb >= 0 && mb < Match.Slots.Count)
+            {
+                PlayerSlot ms = Match.Slots[mb];
+                float mh = UiStyle.S(46);
+                int mfs = Mathf.RoundToInt(mh * 0.46f);
+                float nw = Icons.Width(ms.Name, mfs);
+                float mw = mh * 2.3f + nw + UiStyle.S(18);
+                Rect mr = Icons.Snap(new Rect(cx - mw * 0.5f, y, mw, mh));
+                float glow = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3f);
+                Icons.Pill(new Rect(mr.x - UiStyle.S(3), mr.y - UiStyle.S(3), mr.width + UiStyle.S(6), mr.height + UiStyle.S(6)), new Color(1f, 0.82f, 0.36f, (0.55f + 0.35f * glow) * a));
+                Icons.Pill(mr, new Color(0.14f, 0.16f, 0.36f), a);
+                Icons.Draw(new Rect(mr.x + mh * 0.14f, mr.y + mh * 0.14f, mh * 0.72f, mh * 0.72f), "clip", new Color(1f, 1f, 1f, a));
+                Icons.Draw(new Rect(mr.x + mh * 1.04f, mr.y + mh * 0.1f, mh * 0.8f, mh * 0.8f), mi, new Color(1f, 0.86f, 0.4f, a));
+                Icons.Number(new Rect(mr.x + mh * 2.1f, mr.y, nw + UiStyle.S(8), mh), ms.Name, mfs, new Color(Mathf.Lerp(ms.Colour.r, 1f, 0.3f), Mathf.Lerp(ms.Colour.g, 1f, 0.3f), Mathf.Lerp(ms.Colour.b, 1f, 0.3f), a), TextAnchor.MiddleLeft);
+                y += mh + UiStyle.S(16);
+            }
+            else y += UiStyle.S(16);
 
             if (stateTime > 1.5f)
             {

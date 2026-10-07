@@ -429,7 +429,7 @@ namespace Fief
         Seeker by;
         float age, ring;
         Transform rock;
-        const float Fall = 1.5f;
+        const float Fall = 2.2f;     // (v43, le clipper) 2,2 s : on l'entend arriver (1,5 s avant)
 
         public static void Call(Seeker by, Vector3 at)
         {

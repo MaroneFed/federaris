@@ -234,7 +234,7 @@ namespace Fief
             {
                 // (02/10, le clipper) Un sacre aux deux tiers qui s'arrete parce que la Couronne
                 // a quitte son porteur : SACRE ARRACHE (une fois).
-                if (sacreBy != null && !sacreReported && Crown.Holder != sacreBy && sacre >= SacreSeconds * 0.66f)
+                if (sacreBy != null && !sacreReported && Crown.Holder != sacreBy && sacre >= SacreSeconds * (Crown.Holder != null ? 0.25f : 0.66f))
                 {
                     sacreReported = true;
                     Highlights.SacreStopped(sacreBy, sacre / SacreSeconds, transform.position);

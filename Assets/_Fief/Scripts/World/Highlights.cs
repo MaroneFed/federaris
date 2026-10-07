@@ -38,11 +38,13 @@ namespace Fief
     /// </summary>
     public static class Highlights
     {
-        public enum Kind { KO, DoubleKO, AirSteal, SacreStopped, Buzzer, Remontada, DoublePush, Revenge, HotPotato, Sniped, Dodge, Summit, Multi }
+        public enum Kind { KO, DoubleKO, AirSteal, SacreStopped, Buzzer, Remontada, DoublePush, Revenge, HotPotato, Sniped, Dodge, Summit, Multi,
+                          TripleKO, MonumentSteal, Enfilade, Mirror, HomeRun }
 
         static readonly Dictionary<Seeker, float> lastShoveAt = new Dictionary<Seeker, float>();
         static readonly Dictionary<Seeker, Seeker> lastShoved = new Dictionary<Seeker, Seeker>();
         static readonly Dictionary<Seeker, float> lastKoAt = new Dictionary<Seeker, float>();
+        static readonly Dictionary<Seeker, float> prevKoAt = new Dictionary<Seeker, float>();
         static readonly List<float> crownChanges = new List<float>();
         static float hotPotatoAt = -99f;
 
@@ -84,7 +86,10 @@ namespace Fief
             lastShoveAt.Clear();
             lastShoved.Clear();
             lastKoAt.Clear();
+            prevKoAt.Clear();
             crownChanges.Clear();
+            bestKind = -1;
+            bestBy = -1;
             recentHits.Clear();
         }
 
@@ -121,18 +126,22 @@ namespace Fief
             Vector3 exit = new Vector3(p.x, -22f, p.z);
             // LA COLONNE DU KO : elle jaillit des nuages a la couleur de la victime, on la voit
             // de toute l'ile -- c'est l'image du clip.
-            Fx.Column(exit, victim.Colour, 150f, 1.4f, 3.2f);
-            Fx.Column(exit, Color.white, 150f, 0.5f, 1.4f);
+            // (v43, le clipper) 200 m : on la voit de partout, meme du haut de la tour.
+            Fx.Column(exit, victim.Colour, 200f, 1.4f, 3.2f);
+            Fx.Column(exit, Color.white, 200f, 0.5f, 1.4f);
             Fx.Shock(exit + Vector3.up * 4f, victim.Colour, 14f, 0.6f);
             Fx.Ring(exit + Vector3.up * 2f, Color.white, 2f, 26f, 0.7f, 0.6f, Vector3.up);
             Fx.Burst(exit + Vector3.up * 3f, victim.Colour, 160, 30f, 0.5f, 1.2f, -0.4f, Vector3.up, 55f);
             Fx.Flash(exit + Vector3.up * 6f, victim.Colour, 60f, 8f, 0.6f);
             Sfx.KoBoom(exit, by.IsPlayer || victim.IsPlayer);
             Shouts.Ko(by, victim);
-            float last;
+            float last, prev;
             bool twice = lastKoAt.TryGetValue(by, out last) && Time.time - last < 12f;
+            // (v43, le clipper) TRIPLE KO : trois en 12 s.
+            bool thrice = twice && prevKoAt.TryGetValue(by, out prev) && Time.time - prev < 12f;
+            if (lastKoAt.ContainsKey(by)) prevKoAt[by] = last;
             lastKoAt[by] = Time.time;
-            Show(twice ? Kind.DoubleKO : Kind.KO, by, victim, exit);
+            Show(thrice ? Kind.TripleKO : twice ? Kind.DoubleKO : Kind.KO, by, victim, exit);
         }
 
         /// <summary>La Couronne arrachee par un pique d'aigle (Combat.DiveStrike).</summary>
@@ -155,7 +164,8 @@ namespace Fief
             float now = Time.time;
             crownChanges.Add(now);
             crownChanges.RemoveAll(t => now - t > 15f);
-            if (crownChanges.Count >= 4 && now - hotPotatoAt > 20f)
+            // (v43, le clipper) Cinq mains : avec la poussee sans attente, quatre arrivait trop souvent.
+            if (crownChanges.Count >= 5 && now - hotPotatoAt > 20f)
             {
                 hotPotatoAt = now;
                 Show(Kind.HotPotato, to, null, to.Body != null ? to.Body.position : Vector3.zero);
@@ -165,11 +175,14 @@ namespace Fief
         /// <summary>Un sacre bien avance s'arrete : la Couronne a quitte son porteur (Monument).</summary>
         public static void SacreStopped(Seeker victim, float progress, Vector3 at)
         {
-            if (!Live || victim == null || progress < 0.66f) return;
-            Seeker by = Crown.Holder != null && Crown.Holder != victim ? Crown.Holder : victim.LastHitBy;
+            if (!Live || victim == null) return;
+            // (v43, le clipper) VOLEE AU MONUMENT : quelqu'un la lui prend DANS le cercle (des 25 %).
+            bool stolen = Crown.Holder != null && Crown.Holder != victim;
+            if (progress < (stolen ? 0.25f : 0.66f)) return;
+            Seeker by = stolen ? Crown.Holder : victim.LastHitBy;
             if (by == null || by == victim) return;
             Fx.Shock(at + Vector3.up * 1.5f, Monument.Blue, 8f, 0.4f);
-            Show(Kind.SacreStopped, by, victim, at);
+            Show(stolen ? Kind.MonumentSteal : Kind.SacreStopped, by, victim, at);
         }
 
         /// <summary>La manche est gagnee (Monument.TryDeliver) : au buzzer ? une remontada ?</summary>
@@ -202,6 +215,53 @@ namespace Fief
             if (list.Count >= 3) { list.Clear(); Show(Kind.Multi, by, null, victim.Body.position); }
         }
 
+        /// <summary>(v43) Les quatre anneaux de vent enfiles AVEC la Couronne (WindRing).</summary>
+        public static void Enfilade(Seeker s)
+        {
+            if (!Live || s == null || s.Body == null || !s.CarriesCrown) return;
+            Show(Kind.Enfilade, s, null, s.Body.position);
+        }
+
+        /// <summary>(v43) Le Miroir de "by" renvoie un sort a "caster" (Combat.Afflict).</summary>
+        public static void Mirrored(Seeker by, Seeker caster)
+        {
+            if (!Live || by == null || caster == null || caster.Body == null) return;
+            Show(Kind.Mirror, by, caster, caster.Body.position);
+        }
+
+        /// <summary>(v43) Le Home run part (Combat.Shove).</summary>
+        public static void HomeRun(Seeker by, Seeker victim)
+        {
+            if (!Live || by == null || victim == null || victim.Body == null) return;
+            Show(Kind.HomeRun, by, victim, victim.Body.position);
+        }
+
+        // (v43, le clipper) LE MOMENT DU MATCH : le plus fort, rappele au podium.
+        static int bestKind = -1;
+        static int bestBy = -1;
+        /// <summary>Le joueur du moment du match (-1 : aucun).</summary>
+        public static int MomentBy { get { return bestBy; } }
+        /// <summary>L'icone et les mots du moment du match (null : aucun).</summary>
+        public static string MomentIcon { get { return bestKind < 0 ? null : IconOf((Kind)bestKind); } }
+        public static string MomentWords { get { return bestKind < 0 ? null : WordsOf((Kind)bestKind); } }
+
+        /// <summary>Le poids d'un moment, pour choisir le moment du match.</summary>
+        static int Weight(Kind k)
+        {
+            switch (k)
+            {
+                case Kind.TripleKO: return 10;
+                case Kind.MonumentSteal: return 9;
+                case Kind.Remontada: return 8;
+                case Kind.Buzzer: return 7;
+                case Kind.DoubleKO: case Kind.AirSteal: return 6;
+                case Kind.SacreStopped: case Kind.Enfilade: case Kind.Multi: return 5;
+                case Kind.Sniped: case Kind.HotPotato: case Kind.Summit: return 4;
+                case Kind.Mirror: case Kind.HomeRun: case Kind.KO: return 3;
+                default: return 1;
+            }
+        }
+
         /// <summary>Une gargouille a touche le porteur en plein vol (Eye.Fire).</summary>
         public static void Sniped(Seeker victim)
         {
@@ -222,7 +282,11 @@ namespace Fief
         {
             switch (k)
             {
-                case Kind.KO: case Kind.DoubleKO: return "ko";
+                case Kind.KO: case Kind.DoubleKO: case Kind.TripleKO: return "ko";
+                case Kind.MonumentSteal: return "monument";
+                case Kind.Enfilade: return "ailes";
+                case Kind.Mirror: return Icons.Of(Ability.Miroir);
+                case Kind.HomeRun: return Icons.Of(Ability.HomeRun);
                 case Kind.AirSteal: return "pique";
                 case Kind.SacreStopped: return "sacre";
                 case Kind.Buzzer: return "chrono";
@@ -242,6 +306,11 @@ namespace Fief
             {
                 case Kind.KO: return "KO !";
                 case Kind.DoubleKO: return "DOUBLE KO !";
+                case Kind.TripleKO: return "TRIPLE KO !";
+                case Kind.MonumentSteal: return "VOLÉE AU MONUMENT !";
+                case Kind.Enfilade: return "L'ENFILADE !";
+                case Kind.Mirror: return "RETOUR À L'ENVOYEUR !";
+                case Kind.HomeRun: return "HOME RUN !";
                 case Kind.AirSteal: return "VOLÉE EN PLEIN CIEL !";
                 case Kind.SacreStopped: return "SACRE ARRACHÉ !";
                 case Kind.Buzzer: return "AU BUZZER !";
@@ -260,8 +329,10 @@ namespace Fief
         {
             switch (k)
             {
-                case Kind.KO: case Kind.DoubleKO: return new Color(1f, 0.45f, 0.3f);
-                case Kind.SacreStopped: return Monument.Blue;
+                case Kind.KO: case Kind.DoubleKO: case Kind.TripleKO: return new Color(1f, 0.45f, 0.3f);
+                case Kind.SacreStopped: case Kind.MonumentSteal: return Monument.Blue;
+                case Kind.Mirror: return AbilityInfo.Tint(Ability.Miroir);
+                case Kind.HomeRun: return AbilityInfo.Tint(Ability.HomeRun);
                 case Kind.Sniped: return new Color(1f, 0.55f, 0.2f);
                 case Kind.Dodge: return Wings.Glow;
                 default: return Wings.Gold;
@@ -282,11 +353,14 @@ namespace Fief
             {
                 int n;
                 count[who.Index] = (count.TryGetValue(who.Index, out n) ? n : 0) + (actor != null ? 1 : 0);
-                if (actor != null && (k == Kind.KO || k == Kind.DoubleKO)) kos[actor.Index] = (kos.TryGetValue(actor.Index, out n) ? n : 0) + 1;
+                if (actor != null && (k == Kind.KO || k == Kind.DoubleKO || k == Kind.TripleKO)) kos[actor.Index] = (kos.TryGetValue(actor.Index, out n) ? n : 0) + 1;
             }
+            // Le moment du match : le plus lourd ; a egalite, le dernier.
+            if (actor != null && (bestKind < 0 || Weight(k) >= Weight((Kind)bestKind))) { bestKind = (int)k; bestBy = actor.Index; }
             // La foule fait "OOOOH" sur les plus gros (le clipper fou n° 499).
-            if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal || k == Kind.SacreStopped || k == Kind.HotPotato || k == Kind.Summit || k == Kind.Sniped || k == Kind.Multi)
-                Sfx.Crowd(k == Kind.DoubleKO || k == Kind.AirSteal ? 0.8f : 0.55f);
+            bool huge = k == Kind.DoubleKO || k == Kind.TripleKO || k == Kind.AirSteal || k == Kind.MonumentSteal;
+            if (huge || k == Kind.KO || k == Kind.SacreStopped || k == Kind.HotPotato || k == Kind.Summit || k == Kind.Sniped || k == Kind.Multi || k == Kind.Enfilade)
+                Sfx.Crowd(huge ? 0.8f : 0.55f);
             Color gold = new Color(1f, 0.82f, 0.4f);
             bool mine = actor != null && actor.IsPlayer;
             bool against = !mine && victim != null && victim.IsPlayer;
@@ -303,6 +377,7 @@ namespace Fief
             {
                 // Le KO et le vol en l'air ont deja leur CRI en haut (Shouts) : pas d'icone en plus.
                 bool shouted = k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal;
+                if (k == Kind.TripleKO) shouted = false;     // le triple merite son grand titre
                 if (!shouted) Game.Hud.ShowSplash(icon, tint, WordsOf(k));
                 if (mine) Game.Hud.Flash(new Color(tint.r, tint.g, tint.b, 0.35f));
                 if (Game.Hud.orbitCamera != null) Game.Hud.orbitCamera.Kick(mine ? 12f : 6f);
@@ -310,7 +385,7 @@ namespace Fief
             if (mine)
             {
                 Sfx.Moment();
-                if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.AirSteal) Hud.HitStop(0.1f);
+                if (k == Kind.KO || k == Kind.DoubleKO || k == Kind.TripleKO || k == Kind.AirSteal || k == Kind.Summit) Hud.HitStop(0.1f);
             }
         }
     }

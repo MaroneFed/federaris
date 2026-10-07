@@ -96,6 +96,7 @@ namespace Fief
                     Fx.Trail(best.Body, AbilityInfo.Tint(Ability.HomeRun), 1.6f, 1.4f);
                     Sfx.Ding(hp);
                     if (by.IsPlayer) Hud.HitStop(0.14f);
+                    Highlights.HomeRun(by, best);
                 }
                 else by.HomeRunCount++;
             }
@@ -414,6 +415,7 @@ namespace Fief
                 Fx.Shock(victim.Body.position + Vector3.up * 1.2f, AbilityInfo.Tint(Ability.Miroir), 2f, 0.3f);
                 bool back = Afflict(by, what, seconds, victim);
                 mirroring = false;
+                if (back) Highlights.Mirrored(victim, by);
                 return back;
             }
             // INCREVABLE : les sorts durent deux fois moins longtemps.
