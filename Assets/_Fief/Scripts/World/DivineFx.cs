@@ -572,8 +572,10 @@ namespace Fief
             Paint(outer, hot, pulse, 0.3f + 0.25f * k);
             if (inner != null) inner.transform.localScale = new Vector3(Mathf.Max(0.05f, radius * k), 1f, Mathf.Max(0.05f, radius * k));
             Paint(inner, colour, 0.9f, 0.4f);
-            Paint(crossA, hot, 0.5f * pulse, 0.18f);
-            Paint(crossB, hot, 0.5f * pulse, 0.18f);
+            // (v43, le designer) La croix a la couleur du LANCEUR : on sait de qui elle vient.
+            Color cross = Owner != null ? Color.Lerp(Owner.Colour, Color.white, 0.15f) : hot;
+            Paint(crossA, cross, 0.75f * pulse, 0.26f);
+            Paint(crossB, cross, 0.75f * pulse, 0.26f);
             if (beam != null)
             {
                 beam.startWidth = 0.5f + 1.2f * k;

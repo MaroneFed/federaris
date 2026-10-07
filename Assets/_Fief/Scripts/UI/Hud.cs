@@ -749,7 +749,43 @@ namespace Fief
                 if (!free) continue;
                 namePlaced.Add(r);
                 Icons.Text(r, s.Name, fs, new Color(c.r, c.g, c.b, a), TextAnchor.MiddleCenter, true);
+                // (v43, le designer) Retreci : une petite icone du Mini a cote de son pseudo, il le reste encore.
+                if (s.TinyUntil > Time.time)
+                {
+                    float ms = Mathf.Round(fs * 1.1f);
+                    Icons.Draw(new Rect(Mathf.Round(r.xMax + 2f), Mathf.Round(r.center.y - ms * 0.5f), ms, ms), Icons.Of(Ability.Mini), new Color(1f, 1f, 1f, a));
+                }
+                // (v43, le designer) Il vient de lancer : une pastille a la couleur du RANG, et
+                // l'icone de la capacite, au-dessus de son pseudo -- on sait qui a fait quoi.
+                CastNote note;
+                if (castNotes.TryGetValue(s, out note))
+                {
+                    float age = Time.time - note.At;
+                    if (age > 1.8f) continue;
+                    float al = a * Mathf.Clamp01((1.8f - age) / 0.4f);
+                    float pop = 1f + 0.35f * Mathf.Clamp01(1f - age / 0.15f);
+                    float ps = Mathf.Round(fs * 1.7f * pop);
+                    Rect pr = new Rect(Mathf.Round(r.center.x - ps * 0.5f), Mathf.Round(r.y - ps - 2f), ps, ps);
+                    Color tc = AbilityInfo.TierColour(AbilityInfo.Tier(note.What));
+                    Icons.Pill(pr, new Color(tc.r, tc.g, tc.b, 0.92f * al));
+                    float ins = Mathf.Round(ps * 0.18f);
+                    Icons.Draw(new Rect(pr.x + ins, pr.y + ins, ps - ins * 2f, ps - ins * 2f), Icons.Of(note.What), new Color(1f, 1f, 1f, al));
+                }
             }
+        }
+
+        struct CastNote
+        {
+            public Ability What;
+            public float At;
+        }
+        static readonly Dictionary<Seeker, CastNote> castNotes = new Dictionary<Seeker, CastNote>();
+
+        /// <summary>(v43) Un joueur vient de lancer une capacite : sa pastille de rang au-dessus du pseudo.</summary>
+        public static void NoteCast(Seeker s, Ability a)
+        {
+            if (s == null) return;
+            castNotes[s] = new CastNote { What = a, At = Time.time };
         }
         readonly List<int> nameOrder = new List<int>();
         readonly List<float> nameDist = new List<float>();

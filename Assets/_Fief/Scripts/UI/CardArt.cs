@@ -232,6 +232,13 @@ namespace Fief
                     Emit(new Vector2(card.x + Random.value * card.width, card.yMax - Random.value * 20f), new Vector2(Random.Range(-15f, 15f), Random.Range(-90f, -40f)), 1.2f, Color.Lerp(tint, Color.white, 0.4f));
             }
 
+            // (v43, le designer) Une legendaire ou une divine TREMBLE avant de se retourner (le dos seulement :
+            // une fois de face, plus rien ne bouge).
+            if (!showFace && tier >= 3 && turn > 0.02f)
+            {
+                float jolt = Mathf.Round(Mathf.Sin(time * 70f) * UiStyle.S(tier == 4 ? 4 : 3) * (1f - turn * 1.6f));
+                card.x += jolt;
+            }
             // Le retournement : la carte s'amincit jusqu'a la tranche, puis revient de face.
             // (Seulement pendant ce demi-temps : une carte posee n'est jamais etiree.)
             Matrix4x4 keep = GUI.matrix;
@@ -256,8 +263,11 @@ namespace Fief
             if (!showFace)
             {
                 // LE DOS : bleu nuit, un rond d'or, la Couronne.
-                Round(card, new Color(0.2f, 0.24f, 0.55f), radius, true);
-                Round(Grow(card, -line4 * 2f), new Color(0.13f, 0.15f, 0.38f), Mathf.Max(4, radius - line4), true);
+                // (v43) Pendant le retournement, le dos prend peu a peu la couleur du RANG : on devine.
+                float hint = tier >= 1 ? Mathf.Clamp01(turn * 2.2f) * 0.55f : 0f;
+                Color tierBack = tier >= 0 ? AbilityInfo.TierColour(tier) : Icons.Ink;
+                Round(card, Color.Lerp(new Color(0.2f, 0.24f, 0.55f), tierBack, hint), radius, true);
+                Round(Grow(card, -line4 * 2f), Color.Lerp(new Color(0.13f, 0.15f, 0.38f), new Color(tierBack.r * 0.6f, tierBack.g * 0.6f, tierBack.b * 0.6f), hint), Mathf.Max(4, radius - line4), true);
                 float d = card.width * 0.56f;
                 Rect disc = new Rect(card.center.x - d * 0.5f, card.center.y - d * 0.5f, d, d);
                 Icons.Pill(disc, new Color(0.3f, 0.35f, 0.8f));
@@ -360,9 +370,16 @@ namespace Fief
                 float gx = card.center.x - (tier * gem + (tier - 1) * gem * 0.4f) * 0.5f;
                 for (int k = 0; k < tier; k++)
                 {
+                    // (v43, le designer) Des LOSANGES, de vraies gemmes, avec un eclat.
                     Rect gr = Icons.Snap(new Rect(gx + k * gem * 1.4f, ribbon.yMax + UiStyle.S(3), gem, gem));
-                    Icons.Pill(Grow(gr, 1f), new Color(0.08f, 0.06f, 0.16f));
-                    Icons.Pill(gr, Color.Lerp(rank, Color.white, 0.25f));
+                    float side = Mathf.Round(gem * 0.72f);
+                    Rect sq = new Rect(Mathf.Round(gr.center.x - side * 0.5f), Mathf.Round(gr.center.y - side * 0.5f), side, side);
+                    Matrix4x4 gm = GUI.matrix;
+                    GUIUtility.RotateAroundPivot(45f, gr.center);
+                    UiStyle.Fill(Grow(sq, 1.5f), new Color(0.08f, 0.06f, 0.16f));
+                    UiStyle.Fill(sq, Color.Lerp(rank, Color.white, 0.25f));
+                    UiStyle.Fill(new Rect(sq.x, sq.y, Mathf.Round(side * 0.45f), Mathf.Round(side * 0.45f)), Color.Lerp(rank, Color.white, 0.7f));
+                    GUI.matrix = gm;
                 }
             }
 

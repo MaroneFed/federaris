@@ -15,6 +15,7 @@ namespace Fief
         Seeker owner;
         Renderer[] parts;
         bool shown = true;
+        Transform rune;
 
         const float Trigger = 1.2f;
         static readonly Color Rune = new Color(1f, 0.45f, 0.15f);
@@ -39,6 +40,7 @@ namespace Fief
             GameObject rune = Proto.Cylinder(go.transform, new Vector3(0f, 0.09f, 0f), new Vector3(0.4f, 0.02f, 0.4f), Color.white, "Rune");
             rune.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(Rune, 1.3f);
             Proto.EndVisualOnly();
+            m.rune = rune.transform;
             m.parts = go.GetComponentsInChildren<Renderer>();
             All.Add(m);
             Sfx.BuildAt(go.transform.position);
@@ -57,6 +59,14 @@ namespace Fief
             {
                 shown = see;
                 for (int i = 0; i < parts.Length; i++) if (parts[i] != null) parts[i].enabled = see;
+            }
+            // (v43, le designer) La rune CLIGNOTE : doucement, puis vite quand toi tu t'en approches.
+            if (shown && rune != null)
+            {
+                float near = player != null ? (player.position - transform.position).magnitude : 99f;
+                float speed = owner != Game.Me && near < 3.5f ? 16f : 3f;
+                float k = 0.75f + 0.35f * Mathf.Abs(Mathf.Sin(Time.time * speed));
+                rune.localScale = new Vector3(0.4f * k, 0.02f, 0.4f * k);
             }
             if (Game.Season == null || !Game.Season.Running) return;
             for (int i = 0; i < Game.Seekers.Count; i++)

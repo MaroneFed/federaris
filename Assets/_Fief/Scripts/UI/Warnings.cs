@@ -90,7 +90,12 @@ namespace Fief
             // (v43, le gamer) Sous la barre du sacre quand quelqu'un se fait sacrer.
             float y = Mathf.Round(Screen.height * (Monument.Sacring != null ? 0.26f : 0.16f));
             Color hot = new Color(1f, 0.55f, 0.15f);
-            Icons.Pill(new Rect(x - pad, y, total + pad * 2f, h), new Color(0.12f, 0.05f, 0.04f, 0.65f * a));
+            // (v43, le designer) Pas le meme habit que l'annonce des capacites : un liseré de braise
+            // qui bat, un fond rouge sombre.
+            float beat = 0.6f + 0.4f * Mathf.Abs(Mathf.Sin(age * 9f));
+            float rim = Mathf.Max(2f, Mathf.Round(UiStyle.S(3)));
+            Icons.Pill(new Rect(x - pad - rim, y - rim, total + pad * 2f + rim * 2f, h + rim * 2f), new Color(hot.r, hot.g * beat, hot.b, 0.9f * a));
+            Icons.Pill(new Rect(x - pad, y, total + pad * 2f, h), new Color(0.32f, 0.07f, 0.04f, 0.88f * a));
             Rect ir = new Rect(x, y + Mathf.Round((h - icon) * 0.5f), icon, icon);
             Icons.Pill(ir, new Color(hot.r, hot.g, hot.b, a));
             Icons.Draw(new Rect(ir.x + icon * 0.16f, ir.y + icon * 0.16f, icon * 0.68f, icon * 0.68f), Icons.Of(Ability.Foudre), new Color(1f, 1f, 1f, a));

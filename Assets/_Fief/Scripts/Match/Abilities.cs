@@ -128,7 +128,7 @@ namespace Fief
             switch (t) { case 0: return "COMMUNE"; case 1: return "RARE"; case 2: return "ÉPIQUE"; case 3: return "LÉGENDAIRE"; default: return "DIVINE"; }
         }
 
-        /// <summary>La couleur du rang : ardoise, bleu, violet, or, et la divine qui change de teinte.</summary>
+        /// <summary>La couleur du rang : ardoise, bleu, violet, orange, et la divine qui change de teinte.</summary>
         public static Color TierColour(int t)
         {
             switch (t)
@@ -136,7 +136,8 @@ namespace Fief
                 case 0: return new Color(0.62f, 0.68f, 0.78f);
                 case 1: return new Color(0.3f, 0.62f, 1f);
                 case 2: return new Color(0.72f, 0.38f, 1f);
-                case 3: return new Color(1f, 0.74f, 0.18f);
+                // (v43, le designer) Orange flamboyant : l'or pale reste reserve a la Couronne.
+                case 3: return new Color(1f, 0.56f, 0.12f);
                 default: return Color.HSVToRGB(Mathf.Repeat(Time.unscaledTime * 0.25f, 1f), 0.55f, 1f);
             }
         }

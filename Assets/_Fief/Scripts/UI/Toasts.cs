@@ -84,13 +84,14 @@ namespace Fief
                 float whoW = e.hasWho ? PlayerWidth(e.whoName, h) : 0f;
                 float whomW = e.hasWhom ? PlayerWidth(e.whomName, h) : 0f;
                 float total = whoW + e.icons.Length * h + whomW + UiStyle.S(12) + (e.hasWho ? UiStyle.S(4) : 0f) + (e.hasWhom ? UiStyle.S(4) : 0f);
-                Icons.Pill(new Rect(cx, cy, total, h), new Color(0.12f, 0.13f, 0.26f, 0.85f), alpha);
+                // (v43, le designer) Pastille plus legere (60 %), icones un peu plus grosses.
+                Icons.Pill(new Rect(cx, cy, total, h), new Color(0.12f, 0.13f, 0.26f, 0.6f), alpha);
                 cx += UiStyle.S(6);
                 if (e.hasWho) { Player(new Rect(cx, cy + h * 0.1f, whoW, h * 0.8f), e.who, e.whoName, alpha); cx += whoW + UiStyle.S(4); }
                 for (int k = 0; k < e.icons.Length; k++)
                 {
                     Color t = e.tints[k];
-                    Icons.Draw(new Rect(cx + h * 0.06f, cy + h * 0.06f, h * 0.88f, h * 0.88f), e.icons[k], new Color(t.r, t.g, t.b, alpha));
+                    Icons.Draw(new Rect(Mathf.Round(cx - h * 0.02f), Mathf.Round(cy - h * 0.02f), Mathf.Round(h * 1.04f), Mathf.Round(h * 1.04f)), e.icons[k], new Color(t.r, t.g, t.b, alpha));
                     cx += h;
                 }
                 if (e.hasWhom) Player(new Rect(cx + UiStyle.S(4), cy + h * 0.1f, whomW, h * 0.8f), e.whom, e.whomName, alpha);

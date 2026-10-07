@@ -126,6 +126,8 @@ namespace Fief
         /// <summary>Le ciel du moment : chaque palette tient "hold" secondes, puis fond 5 s dans la suivante.</summary>
         static SkyTheme Cycle()
         {
+            // (v43, le designer) En manche, UN ciel par manche (il changeait toutes les 22 s : distrayant).
+            if (Match.Active) return Themes[(Match.RoundNumber - 1) % Themes.Length];
             float hold = MenuGod && !Match.Active ? 9f : 22f;
             float fade = 5f;
             float t = Time.unscaledTime / (hold + fade);

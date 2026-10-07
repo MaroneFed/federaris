@@ -1129,11 +1129,16 @@ namespace Fief
             CharacterRig rig = s.IsPlayer ? Game.Rig : null;
             if (!s.IsPlayer) { Rival r = Rival.Of(s); if (r != null) rig = r.Rig; }
             if (rig != null) rig.PlayCast(divine);
+            Hud.NoteCast(s, a);
             Vector3 hands = pos + Vector3.up * 2.2f;
             Fx.GroundRing(pos, tint, divine ? 5f : 3f, divine ? 0.6f : 0.4f);
             Fx.Ring(pos + Vector3.up * 0.1f, Color.Lerp(tint, Color.white, 0.4f), 0.5f, divine ? 3.5f : 2.2f, 0.35f, 0.08f, Vector3.up);
             Fx.Burst(hands, tint, divine ? 50 : 24, divine ? 7f : 4.5f, 0.22f, 0.7f, -0.4f, Vector3.up, 35f);
             Fx.Sparks(hands, Color.white, divine ? 18 : 8, 3f);
+            // (v43, le designer) Le second anneau dit le RANG : sa couleur et sa taille montent avec lui.
+            int tier = AbilityInfo.Tier(a);
+            if (tier >= 1 && !divine)
+                Fx.Ring(pos + Vector3.up * 0.12f, AbilityInfo.TierColour(tier), 1.2f + tier * 0.6f, 0.8f + tier * 0.4f, 0.4f, 0.07f, Vector3.up);
             if (!divine) return;
             Color gold = new Color(1f, 0.82f, 0.36f);
             Fx.Ring(pos + Vector3.up * 0.15f, gold, 4.5f, 1.2f, 0.5f, 0.1f, Vector3.up);

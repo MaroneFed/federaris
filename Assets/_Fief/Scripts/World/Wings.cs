@@ -522,8 +522,10 @@ namespace Fief
             w.goldWings = new GameObject("Ailes d'or").transform;
             w.goldWings.SetParent(go.transform, false);
             Proto.BeginVisualOnly();
-            w.shoulders[0] = Build(w.wings, -1, 1f, Feather, Wings.Glow);
-            w.shoulders[1] = Build(w.wings, 1, 1f, Feather, Wings.Glow);
+            // (v43, le designer) Le bout des plumes a SA couleur : on reconnait qui plane, de loin.
+            Color tip = s != null ? Color.Lerp(s.Colour, Wings.Glow, 0.2f) : Wings.Glow;
+            w.shoulders[0] = Build(w.wings, -1, 1f, Feather, tip);
+            w.shoulders[1] = Build(w.wings, 1, 1f, Feather, tip);
             w.shoulders[2] = Build(w.goldWings, -1, 1.12f, GoldFeather, Wings.Gold);
             w.shoulders[3] = Build(w.goldWings, 1, 1.12f, GoldFeather, Wings.Gold);
             Proto.EndVisualOnly();

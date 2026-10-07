@@ -35,10 +35,10 @@ namespace Fief
             switch (what)
             {
                 case Combat.Affliction.Prison:
-                    Cage.Lock(victim, false);
+                    Cage.Lock(victim, false, by);
                     break;
                 case Combat.Affliction.Frozen:
-                    Cage.Lock(victim, true);
+                    Cage.Lock(victim, true, by);
                     break;
                 case Combat.Affliction.Tiny:
                     Shrink.Begin(victim);
@@ -72,7 +72,7 @@ namespace Fief
         Seeker who;
         float rattle;
 
-        public static void Lock(Seeker s, bool ice)
+        public static void Lock(Seeker s, bool ice, Seeker by = null)
         {
             Cage old = Find(s);
             if (old != null) return;
@@ -103,7 +103,9 @@ namespace Fief
             Proto.Cylinder(go.transform, new Vector3(0f, 2.42f, 0f), new Vector3(2.3f, 0.06f, 2.3f), iron, "Couvercle");
             Proto.Cylinder(go.transform, new Vector3(0f, 0.04f, 0f), new Vector3(2.4f, 0.04f, 2.4f), iron, "Socle");
             GameObject ring = Proto.Cylinder(go.transform, new Vector3(0f, 1.2f, 0f), new Vector3(2.2f, 0.05f, 2.2f), Color.white, "Bague");
-            ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(AbilityInfo.Tint(Ability.Prison), 0.8f);
+            // (v43, le designer) La bague luit a la couleur de qui t'a enferme.
+            Color band = by != null && by != s ? Color.Lerp(by.Colour, Color.white, 0.2f) : AbilityInfo.Tint(Ability.Prison);
+            ring.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(band, 0.8f);
             Proto.EndVisualOnly();
             All.Add(c);
             Fx.Shock(s.Body.position + Vector3.up, AbilityInfo.Tint(Ability.Prison), 2.4f, 0.3f);
