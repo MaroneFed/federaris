@@ -17,7 +17,7 @@ namespace Fief
         /// autre chose que ce texte, Unity ne fait pas tourner le dernier code (voir
         /// README.md, "Recuperer la derniere version").
         /// </summary>
-        public const string Version = "La Couronne · Castle · v43 · les chiants corrigés · 14/10";
+        public const string Version = "La Couronne · Castle · v43.1 · recharges honnêtes · 15/10";
 
         /// <summary>
         /// LA MAP (03/10, Martin : "on finit la 1, qui s'intitule Castle, et apres on passe a une

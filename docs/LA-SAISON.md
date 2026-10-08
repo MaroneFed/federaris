@@ -210,7 +210,7 @@ Il n'y a **pas de vie**, pas de mort, pas d'objet, rien en main. Un coup projett
   Déluge, Missile, Raz-de-marée, Lasso, Geyser, Hypnose, Souffle, Apesanteur ; passives :
   Kamikaze, Riposte, Miroir, Rage, Vampire, Planeur, Poigne, Tête dure). Les sanctuaires
   donnent aussi des divines.
-- **Tout se recharge en 60 % du temps** (45 % jusqu'au 12/10), **jamais en moins de 4 s**.
+- ~~Tout se recharge en 60 % du temps~~ : **retiré en v43.1** (la carte disait 18 s, le jeu en faisait 6) — **la recharge est celle de la carte**, en Mode Dieu comme ailleurs.
 - **Le porteur est intouchable par les pouvoirs** (10/10, v32 — Martin : « en God Mode, il faut
   pas taper la couronne, c'est trop cheaté ; il faut pas téléporter ») : les coups et les sorts des
   autres glissent sur lui dans une gerbe d'or. La Couronne se vole **à la main** : la poussée (clic
@@ -441,8 +441,8 @@ Rien de tout ça ne se voit chez les autres : c'est **ta** sensation. (La pouss�
 **Plus la manche avance, plus les coups des joueurs envoient loin** — capacités ET poussées
 (`Combat.Power`) : ×1 au départ, **+0,22 par minute** de manche, **+0,06 par manche déjà jouée**,
 **×2,5 au plus** (vers la 7e minute). L'élan à l'horizontale est multiplié par la puissance, la
-hauteur par sa racine (on part loin, pas dans la stratosphère). **Les recharges raccourcissent avec**
-(×0,6 au plus fort, jamais sous 4 s). Les pièges de la tour et des couloirs ne changent pas. À chaque
+hauteur par sa racine (on part loin, pas dans la stratosphère). **Les recharges ne changent pas** (v43.1 :
+elles raccourcissaient jusqu'à ×0,6 en cachette ; maintenant, la recharge est celle de la carte). Les pièges de la tour et des couloirs ne changent pas. À chaque
 palier (**×1,5, ×2, ×2,5**), un bandeau en or « PUISSANCE ×2 ! » et un son (`Warnings.DrawSurge`).
 Le temps de la manche vient de l'hôte : en ligne, tout le monde a la même puissance.
 

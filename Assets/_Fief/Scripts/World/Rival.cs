@@ -62,6 +62,9 @@ namespace Fief
         float progressBest = float.MaxValue;
         float noProgress;
         float castTimer;
+        // (v43.1) Vers qui il se tourne avant de frapper (LookingAt), et jusqu'a quand.
+        Vector3 faceDir;
+        float faceUntil = -1f;
         float barkTimer;
         float fellAt = -99f;
         System.Random rng;
@@ -420,6 +423,7 @@ namespace Fief
             if (castTimer <= 0f) { castTimer = Reflex; UseAbilities(); }
 
             Act(dt);
+            TurnToFace(dt);
             Remember(dt);
             Animate(dt);
         }
@@ -1122,7 +1126,8 @@ namespace Fief
             // La poussee : des qu'il est a portee de sa proie (y compris en l'air) -- pas sur
             // une proie protegee (le coup ne ferait rien, et il perdrait sa recharge).
             if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove && !prey.Graced
-                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.9f)
+                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.9f
+                && LookingAt(prey.Body.position - transform.position, 45f))
             {
                 seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 1.05f);
                 if (rig != null) rig.PlaySwing();
@@ -1143,7 +1148,7 @@ namespace Fief
                 Seeker foe = NearestFoe(2.7f);
                 bool onRamp = Tower.On(transform.position) && !Tower.Summit(transform.position);
                 if (foe != null && onRamp && !foe.IsPlayer && !foe.CarriesCrown) foe = null;
-                if (foe != null)
+                if (foe != null && LookingAt(foe.Body.position - transform.position, 45f))
                 {
                     seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
                     // (01/10 : la poussee projette loin maintenant -- ils la gardent pour les bons moments.)
@@ -1857,6 +1862,8 @@ namespace Fief
                 // bond, une fusee, une catapulte vers la citadelle les envoyait contre le SCEAU (le mur
                 // invisible qui renvoie qui entre par les airs). Jamais un deplacement par-dessus la muraille.
                 if (MovesMe(a) && Castle.Inside(me + Flat(aim).normalized * 24f) != Castle.Inside(me)) continue;
+                // (v43.1) Il se tourne d'abord vers ce qu'il vise ; il lancera au prochain reflexe.
+                if (!LookingAt(aim, 50f)) { castTimer = 0.2f; return; }
                 if (AbilityCaster.Cast(seeker, a, eye, aim.normalized))
                 {
                     if (rig != null) rig.PlaySwing();
@@ -2322,8 +2329,31 @@ namespace Fief
             }
             else stuck = 0f;
 
-            if (walk.sqrMagnitude > 0.1f)
+            if (walk.sqrMagnitude > 0.1f && Time.time >= faceUntil)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(Flat(walk).normalized, Vector3.up), 360f * dt);
+        }
+
+        /// <summary>
+        /// (v43.1 -- le frere de Martin : "les bots nous tapent alors qu'ils ne nous regardent meme
+        /// pas") : un bot ne pousse et ne lance une capacite que vers CE QU'IL REGARDE. Avant, il
+        /// marchait dans un sens et frappait dans un autre (Combat.Shove prend la direction donnee,
+        /// pas celle du corps). Maintenant, s'il ne regarde pas sa cible, il se tourne vers elle
+        /// (vite, mais ca se voit) et ne frappe qu'une fois tourne.
+        /// </summary>
+        bool LookingAt(Vector3 dir, float maxDegrees)
+        {
+            Vector3 f = Flat(dir);
+            if (f.sqrMagnitude < 0.01f) return true;
+            faceDir = f.normalized;
+            faceUntil = Time.time + 0.6f;
+            return Vector3.Angle(Flat(transform.forward), faceDir) <= maxDegrees;
+        }
+
+        /// <summary>Il se tourne vers sa cible (LookingAt), meme a l'arret.</summary>
+        void TurnToFace(float dt)
+        {
+            if (Time.time >= faceUntil || faceDir.sqrMagnitude < 0.01f) return;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(faceDir, Vector3.up), 540f * dt);
         }
 
         /// <summary>Le joueur le plus proche a moins de "metres" (toi d'abord, a distance egale), null sinon.</summary>

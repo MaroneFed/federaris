@@ -92,12 +92,16 @@ namespace Fief
             // une capacite de 6 s revenait en moins d'une seconde. Maintenant : Recharge x0,75,
             // Sablier x0,5, Mode Dieu x0,6, et JAMAIS moins de 4 s (ni moins de 30 % de la recharge
             // de base) : on a toujours le temps de voir ce qui vient de se passer.
+            //
+            // (v43.1 -- le frere de Martin : "la carte dit 18 secondes, en jeu c'est 6" ; Martin : "soit
+            // tout le temps 6, soit vraiment 18 ; l'immortel, c'est trop cheate") : le Mode Dieu (x0,6)
+            // et la montee (jusqu'a x0,6) raccourcissaient la recharge EN CACHETTE -- 18 x 0,36 = 6,5 s.
+            // Plus maintenant : LA RECHARGE EST CELLE DE LA CARTE. Seules les passives qui le disent
+            // sur leur propre carte la raccourcissent (Recharge rapide x0,75, Recharge eclair x0,5).
             float basis = AbilityInfo.Cooldown(a);
             float k = Has(Ability.Recharge) ? 0.75f : 1f;
             if (Has(Ability.Sablier)) k *= 0.5f;
-            if (Match.GodMode) k *= 0.6f;
-            // (v38) LA MONTEE : les recharges raccourcissent avec la force des coups (x0,6 au plus fort).
-            k *= Mathf.Lerp(1f, 0.6f, (Combat.Power - 1f) / (Combat.MaxPower - 1f));
+            if (k >= 1f) return basis;
             return Mathf.Max(basis * k, Mathf.Max(MinCooldown, basis * 0.3f));
         }
 
