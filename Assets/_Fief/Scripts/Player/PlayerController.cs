@@ -199,7 +199,9 @@ namespace Fief
             if (me != null && me.Has(Ability.Colosse)) GiantAura.Keep(me);
             if (me != null && me.Has(Ability.Lave)) LavaBody.Keep(me);
             if (me != null) Divin.KeepPassives(me);
-            Vector2 input = InputLocked ? Vector2.zero : FiefInput.Move;
+            // (v44) B : danser. Bouger arrete la danse (Emote.Tick le voit avant nous).
+            Emote.Tick(this, me);
+            Vector2 input = InputLocked || Emote.Dancing ? Vector2.zero : FiefInput.Move;
             // (06/10) TETE A L'ENVERS. (v37.3, Martin : "je veux juste que ca soit gauche, droite") :
             // seules la gauche et la droite s'inversent ; avancer reste avancer.
             if (me != null && me.Inverted) input.x = -input.x;

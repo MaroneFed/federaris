@@ -44,6 +44,9 @@ namespace Fief
         public bool Remote { get { return Slot.IsRemote; } }
         public bool Has(Ability a) { return Slot.Has(a) || HasGift && Gift == a; }
 
+        /// <summary>(v44) La danse qu'il fait (B ; -1 : aucune). Envoyee aux autres avec sa position.</summary>
+        public int Dance = -1;
+
         // ------------------------------------------------------------------ les capacites
 
         /// <summary>Le don d'un sanctuaire : une capacite active, pour cette manche (il remplace le clic gauche).</summary>

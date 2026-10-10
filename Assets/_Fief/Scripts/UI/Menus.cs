@@ -2339,6 +2339,7 @@ namespace Fief
                 Line("reglages", "Pause et réglages", "Échap", -1),
                 Line("commandes", "Cet écran", "F1", -1),
                 Line("clip", "Écran propre pour filmer (sans rien par-dessus)", "F10", -1),
+                Line("joueur", "Danser (encore B : une autre danse ; bouger arrête)", "B", -1),
             };
         }
 

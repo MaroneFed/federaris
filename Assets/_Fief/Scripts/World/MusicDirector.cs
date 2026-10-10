@@ -218,6 +218,8 @@ namespace Fief
         {
             Menus menus = Game.Menus;
             if (menus != null && menus.Dancing) return Mood.Dance;
+            // (v44) Tu danses (B) : la musique de danse, chez toi.
+            if (Emote.Dancing) return Mood.Dance;
             if (menus != null && menus.Current == Menus.State.Ended) return Mood.End;
             if (menus != null && menus.Current != Menus.State.Playing && menus.Current != Menus.State.Paused) return Mood.Title;
 

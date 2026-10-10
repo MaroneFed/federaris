@@ -114,7 +114,9 @@ namespace Fief
 
         // 27/09 : presque aussi vite que toi (10,8 m/s en courant) -- selon leur niveau.
         const float WalkSpeed = 6.2f;
-        static float RunSpeed { get { return Match.BotLevel == 0 ? 9f : Match.BotLevel == 1 ? 10.2f : 10.7f; } }
+        // (v44 -- Martin : "qu'ils maintiennent tout le temps le bouton sprinter") : ils courent a TA
+        // vitesse de sprint (7,2 x 1,5 = 10,8 m/s), tout le temps ; les faciles un peu moins vite.
+        static float RunSpeed { get { return Match.BotLevel == 0 ? 9.6f : 10.8f; } }
         /// <summary>Le temps entre deux capacites, selon le niveau.</summary>
         static float Reflex { get { return Match.BotLevel == 0 ? 1.4f : Match.BotLevel == 1 ? 0.45f : 0.25f; } }
 
@@ -238,6 +240,9 @@ namespace Fief
                 if ((netFlags & NetGame.FlagTumbling) != 0) seeker.TumbleUntil = soon;
                 if ((netFlags & NetGame.FlagSlowed) != 0) seeker.SlowUntil = soon;
                 seeker.HasWings = (netFlags & NetGame.FlagGoldWings) != 0;
+                // (v44) Il danse (B) chez lui : on le voit danser ici.
+                seeker.Dance = ((netFlags >> NetGame.DanceShift) & 15) - 1;
+                if (rig != null) rig.SetEmote(seeker.Dance);
                 if ((netFlags & NetGame.FlagGrounded) != 0) lastGround = transform.position;
             }
             if (wings != null) wings.Flying = gliding;
@@ -422,6 +427,7 @@ namespace Fief
             if (think <= 0f) { think = Match.BotLevel == 2 ? 0.3f : 0.5f; Think(season); }
             if (castTimer <= 0f) { castTimer = Reflex; UseAbilities(); }
 
+            TrackAll();
             Act(dt);
             TurnToFace(dt);
             Remember(dt);
@@ -1164,7 +1170,7 @@ namespace Fief
                 }
             }
 
-            float speed = (goal == Goal.Roam ? WalkSpeed : RunSpeed) * seeker.SpeedFactor;
+            float speed = RunSpeed * seeker.SpeedFactor;
             if (!arrived)
             {
                 work = 0f;
@@ -1290,7 +1296,11 @@ namespace Fief
                 railBest = u;
             }
             path.Clear();
+            railNow = true;
+            railRampNow = r;
+            railUNow = u;
             Walk(dest, RunSpeed * seeker.SpeedFactor, dt);
+            railNow = false;
             return true;
         }
 
@@ -1915,9 +1925,66 @@ namespace Fief
             Seeker t = BestTarget(reach, contender, around);
             if (t == null) return false;
             Vector3 chest = t.Body.position + Vector3.up * 1.1f;
+            // (v44 -- "qu'ils visent bien") : il vise LA OU TU SERAS quand le coup arrivera (ta vitesse
+            // fois le temps de vol), pas la ou tu es -- sinon tout ce qui vole passe derriere toi.
+            if (!around)
+            {
+                float flight = LeadTime(a, (chest - eye).magnitude);
+                Vector3 v = VelocityOf(t);
+                if (t.Body.position.y > me.y - 1f) v.y = Mathf.Clamp(v.y, -4f, 4f);
+                chest += v * flight;
+            }
             aim = around ? Flat(chest - me) : chest - eye;
             return true;
         }
+
+        /// <summary>(v44) Combien de temps met le coup de "a" a arriver a "dist" metres (0 : instantane).</summary>
+        static float LeadTime(Ability a, float dist)
+        {
+            switch (a)
+            {
+                // Instantanes (un rayon, un sort qui tombe sur la cible).
+                case Ability.Foudre: case Ability.Crochet: case Ability.Rayon: case Ability.Lasso: case Ability.Hypnose:
+                case Ability.Prison: case Ability.Inversion: case Ability.Mini: case Ability.Ballon: case Ability.FoudreChaine:
+                    return 0.1f;
+                // Ce qui tombe du ciel apres un delai (cible au sol).
+                case Ability.Comete: return 2.2f;
+                case Ability.Volcan: case Ability.Bombardement: case Ability.Lune: case Ability.MainDeDieu: case Ability.FrappeOrbitale: return 1.5f;
+                // Lent (une vague, un rocher qui roule, un mouton).
+                case Ability.Souffle: case Ability.Buche: case Ability.Rocher: case Ability.Mouton: case Ability.Tonneau: case Ability.RoueFolle:
+                    return dist / 14f;
+                default: return dist / 28f;       // un projectile
+            }
+        }
+
+        // (v44) La vitesse de chacun, mesuree image par image (pour viser la ou il va).
+        static readonly Dictionary<Seeker, Vector3> lastPos = new Dictionary<Seeker, Vector3>();
+        static readonly Dictionary<Seeker, Vector3> velocity = new Dictionary<Seeker, Vector3>();
+        static int trackedFrame = -1;
+
+        static void TrackAll()
+        {
+            if (trackedFrame == Time.frameCount) return;
+            trackedFrame = Time.frameCount;
+            if (lastPos.Count > Game.Seekers.Count + 2) { lastPos.Clear(); velocity.Clear(); }   // une nouvelle manche
+            float dt = Time.deltaTime;
+            if (dt <= 0f) return;
+            for (int i = 0; i < Game.Seekers.Count; i++)
+            {
+                Seeker s = Game.Seekers[i];
+                if (s.Body == null) continue;
+                Vector3 p = s.Body.position, was, v;
+                if (lastPos.TryGetValue(s, out was))
+                {
+                    Vector3 now = (p - was) / dt;
+                    if (now.magnitude > 80f) now = Vector3.zero;      // une teleportation, un respawn
+                    velocity[s] = velocity.TryGetValue(s, out v) ? Vector3.Lerp(v, now, 0.25f) : now;
+                }
+                lastPos[s] = p;
+            }
+        }
+
+        static Vector3 VelocityOf(Seeker s) { Vector3 v; return velocity.TryGetValue(s, out v) ? v : Vector3.zero; }
 
         /// <summary>La meilleure cible a moins de "reach" metres (null s'il n'y en a pas de bonne).</summary>
         Seeker BestTarget(float reach, Seeker contender, bool around)
@@ -2071,6 +2138,11 @@ namespace Fief
         // ================================================================== marcher, voler
 
         float hazardWait;
+        float planTimer, planWait;
+        // (v44) Sur le rail cette image : la rampe et la hauteur, pour planifier le long de la spirale.
+        bool railNow;
+        int railRampNow;
+        float railUNow;
         float stillFor;
         /// <summary>(06/10) Le KANGOUROU saute plus haut.</summary>
         float JumpBoost { get { return seeker.Has(Ability.Kangourou) ? 1.22f : 1f; } }
@@ -2111,20 +2183,34 @@ namespace Fief
             // un belier, une herse ou un marteau va frapper la. Si oui, il ATTEND son tour
             // (3,5 s au plus), comme un joueur qui regarde le pendule passer. S'il est deja
             // dans la zone, il file. Les faciles regardent moins loin (ils se font avoir).
-            if (speed > 0f && body.isGrounded && !leaping && !seeker.Tumbling && Time.time >= launchedUntil)
+            // (v44) LE PLAN DE PASSAGE : il simule sa course en sprint et part au premier instant ou
+            // aucun obstacle ne sera la ou il sera (Hazards.Plan). Souvent tout de suite. Sinon il
+            // attend sur place le bon moment -- jamais plus de 3 s, et jamais sous un coup.
+            if (speed > 0f && body.isGrounded && !leaping && !seeker.Tumbling && Time.time >= launchedUntil && !seeker.Graced)
             {
-                // (05/10) Ils regardent plus loin (deux pas devant, une seconde a l'avance) : avant,
-                // ils s'engageaient sous un pendule qui revenait, et la tour les rejetait en bas.
-                float look = Match.BotLevel == 0 ? 0.4f : Match.BotLevel == 1 ? 0.9f : 1.1f;
-                bool ahead = Hazards.Danger(transform.position + dir * 1.6f, look) || Match.BotLevel > 0 && Hazards.Danger(transform.position + dir * 3.2f, look * 0.8f);
-                // (06/10) Fantome (ou protege) : les obstacles ne le touchent pas, il passe.
-                if (ahead && !seeker.Graced && !Hazards.Danger(transform.position, 0.25f))
+                planTimer -= dt;
+                if (planTimer <= 0f)
+                {
+                    planTimer = Match.BotLevel == 0 ? 0.3f : 0.1f;
+                    float horizon = Match.BotLevel == 0 ? 0.35f : 0.75f;
+                    if (railNow)
+                    {
+                        int rr = railRampNow;
+                        float u0 = railUNow, lane = railLane;
+                        Vector3 start = Tower.RampPoint(rr, u0, lane);
+                        planWait = Hazards.Plan(transform.position, dir, Mathf.Max(speed, 1f), horizon, Match.BotLevel == 0 ? 1.5f : 3f,
+                            d => Tower.RampPoint(rr, Mathf.Min(1f, u0 + d / Tower.RampLength), lane) - start);
+                    }
+                    else planWait = Hazards.Plan(transform.position, dir, Mathf.Max(speed, 1f), horizon, Match.BotLevel == 0 ? 1.5f : 3f);
+                }
+                if (planWait > 0.05f)
                 {
                     hazardWait += dt;
-                    if (hazardWait < HazardPatience) speed = 0f;
+                    speed = 0f;
                 }
                 else hazardWait = 0f;
             }
+            else planWait = 0f;
             // UNE GARGOUILLE LE VISE (02/10) : dans la derniere demi-seconde, quand elle ne
             // suit plus, il fonce (et s'ecarte du point vise) -- comme on apprend a le faire.
             if (Match.BotLevel > 0 && d >= 0.05f && Time.time >= launchedUntil && Eye.LockedOn(seeker))

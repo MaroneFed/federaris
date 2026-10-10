@@ -993,6 +993,23 @@ te reste qu'une seconde au prochain passage. La barre repart de là où tu en é
 La recharge affichée sur la carte est celle que tu auras en jeu (ta passive Recharge rapide ou
 Recharge éclair comprise), et la Console l'écrit à chaque lancer.
 
+## Les bots refaits et la danse (v44)
+
+Martin : « les bots sont toujours nuls ». Trois choses changent :
+
+- **Ils sprintent tout le temps** : 10,8 m/s, ta vitesse de sprint (9,6 en facile).
+- **Le plan de passage** : chaque obstacle (pendule, bélier, herse, marteau) sait exactement où il
+  sera à chaque instant. Devant un obstacle, le bot simule sa course en sprint, le long de la
+  spirale de la rampe, et part au premier instant où rien ne sera là où il sera — le plus souvent
+  tout de suite. Sinon il attend sur place le bon moment (3 s au plus), comme un bon joueur.
+- **La visée anticipée** : il vise là où tu seras quand son coup arrivera (ta vitesse × le temps
+  de vol), pas là où tu es.
+
+**La danse (B)** : ton haricot danse, la caméra passe devant toi (la souris tourne autour), et la
+musique de danse part chez toi ; chaque nouvel appui change de danse — balancé, disco, fil, cancan,
+poings au ciel, saut et tour, **le dab, le moonwalk, le robot**. Bouger, sauter, pousser, lancer, se
+faire frapper : la danse s'arrête. En ligne, les autres te voient danser.
+
 ## Phases
 
 - **Phase 1** : le match complet contre des bots, avec le salon (porte passée le 04/10).

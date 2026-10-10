@@ -41,6 +41,7 @@ namespace Fief
         public const int FlagStunned = 32;
         public const int FlagGoldWings = 64;
         public const int FlagSlowed = 128;
+        public const int DanceShift = 8;
 
         enum Kind : byte { State = 1, Snapshot = 2, Self = 3, Hit = 4, Blink = 5, CrownAsk = 6, Pick = 7, Afflict = 8, Cast = 9 }
 
@@ -442,6 +443,8 @@ namespace Fief
             if (s.Stunned) f |= FlagStunned;
             if (s.HasWings) f |= FlagGoldWings;
             if (s.Slowed) f |= FlagSlowed;
+            // (v44) La danse (B), bits 8 a 11 : 0 aucune, sinon le numero de la figure + 1.
+            if (s.Dance >= 0) f |= ((s.Dance + 1) & 15) << DanceShift;
             return f;
         }
 

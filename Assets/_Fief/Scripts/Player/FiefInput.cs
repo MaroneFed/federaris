@@ -97,6 +97,8 @@ namespace Fief
         public static bool ScoresHeld { get { return KeyHeld(KeyCode.Tab); } }
         /// <summary>F10 : l'ecran propre, sans HUD (pour filmer des clips).</summary>
         public static bool CleanScreenPressed { get { return KeyPressed(KeyCode.F10); } }
+        /// <summary>(v44) B : danser (chaque appui change de danse ; bouger arrete).</summary>
+        public static bool DancePressed { get { return KeyPressed(KeyCode.B); } }
 
         // --- les menus au clavier
         public static bool UpPressed { get { return KeyPressed(KeyCode.UpArrow) || KeyPressed(KeyCode.W); } }

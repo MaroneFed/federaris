@@ -162,6 +162,25 @@ namespace Fief
             return c != null && (c.transform.position - p).sqrMagnitude < metres * metres;
         }
 
+        /// <summary>(v44) Combien de danses on peut choisir avec B (les six du vainqueur + le dab, le moonwalk, le robot).</summary>
+        public const int DanceCount = 9;
+        int emote = -1;
+        /// <summary>La danse choisie (B), -1 : aucune.</summary>
+        public int Emote { get { return emote; } }
+
+        /// <summary>
+        /// (v44 -- Martin : "rajoute des danses, avec la musique, quand on appuie sur B") : danser
+        /// UNE figure, en boucle, jusqu'a ce qu'on bouge (-1 : arreter).
+        /// </summary>
+        public void SetEmote(int move)
+        {
+            if (move == emote) return;
+            bool was = emote >= 0;
+            emote = move;
+            if (move >= 0) { celebrate = Mathf.Max(celebrate, 0.5f); celebrateAge = 0f; }
+            else if (was) celebrate = 0f;
+        }
+
         /// <summary>LA JOIE DU VAINQUEUR : il danse sur la musique (voir Party).</summary>
         public void Celebrate(float seconds)
         {
@@ -366,6 +385,7 @@ namespace Fief
 
             Blink(dt);
             Mouth(dt);
+            if (emote >= 0) celebrate = Mathf.Max(celebrate, 0.5f);
             if (celebrate > 0f)
             {
                 Party(dt);
@@ -582,7 +602,7 @@ namespace Fief
                 pivot.localRotation = Quaternion.identity;
                 return;
             }
-            int move = Mathf.FloorToInt(beat / 8f) % 6;
+            int move = emote >= 0 ? emote % DanceCount : Mathf.FloorToInt(beat / 8f) % 6;
             float inMove = Mathf.Repeat(beat, 8f);
             int step = Mathf.FloorToInt(inMove);
             float ph = Mathf.Repeat(beat, 1f);
@@ -654,6 +674,46 @@ namespace Fief
                     lR = new Vector3(-20f * punch, 0f, 0f);
                     break;
                 }
+                case 6:     // (v44) LE DAB : la tete dans le coude, l'autre bras tendu vers le ciel, un cote puis l'autre
+                {
+                    bool left = Mathf.FloorToInt(beat / 2f) % 2 == 0;
+                    float snap = Mathf.Clamp01(ph * 5f);
+                    float sgn = left ? 1f : -1f;
+                    Vector3 up = new Vector3(-20f, 0f, 125f * snap);
+                    Vector3 bent = new Vector3(-85f * snap, 0f, 55f * snap);
+                    if (left) { aR = up; aL = new Vector3(bent.x, 0f, -bent.z); }
+                    else { aL = new Vector3(up.x, 0f, -up.z); aR = bent; }
+                    headNod = 28f * snap;
+                    bodyRot = new Vector3(10f * snap, 0f, -14f * sgn * snap);
+                    pos.x = 0.1f * sgn * snap;
+                    lL = new Vector3(0f, 0f, -10f * snap);
+                    lR = new Vector3(0f, 0f, 10f * snap);
+                    break;
+                }
+                case 7:     // (v44) LE MOONWALK : il glisse en arriere, une jambe puis l'autre, penche
+                {
+                    float slide = ph;
+                    pos.z = 0.25f - slide * 0.5f;
+                    bodyRot.x = -8f;
+                    float lift = Mathf.Sin(ph * Mathf.PI);
+                    if (side > 0f) { lL = new Vector3(-25f * lift, 0f, 0f); lR = new Vector3(18f, 0f, 0f); }
+                    else { lR = new Vector3(-25f * lift, 0f, 0f); lL = new Vector3(18f, 0f, 0f); }
+                    aL = new Vector3(20f * side, 0f, -25f);
+                    aR = new Vector3(-20f * side, 0f, 25f);
+                    headNod = -6f;
+                    break;
+                }
+                case 8:     // (v44) LE ROBOT : une pose seche par temps, sans transition
+                {
+                    int pose = step % 4;
+                    aL = pose == 0 ? new Vector3(-90f, 0f, -10f) : pose == 1 ? new Vector3(0f, 0f, -90f) : pose == 2 ? new Vector3(-90f, 0f, -90f) : new Vector3(0f, 0f, -12f);
+                    aR = pose == 0 ? new Vector3(0f, 0f, 12f) : pose == 1 ? new Vector3(-90f, 0f, 10f) : pose == 2 ? new Vector3(-90f, 0f, 90f) : new Vector3(0f, 0f, 90f);
+                    rot = Quaternion.Euler(0f, pose == 1 ? 25f : pose == 3 ? -25f : 0f, 0f);
+                    headNod = pose == 2 ? 15f : 0f;
+                    hit *= 0.3f;
+                    break;
+                }
+                case 5:
                 default:    // saut et tour
                 {
                     float lift = Mathf.Sin(ph * Mathf.PI);

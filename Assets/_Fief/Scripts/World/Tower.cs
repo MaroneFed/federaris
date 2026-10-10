@@ -682,6 +682,16 @@ namespace Fief
         void OnEnable() { Hazards.Add(this); }
         void OnDisable() { Hazards.Remove(this); }
 
+        public Vector3 Where { get { return transform.position; } }
+
+        /// <summary>(v44) La boule est-elle sur "feet" dans exactement "t" secondes ?</summary>
+        public bool HitsAt(Vector3 feet, float t)
+        {
+            if ((feet - transform.position).sqrMagnitude > 14f * 14f) return false;
+            Vector3 head = transform.TransformPoint(Quaternion.Euler(0f, 0f, AngleAt(Time.time + t)) * new Vector3(0f, -Length, 0f));
+            return (feet + Vector3.up - head).magnitude < 2.5f;
+        }
+
         /// <summary>Pour les bots : la boule passera-t-elle sur "feet" d'ici "within" secondes ?</summary>
         public bool Danger(Vector3 feet, float within)
         {
@@ -793,6 +803,27 @@ namespace Fief
 
         void OnEnable() { Hazards.Add(this); }
         void OnDisable() { Hazards.Remove(this); }
+
+        public Vector3 Where { get { return transform.position; } }
+
+        /// <summary>"feet" est-il dans le couloir du belier ?</summary>
+        bool InLane(Vector3 feet)
+        {
+            Vector3 d = feet - transform.position;
+            if (d.sqrMagnitude > 12f * 12f) return false;
+            float along = Vector3.Dot(d, outward);
+            float side = Vector3.Dot(d, transform.forward);
+            return !(Mathf.Abs(side) > Size.z * 0.5f + 0.9f || d.y < -1f || d.y > Size.y + 0.6f || along < -0.5f || along > Reach + 1f);
+        }
+
+        /// <summary>(v44) Le bloc est-il sorti (il barre ou frappe) sur "feet" dans exactement "t" secondes ?</summary>
+        public bool HitsAt(Vector3 feet, float t)
+        {
+            if (!InLane(feet)) return false;
+            float warn;
+            // Il frappe en jaillissant, et barre tant qu'il est dehors ; une marge d'un dixieme avant.
+            return StrokeAt(Time.time + t + 0.1f, out warn) > 0.1f || StrokeAt(Time.time + t, out warn) > 0.1f;
+        }
 
         /// <summary>Pour les bots : "feet" est-il devant le belier, et sort-il (ou va-t-il sortir) d'ici "within" secondes ?</summary>
         public bool Danger(Vector3 feet, float within)

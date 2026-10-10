@@ -429,6 +429,17 @@ namespace Fief
         void OnEnable() { Hazards.Add(this); }
         void OnDisable() { Hazards.Remove(this); }
 
+        public Vector3 Where { get { return transform.position; } }
+
+        /// <summary>(v44) Les pointes sont-elles sorties sous "feet" dans exactement "t" secondes ?</summary>
+        public bool HitsAt(Vector3 feet, float t)
+        {
+            Vector3 local = transform.InverseTransformPoint(feet);
+            if (Mathf.Abs(local.x) > width * 0.5f + 0.6f || Mathf.Abs(local.z) > depth * 0.5f + 0.6f || local.y < -1f || local.y > 1.6f) return false;
+            float k = Mathf.Repeat(Time.time + t + phase, period);
+            return k < 0.95f || k > period - 0.12f;
+        }
+
         /// <summary>Pour les bots : "feet" est-il sur la grille, et les pointes sont-elles sorties (ou vont-elles sortir) d'ici "within" secondes ?</summary>
         public bool Danger(Vector3 feet, float within)
         {
@@ -561,6 +572,16 @@ namespace Fief
 
         void OnEnable() { Hazards.Add(this); }
         void OnDisable() { Hazards.Remove(this); }
+
+        public Vector3 Where { get { return transform.position; } }
+
+        /// <summary>(v44) La masse est-elle sur "feet" dans exactement "t" secondes ?</summary>
+        public bool HitsAt(Vector3 feet, float t)
+        {
+            if ((feet - transform.position).sqrMagnitude > 16f * 16f) return false;
+            Vector3 head = transform.TransformPoint(Quaternion.Euler(0f, 0f, AngleAt(Time.time + t)) * new Vector3(0f, -Length, 0f));
+            return (feet + Vector3.up - head).magnitude < 2.4f;
+        }
 
         /// <summary>Pour les bots : la masse passera-t-elle sur "feet" d'ici "within" secondes ?</summary>
         public bool Danger(Vector3 feet, float within)
