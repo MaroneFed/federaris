@@ -94,6 +94,7 @@ namespace Fief
         /// <summary>Les batir tous, un par ilot choisi.</summary>
         public static void BuildAll(Transform parent, int seed)
         {
+            banked.Clear();
             if (chosen.Count == 0) Choose(seed);
             for (int k = 0; k < chosen.Count; k++) Build(parent, chosen[k], seed + k * 131);
         }
@@ -208,6 +209,17 @@ namespace Fief
         static Monument sacringAt;
 
         /// <summary>
+        /// (v43.2 -- Martin : "plus on reste sur la plateforme, plus le temps pour y rester apres
+        /// diminue, sinon c'est impossible de gagner") : LE SACRE S'ACCUMULE. Chaque seconde passee
+        /// dans un cercle avec la Couronne est ACQUISE pour toute la manche, quel que soit le
+        /// Monument : pousse dehors a 2 s, tu reviens et il ne te reste qu'une seconde. Avant, il
+        /// fallait 3 s d'un coup, et avec cinq bots en embuscade, on n'y arrivait jamais.
+        /// </summary>
+        static readonly Dictionary<Seeker, float> banked = new Dictionary<Seeker, float>();
+        /// <summary>Les secondes de sacre deja acquises par "s" cette manche.</summary>
+        public static float BankedOf(Seeker s) { float b; return s != null && banked.TryGetValue(s, out b) ? b : 0f; }
+
+        /// <summary>
         /// Quand quelqu'un porte la Couronne, la colonne s'embrase : le Monument l'appelle.
         /// Et s'il entre dans le cercle, c'est gagne (27/09 : tenir E deux secondes, avec
         /// trois joueurs dans le dos, c'etait perdre la manche sur un bouton).
@@ -226,7 +238,11 @@ namespace Fief
             if (inside)
             {
                 if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; sacreReported = false; Sfx.Alarm(); }
+                // (v43.2) Il repart de ce qu'il a deja acquis.
+                float had = BankedOf(holder);
+                if (sacre < had) { sacre = had; lastTick = Mathf.Floor(had); }
                 sacre += dt;
+                banked[holder] = sacre;
                 if (Mathf.Floor(sacre) > lastTick) { lastTick = Mathf.Floor(sacre); Sfx.SacreTick((int)lastTick, transform.position); Ambiance.Burst(null, transform.position + Vector3.up * 1.5f, new Color(1f, 0.8f, 0.35f)); }
                 if (sacre >= SacreSeconds) TryDeliver(holder);
             }

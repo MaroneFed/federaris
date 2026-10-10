@@ -983,6 +983,16 @@ est en tête de `docs/QUATRE-CHIANTS.md`). Ce qui change pour le joueur :
   L'ENVOYEUR** (le Miroir), **HOME RUN** ; la patate chaude passe à **cinq** mains ; la colonne du
   KO monte à **200 m** ; le **moment du match** est rappelé au podium.
 
+## Le sacre qui s'accumule (v43.2)
+
+Martin : « plus on reste sur la plateforme, plus le temps pour y rester après diminue, sinon c'est
+impossible de gagner ». Les 3 s du sacre **s'additionnent sur la manche** : chaque seconde passée
+dans un cercle avec la Couronne reste acquise, sur n'importe quel Monument. Poussé dehors à 2 s, il ne
+te reste qu'une seconde au prochain passage. La barre repart de là où tu en étais.
+
+La recharge affichée sur la carte est celle que tu auras en jeu (ta passive Recharge rapide ou
+Recharge éclair comprise), et la Console l'écrit à chaque lancer.
+
 ## Phases
 
 - **Phase 1** : le match complet contre des bots, avec le salon (porte passée le 04/10).

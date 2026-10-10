@@ -205,6 +205,10 @@ namespace Fief
             flat = flat.sqrMagnitude > 0.001f ? flat.normalized : s.Body.forward;
             Color tint = AbilityInfo.Tint(a);
             if (!Replaying && !s.TrySpend(a, now)) return false;
+            // (v43.2 -- "la carte dit 18 s, en jeu elle revient toutes les 6 s") : la preuve, dans la
+            // Console, a chaque lancer : la recharge appliquee et celle de la carte.
+            if (s.IsPlayer && !Replaying && !EchoCast.Echoing)
+                Debug.Log("[FIEF] " + AbilityInfo.Name(a) + " : recharge " + s.CooldownOf(a).ToString("0.#") + " s (carte : " + AbilityInfo.Cooldown(a).ToString("0.#") + " s) — " + Game.Version);
 
             Vector3 chest = pos + Vector3.up * 1.1f;
             switch (a)

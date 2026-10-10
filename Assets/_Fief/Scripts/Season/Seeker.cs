@@ -98,9 +98,18 @@ namespace Fief
             // et la montee (jusqu'a x0,6) raccourcissaient la recharge EN CACHETTE -- 18 x 0,36 = 6,5 s.
             // Plus maintenant : LA RECHARGE EST CELLE DE LA CARTE. Seules les passives qui le disent
             // sur leur propre carte la raccourcissent (Recharge rapide x0,75, Recharge eclair x0,5).
+            return CooldownWith(a, Has(Ability.Recharge), Has(Ability.Sablier));
+        }
+
+        /// <summary>
+        /// La recharge de "a" avec ou sans les deux passives qui la raccourcissent. La CARTE du choix
+        /// l'utilise aussi (v43.2) : la carte d'une active affiche le temps que tu auras vraiment.
+        /// </summary>
+        public static float CooldownWith(Ability a, bool recharge, bool sablier)
+        {
             float basis = AbilityInfo.Cooldown(a);
-            float k = Has(Ability.Recharge) ? 0.75f : 1f;
-            if (Has(Ability.Sablier)) k *= 0.5f;
+            float k = recharge ? 0.75f : 1f;
+            if (sablier) k *= 0.5f;
             if (k >= 1f) return basis;
             return Mathf.Max(basis * k, Mathf.Max(MinCooldown, basis * 0.3f));
         }

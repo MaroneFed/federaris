@@ -2159,8 +2159,11 @@ namespace Fief
             // manche, elle s'affichait sur TOUTES les cartes et ne disait rien.
             bool active = AbilityInfo.IsActive(p);
             int tier = AbilityInfo.Tier(p);
+            // (v43.2) La recharge de la carte = celle que tu auras en jeu (ta passive comprise).
+            PlayerSlot picker = me >= 0 && me < Match.Slots.Count ? Match.Slots[me] : null;
+            float cd = !active ? 0f : picker != null ? Seeker.CooldownWith(p, picker.Has(Ability.Recharge), picker.Has(Ability.Sablier)) : AbilityInfo.Cooldown(p);
             CardArt.Draw(card, AbilityInfo.Tint(p), AbilityInfo.Name(p), AbilityInfo.Line(p),
-                         active ? AbilityInfo.Cooldown(p) : 0f, active ? AbilityInfo.Keys[0] : null, null, owned, on, lift, enter, Icons.Of(p), tier);
+                         cd, active ? AbilityInfo.Keys[0] : null, null, owned, on, lift, enter, Icons.Of(p), tier);
             // (v41) UNE LEGENDAIRE (ou une divine) SE RETOURNE AVEC FRACAS : un son, une gerbe a la
             // couleur du rang, une seule fois par carte.
             if (Event.current.type == EventType.Repaint && tier >= 3 && enter >= 0.5f && slot >= 0 && slot < revealed.Length && !revealed[slot])
