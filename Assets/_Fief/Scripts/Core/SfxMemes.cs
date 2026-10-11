@@ -23,13 +23,27 @@ namespace Fief
         {
             if (Muted || source == null) return;
             if (PlayReal("Memes/" + kind, volume)) return;
+            Play(MemeClip(kind), volume);
+        }
+
+        /// <summary>(v46.1) Le meme crie par un joueur : le son part de lui (on l'entend jusqu'a ~60 m).</summary>
+        public static void MemeAt(string kind, Vector3 at, float volume)
+        {
+            if (Muted || source == null) return;
+            Begin3D(at, 14f);
+            if (!PlayReal("Memes/" + kind, volume)) Play(MemeClip(kind), volume);
+            End3D();
+        }
+
+        static AudioClip MemeClip(string kind)
+        {
             AudioClip clip;
             if (!memeSynth.TryGetValue(kind, out clip) || clip == null)
             {
                 clip = MakeMeme(kind);
                 memeSynth[kind] = clip;
             }
-            if (clip != null) source.PlayOneShot(clip, volume);
+            return clip;
         }
 
         static AudioClip MakeMeme(string kind)

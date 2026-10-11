@@ -61,7 +61,8 @@ namespace Fief
                 case Combat.Affliction.Dance:
                 {
                     CharacterRig rig = CharacterRig.Of(victim);
-                    if (rig != null) rig.Celebrate(3f);
+                    // (v46.1) Le mode meme : la bombe disco devient le "6 7", ils font le geste.
+                    if (rig != null) { if (Match.MemeMode) rig.Celebrate(3f, CharacterRig.SixSevenMove); else rig.Celebrate(3f); }
                     Fx.Confetti(head, new[] { new Color(1f, 0.3f, 0.6f), new Color(0.3f, 0.8f, 1f), new Color(1f, 0.9f, 0.3f) }, 30, 6f, Vector3.up, 60f);
                     break;
                 }

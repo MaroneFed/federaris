@@ -1101,6 +1101,8 @@ namespace Fief
             // (v36) "GOTAGA  COMETE !" en haut de l'ecran, pour les grosses.
             if (!EchoCast.Echoing) Warnings.Announce(s, a);
             Flourish(s, a, pos, tint);
+            // (v46.1) Le mode meme : le haricot crie son meme, le mot claque au-dessus de sa tete.
+            if (Match.MemeMode && !EchoCast.Echoing) Memes.CastShout(s, a);
             if (!EchoCast.Echoing) CastFeel.Cast(s, a);     // (v41) le depart, dans TES yeux
             if (s.IsPlayer) Stats.Casts++;
             // (v37) Les autres la voient : elle part chez eux (rejouee la-bas, sans effet).

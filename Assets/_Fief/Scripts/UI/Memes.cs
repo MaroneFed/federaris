@@ -154,10 +154,77 @@ namespace Fief
             Fire(Kind.SixSeven, true);
         }
 
+        // ------------------------------------------------ (v46.1) les capacites-memes
+
+        sealed class Overhead
+        {
+            public Seeker Who;
+            public string Text;
+            public Color Tint;
+            public float At;
+        }
+        static readonly List<Overhead> overheads = new List<Overhead>();
+        const float OverheadLife = 1.6f;
+
+        /// <summary>
+        /// Un joueur lance sa capacite-meme (AbilityCaster.Cast, chez tout le monde grace au
+        /// rejeu en ligne) : il CRIE le meme (le son part de lui) et le mot claque au-dessus de sa
+        /// tete. Si c'est toi, il claque au milieu de TON ecran (tu ne vois pas ta tete).
+        /// </summary>
+        public static void CastShout(Seeker s, Ability a)
+        {
+            if (!On || s == null || s.Body == null) return;
+            MemeSkins.Skin sk = MemeSkins.Of(a);
+            if (sk == null) return;
+            Color c = AbilityInfo.Tint(a);
+            Color bright = Color.Lerp(c, Color.white, 0.35f);
+            if (s.IsPlayer)
+            {
+                Sfx.Meme(sk.Sound, 0.85f);
+                line = sk.Shout;
+                tint = bright;
+                shownAt = Time.unscaledTime;
+                return;
+            }
+            Sfx.MemeAt(sk.Sound, s.Body.position, 1f);
+            overheads.RemoveAll(o => o.Who == s);
+            overheads.Add(new Overhead { Who = s, Text = sk.Shout, Tint = bright, At = Time.unscaledTime });
+        }
+
+        /// <summary>Les mots au-dessus des tetes : cernes de noir, qui montent et s'effacent.</summary>
+        static void DrawOverheads()
+        {
+            float now = Time.unscaledTime;
+            overheads.RemoveAll(o => o.Who == null || o.Who.Body == null || now - o.At > OverheadLife);
+            Camera cam = Camera.main;
+            if (cam == null) return;
+            for (int i = 0; i < overheads.Count; i++)
+            {
+                Overhead o = overheads[i];
+                float age = now - o.At;
+                Vector3 head = o.Who.Body.position + Vector3.up * (3.1f + age * 0.6f);
+                Vector3 sp = cam.WorldToScreenPoint(head);
+                if (sp.z <= 0.5f || sp.z > 140f) continue;
+                float a = Mathf.Clamp01((OverheadLife - age) / 0.4f);
+                float pop = 1f + 0.4f * Mathf.Clamp01(1f - age / 0.12f);
+                int fs = Mathf.RoundToInt(Mathf.Clamp(UiStyle.S(40) * 18f / Mathf.Max(8f, sp.z), UiStyle.S(16), UiStyle.S(40)) * pop);
+                float w = Icons.Width(o.Text, fs) + fs;
+                Rect r = new Rect(Mathf.Round(sp.x - w * 0.5f), Mathf.Round(Screen.height - sp.y - fs * 1.2f), Mathf.Round(w), Mathf.Round(fs * 1.4f));
+                int off = Mathf.Max(1, Mathf.RoundToInt(fs * 0.06f));
+                Color ink = new Color(0f, 0f, 0f, a);
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int dy = -1; dy <= 1; dy++)
+                        if (dx != 0 || dy != 0) Icons.Text(new Rect(r.x + dx * off, r.y + dy * off, r.width, r.height), o.Text, fs, ink, TextAnchor.MiddleCenter, false);
+                Icons.Text(r, o.Text, fs, new Color(o.Tint.r, o.Tint.g, o.Tint.b, a), TextAnchor.MiddleCenter, false);
+            }
+        }
+
         public static void Draw()
         {
-            if (On) Tick();
-            if (!On || line == null) return;
+            if (!On) return;
+            Tick();
+            DrawOverheads();
+            if (line == null) return;
             float age = Time.unscaledTime - shownAt;
             if (age > Life || age < 0f) return;
             float a = Mathf.Clamp01((Life - age) / 0.35f);

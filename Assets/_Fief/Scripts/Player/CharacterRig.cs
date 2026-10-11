@@ -195,6 +195,17 @@ namespace Fief
             celebrateAge = 0f;
         }
 
+        int forcedMove = -1;
+        float forcedUntil;
+
+        /// <summary>(v46.1) Danser UNE figure "seconds" secondes (le 6 7 du mode meme).</summary>
+        public void Celebrate(float seconds, int move)
+        {
+            Celebrate(seconds);
+            forcedMove = move;
+            forcedUntil = Time.time + seconds;
+        }
+
         float sulk;
 
         /// <summary>
@@ -610,7 +621,7 @@ namespace Fief
                 pivot.localRotation = Quaternion.identity;
                 return;
             }
-            int move = emote >= 0 ? emote % DanceCount : Time.time < SixSevenUntil ? SixSevenMove : Mathf.FloorToInt(beat / 8f) % 6;
+            int move = emote >= 0 ? emote % DanceCount : Time.time < forcedUntil && forcedMove >= 0 ? forcedMove : Time.time < SixSevenUntil ? SixSevenMove : Mathf.FloorToInt(beat / 8f) % 6;
             float inMove = Mathf.Repeat(beat, 8f);
             int step = Mathf.FloorToInt(inMove);
             float ph = Mathf.Repeat(beat, 1f);

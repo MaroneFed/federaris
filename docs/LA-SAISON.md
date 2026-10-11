@@ -1013,7 +1013,7 @@ faire frapper : la danse s'arrête. En ligne, les autres te voient danser.
 ## Le mode mème (v46)
 
 **Au salon, Mode : Normal / DIEU / MÈME.** Les règles du mode normal, et les mèmes d'internet
-partout : toutes les **67 secondes**, le « 6 7 » (à l'écran, crié, et tous les haricots font le
+partout : **les capacités sont des mèmes** (FAHHH, 6 7, BONK, RICKROLL, FANUM TAX… : au lancer, le haricot crie son mème et le mot claque au-dessus de sa tête) ; toutes les **67 secondes**, le « 6 7 » (à l'écran, crié, et tous les haricots font le
 geste) ; sur les grands moments qui te concernent, une légende de mème (FAHHH, BRUH, SKILL ISSUE,
 FANUM TAX…) avec son cri — la voix du haricot, fabriquée par le code — ; des bots nommés Skibidi,
 Gigachad, Le NPC… 34 moments, 194 légendes, 18 sons ; tes propres sons se posent dans
