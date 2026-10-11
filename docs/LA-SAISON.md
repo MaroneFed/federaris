@@ -1010,6 +1010,13 @@ musique de danse part chez toi ; chaque nouvel appui change de danse — balanc�
 poings au ciel, saut et tour, **le dab, le moonwalk, le robot**. Bouger, sauter, pousser, lancer, se
 faire frapper : la danse s'arrête. En ligne, les autres te voient danser.
 
+## Le mode mème (v45)
+
+**Réglages ▸ Mode mème.** Les règles ne changent pas : sur les grands moments qui te concernent, une
+légende de mème claque à l'écran avec son bruit (klaxon, trombone triste, BONK…). 33 moments,
+137 légendes, 11 sons fabriqués par le code ; tes propres sons se posent dans
+`Resources/Sons/Memes/`. La liste complète : `docs/MODE-MEME.md`.
+
 ## Phases
 
 - **Phase 1** : le match complet contre des bots, avec le salon (porte passée le 04/10).

@@ -228,6 +228,7 @@ namespace Fief
                 case KeyCode.Return: return k.enterKey;
                 case KeyCode.KeypadEnter: return k.numpadEnterKey;
                 case KeyCode.Tab: return k.tabKey;
+                case KeyCode.B: return k.bKey;                 // (v44.1) la danse ; sans elle, B ne repondait jamais
             }
             return null;
         }

@@ -1,0 +1,20 @@
+LE MODE MÈME — les sons (Réglages ▸ Mode mème)
+
+Un dossier par type de son. Pose un ou plusieurs fichiers (.wav, .mp3, .ogg) dans un dossier :
+le jeu en jouera un au hasard à la place du son fabriqué par le code. Dossier vide = le son du code.
+
+  Klaxon    le klaxon de stade        (KO, double, buzzer, départ)
+  Trombone  le trombone triste        (tu tombes, tu perds la manche)
+  Scratch   le disque rayé            (on te vole la Couronne, sacre arrêté)
+  Bonk      le BONK                   (on te pousse, tu pousses, home run)
+  Boum      le gros boum dramatique   (vengeance, sommet, miroir, puissance)
+  Fanfare   le « ta-da »              (manche gagnée, triple KO, enfilade, danse)
+  Suspense  « dun dun duuun »         (sacre qui commence, prison)
+  Couic     le jouet qu'on écrase     (tu rétrécis)
+  Faux      le buzzer de mauvaise réponse (capacité refusée, tête à l'envers)
+  Sifflet   le sifflet qui tombe      (tu tombes tout seul, éjecté de la tour)
+  Caisse    le tiroir-caisse          (tu prends ou tu voles la Couronne)
+
+ATTENTION : les sons de mèmes connus (vine boom, bruh, klaxon MLG...) appartiennent à
+quelqu'un. Pour jouer entre amis, ça passe ; pour le jeu vendu sur Steam, il faut des sons
+libres (CC0, par exemple sur freesound.org avec le filtre « Creative Commons 0 », ou Kenney).

@@ -102,7 +102,11 @@ namespace Fief
             if (s == State.Briefing && Current != State.Briefing)
                 Sfx.Announce(Match.IsTieBreak ? "tie_breaker" : Match.RoundNumber >= Match.Rounds && Match.Rounds > 1 ? "final_round" : "round_" + Match.RoundNumber);
             if (s == State.Ended && Current != State.Ended)
-                Sfx.Announce(Match.Champion != null && Match.Local != null && Match.Champion == Match.Local ? "winner" : "game_over");
+            {
+                bool champ = Match.Champion != null && Match.Local != null && Match.Champion == Match.Local;
+                Sfx.Announce(champ ? "winner" : "game_over");
+                Memes.Fire(champ ? Memes.Kind.MatchWon : Memes.Kind.MatchLost);
+            }
             Current = s;
             stateTime = 0f;
             showControls = false;
@@ -622,6 +626,7 @@ namespace Fief
             // pousser ni tirer dessus avant d'avoir fait un pas.
             for (int i = 0; i < Game.Seekers.Count; i++) Game.Seekers[i].GraceUntil = Time.time + 3f;
             if (!Sfx.Announce("fight")) Sfx.Bell();
+            Memes.Fire(Memes.Kind.Start);
         }
 
         void DrawCountdown()
@@ -671,6 +676,7 @@ namespace Fief
             if (winner < 0) Sfx.Announce("time");
             else if (mine) Sfx.Announce("you_win");
             else if (last) Sfx.Announce("you_lose");
+            if (winner >= 0) Memes.Fire(mine ? Memes.Kind.RoundWon : Memes.Kind.RoundLost);
             // (En ligne, l'invite a deja recopie le score de l'hote.)
             if (!NetGame.IsClient) Match.EndRound(winner);
             Go(State.RoundOver);

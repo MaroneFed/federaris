@@ -39,6 +39,8 @@ namespace Fief
         public static bool InvertY = false;
         /// <summary>(v43, le gamer) Le son quand le jeu n'est pas la fenetre active (oui par defaut).</summary>
         public static bool BackgroundSound = true;
+        /// <summary>(v45) LE MODE MEME : des legendes et des sons de meme sur les grands moments (World/Memes.cs).</summary>
+        public static bool Memes = false;
         /// <summary>TON PSEUDO (29/09 : "il faut mettre le pseudo, les persos c'est quasi tous les memes").</summary>
         public static string Pseudo = "Joueur";
         public const int PseudoLength = 16;
@@ -79,6 +81,7 @@ namespace Fief
             Help = PlayerPrefs.GetInt("fief.aide2", 0) == 1;
             InvertY = PlayerPrefs.GetInt("fief.inverserY", 0) == 1;
             BackgroundSound = PlayerPrefs.GetInt("fief.sonFond", 1) == 1;
+            Memes = PlayerPrefs.GetInt("fief.memes", 0) == 1;
         }
 
         public static void Save()
@@ -95,6 +98,7 @@ namespace Fief
             PlayerPrefs.SetInt("fief.aide2", Help ? 1 : 0);
             PlayerPrefs.SetInt("fief.inverserY", InvertY ? 1 : 0);
             PlayerPrefs.SetInt("fief.sonFond", BackgroundSound ? 1 : 0);
+            PlayerPrefs.SetInt("fief.memes", Memes ? 1 : 0);
             PlayerPrefs.Save();
         }
 
@@ -128,6 +132,7 @@ namespace Fief
             else if (row == 8) Music = Mathf.Clamp(Mathf.Round((Music + step * 0.1f) * 10f) / 10f, 0f, 1f);
             else if (row == 9) InvertY = !InvertY;
             else if (row == 10) BackgroundSound = !BackgroundSound;
+            else if (row == 11) Memes = !Memes;
             Apply();
             Save();
         }
@@ -145,6 +150,7 @@ namespace Fief
             if (row == 8) return Mathf.RoundToInt(Music * 100f) + " %";
             if (row == 9) return InvertY ? "oui" : "non";
             if (row == 10) return BackgroundSound ? "oui" : "non";
+            if (row == 11) return Memes ? "oui" : "non";
             return FiefInput.BindNames[PushBind];
         }
 
@@ -161,6 +167,6 @@ namespace Fief
             return from;
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique", "Inverser la souris", "Son en arrière-plan" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique", "Inverser la souris", "Son en arrière-plan", "Mode mème" };
     }
 }

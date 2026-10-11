@@ -32,6 +32,13 @@ namespace Fief
         {
             if (victim == null || victim.Body == null) return;
             Vector3 head = victim.Body.position + Vector3.up * 1.8f;
+            if (victim.IsPlayer)
+            {
+                if (what == Combat.Affliction.Prison || what == Combat.Affliction.Frozen) Memes.Fire(Memes.Kind.Prison);
+                else if (what == Combat.Affliction.Tiny) Memes.Fire(Memes.Kind.Mini);
+                else if (what == Combat.Affliction.Inverted) Memes.Fire(Memes.Kind.Inverted);
+                else if (what == Combat.Affliction.Dance) Memes.Fire(Memes.Kind.Dance);
+            }
             switch (what)
             {
                 case Combat.Affliction.Prison:

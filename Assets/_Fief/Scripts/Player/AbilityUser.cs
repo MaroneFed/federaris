@@ -131,6 +131,7 @@ namespace Fief
             Refusal = why;
             RefusalAt = Time.time;
             Sfx.Deny();
+            Memes.Fire(Memes.Kind.Refused);
         }
     }
 

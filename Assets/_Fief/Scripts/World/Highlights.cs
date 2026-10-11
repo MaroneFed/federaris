@@ -278,6 +278,30 @@ namespace Fief
 
         // ================================================================== le moment
 
+        /// <summary>(v45) Le meme d'un moment : celui que tu fais, ou celui qu'on te fait.</summary>
+        static Memes.Kind MemeOf(Kind k, bool mine)
+        {
+            switch (k)
+            {
+                case Kind.KO: return mine ? Memes.Kind.KoThem : Memes.Kind.KoYou;
+                case Kind.DoubleKO: return mine ? Memes.Kind.DoubleKo : Memes.Kind.KoYou;
+                case Kind.TripleKO: return mine ? Memes.Kind.TripleKo : Memes.Kind.KoYou;
+                case Kind.AirSteal: return mine ? Memes.Kind.CrownStolen : Memes.Kind.CrownLost;
+                case Kind.SacreStopped: return mine ? Memes.Kind.CrownStolen : Memes.Kind.SacreStopped;
+                case Kind.MonumentSteal: return Memes.Kind.MonumentSteal;
+                case Kind.Buzzer: return Memes.Kind.Buzzer;
+                case Kind.Remontada: return Memes.Kind.RoundWon;
+                case Kind.Revenge: return mine ? Memes.Kind.Revenge : Memes.Kind.Pushed;
+                case Kind.Summit: return mine ? Memes.Kind.Summit : Memes.Kind.Ejected;
+                case Kind.HotPotato: return Memes.Kind.HotPotato;
+                case Kind.Mirror: return Memes.Kind.Mirror;
+                case Kind.HomeRun: return mine ? Memes.Kind.HomeRun : Memes.Kind.Pushed;
+                case Kind.Enfilade: return Memes.Kind.Enfilade;
+                case Kind.Sniped: return mine ? Memes.Kind.KoThem : Memes.Kind.CrownLost;
+                default: return mine ? Memes.Kind.PushedThem : Memes.Kind.Pushed;
+            }
+        }
+
         static string IconOf(Kind k)
         {
             switch (k)
@@ -367,6 +391,8 @@ namespace Fief
             // (06/10 -- "trop d'infos") : les moments des AUTRES ne s'affichent plus ; seulement
             // les tiens, et ceux qu'on te fait.
             if (!mine && !against) return;
+            // (v45) LE MODE MEME : le meme de ce moment (il ne fait rien si le mode est coupe).
+            Memes.Fire(MemeOf(k, mine));
             if (actor != null)
                 Toasts.Show(true, actor.IsPlayer ? gold : actor.Colour, actor.Name, new[] { "clip", icon }, new[] { Color.white, tint },
                             victim != null, victim != null ? (victim.IsPlayer ? gold : victim.Colour) : Color.white, victim != null ? victim.Name : null);

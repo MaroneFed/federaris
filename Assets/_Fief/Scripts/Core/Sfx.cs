@@ -20,7 +20,7 @@ namespace Fief
     /// hasard ; sinon, le son fabrique prend le relais. Pour changer un son : remplace les
     /// fichiers du dossier (.ogg, .wav ou .mp3), le code ne bouge pas.
     /// </summary>
-    public static class Sfx
+    public static partial class Sfx
     {
         const int Rate = 44100;
 

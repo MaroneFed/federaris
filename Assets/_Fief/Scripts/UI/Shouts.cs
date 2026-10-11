@@ -79,10 +79,10 @@ namespace Fief
         }
 
         /// <summary>"by" t'a pousse (ou un coup d'une capacite).</summary>
-        public static void PushedMe(Seeker by) { Add(null, by, Pick(PushedYou), false); }
+        public static void PushedMe(Seeker by) { Add(null, by, Pick(PushedYou), false); Memes.Fire(Memes.Kind.Pushed); }
 
         /// <summary>Tu as pousse "victim".</summary>
-        public static void IPushed(Seeker victim) { Add(Pick(YouPushed), victim, "!", false); }
+        public static void IPushed(Seeker victim) { Add(Pick(YouPushed), victim, "!", false); Memes.Fire(Memes.Kind.PushedThem); }
 
         /// <summary>Le KO : "by" t'a fait tomber dans les nuages (ou toi, lui).</summary>
         public static void Ko(Seeker by, Seeker victim)

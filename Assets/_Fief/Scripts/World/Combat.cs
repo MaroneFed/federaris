@@ -759,6 +759,8 @@ namespace Fief
             // (02/10 -- Martin : "quand tu meurs, elle respawn a chaque fois au-dessus, c'est
             // horrible de tout remonter") : la Couronne RESTE ou il a quitte le sol.
             // (02/10, le clipper) Pousse dans les nuages juste avant : c'est un KO.
+            // (v45) Le mode meme : tombe tout seul (personne ne l'a touche depuis 8 s) ?
+            if (s.IsPlayer && (s.LastHitBy == null || s.LastHitBy == s || Time.time - s.LastHitByAt > 8f)) Memes.Fire(Memes.Kind.KoAlone);
             Highlights.Fell(s);
             if (s.CarriesCrown) Crown.FellWith(s);
             s.LastHitBy = null;

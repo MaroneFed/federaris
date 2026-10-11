@@ -88,6 +88,9 @@ namespace Fief
                 if ((w - from).magnitude < speed * horizon + 9f) near.Add(h);
             }
             if (near.Count == 0) return 0f;
+            // (v44.1) Jamais plus de 2 500 questions par plan (huit bots, dix plans par seconde) :
+            // au-dela, on garde le meilleur depart trouve jusque-la.
+            int budget = 2500;
             float bestWait = 0f;
             int bestHits = int.MaxValue;
             const float step = 0.05f;
@@ -98,7 +101,8 @@ namespace Fief
                 {
                     float d = t < wait ? 0f : speed * (t - wait);
                     Vector3 p = offset != null ? from + offset.Invoke(d) : from + dir * d;
-                    for (int k = 0; k < near.Count; k++) if (near[k].HitsAt(p, t)) { hits++; break; }
+                    for (int k = 0; k < near.Count; k++) { budget--; if (near[k].HitsAt(p, t)) { hits++; break; } }
+                    if (budget <= 0) return hits == 0 ? wait : bestWait;
                     if (hits > 0 && hits >= bestHits) break;
                 }
                 if (hits == 0) return wait;
