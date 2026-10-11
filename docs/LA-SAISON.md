@@ -1010,11 +1010,13 @@ musique de danse part chez toi ; chaque nouvel appui change de danse — balanc�
 poings au ciel, saut et tour, **le dab, le moonwalk, le robot**. Bouger, sauter, pousser, lancer, se
 faire frapper : la danse s'arrête. En ligne, les autres te voient danser.
 
-## Le mode mème (v45)
+## Le mode mème (v46)
 
-**Réglages ▸ Mode mème.** Les règles ne changent pas : sur les grands moments qui te concernent, une
-légende de mème claque à l'écran avec son bruit (klaxon, trombone triste, BONK…). 33 moments,
-137 légendes, 11 sons fabriqués par le code ; tes propres sons se posent dans
+**Au salon, Mode : Normal / DIEU / MÈME.** Les règles du mode normal, et les mèmes d'internet
+partout : toutes les **67 secondes**, le « 6 7 » (à l'écran, crié, et tous les haricots font le
+geste) ; sur les grands moments qui te concernent, une légende de mème (FAHHH, BRUH, SKILL ISSUE,
+FANUM TAX…) avec son cri — la voix du haricot, fabriquée par le code — ; des bots nommés Skibidi,
+Gigachad, Le NPC… 34 moments, 194 légendes, 18 sons ; tes propres sons se posent dans
 `Resources/Sons/Memes/`. La liste complète : `docs/MODE-MEME.md`.
 
 ## Phases

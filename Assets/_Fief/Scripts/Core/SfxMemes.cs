@@ -48,7 +48,8 @@ namespace Fief
                 case "Sifflet": return MemeSifflet();
                 case "Caisse": return MemeCaisse();
             }
-            return null;
+            // (v46) Les cris : FAHHH, SIX SEVEN, BRUH... (SfxVoix).
+            return MakeVoice(kind);
         }
 
         static float[] Buffer(float seconds) { return new float[Mathf.RoundToInt(Rate * seconds)]; }

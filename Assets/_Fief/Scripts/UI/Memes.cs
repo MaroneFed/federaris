@@ -4,17 +4,23 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LE MODE MEME (v45 -- Martin : "fais le mode meme : une grosse liste de memes, avec son").
-    /// Reglages ▸ Mode meme. Rien ne change au jeu : sur les grands moments qui TE concernent, une
-    /// legende de meme claque au milieu de l'ecran (lettres blanches cernees de noir, qui tremblent),
-    /// avec son bruit de meme (Sfx.Meme : klaxon, trombone triste, disque raye, BONK...), un coup de
-    /// camera et parfois l'ecran qui "frit" (un eclair sature).
+    /// LE MODE MEME (v46 -- Martin : "t'as rien capte : le mode meme, c'est comme le mode normal et
+    /// le mode Dieu, sauf que la tu mets tous les memes d'internet, genre 67, fahhh"). Un MODE DE JEU,
+    /// choisi au salon (Mode : Normal / DIEU / MEME, Match.MemeMode) -- en v45 ce n'etait qu'un reglage.
+    /// Les regles du mode normal ; et partout, les memes d'internet :
+    ///  - sur chaque grand moment qui TE concerne, la legende claque au milieu de l'ecran (FAHHH,
+    ///    BRUH, SKILL ISSUE, FANUM TAX, ABSOLUTE CINEMA...) avec son cri (SfxVoix : la voix du
+    ///    haricot crie FAHHH, SIX SEVEN, BRUH, SHEESH, OOF, WOW, NOOON ; ou les bruits : klaxon,
+    ///    trombone triste, BONK...), un coup de camera, parfois l'ecran qui "frit" ;
+    ///  - TOUTES LES 67 SECONDES, le "6 7" : "SIX SEVEN" a l'ecran de tous, et tous les haricots font
+    ///    le geste, les mains qui pesent (CharacterRig.SixSevenUntil) -- l'heure est celle de la
+    ///    manche, la meme chez tout le monde en ligne ;
+    ///  - les bots s'appellent Skibidi, Gigachad, Le NPC, Rizzler... (Match.NameOf).
     ///
-    /// Les legendes sont a nous (pas de texte ni d'image d'un autre) ; les sons aussi, sauf si
-    /// Martin depose les siens dans Resources/Sons/Memes/... (voir SfxMemes). Un meme a la fois,
-    /// et jamais deux du meme genre en 6 s : l'ecran ne devient pas une foire.
-    ///
-    /// La liste est en dessous (Kinds) : un moment, ses legendes, son son, son effet.
+    /// Les mots sont des mots (personne ne possede "BRUH") ; les sons sont fabriques par le code.
+    /// Martin peut deposer les vrais enregistrements dans Resources/Sons/Memes/... pour jouer entre
+    /// amis -- a remplacer par des sons libres (CC0) avant la sortie sur Steam.
+    /// Un meme a la fois, jamais deux du meme genre en 6 s. (Pas d'"AURA" : Martin deteste, 30/09.)
     /// </summary>
     public static class Memes
     {
@@ -25,7 +31,7 @@ namespace Fief
             RoundWon, RoundLost, MatchWon, MatchLost,
             Pushed, PushedThem, Revenge, Summit, ObstacleHit, Ejected,
             Prison, Mini, Inverted, Dance, Refused, Mirror, HomeRun, HotPotato, Enfilade, Surge,
-            Start
+            Start, SixSeven
         }
 
         sealed class Entry
@@ -48,50 +54,53 @@ namespace Fief
         static readonly Color Pink = new Color(1f, 0.45f, 0.8f);
         static readonly Color Grey = new Color(0.75f, 0.75f, 0.8f);
 
-        /// <summary>LA LISTE : 33 moments, 137 legendes (docs/MODE-MEME.md).</summary>
+        /// <summary>LA LISTE : 34 moments et leurs memes (docs/MODE-MEME.md).</summary>
         static readonly Dictionary<Kind, Entry> Kinds = new Dictionary<Kind, Entry>
         {
             // ---- les chutes
-            { Kind.KoYou,        new Entry("Trombone", Grey, false, 4f, "ET C'EST LE DRAME", "BON BAH...", "C'ÉTAIT PAS PRÉVU", "ADIEU MONDE CRUEL", "JE REVIENS... PEUT-ÊTRE", "LES NUAGES M'APPELLENT", "SKILL ISSUE", "OUPS.") },
-            { Kind.KoAlone,      new Entry("Sifflet", Grey, false, 3f, "TOUT SEUL ??", "PERSONNE NE T'A TOUCHÉ", "LA GRAVITÉ GAGNE ENCORE", "GÉNIE.", "C'ÉTAIT VOULU (NON)") },
-            { Kind.KoThem,       new Entry("Klaxon", Gold, true, 8f, "AU REVOIR", "BYE BYE", "CIAO", "DÉGAGÉ", "DIRECTION LES NUAGES", "BON VOYAGE", "IL EST PARTI OÙ ?") },
-            { Kind.DoubleKo,     new Entry("Klaxon", Gold, true, 10f, "DOUBLÉ !!", "ET DE DEUX", "ENCORE UN", "C'EST GRATUIT") },
-            { Kind.TripleKo,     new Entry("Fanfare", Gold, true, 14f, "MAIS ARRÊTE", "TRIPLÉ !!!", "IL EST INARRÊTABLE", "QUELQU'UN L'ARRÊTE ?", "C'EST UN MASSACRE") },
+            { Kind.KoYou,        new Entry("Fahhh", Grey, false, 4f, "FAHHH", "BRUH", "SKILL ISSUE", "EMOTIONAL DAMAGE", "IT'S SO OVER", "L", "WASTED", "MISSION FAILED", "TO BE CONTINUED...", "OOF", "JE SUIS MORT", "HOUSTON, ON A UN PROBLÈME") },
+            { Kind.KoAlone,      new Entry("Bruh", Grey, false, 3f, "BRUH", "NPC MOVE", "SKILL ISSUE", "OHIO MOMENT", "BRAINROT", "100 % GÉNIE", "MAIS POURQUOI", "C'EST QUOI CE GAMEPLAY") },
+            { Kind.KoThem,       new Entry("Klaxon", Gold, true, 8f, "YEET", "GET OUT", "RATIO", "CHEH", "SEE YOU NEVER", "BYE BYE", "GO TOUCH GRASS", "NAH, I'D WIN", "CIAO") },
+            { Kind.DoubleKo,     new Entry("Sheesh", Gold, true, 10f, "SHEESH", "DOUBLE KILL", "W", "ON GOD", "LET HIM COOK", "IL EST CHAUD") },
+            { Kind.TripleKo,     new Entry("Sheesh", Gold, true, 14f, "SHEEEESH", "GIGACHAD", "TRIPLE KILL", "HE'S HIM", "INARRÊTABLE", "SIGMA GRINDSET") },
             // ---- la Couronne
-            { Kind.CrownTaken,   new Entry("Caisse", Gold, false, 6f, "ON EST RICHE", "LE ROI, C'EST MOI", "À GENOUX", "MON PRÉCIEUX", "TROP FACILE", "QUI VEUT LA COURONNE ?") },
-            { Kind.CrownLost,    new Entry("Scratch", Red, false, 6f, "QUOI ?!", "NON NON NON", "C'ÉTAIT À MOI", "PERDUE...", "REVIENS !!") },
-            { Kind.CrownStolen,  new Entry("Caisse", Green, true, 8f, "MERCI !", "C'EST À MOI MAINTENANT", "VOL À L'ÉTALAGE", "ON PARTAGE ? NON.", "LIVRAISON EXPRESS") },
-            { Kind.MonumentSteal,new Entry("Scratch", Red, true, 12f, "À UNE SECONDE PRÈS", "LE VOL DU SIÈCLE", "C'EST CRUEL", "IMPOSSIBLE") },
-            { Kind.SacreStart,   new Entry("Suspense", Gold, false, 3f, "PLUS QUE TROIS SECONDES", "NE BOUGE PLUS", "RESPIRE...", "C'EST MAINTENANT") },
-            { Kind.SacreStopped, new Entry("Scratch", Red, false, 8f, "SI PRÈS...", "C'ÉTAIT LÀ", "ÇA FAIT MAL", "NOOON") },
-            { Kind.Buzzer,       new Entry("Klaxon", Gold, true, 12f, "DERNIÈRE SECONDE !!", "AU BUZZER", "LE TIMING PARFAIT", "ON N'Y CROYAIT PLUS") },
+            { Kind.CrownTaken,   new Entry("Wow", Gold, false, 6f, "W", "LET HIM COOK", "MAIN CHARACTER", "SIGMA", "NAH, I'D WIN", "C'EST LE S", "KING", "RIZZ MAXIMUM") },
+            { Kind.CrownLost,    new Entry("Fahhh", Red, false, 6f, "FAHHH", "NOOON", "IT'S SO OVER", "L", "EMOTIONAL DAMAGE", "NAN MAIS ALLÔ", "BRUH") },
+            { Kind.CrownStolen,  new Entry("Caisse", Green, true, 8f, "FANUM TAX", "MINE", "W", "NO CAP", "C'EST LE S", "SKILL ISSUE (LUI)", "MERCI BIEN") },
+            { Kind.MonumentSteal,new Entry("Klaxon", Red, true, 12f, "FANUM TAX", "EMOTIONAL DAMAGE", "ABSOLUTE CINEMA", "COLD", "LE VOL DU SIÈCLE") },
+            { Kind.SacreStart,   new Entry("Suspense", Gold, false, 3f, "LOCK IN", "WE'RE SO BACK", "TIC... TAC...", "6... 7...", "BOUGE PAS") },
+            { Kind.SacreStopped, new Entry("Nooo", Red, false, 8f, "NOOON", "IT'S SO OVER", "FAHHH", "SO CLOSE", "L", "ÇA FAIT MAL") },
+            { Kind.Buzzer,       new Entry("Klaxon", Gold, true, 12f, "ABSOLUTE CINEMA", "CLUTCH", "SHEESH", "WE'RE SO BACK", "CINÉMA") },
             // ---- les manches
-            { Kind.RoundWon,     new Entry("Fanfare", Gold, true, 10f, "GG", "TROP FORT", "CHAMPION", "LÉGENDAIRE", "ÇA, C'EST FAIT", "ON NE M'ARRÊTE PAS") },
-            { Kind.RoundLost,    new Entry("Trombone", Grey, false, 0f, "DOMMAGE", "LA PROCHAINE, PEUT-ÊTRE", "C'EST LA VIE", "ON A ESSAYÉ") },
-            { Kind.MatchWon,     new Entry("Fanfare", Gold, true, 14f, "VICTOIRE ROYALE", "LE ROI DES NUAGES", "GG À TOUS (SAUF EUX)", "INVAINCU") },
-            { Kind.MatchLost,    new Entry("Trombone", Grey, false, 0f, "BIEN ESSAYÉ", "REVANCHE ?", "ON DIRA QUE C'ÉTAIT LE LAG") },
+            { Kind.RoundWon,     new Entry("Sheesh", Gold, true, 10f, "W", "GG EZ", "SIGMA", "GIGACHAD", "ABSOLUTE CINEMA", "MOGGED", "C'EST LE S", "HE'S HIM") },
+            { Kind.RoundLost,    new Entry("Trombone", Grey, false, 0f, "L", "BRUH", "IT'S SO OVER", "NPC", "SKILL ISSUE", "C'EST LE LAG") },
+            { Kind.MatchWon,     new Entry("Fanfare", Gold, true, 14f, "LE GOAT", "GIGACHAD", "ABSOLUTE CINEMA", "SIGMA DU MOIS", "GG EZ", "THE GOAT HAS SPOKEN") },
+            { Kind.MatchLost,    new Entry("Trombone", Grey, false, 0f, "IT'S SO OVER", "L + RATIO", "C'EST LE LAG", "BRUH", "GG (PAS EZ)") },
             // ---- les coups
-            { Kind.Pushed,       new Entry("Bonk", Red, false, 6f, "BONK", "AÏE", "OUCH", "ÇA PIQUE", "POURQUOI MOI ?") },
-            { Kind.PushedThem,   new Entry("Bonk", Green, false, 4f, "BONK", "DÉGAGE", "POUSSE-TOI", "PARDON (NON)") },
-            { Kind.Revenge,      new Entry("Boum", Green, true, 8f, "LA VENGEANCE", "RETOUR DE BÂTON", "TU L'AS CHERCHÉ") },
-            { Kind.Summit,       new Entry("Boum", Gold, true, 10f, "VIRÉ DU SOMMET", "REDESCENDS", "PAS AUJOURD'HUI") },
-            { Kind.ObstacleHit,  new Entry("Bonk", Red, false, 6f, "LE PENDULE A GAGNÉ", "BIEN FAIT", "IL FALLAIT SAUTER", "REGARDE DEVANT TOI") },
-            { Kind.Ejected,      new Entry("Sifflet", Red, false, 6f, "RETOUR AU DÉBUT", "TOUT À REFAIRE", "NOOOON", "C'EST PAS GRAVE (SI)") },
+            { Kind.Pushed,       new Entry("Oof", Red, false, 6f, "BONK", "OOF", "BRUH", "EMOTIONAL DAMAGE", "RIP", "AÏE") },
+            { Kind.PushedThem,   new Entry("Bonk", Green, false, 4f, "BONK", "YEET", "CHEH", "GET OUT", "SIGMA PUSH", "SKILL ISSUE") },
+            { Kind.Revenge,      new Entry("Boum", Green, true, 8f, "UNO REVERSE", "KARMA", "CHEH", "INSTANT KARMA", "NO U") },
+            { Kind.Summit,       new Entry("Boum", Gold, true, 10f, "YEET", "MOGGED", "GET OUT", "PAS AUJOURD'HUI", "RATIO") },
+            { Kind.ObstacleHit,  new Entry("Bonk", Red, false, 6f, "BONK", "OOF", "SKILL ISSUE", "NPC MOVE", "REGARDE DEVANT") },
+            { Kind.Ejected,      new Entry("Fahhh", Red, false, 6f, "FAHHH", "TO BE CONTINUED...", "IT'S SO OVER", "BACK TO SPAWN", "NOOON") },
             // ---- les sorts
-            { Kind.Prison,       new Entry("Suspense", Pink, false, 6f, "EN TAULE", "PRISON", "PAS DE SORTIE", "DIX SECONDES DE RÉFLEXION") },
-            { Kind.Mini,         new Entry("Couic", Pink, false, 3f, "PETIT HARICOT", "TOUT MIGNON", "CHÉRIE, J'AI RÉTRÉCI LE HARICOT", "COUIC") },
-            { Kind.Inverted,     new Entry("Faux", Pink, false, 3f, "GAUCHE ? DROITE ?", "TOUT EST À L'ENVERS", "JE COMPRENDS RIEN") },
-            { Kind.Dance,        new Entry("Fanfare", Pink, false, 2f, "C'EST L'HEURE", "LA PISTE EST À MOI", "ON DANSE !") },
-            { Kind.Refused,      new Entry("Faux", Red, false, 2f, "NOPE", "NON.", "PAS ICI", "REFUSÉ") },
-            { Kind.Mirror,       new Entry("Boum", Blue, true, 8f, "RETOUR À L'EXPÉDITEUR", "MIROIR, MON BEAU MIROIR", "ÇA TE REVIENT") },
-            { Kind.HomeRun,      new Entry("Bonk", Gold, true, 12f, "HOME RUN !!", "DANS LES TRIBUNES", "IL VOLE !") },
-            { Kind.HotPotato,    new Entry("Scratch", Gold, false, 6f, "PATATE CHAUDE", "À QUI LE TOUR ?", "PERSONNE NE LA GARDE") },
-            { Kind.Enfilade,     new Entry("Fanfare", Blue, false, 8f, "PILOTE DE LIGNE", "QUATRE SUR QUATRE", "TROP PROPRE") },
-            { Kind.Surge,        new Entry("Boum", Red, true, 8f, "ÇA DEVIENT SÉRIEUX", "PLUS FORT !", "ATTENTION...") },
-            { Kind.Start,        new Entry("Klaxon", Gold, false, 4f, "C'EST PARTI", "QUE LE MEILLEUR GAGNE", "BONNE CHANCE (VOUS EN AUREZ BESOIN)") },
+            { Kind.Prison,       new Entry("Suspense", Pink, false, 6f, "BONK. JAIL.", "EN TAULE", "NO ESCAPE", "TIME OUT", "L") },
+            { Kind.Mini,         new Entry("Couic", Pink, false, 3f, "SMOL", "TINY", "MINI MOI", "COUIC", "BÉBOU") },
+            { Kind.Inverted,     new Entry("Faux", Pink, false, 3f, "OHIO", "BRAINROT", "ERROR 404", "WHAT", "JE COMPRENDS RIEN") },
+            { Kind.Dance,        new Entry("SixSept", Pink, false, 2f, "6 7", "SKIBIDI", "VIBE CHECK", "LA PISTE EST À MOI", "IT'S GIVING") },
+            { Kind.Refused,      new Entry("Faux", Red, false, 2f, "NOPE", "NAH", "ACCESS DENIED", "NON.", "BRUH") },
+            { Kind.Mirror,       new Entry("Boum", Blue, true, 8f, "UNO REVERSE", "NO U", "RETURN TO SENDER") },
+            { Kind.HomeRun,      new Entry("Bonk", Gold, true, 12f, "HOME RUN", "YEET", "TO THE MOON", "BYE") },
+            { Kind.HotPotato,    new Entry("Bruh", Gold, false, 6f, "PATATE CHAUDE", "CHAOS", "BRAINROT", "OHIO") },
+            { Kind.Enfilade,     new Entry("Wow", Blue, false, 8f, "SHEESH", "CLEAN", "MAIN CHARACTER", "W") },
+            { Kind.Surge,        new Entry("Boum", Red, true, 8f, "LOCK IN", "ÇA CHAUFFE", "SHEESH", "IT'S GETTING HOT") },
+            { Kind.Start,        new Entry("Klaxon", Gold, false, 4f, "LOCK IN", "LET'S GO", "6 7", "GL HF", "SKIBIDI") },
+            // ---- toutes les 67 secondes
+            { Kind.SixSeven,     new Entry("SixSept", Pink, true, 6f, "6 7 !!", "SIX SEVEN", "6 7 6 7", "SIX-SEPT !!") },
         };
 
-        public static bool On { get { return Settings.Memes; } }
+        /// <summary>Le mode meme est allume (choisi au salon).</summary>
+        public static bool On { get { return Match.MemeMode; } }
 
         static readonly Dictionary<Kind, float> lastOf = new Dictionary<Kind, float>();
         static readonly System.Random rng = new System.Random();
@@ -101,7 +110,9 @@ namespace Fief
         const float Life = 1.8f;
 
         /// <summary>Un grand moment qui TE concerne : la legende, le son, le coup de camera.</summary>
-        public static void Fire(Kind k)
+        public static void Fire(Kind k) { Fire(k, false); }
+
+        static void Fire(Kind k, bool force)
         {
             if (!On) return;
             Entry e;
@@ -110,7 +121,7 @@ namespace Fief
             float last;
             if (lastOf.TryGetValue(k, out last) && now - last < 6f) return;
             // Un meme a la fois : un plus petit ne coupe pas celui qui claque encore.
-            if (now - shownAt < 0.9f) return;
+            if (!force && now - shownAt < 0.9f) return;
             lastOf[k] = now;
             shownAt = now;
             line = e.Lines[rng.Next(e.Lines.Length)];
@@ -122,8 +133,30 @@ namespace Fief
         }
 
         /// <summary>La legende : lettres blanches cernees de noir, qui claquent puis tremblent (Warnings.Draw).</summary>
+        /// <summary>
+        /// LE "6 7" : toutes les 67 secondes de manche (67, 134, 201...), la meme seconde chez tout le
+        /// monde. Tous les haricots font le geste trois secondes, et "SIX SEVEN" claque.
+        /// </summary>
+        static int sixSevens;
+        public const float SixSevenEvery = 67f;
+
+        static void Tick()
+        {
+            Season season = Game.Season;
+            if (season == null) return;
+            int n = Mathf.FloorToInt(season.Elapsed / SixSevenEvery);
+            // Une nouvelle manche repart de zero.
+            if (n < sixSevens) sixSevens = n;
+            if (n <= sixSevens) return;
+            sixSevens = n;
+            if (!season.Running) return;
+            CharacterRig.SixSevenUntil = Time.time + 3f;
+            Fire(Kind.SixSeven, true);
+        }
+
         public static void Draw()
         {
+            if (On) Tick();
             if (!On || line == null) return;
             float age = Time.unscaledTime - shownAt;
             if (age > Life || age < 0f) return;
