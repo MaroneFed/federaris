@@ -54,7 +54,6 @@ namespace Fief
             DrawCast();
             DrawSurge();
             CastFeel.Draw();
-            Memes.Draw();
         }
 
         // (v38) LA MONTEE : a chaque palier (x1,5, x2, x2,5), un bandeau en or et un son.
@@ -70,7 +69,6 @@ namespace Fief
             if (tier > surgeTier)
             {
                 surgeTier = tier;
-                Memes.Fire(Memes.Kind.Surge);
                 surgeAt = Time.unscaledTime;
                 // (v43, le logicien) Son propre : le gong (Discovery, c'est la Couronne et les legendaires).
                 if (Game.PlayerTransform != null) Sfx.GongAt(Game.PlayerTransform.position); else Sfx.Discovery();

@@ -72,16 +72,13 @@ namespace Fief
         /// <summary>Jusqu'a HUIT joueurs (27/09 -- Martin : "tu peux monter le nombre de joueurs").</summary>
         public const int MaxPlayers = 8;
         static readonly string[] BotNames = { "Mahaut", "Oswin", "Guérin", "Aliénor", "Tancrède", "Isaure", "Bohémond" };
-        /// <summary>(v46) Les bots du mode meme.</summary>
-        static readonly string[] MemeBotNames = { "Skibidi", "Gigachad", "Le NPC", "Rizzler", "Fanum", "Sigma", "Ohio" };
 
         /// <summary>Le nom de la place "index" (0 : toi).</summary>
         public static string NameOf(int index)
         {
             Settings.Load();
             if (index <= 0) return Settings.Shown;
-            string[] names = MemeMode ? MemeBotNames : BotNames;
-            string bot = names[Mathf.Clamp(index - 1, 0, names.Length - 1)];
+            string bot = BotNames[Mathf.Clamp(index - 1, 0, BotNames.Length - 1)];
             // Ton pseudo est celui d'un bot ("Oswin") : le bot en prend un autre -- deux
             // "Oswin" au-dessus des tetes, on ne sait plus qui est qui.
             return string.Equals(bot, Settings.Shown, System.StringComparison.OrdinalIgnoreCase) ? SpareName : bot;
@@ -101,13 +98,6 @@ namespace Fief
         /// du jeu, elles, ne changent pas (le sceau, la tour a pied, la Couronne lourde).
         /// </summary>
         public static bool GodMode;
-        /// <summary>
-        /// (v46 -- Martin : "le mode meme, c'est comme le mode normal et le mode Dieu, sauf que la tu
-        /// mets tous les memes d'internet, genre 67, fahhh") : le MODE MEME, choisi au salon. Les
-        /// regles du mode normal, et des memes partout (UI/Memes.cs) : legendes, cris, le "6 7"
-        /// toutes les 67 secondes, des bots aux noms de memes.
-        /// </summary>
-        public static bool MemeMode;
         public static readonly string[] BotLevels = { "Faciles", "Normaux", "Coriaces" };
         static readonly Color[] Colours =
         {

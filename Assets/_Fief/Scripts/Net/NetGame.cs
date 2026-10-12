@@ -241,7 +241,6 @@ namespace Fief
                 w.Write((sbyte)Match.LastWinner);
                 w.Write((byte)Match.BotLevel);
                 w.Write(Match.GodMode);
-                w.Write(Match.MemeMode);
                 WriteInts(w, Match.History);
                 WriteInts(w, Match.TieBreakers);
                 w.Write((byte)Match.Slots.Count);
@@ -278,7 +277,6 @@ namespace Fief
             int lastWinner = r.ReadSByte();
             int botLevel = r.ReadByte();
             bool god = r.ReadBoolean();
-            bool meme = r.ReadBoolean();
             List<int> history = ReadInts(r);
             List<int> ties = ReadInts(r);
             int count = r.ReadByte();
@@ -313,7 +311,6 @@ namespace Fief
             HostLaunched = launched;
             Match.BotLevel = botLevel;
             Match.GodMode = god;
-            Match.MemeMode = meme;
             Match.Mirror(rounds, seconds, played, seed, lastWinner, history, ties);
             for (int i = 0; i < count; i++)
             {

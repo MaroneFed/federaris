@@ -237,7 +237,7 @@ namespace Fief
                 && (!Match.IsTieBreak || Match.TieBreakers.Contains(holder.Index));
             if (inside)
             {
-                if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; sacreReported = false; Sfx.Alarm(); if (holder.IsPlayer) Memes.Fire(Memes.Kind.SacreStart); }
+                if (sacreBy != holder) { sacreBy = holder; sacre = 0f; lastTick = 0f; sacreReported = false; Sfx.Alarm(); }
                 // (v43.2) Il repart de ce qu'il a deja acquis.
                 float had = BankedOf(holder);
                 if (sacre < had) { sacre = had; lastTick = Mathf.Floor(had); }

@@ -48,6 +48,10 @@ namespace Fief
         float exposure, thickness, sunSize, fogDensity, sunIntensity;
         ParticleSystem[] clouds;
         Color[] cloudTint;
+        // (v47) Les materiaux des nuages, pris une fois (avant : GetComponent et .material a
+        // chaque image, pour chaque nuage, meme hors Mode Dieu), et le dernier melange applique.
+        Material[] cloudMats;
+        float cloudMix = -1f;
         ParticleSystem meteors, ring, horizon, embers;
         float nextBolt;
 
@@ -171,10 +175,12 @@ namespace Fief
             {
                 clouds = sea.GetComponentsInChildren<ParticleSystem>();
                 cloudTint = new Color[clouds.Length];
+                cloudMats = new Material[clouds.Length];
                 for (int i = 0; i < clouds.Length; i++)
                 {
                     Renderer r = clouds[i].GetComponent<Renderer>();
                     Material m = r != null ? r.material : null;
+                    cloudMats[i] = m != null && m.HasProperty("_TintColor") ? m : null;
                     cloudTint[i] = m != null && m.HasProperty("_TintColor") ? m.GetColor("_TintColor") : new Color(0.5f, 0.5f, 0.5f, 0.5f);
                 }
             }
@@ -254,14 +260,16 @@ namespace Fief
                 Atmosphere.Sun.color = Color.Lerp(sunColor, current.sun, e);
                 Atmosphere.Sun.intensity = Mathf.Lerp(sunIntensity, sunIntensity * 1.3f, e);
             }
-            if (clouds != null)
-                for (int i = 0; i < clouds.Length; i++)
+            // Rien a refaire tant que le melange ne bouge pas (hors Mode Dieu, il reste a 0).
+            if (cloudMats != null && (Mathf.Abs(e - cloudMix) > 0.001f || e > 0f))
+            {
+                cloudMix = e;
+                for (int i = 0; i < cloudMats.Length; i++)
                 {
-                    if (clouds[i] == null) continue;
-                    Renderer r = clouds[i].GetComponent<Renderer>();
-                    if (r == null || r.material == null || !r.material.HasProperty("_TintColor")) continue;
-                    r.material.SetColor("_TintColor", Color.Lerp(cloudTint[i], new Color(current.cloud.r, current.cloud.g, current.cloud.b, cloudTint[i].a), e));
+                    if (cloudMats[i] == null) continue;
+                    cloudMats[i].SetColor("_TintColor", Color.Lerp(cloudTint[i], new Color(current.cloud.r, current.cloud.g, current.cloud.b, cloudTint[i].a), e));
                 }
+            }
         }
 
         /// <summary>Meteores, couronne, flammes et braises a la couleur du ciel du moment.</summary>

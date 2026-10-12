@@ -105,7 +105,6 @@ namespace Fief
             {
                 bool champ = Match.Champion != null && Match.Local != null && Match.Champion == Match.Local;
                 Sfx.Announce(champ ? "winner" : "game_over");
-                Memes.Fire(champ ? Memes.Kind.MatchWon : Memes.Kind.MatchLost);
             }
             Current = s;
             stateTime = 0f;
@@ -434,22 +433,8 @@ namespace Fief
         /// DANS le salon (contre les bots) et dans le salon en ligne, plus ici.
         /// </summary>
         static readonly string[] PlayItems = { "Contre les bots", "En ligne", "Retour" };
-        /// <summary>
-        /// Le mode choisi au salon : 0 Normal, 1 DIEU, 2 MEME (v46 -- Martin : "le mode meme, c'est
-        /// comme le mode normal et le mode Dieu").
-        /// </summary>
-        int lobbyMode;
-        bool lobbyGod { get { return lobbyMode == 1; } }
-        bool lobbyMeme { get { return lobbyMode == 2; } }
-        static readonly string[] ModeNames = { "Normal", "DIEU", "MÈME" };
-
-        /// <summary>La ligne "Mode" du salon : Normal, DIEU, MEME (un cran a gauche ou a droite).</summary>
-        void StepMode(int step)
-        {
-            lobbyMode = (lobbyMode + (step < 0 ? 2 : 1)) % 3;
-            // Le mode meme s'annonce : "SIX SEVEN".
-            if (lobbyMeme) { MemeSounds.Scan(); Sfx.Meme("SixSept", 1f); }
-        }
+        /// <summary>Le Mode Dieu choisi au salon (Normal / DIEU ; le mode meme de v46 a ete retire en v47).</summary>
+        bool lobbyGod;
         static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
         static readonly string[] EndItems = { "Nouveau match", "Quitter" };
         static readonly string[] ClientEndItems = { "Quitter le salon", "Quitter" };
@@ -552,7 +537,7 @@ namespace Fief
             else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
             else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
             else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
-            else if (row == 4) StepMode(step);
+            else if (row == 4) lobbyGod = !lobbyGod;
             else return;
             Sfx.Pop();
         }
@@ -572,7 +557,6 @@ namespace Fief
         void StartMatch()
         {
             Match.GodMode = lobbyGod;
-            Match.MemeMode = lobbyMeme;
             Match.Begin(lobbyBots, lobbyRounds, lobbyMinutes);
             Stats.Reset();
             Match.Draft.Prepare();
@@ -641,7 +625,6 @@ namespace Fief
             // pousser ni tirer dessus avant d'avoir fait un pas.
             for (int i = 0; i < Game.Seekers.Count; i++) Game.Seekers[i].GraceUntil = Time.time + 3f;
             if (!Sfx.Announce("fight")) Sfx.Bell();
-            Memes.Fire(Memes.Kind.Start);
         }
 
         void DrawCountdown()
@@ -691,7 +674,6 @@ namespace Fief
             if (winner < 0) Sfx.Announce("time");
             else if (mine) Sfx.Announce("you_win");
             else if (last) Sfx.Announce("you_lose");
-            if (winner >= 0) Memes.Fire(mine ? Memes.Kind.RoundWon : Memes.Kind.RoundLost);
             // (En ligne, l'invite a deja recopie le score de l'hote.)
             if (!NetGame.IsClient) Match.EndRound(winner);
             Go(State.RoundOver);
@@ -844,7 +826,7 @@ namespace Fief
             else if (row == 1) Match.BotLevel = Mathf.Clamp(Match.BotLevel + step, 0, Match.BotLevels.Length - 1);
             else if (row == 2) lobbyRounds = Cycle(Match.RoundChoices, lobbyRounds, step);
             else if (row == 3) lobbyMinutes = Cycle(Match.MinuteChoices, lobbyMinutes, step);
-            else if (row == 4) StepMode(step);
+            else if (row == 4) lobbyGod = !lobbyGod;
             else return;
             Sfx.Pop();
         }
@@ -857,7 +839,6 @@ namespace Fief
         void StartOnlineMatch()
         {
             Match.GodMode = lobbyGod;
-            Match.MemeMode = lobbyMeme;
             if (!NetGame.HostBegin(onlineBots, lobbyRounds, lobbyMinutes)) { Sfx.Deny(); return; }
             Stats.Reset();
             Match.Draft.Prepare();
@@ -1367,17 +1348,11 @@ namespace Fief
                 Icons.Draw(new Rect(x - UiStyle.S(4), y - UiStyle.S(4), UiStyle.S(64), UiStyle.S(64)), "dieu", new Color(1f, 0.85f, 0.3f, beat));
                 Icons.Number(new Rect(x + UiStyle.S(70), y, UiStyle.S(600), UiStyle.S(56)), "MODE DIEU", UiStyle.S(44), new Color(1f, 0.6f * beat + 0.3f, 0.2f), TextAnchor.MiddleLeft);
             }
-            else if (lobbyMeme)
-            {
-                // (v46) Le mode meme : le titre tremble, rose, comme une legende de meme.
-                int jx = Mathf.RoundToInt(Mathf.Sin(Time.unscaledTime * 37f) * 2f);
-                Icons.Number(new Rect(x + jx, y, UiStyle.S(600), UiStyle.S(56)), "MODE MÈME", UiStyle.S(44), new Color(1f, 0.45f, 0.8f), TextAnchor.MiddleLeft);
-            }
             else Icons.Number(new Rect(x, y, UiStyle.S(600), UiStyle.S(56)), "NOUVEAU MATCH", UiStyle.S(44), new Color(1f, 0.84f, 0.3f), TextAnchor.MiddleLeft);
             y += UiStyle.S(80);
 
             string[] labels = { "Joueurs", "Bots", "Manches", "Durée max", "Mode" };
-            string[] values = { (lobbyBots + 1).ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min", ModeNames[lobbyMode] };
+            string[] values = { (lobbyBots + 1).ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min", lobbyGod ? "DIEU" : "Normal" };
             for (int i = 0; i < LobbyRows; i++)
             {
                 int row = i;
@@ -1652,7 +1627,7 @@ namespace Fief
                 // (04/10, etape 2) L'HOTE REGLE ET LANCE : les bots en plus des amis, leur niveau,
                 // les manches, la duree. Puis "Lancer" : tout le monde passe au choix des cartes.
                 string[] labels = { "Bots", "Niveau", "Manches", "Durée max", "Mode" };
-                string[] values = { onlineBots.ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min", ModeNames[lobbyMode] };
+                string[] values = { onlineBots.ToString(), Match.BotLevels[Match.BotLevel], lobbyRounds.ToString(), lobbyMinutes + " min", lobbyGod ? "DIEU" : "Normal" };
                 for (int i = 0; i < OnlineRows; i++)
                 {
                     int row = i;

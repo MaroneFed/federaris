@@ -162,15 +162,8 @@ namespace Fief
             return c != null && (c.transform.position - p).sqrMagnitude < metres * metres;
         }
 
-        /// <summary>(v44) Combien de danses on peut choisir avec B (les six du vainqueur + le dab, le moonwalk, le robot ; v46 : le "6 7").</summary>
-        public const int DanceCount = 10;
-        /// <summary>Le "6 7" (v46).</summary>
-        public const int SixSevenMove = 9;
-        /// <summary>
-        /// (v46, le mode meme) Jusqu'a quand TOUS les haricots font le "6 7" (Memes.Tick, toutes les
-        /// 67 secondes) : les deux mains paumes en l'air qui montent et descendent, chacune son tour.
-        /// </summary>
-        public static float SixSevenUntil = -1f;
+        /// <summary>(v44) Combien de danses on peut choisir avec B (les six du vainqueur + le dab, le moonwalk, le robot).</summary>
+        public const int DanceCount = 9;
         int emote = -1;
         /// <summary>La danse choisie (B), -1 : aucune.</summary>
         public int Emote { get { return emote; } }
@@ -193,17 +186,6 @@ namespace Fief
         {
             celebrate = seconds;
             celebrateAge = 0f;
-        }
-
-        int forcedMove = -1;
-        float forcedUntil;
-
-        /// <summary>(v46.1) Danser UNE figure "seconds" secondes (le 6 7 du mode meme).</summary>
-        public void Celebrate(float seconds, int move)
-        {
-            Celebrate(seconds);
-            forcedMove = move;
-            forcedUntil = Time.time + seconds;
         }
 
         float sulk;
@@ -404,7 +386,6 @@ namespace Fief
             Blink(dt);
             Mouth(dt);
             if (emote >= 0) celebrate = Mathf.Max(celebrate, 0.5f);
-            if (Time.time < SixSevenUntil) celebrate = Mathf.Max(celebrate, 0.05f);
             if (celebrate > 0f)
             {
                 Party(dt);
@@ -621,7 +602,7 @@ namespace Fief
                 pivot.localRotation = Quaternion.identity;
                 return;
             }
-            int move = emote >= 0 ? emote % DanceCount : Time.time < forcedUntil && forcedMove >= 0 ? forcedMove : Time.time < SixSevenUntil ? SixSevenMove : Mathf.FloorToInt(beat / 8f) % 6;
+            int move = emote >= 0 ? emote % DanceCount : Mathf.FloorToInt(beat / 8f) % 6;
             float inMove = Mathf.Repeat(beat, 8f);
             int step = Mathf.FloorToInt(inMove);
             float ph = Mathf.Repeat(beat, 1f);
@@ -730,16 +711,6 @@ namespace Fief
                     rot = Quaternion.Euler(0f, pose == 1 ? 25f : pose == 3 ? -25f : 0f, 0f);
                     headNod = pose == 2 ? 15f : 0f;
                     hit *= 0.3f;
-                    break;
-                }
-                case 9:     // (v46) LE "6 7" : les mains devant, paumes en l'air, qui pesent chacune son tour
-                {
-                    float w = Mathf.Sin(beat * Mathf.PI * 2f);
-                    aL = new Vector3(-72f - 28f * w, 0f, -18f);
-                    aR = new Vector3(-72f + 28f * w, 0f, 18f);
-                    bodyRot.z = w * 5f;
-                    pos.y = 0.04f * Mathf.Abs(w);
-                    headNod = 8f * Mathf.Abs(w);
                     break;
                 }
                 case 5:

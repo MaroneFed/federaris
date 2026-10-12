@@ -152,8 +152,6 @@ namespace Fief
         public static bool Allowed(Ability a)
         {
             if (Retired(a)) return false;
-            // (v46.1) Le mode meme a sa table : les memes (Match/MemeSkins.cs).
-            if (Match.MemeMode) return MemeSkins.Has(a);
             return Match.GodMode ? InGodPool(a) : !IsGod(a);
         }
 
@@ -174,8 +172,6 @@ namespace Fief
 
         public static string Name(Ability a)
         {
-            // (v46.1) Le mode meme : le nom du meme.
-            if (Match.MemeMode) { MemeSkins.Skin m = MemeSkins.Of(a); if (m != null) return m.Name; }
             switch (a)
             {
                 case Ability.Ruee: return "Ruée";
@@ -317,7 +313,6 @@ namespace Fief
         /// <summary>Ce que ca fait, en une phrase de tous les jours.</summary>
         public static string Line(Ability a)
         {
-            if (Match.MemeMode) { MemeSkins.Skin m = MemeSkins.Of(a); if (m != null) return m.Line; }
             switch (a)
             {
                 case Ability.Ruee: return "Tu fonces 15 m droit devant. Ceux sur ton chemin sont bousculés.";

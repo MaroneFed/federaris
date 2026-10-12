@@ -312,7 +312,6 @@ namespace Fief
         public static void ObstacleHit(Seeker s, Color c)
         {
             if (s == null || s.Body == null) return;
-            if (s.IsPlayer) Memes.Fire(Tower.On(s.Body.position) ? Memes.Kind.Ejected : Memes.Kind.ObstacleHit);
             Vector3 at = s.Body.position + Vector3.up * 1.1f;
             Impact(at, c, 1.6f);
             Shock(at, c, 2.8f, 0.3f);

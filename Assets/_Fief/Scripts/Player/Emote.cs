@@ -57,7 +57,6 @@ namespace Fief
                 cam.SetCinematic(4.8f, 10f);
             }
             Sfx.Pop();
-            if (fresh) Memes.Fire(Memes.Kind.Dance);
         }
 
         /// <summary>Arreter de danser (et revenir dans tes yeux, tourne comme ton corps).</summary>
