@@ -27,6 +27,21 @@ namespace Fief
                 else File.WriteAllText(Path.Combine(dir, "steam_appid.txt"), "480");
             }
             catch (System.Exception e) { Debug.LogWarning("[FIEF] steam_appid.txt pas copie : " + e.Message); }
+            // (v46.2) Les vrais sons du mode meme (MemesSons/, a la racine du projet) : recopies a
+            // cote du .exe, pour jouer entre amis. Ils ne sont jamais DANS le jeu (pas dans Assets).
+            try
+            {
+                string memes = Path.Combine(Directory.GetCurrentDirectory(), "MemesSons");
+                if (Directory.Exists(memes)) CopyAll(memes, Path.Combine(dir, "MemesSons"));
+            }
+            catch (System.Exception e) { Debug.LogWarning("[FIEF] MemesSons pas copie : " + e.Message); }
+        }
+
+        static void CopyAll(string from, string to)
+        {
+            Directory.CreateDirectory(to);
+            foreach (string f in Directory.GetFiles(from)) File.Copy(f, Path.Combine(to, Path.GetFileName(f)), true);
+            foreach (string d in Directory.GetDirectories(from)) CopyAll(d, Path.Combine(to, Path.GetFileName(d)));
         }
     }
 }

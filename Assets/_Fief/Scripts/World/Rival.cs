@@ -116,9 +116,19 @@ namespace Fief
         const float WalkSpeed = 6.2f;
         // (v44 -- Martin : "qu'ils maintiennent tout le temps le bouton sprinter") : ils courent a TA
         // vitesse de sprint (7,2 x 1,5 = 10,8 m/s), tout le temps ; les faciles un peu moins vite.
-        static float RunSpeed { get { return Match.BotLevel == 0 ? 9.6f : 10.8f; } }
+        // (v46.2 -- Martin : "faut vraiment les rendre trop forts quand on met le mode coriace") :
+        // les CORIACES courent un peu plus vite que ton sprint (11,6 m/s) -- le seul ecart aux regles,
+        // pour qu'ils te rattrapent ; tout le reste, c'est leur tete (voir Hard).
+        static float RunSpeed { get { return Match.BotLevel == 0 ? 9.6f : Match.BotLevel == 1 ? 10.8f : 11.6f; } }
+        /// <summary>
+        /// (v46.2) LES CORIACES : reflexes de joueur pro. Ils pensent 5 fois par seconde, lancent leur
+        /// capacite des que la cible est a portee, poussent a la vitesse du clic (0,7 s) et a ta
+        /// portee (3,2 m), visent exactement la ou tu vas, tournent la tete deux fois plus vite, et ne
+        /// lachent jamais ni toi ni le porteur.
+        /// </summary>
+        static bool Hard { get { return Match.BotLevel >= 2; } }
         /// <summary>Le temps entre deux capacites, selon le niveau.</summary>
-        static float Reflex { get { return Match.BotLevel == 0 ? 1.4f : Match.BotLevel == 1 ? 0.45f : 0.25f; } }
+        static float Reflex { get { return Match.BotLevel == 0 ? 1.4f : Match.BotLevel == 1 ? 0.45f : 0.12f; } }
 
         /// <summary>Vrai pendant qu'il plane (le HUD, ses ailes s'en servent).</summary>
         public bool Gliding { get { return gliding; } }
@@ -150,6 +160,8 @@ namespace Fief
             r.rng = new System.Random(seed);
             r.boldness = 0.3f + (float)r.rng.NextDouble() * 0.7f;
             r.temper = 0.3f + (float)r.rng.NextDouble() * 0.7f;
+            // (v46.2) Les coriaces sont tous rancuniers et tous audacieux.
+            if (Hard) { r.boldness = Mathf.Max(r.boldness, 0.85f); r.temper = Mathf.Max(r.temper, 0.85f); }
             r.scoutUntil = Mathf.Lerp(25f, 6f, r.boldness);
             r.lastPosition = spawn;
             r.lastGround = spawn;
@@ -424,7 +436,7 @@ namespace Fief
             }
 
             think -= dt;
-            if (think <= 0f) { think = Match.BotLevel == 2 ? 0.3f : 0.5f; Think(season); }
+            if (think <= 0f) { think = Hard ? 0.2f : 0.5f; Think(season); }
             if (castTimer <= 0f) { castTimer = Reflex; UseAbilities(); }
 
             TrackAll();
@@ -490,7 +502,7 @@ namespace Fief
                 // Un raccourci : une arbaleste qui l'envoie haut sur la rampe (pas les bots faciles).
                 if (goal != Goal.Raid || path.Count > 20)
                 {
-                    if (!Tower.On(me) && Match.BotLevel > 0 && rng.NextDouble() < 0.35 + boldness * 0.4 && TryBallistaToRamp(was)) return;
+                    if (!Tower.On(me) && Match.BotLevel > 0 && (Hard || rng.NextDouble() < 0.35 + boldness * 0.4) && TryBallistaToRamp(was)) return;
                 }
                 SetGoal(Goal.Raid, Tower.CrownSpot, was);
                 return;
@@ -1101,7 +1113,7 @@ namespace Fief
             }
             if ((goal == Goal.Hunt || goal == Goal.Fight) && prey != null && prey.Body != null)
             {
-                Vector3 lead = Vector3.ClampMagnitude(preyVelocity, 14f) * (Match.BotLevel == 0 ? 0f : 0.45f);
+                Vector3 lead = Vector3.ClampMagnitude(preyVelocity, 14f) * (Match.BotLevel == 0 ? 0f : Hard ? 1f : 0.45f);
                 Vector3 aimAt = prey.Body.position + lead;
                 target = OnFoot(aimAt) ? aimAt : prey.Body.position;
             }
@@ -1132,10 +1144,10 @@ namespace Fief
             // La poussee : des qu'il est a portee de sa proie (y compris en l'air) -- pas sur
             // une proie protegee (le coup ne ferait rien, et il perdrait sa recharge).
             if ((goal == Goal.Hunt || goal == Goal.Fight || goal == Goal.Guard) && prey != null && prey.Body != null && seeker.CanShove && !prey.Graced
-                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < 2.9f
+                && Time.time >= seeker.ShoveReadyAt && (prey.Body.position - transform.position).magnitude < (Hard ? 3.2f : 2.9f)
                 && LookingAt(prey.Body.position - transform.position, 45f))
             {
-                seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 1.05f);
+                seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (seeker.Has(Ability.Poigne) ? 0.6f : 1f) * (Match.BotLevel == 0 ? 2f : Match.BotLevel == 1 ? 1.3f : 0.78f);
                 if (rig != null) rig.PlaySwing();
                 Combat.Shove(seeker, prey.Body.position - transform.position);
                 if (goal == Goal.Fight && rng.NextDouble() < 0.4) preyTimer = 0f;
@@ -1151,15 +1163,15 @@ namespace Fief
             else if ((goal == Goal.Raid || goal == Goal.Grab || goal == Goal.Roam) && Match.BotLevel > 0 && seeker.CanShove
                      && Time.time >= seeker.ShoveReadyAt && Castle.Inside(transform.position))
             {
-                Seeker foe = NearestFoe(2.7f);
+                Seeker foe = NearestFoe(Hard ? 3.2f : 2.7f);
                 bool onRamp = Tower.On(transform.position) && !Tower.Summit(transform.position);
                 if (foe != null && onRamp && !foe.IsPlayer && !foe.CarriesCrown) foe = null;
                 if (foe != null && LookingAt(foe.Body.position - transform.position, 45f))
                 {
-                    seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 1.15f);
+                    seeker.ShoveReadyAt = Time.time + Seeker.BotShoveCooldown * (Match.BotLevel == 1 ? 1.6f : 0.8f);
                     // (01/10 : la poussee projette loin maintenant -- ils la gardent pour les bons moments.)
-                    double chance = Match.BotLevel == 1 ? 0.3 + temper * 0.35 : 0.45 + temper * 0.4;
-                    if (onRamp && !foe.CarriesCrown) chance *= 0.35;
+                    double chance = Match.BotLevel == 1 ? 0.3 + temper * 0.35 : 0.9;
+                    if (onRamp && !foe.CarriesCrown) chance *= Hard ? 0.7 : 0.35;
                     if (rng.NextDouble() < chance)
                     {
                         if (rig != null) rig.PlaySwing();
@@ -2192,7 +2204,7 @@ namespace Fief
                 if (planTimer <= 0f)
                 {
                     planTimer = Match.BotLevel == 0 ? 0.3f : 0.1f;
-                    float horizon = Match.BotLevel == 0 ? 0.35f : 0.75f;
+                    float horizon = Match.BotLevel == 0 ? 0.35f : Hard ? 1.1f : 0.75f;
                     if (railNow)
                     {
                         int rr = railRampNow;
@@ -2439,7 +2451,7 @@ namespace Fief
         void TurnToFace(float dt)
         {
             if (Time.time >= faceUntil || faceDir.sqrMagnitude < 0.01f) return;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(faceDir, Vector3.up), 540f * dt);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(faceDir, Vector3.up), (Hard ? 1080f : 540f) * dt);
         }
 
         /// <summary>Le joueur le plus proche a moins de "metres" (toi d'abord, a distance egale), null sinon.</summary>

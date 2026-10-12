@@ -22,17 +22,29 @@ namespace Fief
         public static void Meme(string kind, float volume)
         {
             if (Muted || source == null) return;
-            if (PlayReal("Memes/" + kind, volume)) return;
-            Play(MemeClip(kind), volume);
+            PlayMeme(kind, volume);
         }
 
         /// <summary>(v46.1) Le meme crie par un joueur : le son part de lui (on l'entend jusqu'a ~60 m).</summary>
         public static void MemeAt(string kind, Vector3 at, float volume)
         {
             if (Muted || source == null) return;
-            Begin3D(at, 14f);
-            if (!PlayReal("Memes/" + kind, volume)) Play(MemeClip(kind), volume);
+            Begin3D(at, 18f);
+            PlayMeme(kind, volume);
             End3D();
+        }
+
+        /// <summary>
+        /// (v46.2 -- "le vrai meme qui gueule, hyper fort") : d'abord le VRAI son (MemesSons/, a cote
+        /// du jeu), joue DEUX FOIS en meme temps -- deux fois plus fort qu'un son normal ; puis un
+        /// fichier de Resources/Sons/Memes ; sinon celui du code.
+        /// </summary>
+        static void PlayMeme(string kind, float volume)
+        {
+            AudioClip real = MemeSounds.Real(kind);
+            if (real != null) { Play(real, 1f); Play(real, 1f); return; }
+            if (PlayReal("Memes/" + kind, Mathf.Max(volume, 1f))) return;
+            Play(MemeClip(MemeSounds.FallbackOf(kind)), Mathf.Max(volume, 1f));
         }
 
         static AudioClip MemeClip(string kind)

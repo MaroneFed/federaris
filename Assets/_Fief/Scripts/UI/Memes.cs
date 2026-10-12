@@ -58,43 +58,43 @@ namespace Fief
         static readonly Dictionary<Kind, Entry> Kinds = new Dictionary<Kind, Entry>
         {
             // ---- les chutes
-            { Kind.KoYou,        new Entry("Fahhh", Grey, false, 4f, "FAHHH", "BRUH", "SKILL ISSUE", "EMOTIONAL DAMAGE", "IT'S SO OVER", "L", "WASTED", "MISSION FAILED", "TO BE CONTINUED...", "OOF", "JE SUIS MORT", "HOUSTON, ON A UN PROBLÈME") },
+            { Kind.KoYou,        new Entry("RobertWeide", Grey, false, 4f, "DIRECTED BY ROBERT B. WEIDE", "FAHHH", "BRUH", "SKILL ISSUE", "EMOTIONAL DAMAGE", "IT'S SO OVER", "L", "WASTED", "MISSION FAILED", "TO BE CONTINUED...", "OOF", "JE SUIS MORT", "HOUSTON, ON A UN PROBLÈME") },
             { Kind.KoAlone,      new Entry("Bruh", Grey, false, 3f, "BRUH", "NPC MOVE", "SKILL ISSUE", "OHIO MOMENT", "BRAINROT", "100 % GÉNIE", "MAIS POURQUOI", "C'EST QUOI CE GAMEPLAY") },
-            { Kind.KoThem,       new Entry("Klaxon", Gold, true, 8f, "YEET", "GET OUT", "RATIO", "CHEH", "SEE YOU NEVER", "BYE BYE", "GO TOUCH GRASS", "NAH, I'D WIN", "CIAO") },
-            { Kind.DoubleKo,     new Entry("Sheesh", Gold, true, 10f, "SHEESH", "DOUBLE KILL", "W", "ON GOD", "LET HIM COOK", "IL EST CHAUD") },
+            { Kind.KoThem,       new Entry("Airhorn", Gold, true, 8f, "YEET", "GET OUT", "RATIO", "CHEH", "SEE YOU NEVER", "BYE BYE", "GO TOUCH GRASS", "NAH, I'D WIN", "CIAO") },
+            { Kind.DoubleKo,     new Entry("Airhorn", Gold, true, 10f, "SHEESH", "DOUBLE KILL", "W", "ON GOD", "LET HIM COOK", "IL EST CHAUD") },
             { Kind.TripleKo,     new Entry("Sheesh", Gold, true, 14f, "SHEEEESH", "GIGACHAD", "TRIPLE KILL", "HE'S HIM", "INARRÊTABLE", "SIGMA GRINDSET") },
             // ---- la Couronne
             { Kind.CrownTaken,   new Entry("Wow", Gold, false, 6f, "W", "LET HIM COOK", "MAIN CHARACTER", "SIGMA", "NAH, I'D WIN", "C'EST LE S", "KING", "RIZZ MAXIMUM") },
             { Kind.CrownLost,    new Entry("Fahhh", Red, false, 6f, "FAHHH", "NOOON", "IT'S SO OVER", "L", "EMOTIONAL DAMAGE", "NAN MAIS ALLÔ", "BRUH") },
-            { Kind.CrownStolen,  new Entry("Caisse", Green, true, 8f, "FANUM TAX", "MINE", "W", "NO CAP", "C'EST LE S", "SKILL ISSUE (LUI)", "MERCI BIEN") },
-            { Kind.MonumentSteal,new Entry("Klaxon", Red, true, 12f, "FANUM TAX", "EMOTIONAL DAMAGE", "ABSOLUTE CINEMA", "COLD", "LE VOL DU SIÈCLE") },
-            { Kind.SacreStart,   new Entry("Suspense", Gold, false, 3f, "LOCK IN", "WE'RE SO BACK", "TIC... TAC...", "6... 7...", "BOUGE PAS") },
+            { Kind.CrownStolen,  new Entry("FanumTax", Green, true, 8f, "FANUM TAX", "MINE", "W", "NO CAP", "C'EST LE S", "SKILL ISSUE (LUI)", "MERCI BIEN") },
+            { Kind.MonumentSteal,new Entry("EmotionalDamage", Red, true, 12f, "FANUM TAX", "EMOTIONAL DAMAGE", "ABSOLUTE CINEMA", "COLD", "LE VOL DU SIÈCLE") },
+            { Kind.SacreStart,   new Entry("DunDun", Gold, false, 3f, "LOCK IN", "WE'RE SO BACK", "TIC... TAC...", "6... 7...", "BOUGE PAS") },
             { Kind.SacreStopped, new Entry("Nooo", Red, false, 8f, "NOOON", "IT'S SO OVER", "FAHHH", "SO CLOSE", "L", "ÇA FAIT MAL") },
-            { Kind.Buzzer,       new Entry("Klaxon", Gold, true, 12f, "ABSOLUTE CINEMA", "CLUTCH", "SHEESH", "WE'RE SO BACK", "CINÉMA") },
+            { Kind.Buzzer,       new Entry("Airhorn", Gold, true, 12f, "ABSOLUTE CINEMA", "CLUTCH", "SHEESH", "WE'RE SO BACK", "CINÉMA") },
             // ---- les manches
-            { Kind.RoundWon,     new Entry("Sheesh", Gold, true, 10f, "W", "GG EZ", "SIGMA", "GIGACHAD", "ABSOLUTE CINEMA", "MOGGED", "C'EST LE S", "HE'S HIM") },
-            { Kind.RoundLost,    new Entry("Trombone", Grey, false, 0f, "L", "BRUH", "IT'S SO OVER", "NPC", "SKILL ISSUE", "C'EST LE LAG") },
-            { Kind.MatchWon,     new Entry("Fanfare", Gold, true, 14f, "LE GOAT", "GIGACHAD", "ABSOLUTE CINEMA", "SIGMA DU MOIS", "GG EZ", "THE GOAT HAS SPOKEN") },
-            { Kind.MatchLost,    new Entry("Trombone", Grey, false, 0f, "IT'S SO OVER", "L + RATIO", "C'EST LE LAG", "BRUH", "GG (PAS EZ)") },
+            { Kind.RoundWon,     new Entry("Gigachad", Gold, true, 10f, "W", "GG EZ", "SIGMA", "GIGACHAD", "ABSOLUTE CINEMA", "MOGGED", "C'EST LE S", "HE'S HIM") },
+            { Kind.RoundLost,    new Entry("SadViolin", Grey, false, 0f, "L", "BRUH", "IT'S SO OVER", "NPC", "SKILL ISSUE", "C'EST LE LAG") },
+            { Kind.MatchWon,     new Entry("Gigachad", Gold, true, 14f, "LE GOAT", "GIGACHAD", "ABSOLUTE CINEMA", "SIGMA DU MOIS", "GG EZ", "THE GOAT HAS SPOKEN") },
+            { Kind.MatchLost,    new Entry("SadViolin", Grey, false, 0f, "IT'S SO OVER", "L + RATIO", "C'EST LE LAG", "BRUH", "GG (PAS EZ)") },
             // ---- les coups
             { Kind.Pushed,       new Entry("Oof", Red, false, 6f, "BONK", "OOF", "BRUH", "EMOTIONAL DAMAGE", "RIP", "AÏE") },
             { Kind.PushedThem,   new Entry("Bonk", Green, false, 4f, "BONK", "YEET", "CHEH", "GET OUT", "SIGMA PUSH", "SKILL ISSUE") },
-            { Kind.Revenge,      new Entry("Boum", Green, true, 8f, "UNO REVERSE", "KARMA", "CHEH", "INSTANT KARMA", "NO U") },
-            { Kind.Summit,       new Entry("Boum", Gold, true, 10f, "YEET", "MOGGED", "GET OUT", "PAS AUJOURD'HUI", "RATIO") },
-            { Kind.ObstacleHit,  new Entry("Bonk", Red, false, 6f, "BONK", "OOF", "SKILL ISSUE", "NPC MOVE", "REGARDE DEVANT") },
+            { Kind.Revenge,      new Entry("VineBoom", Green, true, 8f, "UNO REVERSE", "KARMA", "CHEH", "INSTANT KARMA", "NO U") },
+            { Kind.Summit,       new Entry("Yeet", Gold, true, 10f, "YEET", "MOGGED", "GET OUT", "PAS AUJOURD'HUI", "RATIO") },
+            { Kind.ObstacleHit,  new Entry("MetalPipe", Red, false, 6f, "BONK", "OOF", "SKILL ISSUE", "NPC MOVE", "REGARDE DEVANT") },
             { Kind.Ejected,      new Entry("Fahhh", Red, false, 6f, "FAHHH", "TO BE CONTINUED...", "IT'S SO OVER", "BACK TO SPAWN", "NOOON") },
             // ---- les sorts
-            { Kind.Prison,       new Entry("Suspense", Pink, false, 6f, "BONK. JAIL.", "EN TAULE", "NO ESCAPE", "TIME OUT", "L") },
-            { Kind.Mini,         new Entry("Couic", Pink, false, 3f, "SMOL", "TINY", "MINI MOI", "COUIC", "BÉBOU") },
-            { Kind.Inverted,     new Entry("Faux", Pink, false, 3f, "OHIO", "BRAINROT", "ERROR 404", "WHAT", "JE COMPRENDS RIEN") },
-            { Kind.Dance,        new Entry("SixSept", Pink, false, 2f, "6 7", "SKIBIDI", "VIBE CHECK", "LA PISTE EST À MOI", "IT'S GIVING") },
-            { Kind.Refused,      new Entry("Faux", Red, false, 2f, "NOPE", "NAH", "ACCESS DENIED", "NON.", "BRUH") },
-            { Kind.Mirror,       new Entry("Boum", Blue, true, 8f, "UNO REVERSE", "NO U", "RETURN TO SENDER") },
+            { Kind.Prison,       new Entry("CoffinDance", Pink, false, 6f, "COFFIN DANCE", "EN TAULE", "NO ESCAPE", "RIP") },
+            { Kind.Mini,         new Entry("Oof", Pink, false, 3f, "SMOL", "TINY", "MINI MOI", "COUIC", "BÉBOU") },
+            { Kind.Inverted,     new Entry("Huh", Pink, false, 3f, "OHIO", "BRAINROT", "ERROR 404", "WHAT", "JE COMPRENDS RIEN") },
+            { Kind.Dance,        new Entry("SixSept", Pink, false, 2f, "6 7", "SKIBIDI", "CHIPI CHIPI CHAPA CHAPA", "LA PISTE EST À MOI") },
+            { Kind.Refused,      new Entry("WindowsError", Red, false, 2f, "ERREUR WINDOWS", "NOPE", "ACCESS DENIED", "BRUH") },
+            { Kind.Mirror,       new Entry("VineBoom", Blue, true, 8f, "UNO REVERSE", "NO U", "RETURN TO SENDER") },
             { Kind.HomeRun,      new Entry("Bonk", Gold, true, 12f, "HOME RUN", "YEET", "TO THE MOON", "BYE") },
             { Kind.HotPotato,    new Entry("Bruh", Gold, false, 6f, "PATATE CHAUDE", "CHAOS", "BRAINROT", "OHIO") },
             { Kind.Enfilade,     new Entry("Wow", Blue, false, 8f, "SHEESH", "CLEAN", "MAIN CHARACTER", "W") },
-            { Kind.Surge,        new Entry("Boum", Red, true, 8f, "LOCK IN", "ÇA CHAUFFE", "SHEESH", "IT'S GETTING HOT") },
-            { Kind.Start,        new Entry("Klaxon", Gold, false, 4f, "LOCK IN", "LET'S GO", "6 7", "GL HF", "SKIBIDI") },
+            { Kind.Surge,        new Entry("TacoBell", Red, true, 8f, "LOCK IN", "ÇA CHAUFFE", "SHEESH", "IT'S GETTING HOT") },
+            { Kind.Start,        new Entry("Airhorn", Gold, false, 4f, "LOCK IN", "LET'S GO", "6 7", "GL HF", "SKIBIDI") },
             // ---- toutes les 67 secondes
             { Kind.SixSeven,     new Entry("SixSept", Pink, true, 6f, "6 7 !!", "SIX SEVEN", "6 7 6 7", "SIX-SEPT !!") },
         };
@@ -222,6 +222,8 @@ namespace Fief
         public static void Draw()
         {
             if (!On) return;
+            MemeSounds.Scan();
+            MemeSounds.Poll();
             Tick();
             DrawOverheads();
             if (line == null) return;

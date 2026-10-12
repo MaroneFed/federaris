@@ -177,3 +177,7 @@ LobbyMatchList_t
 SteamNetworkingIdentity
 SteamNetworkingMessage_t
 SteamNetworkingMessagesSessionRequest_t
+AudioType
+UnityWebRequest
+UnityWebRequestMultimedia
+DownloadHandlerAudioClip

@@ -1017,7 +1017,7 @@ partout : **les capacités sont des mèmes** (FAHHH, 6 7, BONK, RICKROLL, FANUM 
 geste) ; sur les grands moments qui te concernent, une légende de mème (FAHHH, BRUH, SKILL ISSUE,
 FANUM TAX…) avec son cri — la voix du haricot, fabriquée par le code — ; des bots nommés Skibidi,
 Gigachad, Le NPC… 34 moments, 194 légendes, 18 sons ; tes propres sons se posent dans
-`Resources/Sons/Memes/`. La liste complète : `docs/MODE-MEME.md`.
+`Resources/Sons/Memes/`. **Les vrais sons** (v46.2) : dans `MemesSons/`, à côté du jeu (double-clic sur `Tools/memes-sons.bat` pour les télécharger), joués deux fois plus fort. La liste complète : `docs/MODE-MEME.md`.
 
 ## Phases
 

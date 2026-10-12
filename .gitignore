@@ -51,3 +51,7 @@ Thumbs.db
 
 # Caches Python des outils
 Tools/__pycache__/
+
+# (v46.2) Les vrais sons du mode meme : sur le PC de Martin seulement (droits d'auteur)
+/MemesSons/**
+!/MemesSons/LISEZ-MOI.txt

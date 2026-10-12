@@ -1,0 +1,17 @@
+LES VRAIS SONS DU MODE MÈME
+
+Ici, un dossier par mème (SixSept, Fahhh, VineBoom, MetalPipe, Rickroll...). Le jeu crée
+les dossiers tout seul au premier lancement en mode MÈME.
+
+LE PLUS SIMPLE : double-clic sur Tools/memes-sons.bat (il faut Python, python.org).
+Il télécharge le vrai son de chaque mème depuis myinstants.com et le range ici.
+
+À LA MAIN : pose un .mp3, .ogg ou .wav dans le dossier du mème. Plusieurs fichiers :
+le jeu en prend un au hasard. Dossier vide : le jeu joue le son qu'il fabrique.
+
+Dans Unity, ce dossier est à la racine du projet (pas dans Assets : Unity ne l'importe pas).
+Au Build (File ▸ Build), il est recopié à côté du .exe — pour jouer avec ton frère, c'est
+tout. Les sons ne sont pas dans Git (voir .gitignore).
+
+ATTENTION : ces enregistrements appartiennent à leurs auteurs. Entre amis, ça passe ; dans
+le jeu vendu sur Steam, jamais.

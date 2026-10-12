@@ -448,7 +448,7 @@ namespace Fief
         {
             lobbyMode = (lobbyMode + (step < 0 ? 2 : 1)) % 3;
             // Le mode meme s'annonce : "SIX SEVEN".
-            if (lobbyMeme) Sfx.Meme("SixSept", 0.9f);
+            if (lobbyMeme) { MemeSounds.Scan(); Sfx.Meme("SixSept", 1f); }
         }
         static readonly string[] PauseItems = { "Reprendre", "Réglages", "Commandes", "Abandonner le match", "Quitter le jeu" };
         static readonly string[] EndItems = { "Nouveau match", "Quitter" };

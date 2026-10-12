@@ -1,3 +1,6 @@
+(v46.2) LES VRAIS SONS DES MÈMES vont maintenant dans MemesSons/, à la racine du projet
+(double-clic sur Tools/memes-sons.bat pour les télécharger). Ce dossier-ci reste lu aussi.
+
 LE MODE MÈME — les sons (au salon : Mode ▸ MÈME)
 
 Un dossier par son. Pose un ou plusieurs fichiers (.wav, .mp3, .ogg) dans un dossier :
