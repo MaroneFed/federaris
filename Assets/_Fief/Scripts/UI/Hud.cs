@@ -806,7 +806,7 @@ namespace Fief
         {
             Seeker me = Game.Me;
             Camera cam = viewCamera != null ? viewCamera : Camera.main;
-            if (me == null || cam == null || me.Body == null || Crown.Instance == null) return;
+            if (me == null || cam == null || me.Body == null || Crown.Instance == null || Match.RaceMode) return;
             if (me.CarriesCrown || Crown.Where == Crown.State.Delivered) return;
             Seeker holder = Crown.Holder;
             Vector3 world = Crown.Position + Vector3.up * (holder != null ? 1.1f : 1.5f);

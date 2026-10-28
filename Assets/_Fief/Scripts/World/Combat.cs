@@ -24,6 +24,8 @@ namespace Fief
         {
             if (s == null) return ShoveReach;
             if (s.Has(Ability.MainLourde)) return 5.5f;      // (08/10) divine
+            // (v48) En course, on se croise a 30 m/s : la poussee porte a 6 m.
+            if (Match.RaceMode) return Mathf.Max(6f, s.Has(Ability.BrasLongs) ? 7f : 6f);
             return s.Has(Ability.BrasLongs) ? 5f : ShoveReach;
         }
         /// <summary>Vrai pendant le coup d'une poussee : Hit ne joue pas son petit son, la poussee a le sien.</summary>
@@ -596,7 +598,7 @@ namespace Fief
         public static bool InArc(Vector3 from, Vector3 forward, Vector3 target, float reach, float angle)
         {
             Vector3 to = target - from;
-            if (Mathf.Abs(to.y) > 2.2f) return false;
+            if (Mathf.Abs(to.y) > (Match.RaceMode ? 4f : 2.2f)) return false;
             to.y = 0f;
             return to.magnitude <= reach && (to.magnitude < 0.5f || Vector3.Angle(forward, to) <= angle);
         }
@@ -756,6 +758,8 @@ namespace Fief
         public static void Of(Seeker s)
         {
             if (s == null || s.Body == null) return;
+            // (v48) En course : on repart de la derniere porte passee, deja en vol.
+            if (Race.On) { Race.Respawn(s); return; }
             // (02/10 -- Martin : "quand tu meurs, elle respawn a chaque fois au-dessus, c'est
             // horrible de tout remonter") : la Couronne RESTE ou il a quitte le sol.
             // (02/10, le clipper) Pousse dans les nuages juste avant : c'est un KO.

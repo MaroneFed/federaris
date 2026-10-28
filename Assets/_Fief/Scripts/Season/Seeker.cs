@@ -215,6 +215,8 @@ namespace Fief
         /// le haut, pendant un peu plus d'une seconde (voir WindRing).
         /// </summary>
         public float BoostUntil = -1f;
+        /// <summary>(v48, la course) L'elan a ajouter a la vitesse de vol a la prochaine image (porte, aspiration).</summary>
+        public float PendingBoost;
         public WindRing LastRing;
         public float LastRingAt = -99f;
         /// <summary>Combien d'anneaux de la meme chaine il vient d'enfiler d'affilee (4 : l'enfilade).</summary>

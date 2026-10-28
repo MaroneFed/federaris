@@ -139,6 +139,7 @@ namespace Fief
         public static Vector3 Fly(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
         {
             if (s != null && s.FreeFlight && s.Body != null && Castle.Inside(s.Body.position)) s.FreeFlight = false;
+            if (Match.RaceMode) return FlyRace(ref airspeed, look, side, brake, s, dt);
             if (s != null && s.FreeFlight) return NoClimbInside(FlyFree(ref airspeed, look, side, brake, s, dt), s);
             bool heavy = s != null && s.CarriesCrown;
             // (05/10) La PLUME : le porteur plane a la vitesse de tout le monde. Mais la Couronne
@@ -186,6 +187,40 @@ namespace Fief
         }
 
         /// <summary>
+        /// (v48) LE VOL D'ELYTRES DE LA COURSE (Martin : "je vole comme dans Minecraft"). La meme
+        /// idee que le plane, poussee : on PIQUE pour prendre de la vitesse (jusqu'a 70 m/s, 250
+        /// km/h), on REMONTE en la depensant, l'air freine a peine au-dessus de la croisiere (22
+        /// m/s) -- un bon pique se garde longtemps. Les portes et l'aspiration ajoutent leur elan
+        /// (Seeker.PendingBoost). Q/D glissent de cote, S freine. Pas de sceau, pas de Couronne.
+        /// </summary>
+        public const float RaceCruise = 22f;
+        public const float RaceTop = 70f;
+
+        static Vector3 FlyRace(ref float airspeed, Vector3 look, float side, bool brake, Seeker s, float dt)
+        {
+            if (s != null && s.PendingBoost > 0f) { airspeed += s.PendingBoost; s.PendingBoost = 0f; }
+            if (look.sqrMagnitude < 0.001f) look = Vector3.forward;
+            look.Normalize();
+            float slope = Mathf.Clamp(look.y, -0.95f, 0.75f);
+            Vector3 flat = new Vector3(look.x, 0f, look.z);
+            if (flat.sqrMagnitude < 0.001f) flat = Vector3.forward;
+            flat.Normalize();
+            // Piquer donne plus qu'au plane ; remonter coute un peu moins (on "tire" sur l'elan).
+            airspeed += -slope * (slope < 0f ? 26f : 19f) * dt;
+            float drag = airspeed <= RaceCruise ? 0.7f : 0.12f;
+            airspeed = Mathf.MoveTowards(airspeed, RaceCruise, Mathf.Abs(airspeed - RaceCruise) * drag * dt + (brake ? 18f * dt : 0f));
+            airspeed = Mathf.Clamp(airspeed, MinSpeed, RaceTop);
+            float cos = Mathf.Sqrt(1f - slope * slope);
+            Vector3 v = flat * airspeed * cos + Vector3.up * airspeed * slope;
+            float stall = Mathf.Clamp(RaceCruise / Mathf.Max(airspeed, 1f), 0.4f, 2.4f);
+            v.y -= 2.2f * stall;
+            Vector3 right = new Vector3(flat.z, 0f, -flat.x);
+            v += right * side * 9f;
+            if (s != null && s.Body != null) v.y += Thermal.LiftAt(s.Body.position) * 0.6f;
+            return v;
+        }
+
+        /// <summary>
         /// (05/10 -- "je passais par la porte en volant, et je remontais : normalement, le mur
         /// invisible m'en empeche") : DANS LA CITADELLE, ON NE REMONTE PLUS EN VOLANT. On y
         /// plane en descendant (du sommet vers la porte), jamais vers le haut -- la tour se
@@ -194,7 +229,7 @@ namespace Fief
         /// </summary>
         static Vector3 NoClimbInside(Vector3 v, Seeker s)
         {
-            if (s == null || s.Body == null || v.y <= 0f || Time.time < s.BoostUntil) return v;
+            if (s == null || s.Body == null || v.y <= 0f || Time.time < s.BoostUntil || Match.RaceMode) return v;
             if (Castle.Inside(s.Body.position)) v.y = 0f;
             return v;
         }
@@ -760,6 +795,8 @@ namespace Fief
         public static bool Crossing(Vector3 from, Vector3 to)
         {
             // (05/10) Par en dessous de l'ile aussi : on n'entre pas dans l'enceinte par sous la carte.
+            // (v48) En course, pas de sceau : le circuit passe au-dessus des murailles et autour de la tour.
+            if (Match.RaceMode) return false;
             return !Castle.Inside(from) && Castle.Inside(to) && (to.y > Castle.WallHeight + 1.5f || to.y < -1.5f);
         }
 

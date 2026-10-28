@@ -371,6 +371,20 @@ namespace Fief
             return trail[((trailAt - back) % trail.Length + trail.Length) % trail.Length];
         }
 
+        float launchSpeed;
+
+        /// <summary>(v48, la course) PLONGER : un bond hors de la plateforme, elytres ouvertes, a "speed" m/s.</summary>
+        public void StartFlight(Vector3 dir, float speed)
+        {
+            Teleport(transform.position + Vector3.up * 3f);
+            Vector3 flat = Flat(dir);
+            if (flat.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(flat.normalized, Vector3.up);
+            gliding = true;
+            airspeed = speed;
+            launchSpeed = speed;
+            fallSpeed = 0f;
+        }
+
         /// <summary>Deplace d'un coup.</summary>
         public void Teleport(Vector3 position)
         {
@@ -453,6 +467,15 @@ namespace Fief
         {
             Goal was = goal;
             Vector3 me = transform.position;
+            // (v48) LA COURSE : un seul but, la prochaine porte (Race.BotLook le guide en vol).
+            if (Match.RaceMode)
+            {
+                goal = Goal.Roam;
+                Race.Gate nextGate = Race.NextGate(seeker);
+                if (nextGate != null) target = nextGate.Centre;
+                path.Clear();
+                return;
+            }
             // En vol, on ne change pas d'avis : on vise ou l'on va.
             if (ballistic || gliding) return;
             // En route vers une arbaleste : on y va (sauf si elle est prise, ou si c'est long).
@@ -2294,6 +2317,13 @@ namespace Fief
                 // LE VOL PLANE (28/09) : comme toi, ses ailes s'ouvrent seules au-dessus du vide.
                 // (05/10) Tire pour CHASSER (le porteur, son Monument, la Couronne) : il ouvre ses
                 // ailes des le haut de la courbe et vole droit dessus, comme toi en vol libre.
+                // (v48) LA COURSE : les elytres s'ouvrent des qu'il quitte le sol.
+                if (Match.RaceMode && !gliding && seeker.CanGlide && fallSpeed < 7f && transform.position.y - lastGround.y > 1.2f)
+                {
+                    gliding = true;
+                    airspeed = Mathf.Max(Wings.OpeningSpeed(Flat(flight) + Vector3.up * fallSpeed), launchSpeed);
+                    launchSpeed = 0f;
+                }
                 bool chasing = goal == Goal.Hunt || goal == Goal.Guard || goal == Goal.Deliver || goal == Goal.Grab;
                 if (!gliding && seeker.CanGlide && seeker.FreeFlight && chasing && ballistic && launchAge > 0.6f && fallSpeed < 4f && Wings.VoidBelow(transform.position, 3f))
                 {
@@ -2347,6 +2377,7 @@ namespace Fief
                         Vector3 toAim = aimAt + Vector3.up * 1.2f - here;
                         look = Flat(toAim).magnitude < 5f && toAim.y < -1f ? Vector3.down : toAim.normalized;
                     }
+                    if (Match.RaceMode) look = Race.BotLook(seeker, transform.position, airspeed);
                     Vector3 v = Wings.Fly(ref airspeed, look, 0f, false, seeker, dt);
                     fallSpeed = v.y;
                     walk = Flat(v);
@@ -2356,6 +2387,24 @@ namespace Fief
             }
             if (wings != null) wings.Flying = gliding;
 
+            // (v48) LA COURSE : pose quelque part, il rebondit et repart ; en vol, il pousse qui le
+            // gene (les faciles jamais, les coriaces des qu'ils peuvent).
+            if (Match.RaceMode)
+            {
+                if (grounded && fallSpeed <= 0f) { fallSpeed = 17f; launchSpeed = 18f; }
+                if (gliding && Match.BotLevel > 0 && seeker.CanShove && Time.time >= seeker.ShoveReadyAt)
+                {
+                    seeker.ShoveReadyAt = Time.time + 0.5f;
+                    Seeker foe = NearestFoe(6f);
+                    double chance = Hard ? 0.85 : 0.35;
+                    if (foe != null && !foe.Graced && rng.NextDouble() < chance)
+                    {
+                        seeker.ShoveReadyAt = Time.time + (Hard ? 1.1f : 2.4f);
+                        if (rig != null) rig.PlaySwing();
+                        Combat.Shove(seeker, foe.Body.position - transform.position);
+                    }
+                }
+            }
             // Au bord de l'ile : il ne saute pas dans le vide, il s'arrete. Au bord de la
             // rampe (30/09 : plus de trous a sauter) : il se rabat vers le fut, sans sauter.
             if (grounded && !leaping && speed > 0f && !Tower.On(transform.position) && EdgeAhead(dir)) walk = Vector3.zero;

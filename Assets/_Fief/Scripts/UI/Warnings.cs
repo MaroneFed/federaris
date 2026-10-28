@@ -54,6 +54,7 @@ namespace Fief
             DrawCast();
             DrawSurge();
             CastFeel.Draw();
+            Race.Draw();     // (v48) la course d'elytres : place, tour, porte, vitesse
         }
 
         // (v38) LA MONTEE : a chaque palier (x1,5, x2, x2,5), un bandeau en or et un son.

@@ -1015,6 +1015,14 @@ faire frapper : la danse s'arrête. En ligne, les autres te voient danser.
 De v45 à v46.2, un mode MÈME au salon (légendes, capacités-mèmes, sons). **Retiré le 18/10 (v47)** à la
 demande de Martin : le salon propose Normal ou DIEU.
 
+## La course d'élytres (v48, prototype)
+
+Au salon, **Mode : COURSE** (par défaut). Un circuit de 12 portes dans le ciel autour de l'île,
+3 tours. On part d'une plateforme dans le ciel ; on pique pour prendre de la vitesse (jusqu'à 250 km/h),
+on remonte en la dépensant ; chaque porte relance (les portes d'or deux fois plus) ; dans le sillage
+d'un autre, l'aspiration tire ; on se pousse en plein vol. Le premier qui boucle ses 3 tours gagne la
+manche. Tomber dans les nuages : on repart de la dernière porte. Détails : `docs/COURSE.md`.
+
 ## Phases
 
 - **Phase 1** : le match complet contre des bots, avec le salon (porte passée le 04/10).

@@ -98,6 +98,11 @@ namespace Fief
         /// du jeu, elles, ne changent pas (le sceau, la tour a pied, la Couronne lourde).
         /// </summary>
         public static bool GodMode;
+        /// <summary>
+        /// (v48, 28/10 -- Martin : "je veux que le jeu se transforme en course d'elytres") : LA COURSE
+        /// D'ELYTRES, choisie au salon (World/Race.cs). Un circuit de portes dans le ciel, 3 tours.
+        /// </summary>
+        public static bool RaceMode;
         public static readonly string[] BotLevels = { "Faciles", "Normaux", "Coriaces" };
         static readonly Color[] Colours =
         {
@@ -345,6 +350,8 @@ namespace Fief
             {
                 Clear();
                 Stage = stage;
+                // (v48) La course : pas de cartes, on vole (le prototype ; les capacites reviendront).
+                if (RaceMode) { Stage = 1; return; }
                 // Une graine par tour de table : a egalite de victoires, celui qui choisit sa
                 // passive en premier n'est pas forcement le premier pour l'active.
                 System.Random rng = new System.Random(RoundSeed + stage * 7919);

@@ -290,8 +290,11 @@ namespace Fief
                 }
                 // Espace en vol : on replie les ailes (on tombe comme une pierre).
                 else if (jump && Gliding) { Gliding = false; folded = true; Sfx.Whoosh(); }
+                // (v48) LA COURSE : les elytres s'ouvrent des qu'on quitte le sol (plus besoin de vide).
+                else if (Match.RaceMode && !Gliding && !folded && me != null && me.CanGlide && verticalVelocity < 7f && transform.position.y - lastGround.y > 1.2f)
+                    OpenWings(me);
                 // Espace en tombant : on les rouvre (ou on les ouvre plus tot).
-                else if (jump && me != null && me.CanGlide && verticalVelocity < 2f && Wings.VoidBelow(transform.position, 4f)) OpenWings(me);
+                else if (jump && me != null && me.CanGlide && verticalVelocity < 2f && (Match.RaceMode || Wings.VoidBelow(transform.position, 4f))) OpenWings(me);
                 // LES AILES S'OUVRENT TOUTES SEULES : on tombe, et il y a du vide dessous.
                 // (Tire par une arbaleste : seulement au-dessus du grand vide, pour
                 // retomber la ou la ligne l'avait dit.)
@@ -409,6 +412,22 @@ namespace Fief
         }
 
         float groundedAt = -9f;
+        float launchAirspeed;
+
+        /// <summary>
+        /// (v48, la course) PLONGER : on quitte la plateforme d'un bond, et les elytres s'ouvrent
+        /// aussitot, deja lancees a "speed" m/s, face a "dir".
+        /// </summary>
+        public void StartFlight(Vector3 dir, float speed)
+        {
+            Vector3 flat = new Vector3(dir.x, 0f, dir.z);
+            float yaw = flat.sqrMagnitude > 0.01f ? Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg : transform.eulerAngles.y;
+            Teleport(transform.position + Vector3.up * 3f, yaw);
+            Seeker me = Game.Me;
+            verticalVelocity = 0f;
+            launchAirspeed = speed;
+            OpenWings(me);
+        }
         float jumpPressedAt = -9f;
 
         float stillFor;
@@ -418,6 +437,8 @@ namespace Fief
             // (06/10) LE KANGOUROU saute une fois et demie plus haut (x1,22 en vitesse).
             Seeker me = Game.Me;
             verticalVelocity = cfg.jumpSpeed * (me != null && me.Has(Ability.Kangourou) ? 1.22f : 1f);
+            // (v48) En course, posé quelque part : un grand bond, et les elytres s'ouvrent en haut.
+            if (Match.RaceMode) { verticalVelocity = Mathf.Max(verticalVelocity, 17f); launchAirspeed = 18f; }
             jumpPressedAt = -9f;
             groundedAt = -9f;
         }
@@ -427,7 +448,8 @@ namespace Fief
         {
             Gliding = true;
             folded = false;
-            airspeed = Wings.OpeningSpeed(controller.velocity);
+            airspeed = Mathf.Max(Wings.OpeningSpeed(controller.velocity), launchAirspeed);
+            launchAirspeed = 0f;
             ballistic = false;
             Sfx.Whoosh();
             Color c = me != null && (me.HasWings || me.Has(Ability.Planeur)) ? Wings.Gold : Wings.Glow;

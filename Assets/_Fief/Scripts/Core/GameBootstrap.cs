@@ -94,6 +94,12 @@ namespace Fief
 
             PlayerController player = BuildPlayer();
             BuildRivals();
+            // (v48) LA COURSE D'ELYTRES : le circuit de portes, la plateforme de depart.
+            if (Match.RaceMode)
+            {
+                try { Race.Build(worldRoot); }
+                catch (System.Exception error) { Game.BuildError = "Course : " + error.GetType().Name + " dans " + error.StackTrace; Debug.LogError("[FIEF] Course interrompue : " + error); }
+            }
 
             // La brume a besoin de la camera (pour caler le plan lointain) et du
             // joueur (pour lui accrocher la lanterne) : elle vient donc en dernier.
