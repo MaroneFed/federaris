@@ -75,8 +75,7 @@ namespace Fief
                 else if (Time.time < me.ShoveReadyAt) Sfx.Deny();
                 else
                 {
-                    // (v48) En course, une poussee par seconde : pas de mitraillette en plein vol.
-                    me.ShoveReadyAt = Time.time + (Match.RaceMode ? 1f : Seeker.ShoveCooldown);
+                    me.ShoveReadyAt = Time.time + Seeker.ShoveCooldown;
                     if (Game.Rig != null) Game.Rig.PlaySwing();
                     if (!Combat.Shove(me, eye.forward)) Sfx.Whoosh();
                 }
@@ -86,7 +85,7 @@ namespace Fief
             // TA capacite (29/09 : une seule, au clic gauche ; le don d'un sanctuaire la remplace pour la manche).
             if (FiefInput.CastPressed(0))
             {
-                if (!me.HasActive) { if (!Match.RaceMode) Refuse("Aucune capacité"); }
+                if (!me.HasActive) Refuse("Aucune capacité");
                 else
                 {
                     Ability a = me.CurrentActive;
