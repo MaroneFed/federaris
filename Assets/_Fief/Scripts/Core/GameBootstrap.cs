@@ -50,6 +50,8 @@ namespace Fief
             worldRoot = new GameObject("=== L'ÎLE ===").transform;
             int round = Match.RoundSeed;
 
+            // (v49) Le bruit que lisent nos shaders, avant de batir quoi que ce soit.
+            Gfx.Prepare();
             try
             {
                 Ground.Prepare(config);
@@ -78,6 +80,8 @@ namespace Fief
                 Spawns.Build(worldRoot);
 
                 BuildInhabitants();
+                // (v49) L'herbe et les fleurs, une fois que tout est pose (elles evitent ce qui est solide).
+                Grass.Build(worldRoot);
 
                 // LE DECOR FIGE (02/10 -- "le jeu n'est pas tellement fluide") : tout ce qui ne
                 // bouge jamais est regroupe pour la carte graphique.
@@ -244,6 +248,9 @@ namespace Fief
             camGo.AddComponent<AudioListener>();
             camGo.tag = "MainCamera";
             viewCamera = cam;
+
+            // (v49) L'image finale : halo, rayons du soleil, ombre de contact, etalonnage (Core/PostFx).
+            if (Gfx.Fancy) camGo.AddComponent<PostFx>();
 
             OrbitCamera orbit = camGo.AddComponent<OrbitCamera>();
             orbit.target = go.transform;

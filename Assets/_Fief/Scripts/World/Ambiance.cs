@@ -146,6 +146,7 @@ namespace Fief
         {
             GameObject holder = new GameObject("MER DE NUAGES");
             holder.transform.SetParent(worldRoot, false);
+            BuildCloudSurface(holder.transform);
             for (int layer = 0; layer < 2; layer++)
             {
                 ParticleSystem ps = NewSystem("Nappe", holder.transform, new Vector3(0f, layer == 0 ? -58f : -34f, 0f), blended);
@@ -171,6 +172,60 @@ namespace Fief
                 FadeInOut(ps, 1f);
                 ps.Play();
             }
+        }
+
+        /// <summary>
+        /// (v49) LA SURFACE de la mer de nuages : un grand disque de sommets que le shader
+        /// Fief/Clouds souleve en houle et eclaire. Les anneaux sont serres pres de l'ile (la ou
+        /// on regarde) et s'ecartent vers l'horizon. Les nappes floues d'avant restent au-dessus :
+        /// elles font la brume qui coiffe les cretes.
+        /// </summary>
+        static void BuildCloudSurface(Transform holder)
+        {
+            Shader shader = Gfx.Find("Fief/Clouds");
+            if (shader == null) return;
+            const int Segments = 96, Rings = 46;
+            Vector3[] v = new Vector3[Segments * Rings + 1];
+            int[] t = new int[Segments * 3 + Segments * (Rings - 1) * 6];
+            v[0] = Vector3.zero;
+            for (int r = 0; r < Rings; r++)
+            {
+                // De 14 m a 2600 m : chaque anneau 12 % plus large que le precedent.
+                float radius = 14f * Mathf.Pow(1.123f, r);
+                for (int s = 0; s < Segments; s++)
+                {
+                    float a = (s + (r % 2) * 0.5f) / Segments * Mathf.PI * 2f;
+                    v[1 + r * Segments + s] = new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius);
+                }
+            }
+            int k = 0;
+            for (int s = 0; s < Segments; s++)
+            {
+                t[k++] = 0; t[k++] = 1 + (s + 1) % Segments; t[k++] = 1 + s;
+            }
+            for (int r = 0; r < Rings - 1; r++)
+                for (int s = 0; s < Segments; s++)
+                {
+                    int a = 1 + r * Segments + s, b = 1 + r * Segments + (s + 1) % Segments;
+                    int c = a + Segments, d = b + Segments;
+                    t[k++] = a; t[k++] = b; t[k++] = c;
+                    t[k++] = b; t[k++] = d; t[k++] = c;
+                }
+            Mesh mesh = new Mesh();
+            mesh.name = "Mer de nuages";
+            mesh.vertices = v;
+            mesh.triangles = t;
+            mesh.bounds = new Bounds(Vector3.zero, new Vector3(6000f, 80f, 6000f));
+            GameObject go = new GameObject("Houle de nuages");
+            go.transform.SetParent(holder, false);
+            go.transform.localPosition = new Vector3(0f, -62f, 0f);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            MeshRenderer mr = go.AddComponent<MeshRenderer>();
+            Material mat = new Material(shader);
+            mat.name = "Fief_Mer_de_nuages";
+            mr.sharedMaterial = mat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
         }
 
         // ================================================================== les trois nuages

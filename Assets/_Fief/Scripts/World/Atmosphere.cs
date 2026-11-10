@@ -31,8 +31,22 @@ namespace Fief
             RenderSettings.fogDensity = 1.7308f / Mathf.Max(5f, sight);
 
             // --- le ciel
+            // (v49) Le ciel PEINT (Fief/Sky) : degrade, halo, disque du soleil, vrais nuages qui derivent.
+            Shader painted = Gfx.Find("Fief/Sky");
             Shader skyShader = Shader.Find("Skybox/Procedural");
-            if (skyShader != null)
+            if (painted != null)
+            {
+                Material sky = new Material(painted);
+                sky.name = "Ciel peint";
+                sky.SetColor("_SkyTint", new Color(0.22f, 0.42f, 0.82f));
+                sky.SetColor("_HorizonColor", new Color(1f, 0.80f, 0.64f));
+                sky.SetColor("_GroundColor", new Color(0.93f, 0.86f, 0.86f));
+                sky.SetFloat("_Exposure", 1f);
+                sky.SetFloat("_AtmosphereThickness", 1f);
+                sky.SetFloat("_SunSize", 0.045f);
+                RenderSettings.skybox = sky;
+            }
+            else if (skyShader != null)
             {
                 Material sky = new Material(skyShader);
                 sky.name = "Ciel du soir";
@@ -146,7 +160,8 @@ namespace Fief
             Sun.shadowStrength = 0.75f;
             Sun.shadowNearPlane = 0.2f;
             RenderSettings.sun = Sun;
-            QualitySettings.shadowDistance = 130f;
+            // (v49) En Ultra, les ombres portent plus loin (les ilots, la tour vue de loin).
+            QualitySettings.shadowDistance = Gfx.Ultra ? 170f : 130f;
         }
 
         static void ApplyLamp(GameConfig cfg, Transform player)

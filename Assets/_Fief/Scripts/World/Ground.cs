@@ -132,7 +132,7 @@ namespace Fief
 
         // ================================================================== construction
 
-        static readonly Color[] Grass =
+        static readonly Color[] GrassTints =
         {
             // (30/09) Une herbe franche, les tons proches : plus de damier.
             new Color(0.40f, 0.64f, 0.26f), new Color(0.44f, 0.68f, 0.28f), new Color(0.37f, 0.61f, 0.25f),
@@ -161,7 +161,7 @@ namespace Fief
         static void BuildRock(Transform parent, string name, Vector3 centre, float radius, float depth, int segments, int rings, int noiseSeed, bool island)
         {
             List<Vector3> verts = new List<Vector3>();
-            List<int>[] bands = new List<int>[Grass.Length + Rock.Length];
+            List<int>[] bands = new List<int>[GrassTints.Length + Rock.Length];
             for (int i = 0; i < bands.Length; i++) bands[i] = new List<int>();
             List<Vector3> colVerts = new List<Vector3>();
             List<int> colTris = new List<int>();
@@ -221,7 +221,7 @@ namespace Fief
                     Vector3 a = under[l, s], b = under[l, n], c = under[l + 1, s], d = under[l + 1, n];
                     Vector3 outward = ((a + b + c + d) * 0.25f - centre);
                     outward.y = -Mathf.Abs(outward.y) * 0.2f;
-                    int band = Grass.Length + (l == 0 ? 0 : (s * 7 + l * 3 + noiseSeed) % Rock.Length);
+                    int band = GrassTints.Length + (l == 0 ? 0 : (s * 7 + l * 3 + noiseSeed) % Rock.Length);
                     Tri(verts, bands[band], a, b, c, outward);
                     Tri(verts, bands[band], b, d, c, outward);
                 }
@@ -229,7 +229,7 @@ namespace Fief
             {
                 int n = (s + 1) % segments;
                 Vector3 a = under[L - 1, s], b = under[L - 1, n];
-                Tri(verts, bands[Grass.Length + (s % Rock.Length)], a, b, tip, ((a + b) * 0.5f - centre) + Vector3.down * 5f);
+                Tri(verts, bands[GrassTints.Length + (s % Rock.Length)], a, b, tip, ((a + b) * 0.5f - centre) + Vector3.down * 5f);
             }
 
             // --- l'objet
@@ -242,12 +242,24 @@ namespace Fief
             mesh.subMeshCount = used;
             List<Material> mats = new List<Material>();
             int sub = 0;
+            // (v49) Le sol PEINT (Fief/Terrain) : un seul materiau pour tout le rocher -- l'herbe en
+            // plaques, la terre, les strates de la falaise, la mousse. Sans lui : les bandes d'avant.
+            Material painted = TerrainMaterial();
             for (int i = 0; i < bands.Length; i++)
             {
                 if (bands[i].Count == 0) continue;
                 mesh.SetTriangles(bands[i], sub++);
-                mats.Add(i < Grass.Length ? Surfaces.Ground(Grass[i]) : Surfaces.Rock(Rock[i - Grass.Length]));
+                mats.Add(painted != null ? painted : i < GrassTints.Length ? Surfaces.Ground(GrassTints[i]) : Surfaces.Rock(Rock[i - GrassTints.Length]));
             }
+            // La profondeur sous le dessus (0 en haut, 1 a la pointe), dans la couleur des sommets :
+            // le shader assombrit la roche vers le bas et met la mousse juste sous le bord.
+            Color[] deep = new Color[verts.Count];
+            for (int k = 0; k < verts.Count; k++)
+            {
+                float f = Mathf.Clamp01((centre.y - verts[k].y) / Mathf.Max(1f, depth));
+                deep[k] = new Color(f, f, f, 1f);
+            }
+            mesh.colors = deep;
             Vector2[] uv = new Vector2[verts.Count];
             for (int k = 0; k < verts.Count; k++) uv[k] = new Vector2(verts[k].x + verts[k].y, verts[k].z - verts[k].y) / 3.5f;
             mesh.uv = uv;
@@ -269,10 +281,28 @@ namespace Fief
             go.AddComponent<MeshCollider>().sharedMesh = col;
         }
 
+        static Material terrainMat;
+
+        /// <summary>(v49) Le materiau du sol peint ; null si le shader manque ou si les graphismes sont sur "Rapide".</summary>
+        static Material TerrainMaterial()
+        {
+            if (terrainMat != null) return terrainMat;
+            Shader s = Gfx.Find("Fief/Terrain");
+            if (s == null) return null;
+            terrainMat = new Material(s);
+            terrainMat.name = "Fief_Sol_peint";
+            terrainMat.SetTexture("_MainTex", Surfaces.GroundTex);
+            terrainMat.SetTexture("_BumpMap", Surfaces.GroundBump);
+            terrainMat.SetTexture("_RockTex", Surfaces.RockTex);
+            terrainMat.SetTexture("_RockBump", Surfaces.RockBump);
+            terrainMat.SetFloat("_BumpScale", 0.9f);
+            return terrainMat;
+        }
+
         static int GrassBand(Vector3 p, int noiseSeed)
         {
             float n = Mathf.PerlinNoise(p.x * 0.035f + noiseSeed * 0.13f, p.z * 0.035f) * 0.85f + Noise(p.x, p.z) * 0.15f;
-            return Mathf.Clamp(Mathf.FloorToInt(n * Grass.Length), 0, Grass.Length - 1);
+            return Mathf.Clamp(Mathf.FloorToInt(n * GrassTints.Length), 0, GrassTints.Length - 1);
         }
 
         /// <summary>Un triangle a facettes, range pour que sa face regarde vers "outward".</summary>

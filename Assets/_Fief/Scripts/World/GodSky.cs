@@ -261,6 +261,8 @@ namespace Fief
                 Atmosphere.Sun.intensity = Mathf.Lerp(sunIntensity, sunIntensity * 1.3f, e);
             }
             // Rien a refaire tant que le melange ne bouge pas (hors Mode Dieu, il reste a 0).
+            // (v49) La houle de nuages (Fief/Clouds) prend la teinte du ciel divin elle aussi.
+            Shader.SetGlobalColor("_FiefCloudTint", Color.Lerp(Color.white, new Color(current.cloud.r, current.cloud.g, current.cloud.b, 1f), e));
             if (cloudMats != null && (Mathf.Abs(e - cloudMix) > 0.001f || e > 0f))
             {
                 cloudMix = e;

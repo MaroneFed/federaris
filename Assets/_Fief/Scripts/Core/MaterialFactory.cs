@@ -19,6 +19,8 @@ namespace Fief
         {
             get
             {
+                // (v49) Notre matiere a grain et a lisere (Resources/Shaders/FiefLit) ; sinon, l'ancienne.
+                if (cachedShader == null) cachedShader = Gfx.Find("Fief/Lit");
                 if (cachedShader == null) cachedShader = Shader.Find("Universal Render Pipeline/Lit");
                 if (cachedShader == null) cachedShader = Shader.Find("Standard");
                 if (cachedShader == null) cachedShader = Shader.Find("Legacy Shaders/Diffuse");
@@ -62,7 +64,9 @@ namespace Fief
         /// </summary>
         public static Material GetTransparent(Color color)
         {
-            Material mat = new Material(LitShader);
+            // (v49) Le transparent reste sur le shader Standard d'Unity (le notre est opaque).
+            Shader standard = Shader.Find("Standard");
+            Material mat = new Material(standard != null ? standard : LitShader);
             mat.name = "FiefTransparent_" + ColorUtility.ToHtmlStringRGB(color);
             mat.color = color;
 
@@ -111,6 +115,9 @@ namespace Fief
             if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", smoothness);
             if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
             if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
+            // (v49) Plus c'est lisse ou metallique, moins il y a de grain (l'or, l'acier, les haricots).
+            if (mat.HasProperty("_Grain")) mat.SetFloat("_Grain", Mathf.Lerp(0.55f, 0.12f, Mathf.Clamp01(Mathf.Max(smoothness, metallic) * 1.4f)));
+            if (mat.HasProperty("_Rim")) mat.SetFloat("_Rim", 0.45f);
             if (glow > 0f && mat.HasProperty("_EmissionColor"))
             {
                 mat.SetColor("_EmissionColor", new Color(color.r * glow, color.g * glow, color.b * glow, 1f));
@@ -170,6 +177,10 @@ namespace Fief
             if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.1f);
             if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.1f);
 
+            // (v49) Une lueur n'a ni grain ni lisere ; et elle depasse le blanc, pour que le halo la prenne.
+            if (mat.HasProperty("_Grain")) mat.SetFloat("_Grain", 0f);
+            if (mat.HasProperty("_Rim")) mat.SetFloat("_Rim", 0f);
+            if (Gfx.Fancy) intensity *= 1.6f;
             Color emission = new Color(color.r * intensity, color.g * intensity, color.b * intensity, 1f);
             if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", emission);
             mat.EnableKeyword("_EMISSION");

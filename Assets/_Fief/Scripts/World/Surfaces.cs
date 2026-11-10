@@ -22,6 +22,12 @@ namespace Fief
         const int Size = 256;
 
         static Texture2D groundTex, groundBump, barkTex, barkBump, rockTex, rockBump;
+
+        /// <summary>(v49) Les textures elles-memes, pour le shader du sol de l'ile (Fief/Terrain).</summary>
+        public static Texture2D GroundTex { get { Ensure(); return groundTex; } }
+        public static Texture2D GroundBump { get { Ensure(); return groundBump; } }
+        public static Texture2D RockTex { get { Ensure(); return rockTex; } }
+        public static Texture2D RockBump { get { Ensure(); return rockBump; } }
         static readonly Dictionary<string, Material> Made = new Dictionary<string, Material>();
 
         public static Material Ground(Color c) { Ensure(); return Make("sol", c, groundTex, groundBump, 0.8f); }
@@ -34,6 +40,9 @@ namespace Fief
             Material mat;
             if (Made.TryGetValue(key, out mat) && mat != null) return mat;
             mat = new Material(MaterialFactory.Get(c));
+            // (v49) La matiere a relief (Fief/LitBump) : le grain du monde en plus de la texture.
+            Shader bumped = Gfx.Find("Fief/LitBump");
+            if (bumped != null) mat.shader = bumped;
             mat.name = "Fief_" + kind + "_" + ColorUtility.ToHtmlStringRGB(c);
             Color tint = c * 1.1f;
             tint.a = 1f;

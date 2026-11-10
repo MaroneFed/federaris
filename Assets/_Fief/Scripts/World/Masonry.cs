@@ -110,6 +110,14 @@ namespace Fief
             Material mat;
             if (Materials.TryGetValue(c, out mat) && mat != null) return mat;
             mat = new Material(MaterialFactory.Get(c));
+            // (v49) La pierre a relief, avec de la mousse et de la salissure au pied des murs.
+            Shader bumped = Gfx.Find("Fief/LitBump");
+            if (bumped != null)
+            {
+                mat.shader = bumped;
+                mat.SetFloat("_Moss", 1f);
+                mat.SetFloat("_Glossiness", 0.12f);
+            }
             mat.name = "Fief_Pierre_" + ColorUtility.ToHtmlStringRGB(c);
             // La texture est centree sur 1 (un peu moins a cause des joints) : on
             // eclaircit d'un rien pour garder la teinte d'origine.

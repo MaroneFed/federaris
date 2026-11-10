@@ -57,6 +57,8 @@ namespace Fief
         /// <summary>Le pseudo tel qu'on l'affiche (jamais vide).</summary>
         public static string Shown { get { string p = (Pseudo ?? "").Trim(); return p.Length > 0 ? p : "Joueur"; } }
 
+        /// <summary>(v49) LES GRAPHISMES : 0 Rapide (le rendu d'avant), 1 Beau, 2 Ultra (voir Core/Gfx.cs).</summary>
+        public static int Quality = 2;
         static bool loaded;
 
         public static void Load()
@@ -79,6 +81,7 @@ namespace Fief
             Help = PlayerPrefs.GetInt("fief.aide2", 0) == 1;
             InvertY = PlayerPrefs.GetInt("fief.inverserY", 0) == 1;
             BackgroundSound = PlayerPrefs.GetInt("fief.sonFond", 1) == 1;
+            Quality = Mathf.Clamp(PlayerPrefs.GetInt("fief.graphismes", 2), 0, 2);
         }
 
         public static void Save()
@@ -95,6 +98,7 @@ namespace Fief
             PlayerPrefs.SetInt("fief.aide2", Help ? 1 : 0);
             PlayerPrefs.SetInt("fief.inverserY", InvertY ? 1 : 0);
             PlayerPrefs.SetInt("fief.sonFond", BackgroundSound ? 1 : 0);
+            PlayerPrefs.SetInt("fief.graphismes", Quality);
             PlayerPrefs.Save();
         }
 
@@ -128,6 +132,7 @@ namespace Fief
             else if (row == 8) Music = Mathf.Clamp(Mathf.Round((Music + step * 0.1f) * 10f) / 10f, 0f, 1f);
             else if (row == 9) InvertY = !InvertY;
             else if (row == 10) BackgroundSound = !BackgroundSound;
+            else if (row == 11) Quality = Mathf.Clamp(Quality + step, 0, 2);     // pris en compte a la manche suivante
             Apply();
             Save();
         }
@@ -145,6 +150,7 @@ namespace Fief
             if (row == 8) return Mathf.RoundToInt(Music * 100f) + " %";
             if (row == 9) return InvertY ? "oui" : "non";
             if (row == 10) return BackgroundSound ? "oui" : "non";
+            if (row == 11) return Gfx.QualityNames[Quality];
             return FiefInput.BindNames[PushBind];
         }
 
@@ -161,6 +167,6 @@ namespace Fief
             return from;
         }
 
-        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique", "Inverser la souris", "Son en arrière-plan" };
+        public static readonly string[] Labels = { "Sensibilité", "Volume", "Champ de vision", "Taille du texte", "Plein écran", "Touche capacité", "Touche pousser", "Aide écrite", "Musique", "Inverser la souris", "Son en arrière-plan", "Graphismes" };
     }
 }
