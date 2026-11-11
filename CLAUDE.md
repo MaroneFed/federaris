@@ -6,8 +6,9 @@
 > t'es un chevalier, des petites quêtes à la Among Us, bien sombre, bien Elden Ring »). Le jeu décrit
 > ci-dessous (La Couronne) est **mis de côté, pas supprimé**. Le nouveau jeu est décrit dans
 > **`docs/VEILLEURS.md`** : y lire ce qui est acquis et ce qui n'est encore que proposé. Les règles de
-> travail (petites étapes, franchise, anti-dérive, vérificateur) restent les mêmes. La loi « zéro création
-> 3D sur mesure » est en cours de révision par Martin (Blender, packs) — pas encore tranchée.
+> travail (petites étapes, franchise, anti-dérive, vérificateur) restent les mêmes. **Le nouveau jeu garde le nom FIEF.** La loi « zéro création
+> 3D sur mesure » est **levée pour lui** (11/11 : packs gratuits ET modèles faits avec Claude + Blender sur le PC
+> de Martin, voir `docs/BLENDER.md`).
 
 Jeu multijoueur de rivalité sur une île flottante, en première personne, 3D low-poly,
 matchs d'environ 30 min en **manches** de 2 à 8 joueurs, destiné à Steam. Unity 6 + C#.

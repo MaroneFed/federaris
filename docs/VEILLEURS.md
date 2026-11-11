@@ -1,4 +1,7 @@
-# LES VEILLEURS — document de jeu (brouillon du 11/11)
+# FIEF (« Les Veilleurs ») — document de jeu (brouillon du 11/11)
+
+**Le jeu s'appelle FIEF** (Martin, 11/11 : « je veux que le jeu s'appelle FIEF »). « Les Veilleurs » n'est
+que le nom de travail du concept, pour le distinguer de l'ancien FIEF (La Couronne).
 
 Nouveau projet décidé par Martin le 11/11 : « on va transformer ça en jeu d'horreur dans un
 château hyper incroyable ; t'es un chevalier ; des petites quêtes à la Among Us ; vraiment bien
@@ -80,7 +83,8 @@ d'extérieur ; l'intérieur (salles, couloirs, crypte) est à construire.
 
 ## Ce qu'il manque pour démarrer (questions à Martin)
 
-1. **La 3D** : packs gratuits, Claude + Blender sur ton PC, ou les deux ?
+1. ~~La 3D~~ **Tranché le 11/11 : les deux** — packs gratuits ET modèles faits avec Claude + Blender sur le
+   PC de Martin (`docs/BLENDER.md`). La loi « zéro création 3D sur mesure » est donc levée pour ce jeu.
 2. **Ta carte graphique** (le modèle exact) : elle décide du niveau de détail.
 3. **Elden Ring** : qu'est-ce que tu veux en garder — les ruines gothiques, les boss, la difficulté ?
 4. **Avec qui tu joues** : ton frère seul, ou un groupe ? Combien ?
