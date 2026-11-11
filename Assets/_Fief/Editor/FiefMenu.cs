@@ -71,6 +71,24 @@ namespace Fief
             Debug.Log("[FIEF] Main.unity est la scene de build.");
         }
 
+        const string NightPath = "Assets/_Fief/Scenes/Nuit.unity";
+
+        /// <summary>
+        /// (11/11) LA NUIT, V0 : fabrique une scene vide avec un seul objet (NightBootstrap),
+        /// l'enregistre, et lance le jeu. L'ancien FIEF (scene Main) n'est pas touche.
+        /// </summary>
+        [MenuItem("FIEF/LA NUIT - lancer le test (V0)", false, 1)]
+        public static void PlayNight()
+        {
+            if (EditorApplication.isPlaying) return;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            new GameObject("FIEF (La Nuit)").AddComponent<NightBootstrap>();
+            System.IO.Directory.CreateDirectory("Assets/_Fief/Scenes");
+            EditorSceneManager.SaveScene(scene, NightPath);
+            EditorApplication.isPlaying = true;
+        }
+
         [MenuItem("FIEF/Ou sont les reglages ?", false, 40)]
         public static void SelectConfig()
         {

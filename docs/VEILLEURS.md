@@ -74,7 +74,8 @@ d'extérieur ; l'intérieur (salles, couloirs, crypte) est à construire.
 
 ## Les étapes (chacune se teste en un soir)
 
-- **V0 — le frisson.** Un couloir et deux salles dans le noir, ta torche, une quête (rallumer la
+- **V0 — le frisson.** *(écrite le 11/11, jamais lancée dans Unity : `Scripts/Night/NightBootstrap.cs`,
+  menu FIEF ▸ LA NUIT - lancer le test ; en blocs provisoires.)* Un couloir et deux salles dans le noir, ta torche, une quête (rallumer la
   chapelle), le Pénitent. Seul. *Si ça ne donne pas un petit frisson, on change avant d'aller plus loin.*
 - **V1 — une nuit entière, seul.** Cinq quêtes, trois monstres, la sortie, l'aube.
 - **V2 — à plusieurs.** La même nuit en ligne, les fantômes.
