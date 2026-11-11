@@ -455,6 +455,8 @@ namespace Fief
             FlightRoll = Mathf.Lerp(FlightRoll, roll, 1f - Mathf.Exp(-5f * dt));
             float fast = Gliding ? Mathf.Clamp01((airspeed - Wings.Cruise) / (Wings.MaxSpeed - Wings.Cruise)) : 0f;
             FlightFov = Mathf.Lerp(FlightFov, Gliding ? 6f + fast * 20f : 0f, 1f - Mathf.Exp(-4f * dt));
+            // (v49) Les bords de l'image s'irisent quand on file.
+            PostFx.Rush = Mathf.Lerp(PostFx.Rush, fast, 1f - Mathf.Exp(-4f * dt));
             if (feel == null && cameraTransform != null) feel = GlideFeel.Attach(cameraTransform);
             if (feel != null) feel.Set(Gliding ? 0.25f + fast * 0.75f : 0f, Gliding ? airspeed : 0f);
             if (landing == null) landing = LandingMark.Create();

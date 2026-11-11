@@ -108,6 +108,8 @@ namespace Fief
             BuildStairs(t);
             BuildCourtyard(t);
             Tower.Build(t);
+            // (v49) Le chateau "de malade" : echauguettes, pinacles, chatelets, rois de pierre, lierre.
+            CastleGlory.Build(t);
 
             int dressed = Masonry.Apply(t);
             Debug.Log("[FIEF] Citadelle : " + dressed + " pans de pierre appareillés.");

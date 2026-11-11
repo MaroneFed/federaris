@@ -80,6 +80,8 @@ namespace Fief
                 Spawns.Build(worldRoot);
 
                 BuildInhabitants();
+                // (v49) Le paysage : ruines, buissons, iles lointaines, oiseaux (rien de solide).
+                Scenery.Build(worldRoot);
                 // (v49) L'herbe et les fleurs, une fois que tout est pose (elles evitent ce qui est solide).
                 Grass.Build(worldRoot);
 

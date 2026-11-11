@@ -90,6 +90,8 @@ namespace Fief
         public void Punch(float degrees)
         {
             punch = Mathf.Max(punch, degrees);
+            // (v49) L'image claque aussi : le halo enfle, les bords s'irisent un instant.
+            PostFx.Jolt = Mathf.Max(PostFx.Jolt, Mathf.Clamp01(degrees / 8f));
         }
 
         /// <summary>Le champ de vision s'ouvre d'un coup (ruee, grappin, courant) : la vitesse se sent.</summary>

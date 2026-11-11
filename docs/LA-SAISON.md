@@ -1022,3 +1022,11 @@ demande de Martin : le salon propose Normal ou DIEU.
   équilibrage fin. (La Phase 2, le conflit, attend toujours.)
 - **Phase 3** (porte passée le 14/10) : le jeu en ligne (voir `docs/RESEAU.md` : les bots cèdent leur place à
   des joueurs, rien d'autre ne change).
+
+## v49 — la refonte visuelle (11/11)
+
+Rien ne change aux règles. Ce qui change, c'est tout ce qu'on voit : matières à grain, herbe et fleurs
+au vent, ciel peint, mer de nuages qui ondule, halo et rayons du soleil, et un château gothique
+(échauguettes, pinacles, châtelets à rosace, rois-haricots de pierre, lierre), des ruines au bord de
+l'île, des îles-ruines au loin, des oiseaux. **Réglages ▸ Graphismes** : Rapide (l'ancien rendu), Beau,
+Ultra. Le plan complet et ce qui reste : `docs/PLAN-100.md`. La course d'élytres (v48) est retirée.
