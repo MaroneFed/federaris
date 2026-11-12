@@ -53,6 +53,7 @@ namespace Fief
 
             world = new GameObject("=== LE CHÂTEAU, LA NUIT ===").transform;
             BuildRooms();
+            BuildChapel();
             try { Masonry.Apply(world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Maçonnerie ignorée : " + e.Message); }
             // (12/11) Le kit fait dans Blender habille les blocs. S'il manque, on reste en blocs.
             try
@@ -62,7 +63,6 @@ namespace Fief
             }
             catch (System.Exception e) { Debug.LogWarning("[FIEF] Kit ignoré : " + e.Message); }
 
-            BuildChapel();
             player = NightPlayer.Spawn(new Vector3(0f, 0.1f, 3f));
             penitent = Penitent.Spawn(world, new Vector3(4.2f, 0f, 22f), player);
             messageUntil = Time.time + 7f;
