@@ -3,7 +3,22 @@ guid: 57477a42b9b9e264d84180f0acab5bd2
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fer
+    second: {fileID: 2100000, guid: e04d0d7fe0959f242bb1c3519207c311, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pierre
+    second: {fileID: 2100000, guid: 829d77639acb26e40908b77caf32f49b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Vitrail
+    second: {fileID: 2100000, guid: d4e597d6526b7494e8abb59d5df9207b, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
