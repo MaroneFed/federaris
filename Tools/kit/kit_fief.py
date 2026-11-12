@@ -401,6 +401,53 @@ def build_fenetre():
     loft([[Vector((x, y, z)) for x, y in rect] for z in (WIN_Z0 - 0.16, WIN_Z0)], [0.85])
 
 
+def tube(pts, radii, sides=6, col=1.0):
+    """Un tuyau a facettes qui suit des points (une manche, un bras)."""
+    rings = []
+    for i, p in enumerate(pts):
+        p = Vector(p)
+        t = (Vector(pts[min(i + 1, len(pts) - 1)]) - Vector(pts[max(i - 1, 0)])).normalized()
+        u = t.cross(Vector((0, 0, 1)))
+        if u.length < 1e-4:
+            u = Vector((1, 0, 0))
+        u.normalize()
+        w = t.cross(u)
+        rings.append([p + (u * math.cos(2 * math.pi * k / sides) + w * math.sin(2 * math.pi * k / sides)) * radii[i]
+                      for k in range(sides)])
+    loft(rings, [col] * len(rings))
+
+
+def build_penitent():
+    """LE PENITENT : une statue de moine en robe, 2,4 m, la tete penchee sous sa capuche, les mains jointes.
+    Il regarde vers -Y (vers +Z une fois dans Unity). Ses deux yeux sont les seules faces qui brillent."""
+    N = 16
+
+    def ering(z, rx, ry, cy, fold=0.0, recess=0.0):
+        pts = []
+        for k in range(N):
+            a = 2 * math.pi * k / N
+            f = 1.0 + fold * (1 if k % 2 == 0 else -1)
+            x, y = rx * f * math.cos(a), cy + ry * f * math.sin(a)
+            if recess and k in (11, 12, 13):          # le creux noir du visage, a l'avant de la capuche
+                y += recess * (0.20 if k == 12 else 0.11)
+            pts.append(Vector((x, y, z)))
+        return pts
+
+    body = [(0.00, .60, .56, 0, .10), (0.08, .58, .54, 0, .10), (0.55, .48, .44, 0, .08), (1.00, .41, .36, 0, .05),
+            (1.32, .38, .31, 0, .02), (1.58, .43, .29, -.01, 0), (1.78, .40, .27, -.02, 0), (1.90, .26, .22, -.04, 0)]
+    loft([ering(*b) for b in body], [0.80, 0.84, 0.90, 0.94, 0.97, 1.0, 1.0])
+    hood = [(1.84, .27, .25, -.04, 0, 0), (1.96, .31, .31, -.08, 0, .6), (2.10, .32, .34, -.11, 0, 1.0),
+            (2.24, .28, .31, -.12, 0, .8), (2.35, .19, .22, -.10, 0, 0), (2.43, .06, .07, -.03, 0, 0)]
+    loft([ering(*h) for h in hood], [0.92, 0.95, 0.97, 1.0, 1.02])
+    for s in (-1, 1):
+        tube([(s * .37, -.02, 1.62), (s * .36, -.20, 1.30), (s * .10, -.37, 1.38)], [.13, .125, .11], 6, 0.96)
+        ex, ey, ez = s * 0.065, -0.262, 2.115
+        add([(ex - .028, ey, ez), (ex, ey, ez - .018), (ex + .028, ey, ez), (ex, ey, ez + .018)], 1.0, (0, -1, 0), kind=2)
+    hands = [[Vector((-hx, y0, z)), Vector((hx, y0, z)), Vector((hx, y1, z)), Vector((-hx, y1, z))]
+             for z, hx, y0, y1 in ((1.34, .075, -.45, -.36), (1.47, .07, -.47, -.39), (1.59, .045, -.49, -.43))]
+    loft(hands, [1.1, 1.1])
+
+
 def build_autel():
     """Un autel de pierre de 3 m : socle, corps en retrait, corniche, table."""
     def ring(ax, ay, z):
@@ -443,6 +490,7 @@ PIECES = [
     ('fenetre', build_fenetre, 'Pierre', 40, False, ((2.2, -5.5, 3.2), (0, 0, 3.3))),
     ('cierge', build_cierge, 'Fer', 50, False, ((1.5, -2.4, 1.6), (0, 0, 0.85))),
     ('autel', build_autel, 'Pierre', 40, True, ((2.6, -4.2, 1.9), (0, 0, 0.55))),
+    ('penitent', build_penitent, 'Statue', 50, True, ((1.3, -3.6, 1.9), (0, 0, 1.3))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -482,12 +530,13 @@ def make_object(name, fn, iron):
         f[kind_l] = kind
         for lp in f.loops:
             lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind == 4 else 0.0, 1.0)
-    if iron or name in ('pilier', 'fenetre', 'autel'):
+    smooth = iron or name == 'penitent'
+    if iron or name in ('pilier', 'fenetre', 'autel', 'penitent'):
         bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] != 2])
     bm.normal_update()
     for f in bm.faces:
-        f.smooth = iron
-    if iron:
+        f.smooth = smooth
+    if smooth:
         for e in bm.edges:
             if len(e.link_faces) == 2:
                 e.smooth = e.calc_face_angle() < math.radians(40)
@@ -642,7 +691,7 @@ class NG:
         return n.outputs[0]
 
 
-def bake_material(name, iron, grime=False, floor=False):
+def bake_material(name, iron, grime=False, floor=False, statue=False):
     mat = bpy.data.materials.new('cuisson_' + name)
     mat.use_nodes = True
     nt = mat.node_tree
@@ -715,6 +764,11 @@ def bake_material(name, iron, grime=False, floor=False):
             rough = g.math('SUBTRACT', rough, g.math('MULTIPLY', gr, 0.38))
         occ = g.math('MULTIPLY', ao_b, g.math('SUBTRACT', 1.0, g.math('MULTIPLY', cav, 0.6)))
         orm = g.rgb(0.0, occ, rough)
+        if statue:
+            # une pierre plus sombre, et deux yeux rouges qui brillent
+            c = g.mix(1.0, c, 0.74, 'MULTIPLY')
+            c = g.mix(flag, c, C(0.02, 0.0, 0.0))
+            res['emis'] = g.mix(1.0, C(1.0, 0.07, 0.02), flag, 'MULTIPLY')
         res.update(color=c, orm=orm, normal=normal)
     else:
         dimp = g.vor(P, 55.0, 'F1')
@@ -892,6 +946,7 @@ stone_objs = [d['obj'] for d in objs.values() if d['mat'] == 'Pierre']
 iron_objs = [d['obj'] for d in objs.values() if d['mat'] == 'Fer']
 pack(stone_objs)
 pack(iron_objs)
+pack([d['obj'] for d in objs.values() if d['mat'] == 'Statue'])
 log('geometrie + UV ok')
 
 setup_cycles()
@@ -903,12 +958,16 @@ IMG = {
                 nrm=new_image('Fer_Normal', S_FER, True, (0.5, 0.5, 1, 1)),
                 orm=new_image('Fer_ORM', S_FER, True, (1, 1, 0.5, 1)),
                 emis=new_image('Fer_Emission', S_FER, False, (0, 0, 0, 1)), size=S_FER),
+    'Statue': dict(alb=new_image('Statue_Albedo', S_FER, False, (0.08, 0.08, 0.08, 1)),
+                   nrm=new_image('Statue_Normal', S_FER, True, (0.5, 0.5, 1, 1)),
+                   orm=new_image('Statue_ORM', S_FER, True, (0, 1, 0.9, 1)),
+                   emis=new_image('Statue_Emission', S_FER, False, (0, 0, 0, 1)), size=S_FER),
 }
 REUSE = len(argv) > 4 and argv[4] == 'reuse'
 for name, d in ([] if REUSE else list(objs.items())):
     obj = d['obj']
     iron = d['mat'] == 'Fer'
-    bmat = bake_material(name, iron, grime=d['grime'], floor=(name == 'dalle_sol'))
+    bmat = bake_material(name, iron, grime=d['grime'], floor=(name == 'dalle_sol'), statue=(d['mat'] == 'Statue'))
     obj.data.materials.append(bmat['mat'])
     for o in scene.objects:
         o.hide_render = (o is not obj)
