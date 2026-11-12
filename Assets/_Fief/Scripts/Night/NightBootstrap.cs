@@ -54,10 +54,17 @@ namespace Fief
             world = new GameObject("=== LE CHÂTEAU, LA NUIT ===").transform;
             BuildRooms();
             try { Masonry.Apply(world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Maçonnerie ignorée : " + e.Message); }
+            // (12/11) Le kit fait dans Blender habille les blocs. S'il manque, on reste en blocs.
+            try
+            {
+                if (NightKit.Dress(world)) QualitySettings.pixelLightCount = 8;
+                else Debug.Log("[FIEF] Kit absent (Resources/Modeles/Kit) : le niveau reste en blocs.");
+            }
+            catch (System.Exception e) { Debug.LogWarning("[FIEF] Kit ignoré : " + e.Message); }
 
             BuildChapel();
             player = NightPlayer.Spawn(new Vector3(0f, 0.1f, 3f));
-            penitent = Penitent.Spawn(world, new Vector3(4.2f, 0f, 20f), player);
+            penitent = Penitent.Spawn(world, new Vector3(4.2f, 0f, 22f), player);
             messageUntil = Time.time + 7f;
             Debug.Log("[FIEF] La Nuit, V0 : quatre cierges à rallumer. Le Pénitent s'éveille au premier.");
         }
@@ -94,13 +101,13 @@ namespace Fief
             // LE COULOIR (4 m de large, 24 m de long), avec une niche a droite, a mi-chemin.
             Slab(-2f, 8f, 2f, 32f, 4f);
             Wall(-2f, 8f, -2f, 32f, 0f, 4f);
-            Wall(2f, 8f, 2f, 18f, 0f, 4f);
-            Wall(2f, 22f, 2f, 32f, 0f, 4f);
-            // La niche du Penitent.
-            Slab(2f, 18f, 6f, 22f, 4f);
-            Wall(2f, 18f, 6f, 18f, 0f, 4f);
-            Wall(2f, 22f, 6f, 22f, 0f, 4f);
-            Wall(6f, 18f, 6f, 22f, 0f, 4f);
+            Wall(2f, 8f, 2f, 20f, 0f, 4f);
+            Wall(2f, 24f, 2f, 32f, 0f, 4f);
+            // La niche du Penitent (12/11 : decalee de 2 m, de z 20 a 24, pour tomber sur la grille de 4 m du kit).
+            Slab(2f, 20f, 6f, 24f, 4f);
+            Wall(2f, 20f, 6f, 20f, 0f, 4f);
+            Wall(2f, 24f, 6f, 24f, 0f, 4f);
+            Wall(6f, 20f, 6f, 24f, 0f, 4f);
 
             // LA CHAPELLE (12 x 12 m, 6 m sous voute).
             Slab(-6f, 32f, 6f, 44f, 6f);
@@ -112,9 +119,10 @@ namespace Fief
             Wall(-6f, 44f, 6f, 44f, 0f, 6f);
 
             // Des piliers dans le couloir : ce sont eux qui cachent ce qui te suit.
-            for (int i = 0; i < 4; i++)
+            // (12/11 : un tous les 4 m, sur la grille du kit ; cinq paires au lieu de quatre.)
+            for (int i = 0; i < 5; i++)
                 for (int s = -1; s <= 1; s += 2)
-                    Proto.Cube(world, new Vector3(s * 1.55f, 2f, 11f + i * 6f), new Vector3(0.5f, 4f, 0.5f), StoneDark, "Pilier");
+                    Proto.Cube(world, new Vector3(s * 1.55f, 2f, 12f + i * 4f), new Vector3(0.5f, 4f, 0.5f), StoneDark, "Pilier");
         }
 
         void BuildChapel()
@@ -151,7 +159,7 @@ namespace Fief
                 int lit = Lit();
                 try { Sfx.BellAt(near.transform.position); } catch (System.Exception) { }
                 if (lit == 1) { penitent.Wake(); Say("Quelque chose a bougé dans le couloir. Ne le quitte pas des yeux.", 6f); }
-                if (lit >= candles.Count) { dawn = 0.001f; penitent.Crumble(); Say("L'aube se lève. Le château est à toi.", 12f); }
+                if (lit >= candles.Count) { dawn = 0.001f; penitent.Crumble(); NightKit.LightDawnFires(); Say("L'aube se lève. Le château est à toi.", 12f); }
             }
 
             // --- le Penitent t'a touche : le noir, et tu te reveilles dans le vestibule
@@ -304,7 +312,7 @@ namespace Fief
         /// <summary>Les carrefours du niveau : quand un mur le separe de toi, il passe par la.</summary>
         static readonly Vector3[] Nodes =
         {
-            new Vector3(0f, 0f, 4f), new Vector3(0f, 0f, 10f), new Vector3(0f, 0f, 20f), new Vector3(0f, 0f, 30f), new Vector3(0f, 0f, 38f), new Vector3(4.2f, 0f, 20f)
+            new Vector3(0f, 0f, 4f), new Vector3(0f, 0f, 10f), new Vector3(0f, 0f, 22f), new Vector3(0f, 0f, 30f), new Vector3(0f, 0f, 38f), new Vector3(4.2f, 0f, 22f)
         };
         static readonly int[][] Links = { new[] { 1 }, new[] { 0, 2 }, new[] { 1, 3, 5 }, new[] { 2, 4 }, new[] { 3 }, new[] { 2 } };
 
