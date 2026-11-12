@@ -401,6 +401,15 @@ def build_fenetre():
     loft([[Vector((x, y, z)) for x, y in rect] for z in (WIN_Z0 - 0.16, WIN_Z0)], [0.85])
 
 
+def build_autel():
+    """Un autel de pierre de 3 m : socle, corps en retrait, corniche, table."""
+    def ring(ax, ay, z):
+        return [Vector((ax, -ay, z)), Vector((ax, ay, z)), Vector((-ax, ay, z)), Vector((-ax, -ay, z))]
+    spec = [(1.50, 0.60, 0.0), (1.50, 0.60, 0.14), (1.40, 0.50, 0.20), (1.40, 0.50, 0.82), (1.46, 0.56, 0.90),
+            (1.56, 0.66, 0.94), (1.56, 0.66, 1.08), (1.52, 0.62, 1.10)]
+    loft([ring(*r) for r in spec], [0.80, 0.85, 0.95, 0.9, 0.85, 1.05, 1.0])
+
+
 def build_cierge():
     lathe([(0, 0), (.20, 0), (.20, .03), (.07, .07), (.03, .10), (.022, .14), (.022, .42), (.04, .45), (.022, .48),
            (.022, .88), (.04, .91), (.022, .94), (.022, 1.22), (.13, 1.26), (.14, 1.30), (.11, 1.30), (.03, 1.275),
@@ -433,6 +442,7 @@ PIECES = [
     ('brasero', build_brasero, 'Fer', 50, False, ((1.7, -2.5, 1.5), (0, 0, 0.62))),
     ('fenetre', build_fenetre, 'Pierre', 40, False, ((2.2, -5.5, 3.2), (0, 0, 3.3))),
     ('cierge', build_cierge, 'Fer', 50, False, ((1.5, -2.4, 1.6), (0, 0, 0.85))),
+    ('autel', build_autel, 'Pierre', 40, True, ((2.6, -4.2, 1.9), (0, 0, 0.55))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -472,7 +482,7 @@ def make_object(name, fn, iron):
         f[kind_l] = kind
         for lp in f.loops:
             lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind == 4 else 0.0, 1.0)
-    if iron or name in ('pilier', 'fenetre'):
+    if iron or name in ('pilier', 'fenetre', 'autel'):
         bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] != 2])
     bm.normal_update()
     for f in bm.faces:
