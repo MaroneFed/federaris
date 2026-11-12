@@ -55,11 +55,32 @@ namespace Fief
                 return;
             }
             frames++;
-            if (frames < 150) return;
+            if (frames != 150 && frames != 400) return;
             int code = 0;
-            try { Shoot(); }
+            try
+            {
+                if (frames == 150)
+                {
+                    // La nuit telle qu'on la trouve, puis on allume tout pour la seconde serie.
+                    Shoot();
+                    foreach (Candle c in Object.FindObjectsByType<Candle>(FindObjectsSortMode.None)) c.Ignite();
+                    NightKit.LightDawnFires();
+                    return;
+                }
+                ShootLit();
+            }
             catch (System.Exception e) { Debug.LogError("[FIEF] Photos ratées : " + e); code = 1; }
             Finish(code);
+        }
+
+        static void ShootLit()
+        {
+            Camera cam = Camera.main;
+            if (cam == null) throw new System.Exception("pas de caméra");
+            string dir = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Logs", "Captures");
+            Shot(cam, Path.Combine(dir, "6_chapelle_allumee.png"), new Vector3(0f, 1.65f, 33.5f), new Vector3(0f, 2.8f, 44f));
+            Shot(cam, Path.Combine(dir, "7_cierge.png"), new Vector3(-2.6f, 1.55f, 36.2f), new Vector3(-4.2f, 1.45f, 34.5f));
+            Shot(cam, Path.Combine(dir, "8_autel.png"), new Vector3(1.8f, 1.6f, 37.5f), new Vector3(-0.6f, 2.6f, 44f));
         }
 
         static void Finish(int code)
@@ -90,7 +111,8 @@ namespace Fief
             Quaternion r = cam.transform.rotation;
             cam.transform.position = from;
             cam.transform.LookAt(lookAt);
-            RenderTexture rt = new RenderTexture(1920, 1080, 24);
+            // En HDR, comme la vraie camera du jeu : sans ca, le halo des flammes ne se declenche pas.
+            RenderTexture rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.DefaultHDR);
             cam.targetTexture = rt;
             cam.Render();
             RenderTexture.active = rt;

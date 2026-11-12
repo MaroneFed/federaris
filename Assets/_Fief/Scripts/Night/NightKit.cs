@@ -46,6 +46,7 @@ namespace Fief
             {
                 string n = blocks[i].gameObject.name;
                 if (n == "Mur" || n == "Sol" || n == "Plafond" || n == "Pilier") blocks[i].enabled = false;
+                if (n == "Vitrail" && Source("vitrail") != null) blocks[i].enabled = false;
             }
 
             root = new GameObject("Kit (le décor)").transform;
@@ -97,7 +98,122 @@ namespace Fief
             // Deux braseros de part et d'autre de l'autel : ils s'embrasent a l'aube.
             Fire("Brasero_Feu", -2.6f, 41.2f, 0f, false);
             Fire("Brasero_Feu", 2.6f, 41.2f, 0f, false);
+            // La fenetre gothique et son vitrail, derriere l'autel, et la lune qui passe au travers.
+            if (Source("vitrail") != null)
+            {
+                Put("fenetre", 0f, 44f, 180f);
+                Put("vitrail", 0f, 44f, 180f);
+                MoonShaft();
+            }
             return true;
+        }
+
+        /// <summary>
+        /// Le cierge du kit, pose sous "parent". Renvoie son feu (eteint) : l'allumer, c'est SetActive(true).
+        /// Renvoie null si le kit n'a pas de cierge.
+        /// </summary>
+        public static GameObject CandleStand(Transform parent)
+        {
+            GameObject src = Source("Prefabs/Cierge_Feu");
+            if (src == null) return null;
+            GameObject go = Object.Instantiate(src, parent);
+            go.name = "Cierge (kit)";
+            go.transform.localPosition = Vector3.zero;
+            Transform fire = go.transform.Find("Feu");
+            if (fire == null) { Object.Destroy(go); return null; }
+            return fire.gameObject;
+        }
+
+        /// <summary>
+        /// LE RAYON DE LUNE : un projecteur bleu qui entre par le vitrail et tombe devant l'autel,
+        /// un faisceau qu'on voit dans l'air, et de la poussiere qui flotte dedans.
+        ///
+        /// Concept Unity : une lumiere "Spot" eclaire en cone, comme une lampe torche. Le faisceau,
+        /// lui, n'est pas de la lumiere : ce sont quelques grands rectangles transparents qui
+        /// s'additionnent a l'image (matiere "Additive"), plus clairs pres de la fenetre.
+        /// </summary>
+        static void MoonShaft()
+        {
+            Vector3 from = new Vector3(0f, 5.2f, 43.3f);
+            Vector3 to = new Vector3(0f, 0f, 37.6f);
+            Light spot = new GameObject("Rayon de lune").AddComponent<Light>();
+            spot.transform.SetParent(root, false);
+            spot.transform.position = from;
+            spot.transform.rotation = Quaternion.LookRotation(to - from, Vector3.up);
+            spot.type = LightType.Spot;
+            spot.spotAngle = 48f;
+            spot.range = 17f;
+            spot.color = new Color(0.42f, 0.58f, 1f);
+            spot.intensity = 2.8f;
+            spot.shadows = LightShadows.Soft;
+
+            Shader additive = Shader.Find("Legacy Shaders/Particles/Additive");
+            if (additive != null)
+            {
+                // Les quatre coins de la fenetre, et la tache de lumiere au sol.
+                Vector3 tl = new Vector3(-0.55f, 4.9f, 43.6f), tr = new Vector3(0.55f, 4.9f, 43.6f);
+                Vector3 bl = new Vector3(-0.55f, 1.7f, 43.6f), br = new Vector3(0.55f, 1.7f, 43.6f);
+                Vector3 fl = new Vector3(-1.7f, 0.02f, 35.2f), fr = new Vector3(1.7f, 0.02f, 35.2f);
+                Vector3 nl = new Vector3(-1.2f, 0.02f, 40.4f), nr = new Vector3(1.2f, 0.02f, 40.4f);
+                List<Vector3> v = new List<Vector3>();
+                List<Color> c = new List<Color>();
+                List<int> t = new List<int>();
+                Color near = new Color(1f, 1f, 1f, 0.5f), far = new Color(1f, 1f, 1f, 0f);
+                Vector3[][] quads =
+                {
+                    new[] { tl, bl, nl, fl }, new[] { tr, br, nr, fr }, new[] { tl, tr, fr, fl }, new[] { bl, br, nr, nl },
+                    new[] { (tl + tr) * 0.5f, (bl + br) * 0.5f, (nl + nr) * 0.5f, (fl + fr) * 0.5f }
+                };
+                for (int q = 0; q < quads.Length; q++)
+                {
+                    int b = v.Count;
+                    v.AddRange(quads[q]);
+                    c.Add(near); c.Add(near); c.Add(far); c.Add(far);
+                    t.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
+                }
+                Mesh mesh = new Mesh();
+                mesh.name = "Faisceau";
+                mesh.SetVertices(v);
+                mesh.SetColors(c);
+                mesh.SetTriangles(t, 0);
+                mesh.RecalculateBounds();
+                GameObject beam = new GameObject("Faisceau de lune");
+                beam.transform.SetParent(root, false);
+                beam.AddComponent<MeshFilter>().sharedMesh = mesh;
+                Material m = new Material(additive);
+                m.SetColor("_TintColor", new Color(0.07f, 0.12f, 0.28f, 0.5f));
+                MeshRenderer mr = beam.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = m;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+            }
+
+            Material mote = Resources.Load<Material>(Dir + "Materials/Braise");
+            if (mote == null) return;
+            GameObject dust = new GameObject("Poussière");
+            dust.transform.SetParent(root, false);
+            dust.transform.position = new Vector3(0f, 2.4f, 39.5f);
+            ParticleSystem ps = dust.AddComponent<ParticleSystem>();
+            ParticleSystem.MainModule main = ps.main;
+            main.loop = true;
+            main.prewarm = true;
+            main.startLifetime = 9f;
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.09f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.03f);
+            main.startColor = new Color(0.55f, 0.72f, 1f, 0.55f);
+            main.maxParticles = 160;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            ParticleSystem.EmissionModule em = ps.emission;
+            em.rateOverTime = 14f;
+            ParticleSystem.ShapeModule sh = ps.shape;
+            sh.shapeType = ParticleSystemShapeType.Box;
+            sh.scale = new Vector3(2.4f, 4.2f, 6f);
+            sh.randomDirectionAmount = 1f;
+            ParticleSystem.NoiseModule noise = ps.noise;
+            noise.enabled = true;
+            noise.strength = 0.12f;
+            noise.frequency = 0.4f;
+            dust.GetComponent<ParticleSystemRenderer>().sharedMaterial = mote;
         }
 
         /// <summary>L'aube : les braseros de la chapelle s'allument.</summary>

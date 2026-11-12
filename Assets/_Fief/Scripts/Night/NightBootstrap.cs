@@ -256,18 +256,30 @@ namespace Fief
             go.transform.SetParent(parent, false);
             go.transform.position = at;
             Candle c = go.AddComponent<Candle>();
-            Proto.BeginVisualOnly();
-            Proto.Cylinder(go.transform, new Vector3(0f, 0.05f, 0f), new Vector3(0.5f, 0.05f, 0.5f), new Color(0.1f, 0.1f, 0.12f), "Pied");
-            Proto.Cylinder(go.transform, new Vector3(0f, 0.65f, 0f), new Vector3(0.07f, 0.6f, 0.07f), new Color(0.1f, 0.1f, 0.12f), "Tige");
-            Proto.Cylinder(go.transform, new Vector3(0f, 1.26f, 0f), new Vector3(0.3f, 0.03f, 0.3f), new Color(0.1f, 0.1f, 0.12f), "Coupelle");
-            Proto.Cylinder(go.transform, new Vector3(0f, 1.5f, 0f), new Vector3(0.12f, 0.22f, 0.12f), new Color(0.85f, 0.8f, 0.68f), "Cire");
-            c.flame = Proto.Sphere(go.transform, new Vector3(0f, 1.84f, 0f), new Vector3(0.1f, 0.22f, 0.1f), tint, "Flamme");
-            Proto.EndVisualOnly();
-            c.flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 2.2f);
+            // (12/11) Le cierge en fer forge du kit, avec sa vraie flamme ; sans le kit, les cylindres d'avant.
+            float lampHeight = 1.9f;
+            GameObject kitFire = null;
+            try { kitFire = NightKit.CandleStand(go.transform); } catch (System.Exception) { }
+            if (kitFire != null)
+            {
+                c.flame = kitFire;
+                lampHeight = 1.78f;
+            }
+            else
+            {
+                Proto.BeginVisualOnly();
+                Proto.Cylinder(go.transform, new Vector3(0f, 0.05f, 0f), new Vector3(0.5f, 0.05f, 0.5f), new Color(0.1f, 0.1f, 0.12f), "Pied");
+                Proto.Cylinder(go.transform, new Vector3(0f, 0.65f, 0f), new Vector3(0.07f, 0.6f, 0.07f), new Color(0.1f, 0.1f, 0.12f), "Tige");
+                Proto.Cylinder(go.transform, new Vector3(0f, 1.26f, 0f), new Vector3(0.3f, 0.03f, 0.3f), new Color(0.1f, 0.1f, 0.12f), "Coupelle");
+                Proto.Cylinder(go.transform, new Vector3(0f, 1.5f, 0f), new Vector3(0.12f, 0.22f, 0.12f), new Color(0.85f, 0.8f, 0.68f), "Cire");
+                c.flame = Proto.Sphere(go.transform, new Vector3(0f, 1.84f, 0f), new Vector3(0.1f, 0.22f, 0.1f), tint, "Flamme");
+                Proto.EndVisualOnly();
+                c.flame.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(tint, 2.2f);
+            }
             c.flame.SetActive(false);
             GameObject lamp = new GameObject("Lueur");
             lamp.transform.SetParent(go.transform, false);
-            lamp.transform.localPosition = new Vector3(0f, 1.9f, 0f);
+            lamp.transform.localPosition = new Vector3(0f, lampHeight, 0f);
             c.glow = lamp.AddComponent<Light>();
             c.glow.type = LightType.Point;
             c.glow.color = tint;

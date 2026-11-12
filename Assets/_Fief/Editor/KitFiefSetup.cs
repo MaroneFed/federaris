@@ -32,6 +32,7 @@ namespace Fief
             }
             Material pierre = MakeMaterial("Pierre", false);
             Material fer = MakeMaterial("Fer", true);
+            Material vitrail = MakeGlass();
 
             foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { Root }))
             {
@@ -40,6 +41,7 @@ namespace Fief
                 if (mi == null) continue;
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Pierre"), pierre);
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Fer"), fer);
+                if (vitrail != null) mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Vitrail"), vitrail);
                 mi.SaveAndReimport();
             }
             AssetDatabase.SaveAssets();
@@ -51,6 +53,7 @@ namespace Fief
             if (!AssetDatabase.IsValidFolder(Root + "/Prefabs")) AssetDatabase.CreateFolder(Root, "Prefabs");
             MakeFirePrefab("torche_murale", "Torche_Murale_Feu", 0.45f, 1.6f, 9f, flameMat, sparkMat);
             MakeFirePrefab("brasero", "Brasero_Feu", 1.0f, 2.4f, 13f, flameMat, sparkMat);
+            MakeFirePrefab("cierge", "Cierge_Feu", 0.22f, 0f, 0f, flameMat, sparkMat);     // sa lumiere : celle de Candle
             AssetDatabase.SaveAssets();
             Debug.Log("[FIEF] Kit : matieres et prefabs de feu prets dans " + Root);
         }
@@ -132,6 +135,25 @@ namespace Fief
                 m.EnableKeyword("_EMISSIVE_COLOR_MAP");
                 m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
             }
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>Le verre du vitrail : presque noir a la lumiere, mais il BRILLE (emission) comme si la lune passait au travers.</summary>
+        static Material MakeGlass()
+        {
+            Texture2D albedo = Tex("Vitrail_Albedo.png", false, false);
+            Texture2D emission = Tex("Vitrail_Emission.png", false, false);
+            if (emission == null) return null;
+            Material m = Asset("Vitrail", Shader.Find("Standard"));
+            Set(m, "_MainTex", albedo);
+            SetColor(m, "_Color", Color.white);
+            SetFloat(m, "_Glossiness", 0.75f);
+            SetFloat(m, "_Metallic", 0f);
+            Set(m, "_EmissionMap", emission);
+            SetColor(m, "_EmissionColor", Color.white * 2.4f);
+            m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
             EditorUtility.SetDirty(m);
             return m;
         }
@@ -259,17 +281,20 @@ namespace Fief
             sc.color = new ParticleSystem.MinMaxGradient(sg);
             sparks.GetComponent<ParticleSystemRenderer>().sharedMaterial = sparkMat;
 
-            // La lumiere chaude qui tremble.
-            GameObject lightGo = new GameObject("Lumiere");
-            lightGo.transform.SetParent(fire.transform, false);
-            lightGo.transform.localPosition = new Vector3(0f, size * 0.35f, 0f);
-            Light l = lightGo.AddComponent<Light>();
-            l.type = LightType.Point;
-            l.color = new Color(1f, 0.52f, 0.20f);
-            l.range = range;
-            l.intensity = IsPipeline("HD") ? intensity * 600f : intensity;
-            l.shadows = LightShadows.None;
-            lightGo.AddComponent<KitFiefFlicker>();
+            // La lumiere chaude qui tremble (pas pour le cierge : Candle a deja la sienne).
+            if (intensity > 0f)
+            {
+                GameObject lightGo = new GameObject("Lumiere");
+                lightGo.transform.SetParent(fire.transform, false);
+                lightGo.transform.localPosition = new Vector3(0f, size * 0.35f, 0f);
+                Light l = lightGo.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.color = new Color(1f, 0.52f, 0.20f);
+                l.range = range;
+                l.intensity = IsPipeline("HD") ? intensity * 600f : intensity;
+                l.shadows = LightShadows.None;
+                lightGo.AddComponent<KitFiefFlicker>();
+            }
 
             PrefabUtility.SaveAsPrefabAsset(inst, Root + "/Prefabs/" + prefabName + ".prefab");
             Object.DestroyImmediate(inst);
