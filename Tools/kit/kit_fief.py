@@ -418,7 +418,7 @@ def tube(pts, radii, sides=6, col=1.0):
 
 
 def build_penitent():
-    """LE PENITENT : une statue de moine en robe, 2,4 m, la tete penchee sous sa capuche, les mains jointes.
+    """LE PENITENT : une statue de moine en robe, 2,55 m, la tete penchee sous sa capuche, les mains jointes.
     Il regarde vers -Y (vers +Z une fois dans Unity). Ses deux yeux sont les seules faces qui brillent."""
     N = 16
 
@@ -428,24 +428,29 @@ def build_penitent():
             a = 2 * math.pi * k / N
             f = 1.0 + fold * (1 if k % 2 == 0 else -1)
             x, y = rx * f * math.cos(a), cy + ry * f * math.sin(a)
-            if recess and k in (11, 12, 13):          # le creux noir du visage, a l'avant de la capuche
-                y += recess * (0.20 if k == 12 else 0.11)
+            if recess:                                 # le creux noir du visage : un fond plat, a l'avant
+                if k in (11, 12, 13):
+                    y = cy - ry + recess
+                elif k in (10, 14):
+                    y += recess * 0.45
             pts.append(Vector((x, y, z)))
         return pts
 
-    body = [(0.00, .60, .56, 0, .10), (0.08, .58, .54, 0, .10), (0.55, .48, .44, 0, .08), (1.00, .41, .36, 0, .05),
-            (1.32, .38, .31, 0, .02), (1.58, .43, .29, -.01, 0), (1.78, .40, .27, -.02, 0), (1.90, .26, .22, -.04, 0)]
-    loft([ering(*b) for b in body], [0.80, 0.84, 0.90, 0.94, 0.97, 1.0, 1.0])
-    hood = [(1.84, .27, .25, -.04, 0, 0), (1.96, .31, .31, -.08, 0, .6), (2.10, .32, .34, -.11, 0, 1.0),
-            (2.24, .28, .31, -.12, 0, .8), (2.35, .19, .22, -.10, 0, 0), (2.43, .06, .07, -.03, 0, 0)]
-    loft([ering(*h) for h in hood], [0.92, 0.95, 0.97, 1.0, 1.02])
+    body = [(0.00, .56, .52, 0, .12), (0.10, .53, .49, 0, .12), (0.60, .44, .40, 0, .09), (1.05, .37, .32, 0, .05),
+            (1.38, .35, .29, 0, .02), (1.62, .41, .28, -.01, 0), (1.76, .37, .27, -.02, 0), (1.86, .27, .24, -.03, 0)]
+    loft([ering(*r) for r in body], [0.80, 0.84, 0.90, 0.94, 0.97, 1.0, 1.0])
+    hood = [(1.80, .28, .26, -.03, 0, 0), (1.92, .33, .32, -.07, 0, .10), (2.02, .34, .36, -.11, 0, .26),
+            (2.14, .33, .37, -.14, 0, .30), (2.26, .30, .35, -.16, 0, .26), (2.33, .27, .33, -.17, 0, 0),
+            (2.42, .20, .25, -.12, 0, 0), (2.50, .10, .13, -.02, 0, 0), (2.55, .03, .04, .05, 0, 0)]
+    loft([ering(*h) for h in hood], [0.86, 0.88, 0.90, 0.90, 0.92, 0.96, 1.0, 1.0])
     for s in (-1, 1):
-        tube([(s * .37, -.02, 1.62), (s * .36, -.20, 1.30), (s * .10, -.37, 1.38)], [.13, .125, .11], 6, 0.96)
-        ex, ey, ez = s * 0.065, -0.262, 2.115
-        add([(ex - .028, ey, ez), (ex, ey, ez - .018), (ex + .028, ey, ez), (ex, ey, ez + .018)], 1.0, (0, -1, 0), kind=2)
+        tube([(s * .36, -.02, 1.66), (s * .37, -.16, 1.30), (s * .12, -.37, 1.42)], [.12, .12, .13], 8, 0.96)
+        ex, ey, ez = s * 0.075, -0.228, 2.15
+        add([(ex - .036, ey, ez + s * .006), (ex, ey, ez - .02), (ex + .036, ey, ez - s * .006), (ex, ey, ez + .02)],
+            1.0, (0, -1, 0), kind=2)
     hands = [[Vector((-hx, y0, z)), Vector((hx, y0, z)), Vector((hx, y1, z)), Vector((-hx, y1, z))]
-             for z, hx, y0, y1 in ((1.34, .075, -.45, -.36), (1.47, .07, -.47, -.39), (1.59, .045, -.49, -.43))]
-    loft(hands, [1.1, 1.1])
+             for z, hx, y0, y1 in ((1.38, .065, -.47, -.39), (1.50, .06, -.49, -.42), (1.62, .035, -.51, -.46))]
+    loft(hands, [1.15, 1.15])
 
 
 def build_autel():
@@ -490,7 +495,7 @@ PIECES = [
     ('fenetre', build_fenetre, 'Pierre', 40, False, ((2.2, -5.5, 3.2), (0, 0, 3.3))),
     ('cierge', build_cierge, 'Fer', 50, False, ((1.5, -2.4, 1.6), (0, 0, 0.85))),
     ('autel', build_autel, 'Pierre', 40, True, ((2.6, -4.2, 1.9), (0, 0, 0.55))),
-    ('penitent', build_penitent, 'Statue', 50, True, ((1.3, -3.6, 1.9), (0, 0, 1.3))),
+    ('penitent', build_penitent, 'Statue', 50, True, ((1.1, -3.4, 1.75), (0, 0, 1.4))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
