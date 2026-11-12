@@ -33,6 +33,7 @@ namespace Fief
             Material pierre = MakeMaterial("Pierre", false);
             Material fer = MakeMaterial("Fer", true);
             Material vitrail = MakeGlass();
+            Material statue = MakeMaterial("Statue", true);       // le Penitent : sa pierre, et ses yeux qui brillent
 
             foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { Root }))
             {
@@ -41,6 +42,7 @@ namespace Fief
                 if (mi == null) continue;
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Pierre"), pierre);
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Fer"), fer);
+                mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Statue"), statue);
                 if (vitrail != null) mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Vitrail"), vitrail);
                 mi.SaveAndReimport();
             }

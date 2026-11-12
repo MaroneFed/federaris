@@ -339,6 +339,10 @@ namespace Fief
             Penitent p = go.AddComponent<Penitent>();
             p.prey = prey;
             p.home = at;
+            // (12/11) La statue sculptee dans Blender ; sans le kit, la silhouette en cones et en boules d'avant.
+            bool statue = false;
+            try { statue = NightKit.PenitentStatue(go.transform); } catch (System.Exception) { }
+            if (statue) return p;
             Material robe = MaterialFactory.GetShiny(new Color(0.2f, 0.2f, 0.22f), 0.2f, 0f);
             Material bone = MaterialFactory.GetShiny(new Color(0.62f, 0.6f, 0.55f), 0.25f, 0f);
             Proto.BeginVisualOnly();

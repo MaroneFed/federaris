@@ -111,6 +111,21 @@ namespace Fief
         }
 
         /// <summary>
+        /// La statue du Penitent, posee sous "parent" (elle regarde vers +Z, comme lui). Rien qu'une image :
+        /// pas de collider, ses regles restent dans la classe Penitent. Renvoie false si le kit ne l'a pas.
+        /// </summary>
+        public static bool PenitentStatue(Transform parent)
+        {
+            GameObject src = Source("penitent");
+            if (src == null) return false;
+            GameObject go = Object.Instantiate(src, parent);
+            go.name = "Statue (kit)";
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = src.transform.rotation;
+            return true;
+        }
+
+        /// <summary>
         /// Le cierge du kit, pose sous "parent". Renvoie son feu (eteint) : l'allumer, c'est SetActive(true).
         /// Renvoie null si le kit n'a pas de cierge.
         /// </summary>

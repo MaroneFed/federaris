@@ -772,6 +772,13 @@ def bake_material(name, iron, grime=False, floor=False, statue=False):
         if statue:
             # une pierre plus sombre, et deux yeux rouges qui brillent
             c = g.mix(1.0, c, 0.74, 'MULTIPLY')
+            # le creux du visage reste noir, quelle que soit la lumiere
+            sp = g.node('ShaderNodeSeparateXYZ')
+            g.put(sp.inputs[0], P)
+            hole = g.math('MULTIPLY', g.sstep(1.93, 2.0, sp.outputs[2]), g.math('SUBTRACT', 1.0, g.sstep(2.27, 2.33, sp.outputs[2])))
+            hole = g.math('MULTIPLY', hole, g.math('SUBTRACT', 1.0, g.sstep(0.15, 0.20, g.math('ABSOLUTE', sp.outputs[0]))))
+            hole = g.math('MULTIPLY', hole, g.sstep(-0.40, -0.34, sp.outputs[1]))
+            c = g.mix(g.math('MULTIPLY', hole, 0.94), c, C(0.004, 0.004, 0.005))
             c = g.mix(flag, c, C(0.02, 0.0, 0.0))
             res['emis'] = g.mix(1.0, C(1.0, 0.07, 0.02), flag, 'MULTIPLY')
         res.update(color=c, orm=orm, normal=normal)
