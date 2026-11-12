@@ -378,6 +378,37 @@ def build_torche():
     return (0, -0.52, 2.06)
 
 
+WIN_A, WIN_Z0, WIN_H = 0.6, 1.6, 2.4
+
+
+def lancet(a, z0, n=6):
+    """Le contour d'une fenetre en lancette (arc brise), du bas a gauche au bas a droite."""
+    zs = z0 + WIN_H
+    pts = [(-a, z0), (-a, zs)]
+    for i in range(1, n + 1):
+        t = math.radians(180 - 60 * i / n)
+        pts.append((a + 2 * a * math.cos(t), zs + 2 * a * math.sin(t)))
+    for i in range(n - 1, -1, -1):
+        t = math.radians(60 * i / n)
+        pts.append((-a + 2 * a * math.cos(t), zs + 2 * a * math.sin(t)))
+    pts.append((a, z0))
+    return pts
+
+
+def build_fenetre():
+    sweep(lancet(WIN_A + 0.09, WIN_Z0), 0.0, 0.09, 0.09, 0.0, -0.32, col=0.92)
+    rect = [(-0.8, -0.46), (0.8, -0.46), (0.8, -0.23), (-0.8, -0.23)]
+    loft([[Vector((x, y, z)) for x, y in rect] for z in (WIN_Z0 - 0.16, WIN_Z0)], [0.85])
+
+
+def build_cierge():
+    lathe([(0, 0), (.20, 0), (.20, .03), (.07, .07), (.03, .10), (.022, .14), (.022, .42), (.04, .45), (.022, .48),
+           (.022, .88), (.04, .91), (.022, .94), (.022, 1.22), (.13, 1.26), (.14, 1.30), (.11, 1.30), (.03, 1.275),
+           (0, 1.275)], 10)
+    lathe([(0, 1.27), (.034, 1.27), (.034, 1.58), (.02, 1.60), (0, 1.595)], 8, kind=4)
+    return (0, 0, 1.63)
+
+
 def build_brasero():
     for k in range(3):
         sweep([(.40, 0.0), (.34, .05), (.07, .72), (.07, .82), (.215, .985)], math.pi / 2 + k * 2 * math.pi / 3, 0.02, 0.02)
@@ -400,6 +431,8 @@ PIECES = [
     ('pilier', build_pilier, 'Pierre', 40, True, ((3.0, -6.2, 2.7), (0, 0, 2.0))),
     ('torche_murale', build_torche, 'Fer', 50, False, ((0.95, -1.75, 2.05), (0, -0.4, 1.72))),
     ('brasero', build_brasero, 'Fer', 50, False, ((1.7, -2.5, 1.5), (0, 0, 0.62))),
+    ('fenetre', build_fenetre, 'Pierre', 40, False, ((2.2, -5.5, 3.2), (0, 0, 3.3))),
+    ('cierge', build_cierge, 'Fer', 50, False, ((1.5, -2.4, 1.6), (0, 0, 0.85))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -438,8 +471,8 @@ def make_object(name, fn, iron):
             continue
         f[kind_l] = kind
         for lp in f.loops:
-            lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 0.0, 1.0)
-    if iron or name == 'pilier':
+            lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind == 4 else 0.0, 1.0)
+    if iron or name in ('pilier', 'fenetre'):
         bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] != 2])
     bm.normal_update()
     for f in bm.faces:
@@ -701,6 +734,13 @@ def bake_material(name, iron, grime=False, floor=False):
         c = g.mix(flag, c, ccol)
         metal = g.math('MULTIPLY', metal, g.math('SUBTRACT', 1.0, flag))
         rough = g.mix(flag, rough, 0.95)
+        # cire du cierge
+        wax = sc.outputs[2]
+        wcol = g.mix(g.sstep(0.3, 0.7, g.noise(g.vmul(P, (30.0, 30.0, 4.0)), 1.0, 3, 0.5)), C(0.80, 0.70, 0.50), C(0.62, 0.52, 0.34))
+        wcol = g.mix(g.math('MULTIPLY', cav, 0.6), wcol, C(0.25, 0.18, 0.10))
+        c = g.mix(wax, c, wcol)
+        metal = g.math('MULTIPLY', metal, g.math('SUBTRACT', 1.0, wax))
+        rough = g.mix(wax, rough, 0.55)
         orm = g.rgb(metal, g.ao(0.5), rough)
         res.update(color=c, orm=orm, normal=normal, emis=emis)
     nt.links.new(res['normal'], df.inputs['Normal'])
@@ -923,6 +963,27 @@ for name, d in objs.items():
                              object_types={'MESH', 'EMPTY'}, mesh_smooth_type='OFF', bake_anim=False,
                              add_leaf_bones=False, path_mode='RELATIVE', use_tspace=False)
     log('RESULT', name, 'tris=%d' % len(me.loop_triangles), 'verts=%d' % len(me.vertices))
+
+# le verre du vitrail : une simple plaque en lancette, sa propre matiere (texture faite par vitrail.py)
+if not REUSE:
+    gpts = list(reversed(lancet(WIN_A, WIN_Z0)))
+    ghei = WIN_H + 2 * WIN_A * math.sin(math.radians(60))
+    gme = bpy.data.meshes.new('vitrail')
+    gme.from_pydata([(x, -0.275, z) for x, z in gpts], [], [list(range(len(gpts)))])
+    guv = gme.uv_layers.new(name='UVMap')
+    for i, (x, z) in enumerate(gpts):
+        guv.data[i].uv = ((x + WIN_A) / (2 * WIN_A), (z - WIN_Z0) / ghei)
+    gmat = bpy.data.materials.new('Vitrail')
+    gme.materials.append(gmat)
+    gobj = bpy.data.objects.new('vitrail', gme)
+    scene.collection.objects.link(gobj)
+    only([gobj])
+    bpy.ops.export_scene.fbx(filepath=os.path.join(OUT, 'vitrail.fbx'), use_selection=True,
+                             apply_scale_options='FBX_SCALE_UNITS', axis_forward='-Z', axis_up='Y',
+                             bake_space_transform=True, object_types={'MESH'}, mesh_smooth_type='OFF',
+                             bake_anim=False, add_leaf_bones=False)
+    gobj.hide_render = True
+    log('RESULT vitrail')
 
 # ================================================================ rendus
 scene.render.engine = 'BLENDER_EEVEE'
