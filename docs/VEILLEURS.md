@@ -77,6 +77,12 @@ d'extérieur ; l'intérieur (salles, couloirs, crypte) est à construire.
 - **V0 — le frisson.** *(écrite le 11/11, jamais lancée dans Unity : `Scripts/Night/NightBootstrap.cs`,
   menu FIEF ▸ LA NUIT - lancer le test ; en blocs provisoires.)* Un couloir et deux salles dans le noir, ta torche, une quête (rallumer la
   chapelle), le Pénitent. Seul. *Si ça ne donne pas un petit frisson, on change avant d'aller plus loin.*
+  **(12/11) Habillée avec le kit fait dans Blender** (`Scripts/Night/NightKit.cs`, `docs/BLENDER.md`) : murs en
+  pierres de taille, arches, voûte, piliers, torches, braseros, cierges en fer forgé, fenêtre gothique et vitrail,
+  rayon de lune. Les blocs restent dessous, invisibles : collisions et règle du Pénitent inchangées. Deux retouches
+  du niveau pour la grille de 4 m : la niche du Pénitent va de z 20 à 24, et le couloir a cinq paires de piliers.
+  **Lancée dans Unity par Claude** (sans fenêtre) et vue en photos (`Tools/photos-nuit.ps1`) ; **Martin ne l'a pas
+  encore jouée** : le frisson reste à juger par lui.
 - **V1 — une nuit entière, seul.** Cinq quêtes, trois monstres, la sortie, l'aube.
 - **V2 — à plusieurs.** La même nuit en ligne, les fantômes.
 - **V3 — entre les nuits.** Le camp, la progression.
@@ -86,7 +92,8 @@ d'extérieur ; l'intérieur (salles, couloirs, crypte) est à construire.
 
 1. ~~La 3D~~ **Tranché le 11/11 : les deux** — packs gratuits ET modèles faits avec Claude + Blender sur le
    PC de Martin (`docs/BLENDER.md`). La loi « zéro création 3D sur mesure » est donc levée pour ce jeu.
-2. **Ta carte graphique** (le modèle exact) : elle décide du niveau de détail.
+2. ~~Ta carte graphique~~ **Vue le 12/11 : NVIDIA GeForce RTX 3050 Ti (portable).** Elle tient des textures 4K et
+   une dizaine de lumières ; pas de quoi viser le photoréalisme d'un jeu AAA.
 3. **Elden Ring** : qu'est-ce que tu veux en garder — les ruines gothiques, les boss, la difficulté ?
 4. **Avec qui tu joues** : ton frère seul, ou un groupe ? Combien ?
 5. **Les propositions 1 à 6** ci-dessus : lesquelles tu gardes ?

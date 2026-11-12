@@ -9,6 +9,14 @@
 > travail (petites étapes, franchise, anti-dérive, vérificateur) restent les mêmes. **Le nouveau jeu garde le nom FIEF.** La loi « zéro création
 > 3D sur mesure » est **levée pour lui** (11/11 : packs gratuits ET modèles faits avec Claude + Blender sur le PC
 > de Martin, voir `docs/BLENDER.md`).
+>
+> **12/11 — le kit du château est fait et posé dans La Nuit** (`Resources/Modeles/Kit`, `Scripts/Night/NightKit.cs`,
+> détails dans `docs/BLENDER.md`). **Sur le PC de Martin, Claude Desktop PEUT lancer Blender et Unity** (sans
+> fenêtre) : `Tools/photos-nuit.ps1` lance La Nuit et prend des photos du jeu dans `Logs/Captures/` — à faire après
+> chaque changement visuel, et regarder les images avant de dire que c'est bien. Les sessions sur serveur, elles,
+> ne le peuvent toujours pas (d'où le vérificateur, plus bas). **Martin veut le rendu le plus beau possible, tout de
+> suite, sans version brouillon** (« donne tout, tout le temps ») ; lui dire franchement ce que le low-poly et sa
+> carte graphique (RTX 3050 Ti portable) ne permettent pas.
 
 Jeu multijoueur de rivalité sur une île flottante, en première personne, 3D low-poly,
 matchs d'environ 30 min en **manches** de 2 à 8 joueurs, destiné à Steam. Unity 6 + C#.

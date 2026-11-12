@@ -1,3 +1,29 @@
+# Le kit du château, fait dans Blender
+
+## Où on en est (12/11)
+
+**Le kit existe et il est dans le jeu.** Claude Desktop l'a fabriqué sur le PC de Martin **sans le connecteur**
+décrit plus bas : il lance Blender tout seul, sans fenêtre, avec un script. Le connecteur ne sert que si tu veux
+voir les pièces se construire sous tes yeux.
+
+- **Les pièces** (`Assets/_Fief/Resources/Modeles/Kit/`) : `mur_droit`, `mur_arche`, `dalle_sol`, `voute_couloir`,
+  `pilier`, `fenetre` (pierre), `torche_murale`, `brasero`, `cierge` (fer), `vitrail` (verre). Moins de
+  900 triangles chacune, 1 unité = 1 mètre, pivot au sol, grille de 4 m.
+- **Les textures** (`Kit/Textures/`) : une seule matière **Pierre** pour toute la pierre, une matière **Fer**, une
+  matière **Vitrail**. Pour chacune : la couleur (`_Albedo`), le relief (`_Normal`), un masque (`_Mask` : rouge =
+  métal, vert = ombre des creux, alpha = lisse), et ce qui brille tout seul (`_Emission` : braises, verre).
+  Elles sont **cuites** dans Blender : usure, fissures, joints sales, mousse, rouille sont peints par le calcul,
+  pas à la main. La flamme est une planche de 64 images (`Flamme_Flipbook`).
+- **Les refaire** : `Tools/kit/kit_fief.py` (les pièces et la cuisson), `Tools/kit/flamme.py`, `Tools/kit/vitrail.py`.
+  La commande est en tête de chaque fichier. Puis, dans Unity : menu **FIEF ▸ Kit - refaire les matieres**.
+- **Les poser dans le niveau** : `Assets/_Fief/Scripts/Night/NightKit.cs`. Une ligne par pièce (`Wall`, `Floor`,
+  `Arch`, `Put`...), en mètres, sur la grille.
+- **Voir le résultat sans ouvrir Unity** : `Tools/photos-nuit.ps1` lance La Nuit et range des photos dans
+  `Logs/Captures/`. C'est comme ça que Claude Desktop voit le jeu. Unity doit être fermé pendant ce temps.
+
+**Ce que le kit n'est pas** : du photoréalisme. Moins de 1500 triangles par pièce, c'est du low-poly ; le détail
+vient des textures et de la lumière. Les murs voisins portent tous les mêmes pierres (une seule texture).
+
 # Brancher Claude sur Blender (sur le PC de Martin)
 
 But : que Claude **fabrique les modèles 3D dans Blender sous tes yeux** (murs, portes, torches,
