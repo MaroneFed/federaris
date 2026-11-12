@@ -47,6 +47,7 @@ namespace Fief
                 string n = blocks[i].gameObject.name;
                 if (n == "Mur" || n == "Sol" || n == "Plafond" || n == "Pilier") blocks[i].enabled = false;
                 if (n == "Vitrail" && Source("vitrail") != null) blocks[i].enabled = false;
+                if (n == "Autel" && Source("autel") != null) blocks[i].enabled = false;
             }
 
             root = new GameObject("Kit (le décor)").transform;
@@ -98,6 +99,7 @@ namespace Fief
             // Deux braseros de part et d'autre de l'autel : ils s'embrasent a l'aube.
             Fire("Brasero_Feu", -2.6f, 41.2f, 0f, false);
             Fire("Brasero_Feu", 2.6f, 41.2f, 0f, false);
+            Put("autel", 0f, 41.5f, 0f);
             // La fenetre gothique et son vitrail, derriere l'autel, et la lune qui passe au travers.
             if (Source("vitrail") != null)
             {
@@ -158,18 +160,29 @@ namespace Fief
                 List<Vector3> v = new List<Vector3>();
                 List<Color> c = new List<Color>();
                 List<int> t = new List<int>();
-                Color near = new Color(1f, 1f, 1f, 0.5f), far = new Color(1f, 1f, 1f, 0f);
-                Vector3[][] quads =
+                // Neuf nappes inclinees, du haut de la fenetre au bas. Chacune est claire en son milieu,
+                // pres de la fenetre, et s'efface vers ses bords et vers le sol : aucun bord net.
+                const int Sheets = 9, Cols = 6;
+                for (int k = 0; k < Sheets; k++)
                 {
-                    new[] { tl, bl, nl, fl }, new[] { tr, br, nr, fr }, new[] { tl, tr, fr, fl }, new[] { bl, br, nr, nl },
-                    new[] { (tl + tr) * 0.5f, (bl + br) * 0.5f, (nl + nr) * 0.5f, (fl + fr) * 0.5f }
-                };
-                for (int q = 0; q < quads.Length; q++)
-                {
+                    float f = k / (float)(Sheets - 1);
+                    Vector3 wl = Vector3.Lerp(tl, bl, f), wr = Vector3.Lerp(tr, br, f);
+                    Vector3 gl = Vector3.Lerp(fl, nl, f), gr = Vector3.Lerp(fr, nr, f);
                     int b = v.Count;
-                    v.AddRange(quads[q]);
-                    c.Add(near); c.Add(near); c.Add(far); c.Add(far);
-                    t.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
+                    for (int i = 0; i <= Cols; i++)
+                    {
+                        float u = i / (float)Cols;
+                        float side = Mathf.Sin(u * Mathf.PI);          // 0 aux bords, 1 au milieu
+                        v.Add(Vector3.Lerp(wl, wr, u));
+                        c.Add(new Color(1f, 1f, 1f, 0.16f * side * side));
+                        v.Add(Vector3.Lerp(gl, gr, u));
+                        c.Add(new Color(1f, 1f, 1f, 0f));
+                    }
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        int a = b + i * 2;
+                        t.AddRange(new[] { a, a + 1, a + 3, a, a + 3, a + 2 });
+                    }
                 }
                 Mesh mesh = new Mesh();
                 mesh.name = "Faisceau";
@@ -267,7 +280,11 @@ namespace Fief
             go.transform.position = new Vector3(x, 0f, z);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f) * src.transform.rotation;
             Transform fire = go.transform.Find("Feu");
-            if (fire != null && !lit)
+            if (fire == null) return;
+            // Ces feux-la projettent des ombres (les autres lumieres du kit n'en font pas : ca coute cher).
+            Light glow = fire.GetComponentInChildren<Light>(true);
+            if (glow != null) { glow.shadows = LightShadows.Soft; glow.shadowStrength = 0.85f; glow.shadowNearPlane = 0.25f; }
+            if (!lit)
             {
                 fire.gameObject.SetActive(false);
                 DawnFires.Add(fire.gameObject);

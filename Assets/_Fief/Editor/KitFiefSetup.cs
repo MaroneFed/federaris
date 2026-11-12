@@ -51,9 +51,10 @@ namespace Fief
             Material flameMat = MakeAdditive("Flamme", flameTex);
             Material sparkMat = MakeAdditive("Braise", sparkTex);
             if (!AssetDatabase.IsValidFolder(Root + "/Prefabs")) AssetDatabase.CreateFolder(Root, "Prefabs");
-            MakeFirePrefab("torche_murale", "Torche_Murale_Feu", 0.45f, 1.6f, 9f, flameMat, sparkMat);
-            MakeFirePrefab("brasero", "Brasero_Feu", 1.0f, 2.4f, 13f, flameMat, sparkMat);
-            MakeFirePrefab("cierge", "Cierge_Feu", 0.22f, 0f, 0f, flameMat, sparkMat);     // sa lumiere : celle de Candle
+            // Le dernier vecteur : ou nait la flamme (le point "socket_flamme" du modele, s'il est retrouve).
+            MakeFirePrefab("torche_murale", "Torche_Murale_Feu", 0.45f, 1.6f, 9f, flameMat, sparkMat, new Vector3(0f, 2.06f, 0.52f));
+            MakeFirePrefab("brasero", "Brasero_Feu", 1.0f, 2.4f, 13f, flameMat, sparkMat, new Vector3(0f, 1.24f, 0f));
+            MakeFirePrefab("cierge", "Cierge_Feu", 0.22f, 0f, 0f, flameMat, sparkMat, new Vector3(0f, 1.61f, 0f));     // sa lumiere : celle de Candle
             AssetDatabase.SaveAssets();
             Debug.Log("[FIEF] Kit : matieres et prefabs de feu prets dans " + Root);
         }
@@ -193,7 +194,7 @@ namespace Fief
         }
 
         static void MakeFirePrefab(string model, string prefabName, float size, float intensity, float range,
-            Material flameMat, Material sparkMat)
+            Material flameMat, Material sparkMat, Vector3 flameAt)
         {
             GameObject fbx = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/" + model + ".fbx");
             if (fbx == null)
@@ -203,7 +204,7 @@ namespace Fief
             }
             GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
             Transform socket = FindDeep(inst.transform, "socket_flamme");
-            Vector3 p = socket != null ? inst.transform.InverseTransformPoint(socket.position) : Vector3.up;
+            Vector3 p = socket != null ? inst.transform.InverseTransformPoint(socket.position) : flameAt;
 
             // Tout le feu sous un seul objet "Feu" : on l'eteint ou on l'allume d'un SetActive.
             GameObject fire = new GameObject("Feu");
@@ -289,7 +290,7 @@ namespace Fief
                 lightGo.transform.localPosition = new Vector3(0f, size * 0.35f, 0f);
                 Light l = lightGo.AddComponent<Light>();
                 l.type = LightType.Point;
-                l.color = new Color(1f, 0.52f, 0.20f);
+                l.color = new Color(1f, 0.60f, 0.30f);
                 l.range = range;
                 l.intensity = IsPipeline("HD") ? intensity * 600f : intensity;
                 l.shadows = LightShadows.None;
