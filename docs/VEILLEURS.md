@@ -79,7 +79,8 @@ d'extérieur ; l'intérieur (salles, couloirs, crypte) est à construire.
   chapelle), le Pénitent. Seul. *Si ça ne donne pas un petit frisson, on change avant d'aller plus loin.*
   **(12/11) Habillée avec le kit fait dans Blender** (`Scripts/Night/NightKit.cs`, `docs/BLENDER.md`) : murs en
   pierres de taille, arches, voûte, piliers, torches, braseros, cierges en fer forgé, fenêtre gothique et vitrail,
-  rayon de lune. Les blocs restent dessous, invisibles : collisions et règle du Pénitent inchangées. Deux retouches
+  rayon de lune, **le Pénitent en statue de moine à capuche** (capuche pointue, trou noir du visage, yeux
+  rouges, camail sur les épaules ; ses bras et ses mains restent anguleux). Lumière refroidie (fond bleu très faible, feux moins orange). Les blocs restent dessous, invisibles : collisions et règle du Pénitent inchangées. Deux retouches
   du niveau pour la grille de 4 m : la niche du Pénitent va de z 20 à 24, et le couloir a cinq paires de piliers.
   **Lancée dans Unity par Claude** (sans fenêtre) et vue en photos (`Tools/photos-nuit.ps1`) ; **Martin ne l'a pas
   encore jouée** : le frisson reste à juger par lui.

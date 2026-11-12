@@ -116,13 +116,30 @@ namespace Fief
         /// </summary>
         public static bool PenitentStatue(Transform parent)
         {
-            GameObject src = Source("penitent");
-            if (src == null) return false;
-            GameObject go = Object.Instantiate(src, parent);
-            go.name = "Statue (kit)";
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = src.transform.rotation;
-            return true;
+            return PenitentStatues(parent) != null;
+        }
+
+        /// <summary>
+        /// Les TROIS statues du Penitent (il dort, il t'a vu, il te veut), posees au meme endroit sous
+        /// "parent" ; seule la premiere est visible. Renvoie null si le kit ne les a pas.
+        /// </summary>
+        public static GameObject[] PenitentStatues(Transform parent)
+        {
+            string[] names = { "penitent", "penitent_2", "penitent_3" };
+            if (Source(names[0]) == null) return null;
+            GameObject[] poses = new GameObject[names.Length];
+            for (int i = 0; i < names.Length; i++)
+            {
+                GameObject src = Source(names[i]);
+                if (src == null) src = Source(names[0]);
+                GameObject go = Object.Instantiate(src, parent);
+                go.name = "Statue " + (i + 1);
+                go.transform.localPosition = Vector3.zero;
+                go.transform.localRotation = src.transform.rotation;
+                go.SetActive(i == 0);
+                poses[i] = go;
+            }
+            return poses;
         }
 
         /// <summary>

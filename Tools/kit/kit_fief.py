@@ -417,40 +417,99 @@ def tube(pts, radii, sides=6, col=1.0):
     loft(rings, [col] * len(rings))
 
 
-def build_penitent():
-    """LE PENITENT : une statue de moine en robe, 2,55 m, la tete penchee sous sa capuche, les mains jointes.
-    Il regarde vers -Y (vers +Z une fois dans Unity). Ses deux yeux sont les seules faces qui brillent."""
-    N = 16
+def build_penitent(pose=0):
+    """LE PENITENT (version qui fait peur, 12/11) : 2,8 m, maigre, voute, la capuche profonde, un masque
+    d'os au fond du noir, de longs bras aux doigts trop longs. Il regarde vers -Y (+Z dans Unity).
 
-    def ering(z, rx, ry, cy, fold=0.0, recess=0.0):
+    TROIS POSES, trois modeles : le jeu passe de l'une a l'autre quand on ne le regarde pas.
+      0  il dort : la tete basse, les bras qui pendent jusqu'aux genoux ;
+      1  il t'a vu : la tete relevee et penchee de travers, les mains qui montent ;
+      2  il te veut : penche en avant, les bras tendus, la machoire qui tombe.
+    kind 5 = petites faces noires posees devant (orbites, bouche) ; kind 6 = l'os du masque ; kind 2 = les yeux."""
+    N = 24
+    rng = random.Random(40 + pose)
+    L = (0.10, 0.17, 0.28)[pose]                       # combien il se penche en avant
+
+    def cy(z):
+        return -L * (max(0.0, z - 0.9) / 1.2) ** 1.5
+
+    def ering(z, rx, ry, fold=0.0, ragged=False):
         pts = []
         for k in range(N):
             a = 2 * math.pi * k / N
             f = 1.0 + fold * (1 if k % 2 == 0 else -1)
-            x, y = rx * f * math.cos(a), cy + ry * f * math.sin(a)
-            if recess:                                 # le creux noir du visage : un fond plat, a l'avant
-                if k in (11, 12, 13):
-                    y = cy - ry + recess
-                elif k in (10, 14):
-                    y += recess * 0.45
-            pts.append(Vector((x, y, z)))
+            zz = z + (rng.uniform(0.0, 0.11) if ragged and k % 2 == 0 else 0.0)
+            pts.append(Vector((rx * f * math.cos(a), cy(z) + ry * f * math.sin(a), zz)))
         return pts
 
-    body = [(0.00, .56, .52, 0, .12), (0.10, .53, .49, 0, .12), (0.60, .44, .40, 0, .09), (1.05, .37, .32, 0, .05),
-            (1.38, .35, .29, 0, .02), (1.62, .41, .28, -.01, 0), (1.76, .37, .27, -.02, 0), (1.86, .27, .24, -.03, 0)]
-    loft([ering(*r) for r in body], [0.80, 0.84, 0.90, 0.94, 0.97, 1.0, 1.0])
-    hood = [(1.80, .28, .26, -.03, 0, 0), (1.92, .33, .32, -.07, 0, .10), (2.02, .34, .36, -.11, 0, .26),
-            (2.14, .33, .37, -.14, 0, .30), (2.26, .30, .35, -.16, 0, .26), (2.33, .27, .33, -.17, 0, 0),
-            (2.42, .20, .25, -.12, 0, 0), (2.50, .10, .13, -.02, 0, 0), (2.55, .03, .04, .05, 0, 0)]
-    loft([ering(*h) for h in hood], [0.86, 0.88, 0.90, 0.90, 0.92, 0.96, 1.0, 1.0])
+    body = [(0.00, .50, .46, .16, True), (0.14, .47, .43, .16), (0.70, .38, .34, .11), (1.25, .30, .26, .06),
+            (1.60, .29, .24, .02), (1.86, .34, .24, 0), (2.02, .31, .23, 0), (2.14, .18, .17, 0)]
+    loft([ering(*r) for r in body], [0.70, 0.76, 0.84, 0.90, 0.95, 1.0, 1.0])
+    cape = [(1.80, .39, .28, .03), (1.86, .40, .29, .03), (2.02, .34, .26, .015), (2.13, .22, .21, 0), (2.19, .17, .17, 0)]
+    loft([ering(*r) for r in cape], [0.86, 0.90, 0.94, 0.94])
+
+    # ---- la tete : tout est pose par rapport au cou, puis penche (tilt), tourne de travers (roll), avance
+    tilt = (0.32, 0.08, -0.04)[pose]
+    roll = math.radians((0.0, 15.0, -24.0)[pose])
+    push = (0.0, -0.03, -0.10)[pose]
+    neck = Vector((0.0, cy(2.14) - 0.02, 2.14))
+
+    def hp(x, y, z):
+        xr = x * math.cos(roll) - z * math.sin(roll)
+        zr = x * math.sin(roll) + z * math.cos(roll)
+        return neck + Vector((xr, y - zr * tilt + push, zr))
+
+    M = 16
+
+    def hring(y, zc, rx, rz):
+        return [hp(rx * math.cos(2 * math.pi * k / M), y, zc + rz * math.sin(2 * math.pi * k / M)) for k in range(M)]
+
+    hood = [(0.40, -.06, .03, .04), (0.30, .08, .13, .16), (0.15, .20, .24, .29), (0.00, .27, .30, .36),
+            (-0.16, .29, .31, .38), (-0.31, .27, .29, .37), (-0.38, .25, .23, .32),
+            (-0.36, .25, .185, .275), (-0.07, .25, .16, .24)]
+    loft([hring(*h) for h in hood], [0.86, 0.88, 0.92, 0.95, 1.0, 1.02, 0.4, 0.03])
+
+    # ---- le masque d'os, au fond de la capuche
+    front = hp(0, -1, 0) - hp(0, 0, 0)
+    jaw = (0.0, 0.03, 0.10)[pose]                      # la machoire descend
+    my, mz, mrx, mrz = -0.12, 0.25 - jaw * 0.5, 0.098, 0.150 + jaw * 0.5
+    rim = [hp(mrx * math.cos(2 * math.pi * k / 12), my, mz + mrz * math.sin(2 * math.pi * k / 12)) for k in range(12)]
+    mid = hp(0, my - 0.04, mz + 0.02)
+    for k in range(12):
+        add([mid, rim[k], rim[(k + 1) % 12]], 1.0, front, kind=6)
+    fy = my - 0.048
+    for s in (-1, 1):                                  # les orbites, de travers, et un point rouge au fond
+        ex, ez = s * 0.043, mz + mrz * 0.36
+        add([hp(ex - .024, fy, ez - s * .004), hp(ex + s * .004, fy, ez - .020), hp(ex + .024, fy, ez + s * .010),
+             hp(ex - s * .006, fy, ez + .020)], 0.02, front, kind=5)
+        add([hp(ex - .006, fy - .004, ez), hp(ex, fy - .004, ez - .006), hp(ex + .006, fy - .004, ez),
+             hp(ex, fy - .004, ez + .006)], 1.0, front, kind=2)
+    nz = mz + mrz * 0.02
+    add([hp(-.011, fy, nz - .018), hp(.011, fy, nz - .018), hp(0, fy, nz + .022)], 0.02, front, kind=5)
+    mh = (0.008, 0.030, 0.085)[pose]                   # la bouche : une fente, puis un trou
+    mc = mz - mrz * 0.50
+    add([hp(-.034, fy, mc + mh * .25), hp(-.016, fy, mc - mh), hp(.016, fy, mc - mh), hp(.034, fy, mc + mh * .25),
+         hp(.014, fy, mc + mh), hp(-.014, fy, mc + mh)], 0.02, front, kind=5)
+
+    # ---- les bras, trop longs, et quatre doigts par main
     for s in (-1, 1):
-        tube([(s * .36, -.02, 1.66), (s * .37, -.16, 1.30), (s * .12, -.37, 1.42)], [.12, .12, .13], 8, 0.96)
-        ex, ey, ez = s * 0.075, -0.228, 2.15
-        add([(ex - .036, ey, ez + s * .006), (ex, ey, ez - .02), (ex + .036, ey, ez - s * .006), (ex, ey, ez + .02)],
-            1.0, (0, -1, 0), kind=2)
-    hands = [[Vector((-hx, y0, z)), Vector((hx, y0, z)), Vector((hx, y1, z)), Vector((-hx, y1, z))]
-             for z, hx, y0, y1 in ((1.38, .065, -.47, -.39), (1.50, .06, -.49, -.42), (1.62, .035, -.51, -.46))]
-    loft(hands, [1.15, 1.15])
+        sh = Vector((s * .30, cy(1.98) - .02, 1.98))
+        if pose == 0:
+            el, wr = Vector((s * .37, cy(1.4) - .05, 1.42)), Vector((s * .34, -.20 - L, 0.94))
+            tips = [wr + Vector((s * dx, -.05 - abs(dx) * .3, -.36 + abs(dx) * .5)) for dx in (-.06, -.02, .02, .06)]
+            bend = Vector((0, -.035, 0))
+        elif pose == 1:
+            el, wr = Vector((s * .43, -.20 - L, 1.56)), Vector((s * .30, -.54 - L, 1.66))
+            tips = [wr + Vector((s * dx, -.27, dz)) for dx, dz in ((-.11, .10), (-.03, .17), (.05, .16), (.12, .07))]
+            bend = Vector((0, 0, .05))
+        else:
+            el, wr = Vector((s * .41, -.40 - L, 1.86)), Vector((s * .25, -.84 - L, 2.00))
+            tips = [wr + Vector((s * dx, -.31, dz)) for dx, dz in ((-.15, .05), (-.05, .15), (.06, .14), (.15, .02))]
+            tips.append(wr + Vector((-s * .05, -.17, -.16)))
+            bend = Vector((0, 0, .06))
+        tube([sh, el, wr], [.085, .058, .042], 6, 0.9)
+        for tip in tips:
+            tube([wr, wr.lerp(tip, 0.55) + bend, tip], [.017, .012, .003], 3, 1.25)
 
 
 def build_autel():
@@ -495,7 +554,9 @@ PIECES = [
     ('fenetre', build_fenetre, 'Pierre', 40, False, ((2.2, -5.5, 3.2), (0, 0, 3.3))),
     ('cierge', build_cierge, 'Fer', 50, False, ((1.5, -2.4, 1.6), (0, 0, 0.85))),
     ('autel', build_autel, 'Pierre', 40, True, ((2.6, -4.2, 1.9), (0, 0, 0.55))),
-    ('penitent', build_penitent, 'Statue', 50, True, ((1.1, -3.4, 1.75), (0, 0, 1.4))),
+    ('penitent', lambda: build_penitent(0), 'Statue', 50, False, ((1.2, -3.9, 1.8), (0, 0, 1.5))),
+    ('penitent_2', lambda: build_penitent(1), 'Statue', 50, False, ((1.2, -3.9, 1.8), (0, 0, 1.5))),
+    ('penitent_3', lambda: build_penitent(2), 'Statue', 50, False, ((1.6, -3.9, 1.9), (0, -0.3, 1.6))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -534,10 +595,10 @@ def make_object(name, fn, iron):
             continue
         f[kind_l] = kind
         for lp in f.loops:
-            lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind == 4 else 0.0, 1.0)
-    smooth = iron or name == 'penitent'
-    if iron or name in ('pilier', 'fenetre', 'autel', 'penitent'):
-        bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] != 2])
+            lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind in (4, 6) else 0.0, 1.0)
+    smooth = iron or name.startswith('penitent')
+    if iron or smooth or name in ('pilier', 'fenetre', 'autel'):
+        bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] not in (2, 5, 6)])
     bm.normal_update()
     for f in bm.faces:
         f.smooth = smooth
@@ -771,14 +832,17 @@ def bake_material(name, iron, grime=False, floor=False, statue=False):
         orm = g.rgb(0.0, occ, rough)
         if statue:
             # une pierre plus sombre, et deux yeux rouges qui brillent
-            c = g.mix(1.0, c, 0.74, 'MULTIPLY')
-            # le creux du visage reste noir, quelle que soit la lumiere
-            sp = g.node('ShaderNodeSeparateXYZ')
-            g.put(sp.inputs[0], P)
-            hole = g.math('MULTIPLY', g.sstep(1.93, 2.0, sp.outputs[2]), g.math('SUBTRACT', 1.0, g.sstep(2.27, 2.33, sp.outputs[2])))
-            hole = g.math('MULTIPLY', hole, g.math('SUBTRACT', 1.0, g.sstep(0.15, 0.20, g.math('ABSOLUTE', sp.outputs[0]))))
-            hole = g.math('MULTIPLY', hole, g.sstep(-0.40, -0.34, sp.outputs[1]))
-            c = g.mix(g.math('MULTIPLY', hole, 0.94), c, C(0.004, 0.004, 0.005))
+            c = g.mix(1.0, c, 0.50, 'MULTIPLY')
+            # et tous les creux (plis de la robe, dessous de la capuche) s'assombrissent
+            c = g.mix(1.0, c, g.math('POWER', ao_b, 2.6), 'MULTIPLY')
+            drip = g.sstep(0.56, 0.72, g.noise(g.vmul(P, (6.0, 6.0, 0.35)), 1.0, 3, 0.5))
+            c = g.mix(g.math('MULTIPLY', drip, 0.45), c, C(0.015, 0.015, 0.018))
+            # l'os du masque : pale, fele, et il garde un peu de clarte meme au fond de la capuche
+            bone = sc.outputs[2]
+            bcol = g.mix(g.sstep(0.35, 0.7, n_med), C(0.46, 0.43, 0.36), C(0.27, 0.25, 0.21))
+            bcol = g.mix(g.math('MULTIPLY', crack, 0.9), bcol, C(0.02, 0.02, 0.02))
+            bcol = g.mix(1.0, bcol, g.math('ADD', 0.30, g.math('MULTIPLY', ao_b, 0.70)), 'MULTIPLY')
+            c = g.mix(bone, c, bcol)
             c = g.mix(flag, c, C(0.02, 0.0, 0.0))
             res['emis'] = g.mix(1.0, C(1.0, 0.07, 0.02), flag, 'MULTIPLY')
         res.update(color=c, orm=orm, normal=normal)
@@ -970,10 +1034,10 @@ IMG = {
                 nrm=new_image('Fer_Normal', S_FER, True, (0.5, 0.5, 1, 1)),
                 orm=new_image('Fer_ORM', S_FER, True, (1, 1, 0.5, 1)),
                 emis=new_image('Fer_Emission', S_FER, False, (0, 0, 0, 1)), size=S_FER),
-    'Statue': dict(alb=new_image('Statue_Albedo', S_FER, False, (0.08, 0.08, 0.08, 1)),
-                   nrm=new_image('Statue_Normal', S_FER, True, (0.5, 0.5, 1, 1)),
-                   orm=new_image('Statue_ORM', S_FER, True, (0, 1, 0.9, 1)),
-                   emis=new_image('Statue_Emission', S_FER, False, (0, 0, 0, 1)), size=S_FER),
+    'Statue': dict(alb=new_image('Statue_Albedo', S, False, (0.04, 0.04, 0.04, 1)),
+                   nrm=new_image('Statue_Normal', S, True, (0.5, 0.5, 1, 1)),
+                   orm=new_image('Statue_ORM', S, True, (0, 1, 0.9, 1)),
+                   emis=new_image('Statue_Emission', S, False, (0, 0, 0, 1)), size=S),
 }
 REUSE = len(argv) > 4 and argv[4] == 'reuse'
 for name, d in ([] if REUSE else list(objs.items())):

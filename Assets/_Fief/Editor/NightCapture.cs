@@ -100,8 +100,18 @@ namespace Fief
             Shot(cam, Path.Combine(dir, "1_vestibule.png"), new Vector3(0f, 1.65f, 1.2f), new Vector3(0f, 2f, 8f));
             Shot(cam, Path.Combine(dir, "2_couloir.png"), new Vector3(0f, 1.65f, 8.6f), new Vector3(0f, 2.3f, 30f));
             Shot(cam, Path.Combine(dir, "3_niche.png"), new Vector3(-0.9f, 1.65f, 18.2f), new Vector3(4.2f, 1.5f, 22f));
-            Shot(cam, Path.Combine(dir, "3b_penitent.png"), new Vector3(0.6f, 1.65f, 22f), new Vector3(4.2f, 1.75f, 22f));
-            Shot(cam, Path.Combine(dir, "3c_penitent_pres.png"), new Vector3(2.6f, 1.75f, 22.5f), new Vector3(4.2f, 2.0f, 22f));
+            // Le Penitent : endormi (yeux eteints), puis ses deux autres poses, yeux allumes.
+            Penitent monster = Object.FindAnyObjectByType<Penitent>();
+            Shot(cam, Path.Combine(dir, "3b_penitent_dort.png"), new Vector3(0.6f, 1.65f, 22f), new Vector3(4.2f, 1.75f, 22f));
+            if (monster != null)
+            {
+                monster.ShowPose(1); monster.Glare(1.2f);
+                Shot(cam, Path.Combine(dir, "3c_penitent_vu.png"), new Vector3(1.4f, 1.7f, 22.3f), new Vector3(4.2f, 1.9f, 22f));
+                monster.ShowPose(2); monster.Glare(2.4f);
+                Shot(cam, Path.Combine(dir, "3d_penitent_veut.png"), new Vector3(2.3f, 1.7f, 22.2f), new Vector3(4.2f, 2.1f, 22f));
+                Shot(cam, Path.Combine(dir, "3e_penitent_loin.png"), new Vector3(-1.2f, 1.65f, 21.4f), new Vector3(4.2f, 1.9f, 22f));
+                monster.ShowPose(0); monster.Glare(0f);
+            }
             Shot(cam, Path.Combine(dir, "4_chapelle.png"), new Vector3(0f, 1.65f, 33.5f), new Vector3(0f, 2.6f, 44f));
             Shot(cam, Path.Combine(dir, "5_mur.png"), new Vector3(0.6f, 1.6f, 15.2f), new Vector3(-2f, 1.7f, 13.6f));
             Debug.Log("[FIEF] Photos de la nuit dans " + dir);

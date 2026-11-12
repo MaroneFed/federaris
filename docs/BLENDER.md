@@ -7,8 +7,9 @@ décrit plus bas : il lance Blender tout seul, sans fenêtre, avec un script. Le
 voir les pièces se construire sous tes yeux.
 
 - **Les pièces** (`Assets/_Fief/Resources/Modeles/Kit/`) : `mur_droit`, `mur_arche`, `dalle_sol`, `voute_couloir`,
-  `pilier`, `fenetre` (pierre), `torche_murale`, `brasero`, `cierge` (fer), `vitrail` (verre). Moins de
-  900 triangles chacune, 1 unité = 1 mètre, pivot au sol, grille de 4 m.
+  `pilier`, `fenetre`, `autel` (pierre), `torche_murale`, `brasero`, `cierge` (fer), `vitrail` (verre), et
+  `penitent` (la statue du monstre : sa propre matière **Statue**, ses yeux rouges dans `Statue_Emission`). Moins de
+  1000 triangles chacune, 1 unité = 1 mètre, pivot au sol, grille de 4 m.
 - **Les textures** (`Kit/Textures/`) : une seule matière **Pierre** pour toute la pierre, une matière **Fer**, une
   matière **Vitrail**. Pour chacune : la couleur (`_Albedo`), le relief (`_Normal`), un masque (`_Mask` : rouge =
   métal, vert = ombre des creux, alpha = lisse), et ce qui brille tout seul (`_Emission` : braises, verre).

@@ -131,7 +131,8 @@ namespace Fief
             m.EnableKeyword("_MASKMAP");
             if (emission != null)
             {
-                Color glow = new Color(1f, 1f, 1f) * 3f;
+                // Les yeux du Penitent restent ROUGES : trop fort, le halo les blanchit.
+                Color glow = name == "Statue" ? new Color(1f, 0.10f, 0.05f) * 1.7f : new Color(1f, 1f, 1f) * 3f;
                 Set(m, "_EmissionMap", emission); Set(m, "_EmissiveColorMap", emission);
                 SetColor(m, "_EmissionColor", glow); SetColor(m, "_EmissiveColor", glow);
                 m.EnableKeyword("_EMISSION");
@@ -292,7 +293,7 @@ namespace Fief
                 lightGo.transform.localPosition = new Vector3(0f, size * 0.35f, 0f);
                 Light l = lightGo.AddComponent<Light>();
                 l.type = LightType.Point;
-                l.color = new Color(1f, 0.60f, 0.30f);
+                l.color = new Color(1f, 0.68f, 0.42f);
                 l.range = range;
                 l.intensity = IsPipeline("HD") ? intensity * 600f : intensity;
                 l.shadows = LightShadows.None;

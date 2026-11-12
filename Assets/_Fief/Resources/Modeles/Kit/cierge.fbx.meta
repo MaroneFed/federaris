@@ -17,6 +17,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Statue
+    second: {fileID: 2100000, guid: 803e23d39054eb04ba1dee248e66aeda, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Vitrail
     second: {fileID: 2100000, guid: d4e597d6526b7494e8abb59d5df9207b, type: 2}
   materials:

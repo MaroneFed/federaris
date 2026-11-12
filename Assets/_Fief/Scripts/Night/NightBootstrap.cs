@@ -20,8 +20,9 @@ namespace Fief
     public class NightBootstrap : MonoBehaviour
     {
         static readonly Color Stone = new Color(0.40f, 0.39f, 0.38f);
+        static readonly Color Night = new Color(0.011f, 0.015f, 0.028f);
         static readonly Color StoneDark = new Color(0.27f, 0.26f, 0.26f);
-        static readonly Color Flame = new Color(1f, 0.62f, 0.25f);
+        static readonly Color Flame = new Color(1f, 0.68f, 0.38f);
 
         Transform world;
         NightPlayer player;
@@ -43,7 +44,7 @@ namespace Fief
             // --- la nuit : aucune lumiere du ciel, un brouillard noir qui mange les distances
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.012f, 0.013f, 0.02f);
+            RenderSettings.ambientLight = Night;      // (12/11) un fond bleu tres faible : les ombres sont froides, les feux chauds
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
             RenderSettings.fogColor = Color.black;
@@ -177,11 +178,13 @@ namespace Fief
             if (dawn > 0f)
             {
                 dawn = Mathf.MoveTowards(dawn, 1f, dt / 6f);
-                RenderSettings.ambientLight = Color.Lerp(new Color(0.012f, 0.013f, 0.02f), new Color(0.55f, 0.42f, 0.32f), dawn);
+                RenderSettings.ambientLight = Color.Lerp(Night, new Color(0.55f, 0.42f, 0.32f), dawn);
                 RenderSettings.fogColor = Color.Lerp(Color.black, new Color(0.75f, 0.55f, 0.4f), dawn);
                 RenderSettings.fogDensity = Mathf.Lerp(0.055f, 0.012f, dawn);
                 if (player.View != null) player.View.backgroundColor = RenderSettings.fogColor;
             }
+            // (12/11) Tant qu'il fait nuit : plus le Penitent est pres, plus le noir se referme.
+            else RenderSettings.fogDensity = 0.060f + 0.045f * Penitent.Dread;
         }
 
         int Lit()
@@ -238,6 +241,7 @@ namespace Fief
             GUI.color = Color.white;
 
             if (dawn <= 0f && NearestUnlit() != null) GUI.Label(new Rect(0f, h * 0.56f, w, h * 0.06f), "E  —  allumer le cierge", text);
+            if (Cursor.lockState != CursorLockMode.Locked) GUI.Label(new Rect(0f, h * 0.44f, w, h * 0.06f), "Clic : reprendre     —     Échap : quitter", text);
             if (Time.time < messageUntil) GUI.Label(new Rect(w * 0.1f, h * 0.8f, w * 0.8f, h * 0.1f), message, text);
         }
     }
@@ -339,10 +343,14 @@ namespace Fief
             Penitent p = go.AddComponent<Penitent>();
             p.prey = prey;
             p.home = at;
-            // (12/11) La statue sculptee dans Blender ; sans le kit, la silhouette en cones et en boules d'avant.
-            bool statue = false;
-            try { statue = NightKit.PenitentStatue(go.transform); } catch (System.Exception) { }
-            if (statue) return p;
+            Dread = 0f;
+            // (12/11) Les statues sculptees dans Blender (trois poses) ; sans le kit, la silhouette en cones d'avant.
+            try { p.poses = NightKit.PenitentStatues(go.transform); } catch (System.Exception) { p.poses = null; }
+            if (p.poses != null)
+            {
+                try { p.PrepareFear(); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Peur du Pénitent ignorée : " + e.Message); }
+                return p;
+            }
             Material robe = MaterialFactory.GetShiny(new Color(0.2f, 0.2f, 0.22f), 0.2f, 0f);
             Material bone = MaterialFactory.GetShiny(new Color(0.62f, 0.6f, 0.55f), 0.25f, 0f);
             Proto.BeginVisualOnly();
@@ -360,8 +368,108 @@ namespace Fief
         }
 
         public void Wake() { awake = true; }
-        public void Crumble() { gone = true; gameObject.SetActive(false); }
-        public void Reset() { transform.position = home; transform.rotation = Quaternion.Euler(0f, -90f, 0f); }
+        public void Crumble() { gone = true; Dread = 0f; gameObject.SetActive(false); }
+        public void Reset() { transform.position = home; transform.rotation = Quaternion.Euler(0f, -90f, 0f); ShowPose(0); }
+
+        // ------------------------------------------------------------------ la peur (12/11)
+        //
+        // Martin : "rends le Penitent vraiment flippant, quitte a mettre moins de lumiere ; la, t'as
+        // presque envie de lui faire un calin". Sa regle ne change pas (il n'avance que quand on ne le
+        // regarde pas). Ce qui change, c'est tout ce qu'on RESSENT :
+        //   - il a TROIS POSES, et il en change dans ton dos : il dort, il t'a vu, il te veut ;
+        //   - ses yeux sont eteints tant qu'il dort, s'allument au premier cierge, et brulent de pres ;
+        //   - plus il est pres, plus ta torche faiblit et tousse, plus le brouillard s'epaissit ;
+        //   - un grondement sourd monte avec lui.
+
+        /// <summary>De 0 (il est loin, ou il dort) a 1 (il est sur toi). La torche et le brouillard le lisent.</summary>
+        public static float Dread;
+
+        GameObject[] poses;
+        int pose;
+        Material skin;
+        AudioSource drone;
+
+        void PrepareFear()
+        {
+            // Une copie de la matiere, rien que pour lui : on peut changer l'eclat de ses yeux sans toucher au fichier.
+            Renderer first = poses[0].GetComponentInChildren<Renderer>();
+            if (first != null && first.sharedMaterial != null)
+            {
+                skin = new Material(first.sharedMaterial);
+                for (int i = 0; i < poses.Length; i++)
+                    foreach (Renderer r in poses[i].GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = skin;
+                skin.SetColor("_EmissionColor", Color.black);
+            }
+            drone = gameObject.AddComponent<AudioSource>();
+            drone.clip = Rumble();
+            drone.loop = true;
+            drone.playOnAwake = false;
+            drone.spatialBlend = 0.6f;
+            drone.rolloffMode = AudioRolloffMode.Linear;
+            drone.minDistance = 2f;
+            drone.maxDistance = 20f;
+            drone.volume = 0f;
+            drone.Play();
+            ShowPose(0);
+        }
+
+        /// <summary>Montre une des trois statues (0 il dort, 1 il t'a vu, 2 il te veut).</summary>
+        public void ShowPose(int which)
+        {
+            if (poses == null) return;
+            pose = Mathf.Clamp(which, 0, poses.Length - 1);
+            for (int i = 0; i < poses.Length; i++) poses[i].SetActive(i == pose);
+        }
+
+        /// <summary>L'eclat de ses yeux (0 : eteints).</summary>
+        public void Glare(float strength)
+        {
+            if (skin != null) skin.SetColor("_EmissionColor", new Color(1f, 0.09f, 0.04f) * strength);
+        }
+
+        void Feel(float distance)
+        {
+            float near = awake ? Mathf.InverseLerp(13f, 2.5f, distance) : 0f;
+            Dread = Mathf.MoveTowards(Dread, near, Time.deltaTime * 0.9f);
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * (2f + 7f * Dread));
+            Glare(awake ? 0.45f + 1.7f * Dread + 0.5f * Dread * pulse : 0f);
+            if (drone != null)
+            {
+                drone.volume = Dread * Dread * 0.6f * Settings.Volume;
+                drone.pitch = 0.82f + 0.3f * Dread;
+            }
+        }
+
+        /// <summary>
+        /// Un grondement grave fabrique par le code (aucun fichier) : trois notes tres basses qui battent
+        /// l'une contre l'autre, et un souffle. Concept Unity : un AudioClip est une liste de nombres entre
+        /// -1 et 1, 44 100 par seconde ; on peut la remplir soi-meme avec SetData.
+        /// </summary>
+        static AudioClip Rumble()
+        {
+            const int rate = 44100;
+            int total = rate * 4, fade = rate / 3, length = total - fade;
+            float[] raw = new float[total];
+            System.Random random = new System.Random(7);
+            float breath = 0f;
+            for (int i = 0; i < total; i++)
+            {
+                float t = i / (float)rate;
+                breath += ((float)(random.NextDouble() * 2.0 - 1.0) - breath) * 0.02f;
+                raw[i] = (Mathf.Sin(6.2832f * 41f * t) * 0.34f + Mathf.Sin(6.2832f * 55.5f * t) * 0.22f
+                    + Mathf.Sin(6.2832f * 82.3f * t + Mathf.Sin(6.2832f * 0.25f * t) * 2f) * 0.12f + breath * 1.5f) * 0.5f;
+            }
+            // La fin se fond dans le debut : la boucle ne claque pas.
+            float[] data = new float[length];
+            for (int i = 0; i < length; i++)
+            {
+                float w = i < fade ? i / (float)fade : 1f;
+                data[i] = raw[i] * w + (i < fade ? raw[length + i] * (1f - w) : 0f);
+            }
+            AudioClip clip = AudioClip.Create("Grondement du Pénitent", length, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
 
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 
@@ -388,7 +496,12 @@ namespace Fief
 
         void Update()
         {
-            if (!awake || gone || prey == null || Watched()) return;
+            if (gone || prey == null) return;
+            float distance = Flat(prey.transform.position - transform.position).magnitude;
+            if (poses != null) Feel(distance);
+            if (!awake || Watched()) return;
+            // Personne ne le regarde : il change de pose selon la distance, puis il avance.
+            if (poses != null) ShowPose(distance < 4.5f ? 2 : distance < 10f ? 1 : 0);
             Vector3 target = prey.transform.position;
             if (!Clear(transform.position, target)) target = NextNode(target);
             Vector3 step = Flat(target - transform.position);
@@ -492,9 +605,9 @@ namespace Fief
             fire.transform.localPosition = new Vector3(0.35f, -0.15f, 0.3f);
             p.torch = fire.AddComponent<Light>();
             p.torch.type = LightType.Point;
-            p.torch.color = new Color(1f, 0.66f, 0.34f);
-            p.torch.range = 11f;
-            p.torch.intensity = 1.5f;
+            p.torch.color = new Color(1f, 0.75f, 0.50f);
+            p.torch.range = 9f;          // (12/11) moins de lumiere : on ne voit plus le bout du couloir
+            p.torch.intensity = 1.2f;
             p.torch.shadows = LightShadows.Soft;
             p.torch.shadowStrength = 0.9f;
             p.torch.shadowNearPlane = 0.3f;
@@ -517,7 +630,13 @@ namespace Fief
         void Update()
         {
             // Echap rend la souris ; un clic la reprend.
-            if (FiefInput.CancelPressed) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+            // (12/11) Un second Echap, souris deja rendue, quitte le jeu (dans le .exe ; sans effet dans l'editeur).
+            if (FiefInput.CancelPressed)
+            {
+                if (Cursor.lockState != CursorLockMode.Locked) Application.Quit();
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
             if (FiefInput.ShootPressed) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
 
             if (Cursor.lockState == CursorLockMode.Locked)
@@ -543,7 +662,12 @@ namespace Fief
                 if (stride > 2.1f) { stride = 0f; try { Sfx.Step(); } catch (System.Exception) { } }
             }
             float t = Time.time;
-            torch.intensity = 1.5f + Mathf.Sin(t * 9f) * 0.1f + Mathf.Sin(t * 21f) * 0.07f + Mathf.PerlinNoise(t * 3f, 0f) * 0.2f;
+            float flame = 1.2f + Mathf.Sin(t * 9f) * 0.09f + Mathf.Sin(t * 21f) * 0.06f + Mathf.PerlinNoise(t * 3f, 0f) * 0.18f;
+            // (12/11) Le Penitent approche : la flamme faiblit, puis tousse (de courts trous noirs).
+            float dread = Penitent.Dread;
+            float cough = dread > 0.3f && Mathf.PerlinNoise(t * 11f, 3f) > 0.70f ? 0.6f * dread : 0f;
+            torch.intensity = flame * (1f - 0.45f * dread) * (1f - cough);
+            torch.range = 9f - 2.5f * dread;
         }
     }
 }
