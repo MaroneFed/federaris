@@ -113,6 +113,16 @@ namespace Fief
                 monster.ShowPose(0); monster.Glare(0f);
             }
             Shot(cam, Path.Combine(dir, "4_chapelle.png"), new Vector3(0f, 1.65f, 33.5f), new Vector3(0f, 2.6f, 44f));
+            // (14/11) La porte de la sacristie, et le Rodeur dans le couloir, sa lanterne braquee sur nous.
+            Shot(cam, Path.Combine(dir, "9_porte.png"), new Vector3(0.4f, 1.65f, 4.6f), new Vector3(4f, 1.5f, 6f));
+            NightPlayer knight = Object.FindAnyObjectByType<NightPlayer>();
+            if (knight != null)
+            {
+                Prowler rodeur = Prowler.Spawn(null, new[] { new Vector3(0f, 0f, 15f), new Vector3(0f, 0f, 25f) }, knight);
+                Shot(cam, Path.Combine(dir, "9b_rodeur.png"), new Vector3(0.9f, 1.65f, 21.5f), new Vector3(0f, 1.7f, 15f));
+                Shot(cam, Path.Combine(dir, "9c_rodeur_dos.png"), new Vector3(-0.8f, 1.65f, 11f), new Vector3(0f, 1.6f, 15f));
+                Object.Destroy(rodeur.gameObject);
+            }
             Shot(cam, Path.Combine(dir, "5_mur.png"), new Vector3(0.6f, 1.6f, 15.2f), new Vector3(-2f, 1.7f, 13.6f));
             Debug.Log("[FIEF] Photos de la nuit dans " + dir);
         }

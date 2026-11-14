@@ -22,6 +22,8 @@ namespace Fief
         const string Dir = "Modeles/Kit/";
         static readonly Dictionary<string, GameObject> Sources = new Dictionary<string, GameObject>();
         static readonly List<GameObject> DawnFires = new List<GameObject>();
+        /// <summary>(14/11) Le vantail de la porte de la sacristie, pose par Dress ; null si le kit n'a pas de porte.</summary>
+        public static Transform DoorLeaf;
         static Transform root;
 
         static GameObject Source(string name)
@@ -38,6 +40,7 @@ namespace Fief
         {
             DawnFires.Clear();
             Sources.Clear();
+            DoorLeaf = null;
             if (Source("mur_droit") == null || Source("dalle_sol") == null) return false;
 
             // Les blocs deviennent invisibles (ils gardent leur collider).
@@ -58,7 +61,12 @@ namespace Fief
                 for (int z = 2; z <= 6; z += 4) { Floor(x, z); Ceiling(x, z, 4f); }
             Wall(-2f, 0f, 0f); Wall(2f, 0f, 0f);
             Wall(-4f, 2f, 90f); Wall(-4f, 6f, 90f);
-            Wall(4f, 2f, 90f); Wall(4f, 6f, 90f);
+            Wall(4f, 2f, 90f); Arch(4f, 6f, 90f);       // (14/11) l'arche de la sacristie
+            // LA SACRISTIE (x 4..8, z 4..8) et sa porte de chene : ses gonds sont a z 5,05.
+            Floor(6f, 6f); Ceiling(6f, 6f, 4f);
+            Wall(6f, 4f, 0f); Wall(8f, 8f, 0f); Wall(8f, 6f, 90f);
+            GameObject door = Put("porte", 4f, 5.05f, 90f);
+            if (door != null) DoorLeaf = door.transform;
             Wall(-4f, 8f, 0f); Wall(4f, 8f, 0f);          // ils depassent dehors de 2 m : personne ne le voit
             Arch(0f, 8f, 0f);
             Fire("Torche_Murale_Feu", -3f, 8f, 180f, true);
@@ -108,6 +116,18 @@ namespace Fief
                 MoonShaft();
             }
             return true;
+        }
+
+        /// <summary>Un modele du kit pose sous "parent", a son origine. Null si le kit ne l'a pas.</summary>
+        public static GameObject Model(string name, Transform parent)
+        {
+            GameObject src = Source(name);
+            if (src == null) return null;
+            GameObject go = Object.Instantiate(src, parent);
+            go.name = name;
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = src.transform.rotation;
+            return go;
         }
 
         /// <summary>

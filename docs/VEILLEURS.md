@@ -23,6 +23,28 @@ pendant que des choses rôdent — et il faut ressortir avant l'aube.
 - Il **n'aime pas les jeux d'horreur** : ça doit rester « sympa ».
 - Des graphismes « de malade » : il accepte de passer par de vrais outils de 3D.
 
+### Ce que Martin a dit le 14/11 (acquis — remplace « ça doit rester sympa »)
+
+- **Ça doit faire PEUR**, « hyper flippant ». Le Pénitent « câlin » a été refait pour ça.
+- **Le but : SURVIVRE dans le château.** On est des chevaliers « hyper stylés », on vient d'entrer, le château
+  est vide et bizarre.
+- **L'ouverture, en cinématique** : un homme nous dit « c'est plus comme avant, tout a changé », un bruit, il fuit
+  en hurlant ; on se retourne, une forme noire ; quand on regarde à nouveau, il n'y a plus personne.
+- **Garder LA FOI** en faisant des actions.
+- **Des petits gestes à la main**, comme la serrure de Fallout : pour les portes, pour les cierges, etc.
+- **Des monstres qu'on voit**, « un peu cons », qui rôdent et refont les mêmes mouvements : derrière eux ils ne
+  te voient pas, devant eux « t'es dans la merde ». On peut les observer d'en haut, par une fenêtre, ouvrir une
+  porte et courir. **Et des monstres qu'on ne voit pas.**
+- **On est au Moyen Âge** (pas de briquet : un silex). **Des cinématiques « trop stylées ».**
+- Les 4 scénarios proposés par Claude le 14/11 sont **refusés** ; il veut des textes courts.
+
+**Fait le 14/11 (première tranche, `Scripts/Night/NightSurvival.cs`)** : la Foi (croix en bas à gauche, elle baisse
+seule, plus vite quand on est traqué ; prier à l'autel ou allumer un cierge la remonte ; à zéro on est pris),
+la sacristie verrouillée et sa **serrure à crocheter**, le **silex** à y prendre, les cierges qui s'allument en
+**battant le silex** (trois étincelles), et **le Rôdeur** : il fait sa ronde, sa lanterne verte EST son regard,
+elle vire au rouge quand il t'a vu. Un geste raté fait du bruit : il vient voir.
+**Pas encore fait** : la cinématique d'ouverture, le grand château, les cachettes en hauteur, les fenêtres.
+
 ## Ce que Claude propose (à valider un par un)
 
 Ces points viennent de la fiche écrite par l'autre Claude sur les goûts de Martin.

@@ -30,7 +30,15 @@ namespace Fief
         readonly List<Candle> candles = new List<Candle>();
         float dawn;                 // 0 : la nuit ; monte vers 1 quand la quete est finie
         float caught;               // le noir qui retombe quand le Penitent t'a eu
-        string message = "Rallume les quatre cierges de la chapelle.";
+        string message = "La sacristie, à droite. Il te faut le silex.";
+        // (14/11) LA SURVIE : la foi, la sacristie verrouillee, le silex, le Rodeur. Voir NightSurvival.cs.
+        Prowler prowler;
+        NightDoor sacristy;
+        GameObject flint;
+        bool hasFlint;
+        float prayHold, prayedAt = -999f;
+        static readonly Vector3 FlintAt = new Vector3(7f, 1.05f, 6f);
+        static readonly Vector3 AltarAt = new Vector3(0f, 0f, 40.3f);
         float messageUntil;
         GUIStyle text;
 
@@ -66,6 +74,9 @@ namespace Fief
 
             player = NightPlayer.Spawn(new Vector3(0f, 0.1f, 3f));
             penitent = Penitent.Spawn(world, new Vector3(4.2f, 0f, 22f), player);
+            Faith.Reset();
+            NightGames.Abort();
+            BuildSacristy();
             messageUntil = Time.time + 7f;
             Debug.Log("[FIEF] La Nuit, V0 : quatre cierges à rallumer. Le Pénitent s'éveille au premier.");
         }
@@ -95,9 +106,17 @@ namespace Fief
             Slab(-4f, 0f, 4f, 8f, 4f);
             Wall(-4f, 0f, 4f, 0f, 0f, 4f);
             Wall(-4f, 0f, -4f, 8f, 0f, 4f);
-            Wall(4f, 0f, 4f, 8f, 0f, 4f);
+            Wall(4f, 0f, 4f, 4f, 0f, 4f);             // (14/11) plus loin, de z 5 a 7 : la porte de la sacristie
             Wall(-4f, 8f, -2f, 8f, 0f, 4f);
             Wall(2f, 8f, 4f, 8f, 0f, 4f);
+
+            // LA SACRISTIE (4 x 4 m), a droite du vestibule, derriere une porte verrouillee : le silex y est.
+            Slab(4f, 4f, 8f, 8f, 4f);
+            Wall(4f, 4f, 8f, 4f, 0f, 4f);
+            Wall(4f, 8f, 8f, 8f, 0f, 4f);
+            Wall(8f, 4f, 8f, 8f, 0f, 4f);
+            Wall(4f, 4f, 4f, 4.7f, 0f, 4f);           // les deux montants de la porte
+            Wall(4f, 7.3f, 4f, 8f, 0f, 4f);
 
             // LE COULOIR (4 m de large, 24 m de long), avec une niche a droite, a mi-chemin.
             Slab(-2f, 8f, 2f, 32f, 4f);
@@ -151,26 +170,53 @@ namespace Fief
         {
             if (player == null) return;
             float dt = Time.deltaTime;
+            bool night = dawn <= 0f;
+            bool hunted = prowler != null && prowler.Hunting;
+            NightGames.Tick(dt);
+            if (night) Faith.Tick(dt, hunted);
 
-            // --- allumer un cierge : s'approcher, appuyer sur E
-            Candle near = NearestUnlit();
-            if (near != null && FiefInput.InteractPressed && dawn <= 0f)
+            // --- les gestes (E) : la serrure, le silex, les cierges, la priere
+            if (night && !NightGames.Busy && caught <= 0f)
             {
-                near.Ignite();
-                int lit = Lit();
-                try { Sfx.BellAt(near.transform.position); } catch (System.Exception) { }
-                if (lit == 1) { penitent.Wake(); Say("Quelque chose a bougé dans le couloir. Ne le quitte pas des yeux.", 6f); }
-                if (lit >= candles.Count) { dawn = 0.001f; penitent.Crumble(); NightKit.LightDawnFires(); Say("L'aube se lève. Le château est à toi.", 12f); }
+                Candle near = NearestUnlit();
+                bool press = FiefInput.InteractPressed;
+                if (press && sacristy != null && sacristy.Locked && Near(sacristy.Center, 2.3f))
+                    NightGames.StartLock(sacristy.Center, OnLock);
+                else if (press && !hasFlint && Near(FlintAt, 2f) && (sacristy == null || sacristy.Open))
+                    TakeFlint();
+                else if (press && near != null)
+                {
+                    if (!hasFlint) Say("Il te faut le silex. La sacristie, à droite du vestibule.", 5f);
+                    else { lighting = near; NightGames.StartFlint(near.transform.position, OnFlint); }
+                }
+                // Prier a l'autel : tenir E deux secondes et demie. La foi remonte ; pas plus d'une fois par minute.
+                if (Near(AltarAt, 2.4f) && FiefInput.InteractHeld && Time.time > prayedAt + 60f)
+                {
+                    prayHold += dt;
+                    if (prayHold >= 2.5f)
+                    {
+                        prayHold = 0f; prayedAt = Time.time;
+                        Faith.Add(0.4f);
+                        try { Sfx.Choir(AltarAt); } catch (System.Exception) { }
+                    }
+                }
+                else prayHold = 0f;
             }
 
-            // --- le Penitent t'a touche : le noir, et tu te reveilles dans le vestibule
-            if (penitent.Touching && caught <= 0f && dawn <= 0f)
+            // --- attrape (le Penitent, le Rodeur), ou la foi perdue : le noir, et tu te reveilles dans le vestibule
+            bool byPenitent = penitent.Touching, byProwler = prowler != null && prowler.Touching, faithless = Faith.Value <= 0f;
+            if ((byPenitent || byProwler || faithless) && caught <= 0f && night)
             {
                 caught = 1.6f;
+                NightGames.Abort();
                 try { Sfx.Thud(); } catch (System.Exception) { }
                 player.Teleport(new Vector3(0f, 0.1f, 3f), 0f);
                 penitent.Reset();
-                Say("Il t'a eu. Il n'avance que quand tu ne le regardes pas.", 6f);
+                if (prowler != null) prowler.SendHome();
+                if (faithless) Faith.Add(0.5f); else Faith.Add(-0.2f);
+                Say(faithless ? "Ta foi s'est éteinte. Prie à l'autel, rallume les cierges."
+                    : byProwler ? "Sa lanterne t'a vu. Reste derrière lui."
+                    : "Il t'a eu. Il n'avance que quand tu ne le regardes pas.", 6f);
             }
             if (caught > 0f) caught -= dt;
 
@@ -185,6 +231,84 @@ namespace Fief
             }
             // (12/11) Tant qu'il fait nuit : plus le Penitent est pres, plus le noir se referme.
             else RenderSettings.fogDensity = 0.060f + 0.045f * Penitent.Dread;
+        }
+
+        Candle lighting;
+
+        bool Near(Vector3 point, float within)
+        {
+            Vector3 d = player.transform.position - point;
+            d.y = 0f;
+            return d.magnitude < within;
+        }
+
+        void OnLock(bool opened)
+        {
+            if (opened && sacristy != null) sacristy.Unlock();
+            else if (!opened) Say("Raté. Le bon angle, puis force doucement.", 4f);
+        }
+
+        void OnFlint(bool lit)
+        {
+            if (lit && lighting != null) LightCandle(lighting);
+            lighting = null;
+        }
+
+        /// <summary>Le silex pris : c'est la que la nuit commence vraiment. Le Rodeur sort de la chapelle.</summary>
+        void TakeFlint()
+        {
+            hasFlint = true;
+            if (flint != null) flint.SetActive(false);
+            Faith.Add(0.1f);
+            try { Sfx.GongAt(new Vector3(0f, 2f, 38f)); } catch (System.Exception) { }
+            Vector3[] round =
+            {
+                new Vector3(3.5f, 0f, 40f), new Vector3(3.5f, 0f, 35f), new Vector3(0f, 0f, 31f), new Vector3(0f, 0f, 9f),
+                new Vector3(-2.5f, 0f, 6f), new Vector3(-2.5f, 0f, 2.5f), new Vector3(2.5f, 0f, 2.5f), new Vector3(2.5f, 0f, 6f),
+                new Vector3(0f, 0f, 9f), new Vector3(0f, 0f, 31f), new Vector3(-3.5f, 0f, 35f), new Vector3(-3.5f, 0f, 40f)
+            };
+            try { prowler = Prowler.Spawn(world, round, player); }
+            catch (System.Exception e) { Debug.LogWarning("[FIEF] Rôdeur ignoré : " + e.Message); }
+            Say("Quelque chose rôde. Sa lanterne voit : reste derrière lui.", 7f);
+        }
+
+        void LightCandle(Candle candle)
+        {
+            candle.Ignite();
+            Faith.Add(0.2f);
+            int lit = Lit();
+            try { Sfx.BellAt(candle.transform.position); } catch (System.Exception) { }
+            if (lit == 1) { penitent.Wake(); Say("Quelque chose a bougé dans le couloir. Ne le quitte pas des yeux.", 6f); }
+            if (lit >= candles.Count)
+            {
+                dawn = 0.001f;
+                penitent.Crumble();
+                if (prowler != null) prowler.gameObject.SetActive(false);
+                NightKit.LightDawnFires();
+                Say("L'aube se lève. Tu as tenu.", 12f);
+            }
+        }
+
+        /// <summary>La sacristie : sa porte (si le kit en a une), un socle, et le silex qui luit dessus.</summary>
+        void BuildSacristy()
+        {
+            Transform leaf = NightKit.DoorLeaf;
+            if (leaf != null)
+                sacristy = NightDoor.Build(world, leaf, new Vector3(4f, 1.5f, 6f), new Vector3(0.35f, 3f, 2f), 90f, 195f);
+            Proto.Cube(world, new Vector3(7f, 0.45f, 6f), new Vector3(0.7f, 0.9f, 0.7f), Stone, "Socle");
+            flint = new GameObject("Le silex");
+            flint.transform.SetParent(world, false);
+            flint.transform.position = FlintAt;
+            Proto.BeginVisualOnly();
+            GameObject stone = Proto.Cube(flint.transform, Vector3.zero, new Vector3(0.16f, 0.07f, 0.1f), Color.white, "Pierre");
+            Proto.EndVisualOnly();
+            stone.transform.localRotation = Quaternion.Euler(8f, 30f, 14f);
+            stone.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(new Color(1f, 0.78f, 0.35f), 1.6f);
+            Light glow = flint.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.8f, 0.4f);
+            glow.range = 3.5f;
+            glow.intensity = 0.9f;
         }
 
         int Lit()
@@ -240,7 +364,20 @@ namespace Fief
             }
             GUI.color = Color.white;
 
-            if (dawn <= 0f && NearestUnlit() != null) GUI.Label(new Rect(0f, h * 0.56f, w, h * 0.06f), "E  —  allumer le cierge", text);
+            if (dawn <= 0f) Faith.Draw(w, h);
+            NightGames.Draw(w, h);
+            if (dawn <= 0f && !NightGames.Busy)
+            {
+                string hint = null;
+                if (sacristy != null && sacristy.Locked && Near(sacristy.Center, 2.3f)) hint = "E  —  crocheter la serrure";
+                else if (!hasFlint && Near(FlintAt, 2f) && (sacristy == null || sacristy.Open)) hint = "E  —  prendre le silex";
+                else if (NearestUnlit() != null) hint = "E  —  battre le silex";
+                else if (Near(AltarAt, 2.4f) && Time.time > prayedAt + 60f) hint = "E (tenir)  —  prier";
+                if (hint != null) GUI.Label(new Rect(0f, h * 0.56f, w, h * 0.06f), hint, text);
+            }
+            else if (NightGames.Busy)
+                GUI.Label(new Rect(0f, h * 0.72f, w, h * 0.06f), NightGames.Current == NightGames.Kind.Lock
+                    ? "Souris : le crochet     Espace : forcer     E : lâcher" : "Espace : frapper dans l'or     E : lâcher", text);
             if (Cursor.lockState != CursorLockMode.Locked) GUI.Label(new Rect(0f, h * 0.44f, w, h * 0.06f), "Clic : reprendre     —     Échap : quitter", text);
             if (Time.time < messageUntil) GUI.Label(new Rect(w * 0.1f, h * 0.8f, w * 0.8f, h * 0.1f), message, text);
         }
@@ -328,9 +465,10 @@ namespace Fief
         /// <summary>Les carrefours du niveau : quand un mur le separe de toi, il passe par la.</summary>
         static readonly Vector3[] Nodes =
         {
-            new Vector3(0f, 0f, 4f), new Vector3(0f, 0f, 10f), new Vector3(0f, 0f, 22f), new Vector3(0f, 0f, 30f), new Vector3(0f, 0f, 38f), new Vector3(4.2f, 0f, 22f)
+            new Vector3(0f, 0f, 4f), new Vector3(0f, 0f, 10f), new Vector3(0f, 0f, 22f), new Vector3(0f, 0f, 30f), new Vector3(0f, 0f, 38f), new Vector3(4.2f, 0f, 22f),
+            new Vector3(6f, 0f, 6f)        // (14/11) la sacristie
         };
-        static readonly int[][] Links = { new[] { 1 }, new[] { 0, 2 }, new[] { 1, 3, 5 }, new[] { 2, 4 }, new[] { 3 }, new[] { 2 } };
+        static readonly int[][] Links = { new[] { 1, 6 }, new[] { 0, 2 }, new[] { 1, 3, 5 }, new[] { 2, 4 }, new[] { 3 }, new[] { 2 }, new[] { 0 } };
 
         public bool Touching { get { return awake && !gone && prey != null && Flat(prey.transform.position - transform.position).magnitude < 1.05f; } }
 
@@ -517,6 +655,40 @@ namespace Fief
             }
         }
 
+        /// <summary>
+        /// (14/11) Pour les autres monstres : ou aller, depuis "from", pour rejoindre "goal" ? Tout droit si rien
+        /// ne barre, sinon par les carrefours. "ok" vaut false quand aucun chemin n'existe (une porte fermee).
+        /// </summary>
+        public static Vector3 Toward(Vector3 from, Vector3 goal, out bool ok)
+        {
+            ok = true;
+            if (Clear(from, goal)) return goal;
+            int a = Nearest(from), b = Nearest(goal);
+            if (a < 0 || b < 0) { ok = false; return from; }
+            if (a == b) return Nodes[a];
+            int[] prev = new int[Nodes.Length];
+            for (int i = 0; i < prev.Length; i++) prev[i] = -1;
+            Queue<int> open = new Queue<int>();
+            open.Enqueue(a);
+            prev[a] = a;
+            while (open.Count > 0)
+            {
+                int n = open.Dequeue();
+                if (n == b) break;
+                for (int k = 0; k < Links[n].Length; k++)
+                {
+                    int m = Links[n][k];
+                    if (prev[m] >= 0) continue;
+                    prev[m] = n;
+                    open.Enqueue(m);
+                }
+            }
+            if (prev[b] < 0) { ok = false; return from; }
+            int hop = b;
+            while (prev[hop] != a) hop = prev[hop];
+            return Flat(Nodes[a] - from).magnitude < 0.4f ? Nodes[hop] : Nodes[a];
+        }
+
         /// <summary>Le prochain carrefour sur le plus court chemin vers "goal" (une petite recherche en largeur).</summary>
         Vector3 NextNode(Vector3 goal)
         {
@@ -639,7 +811,7 @@ namespace Fief
             }
             if (FiefInput.ShootPressed) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
 
-            if (Cursor.lockState == CursorLockMode.Locked)
+            if (Cursor.lockState == CursorLockMode.Locked && !NightGames.Busy)
             {
                 Vector2 look = FiefInput.Look * (0.13f * Settings.Sensitivity);
                 yaw += look.x;
@@ -648,7 +820,7 @@ namespace Fief
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             View.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
 
-            Vector2 input = FiefInput.Move;
+            Vector2 input = NightGames.Busy ? Vector2.zero : FiefInput.Move;      // les mains prises : on ne bouge plus
             float speed = FiefInput.SprintHeld ? 5.6f : 3.4f;
             Vector3 move = (transform.right * input.x + transform.forward * input.y) * speed;
             fall = body.isGrounded ? -2f : fall - 22f * Time.deltaTime;

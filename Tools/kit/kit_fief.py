@@ -428,7 +428,7 @@ def build_penitent(pose=0):
     kind 5 = petites faces noires posees devant (orbites, bouche) ; kind 6 = l'os du masque ; kind 2 = les yeux."""
     N = 24
     rng = random.Random(40 + pose)
-    L = (0.10, 0.17, 0.28)[pose]                       # combien il se penche en avant
+    L = (0.10, 0.17, 0.28, 0.17)[pose]                       # combien il se penche en avant
 
     def cy(z):
         return -L * (max(0.0, z - 0.9) / 1.2) ** 1.5
@@ -449,9 +449,9 @@ def build_penitent(pose=0):
     loft([ering(*r) for r in cape], [0.86, 0.90, 0.94, 0.94])
 
     # ---- la tete : tout est pose par rapport au cou, puis penche (tilt), tourne de travers (roll), avance
-    tilt = (0.32, 0.08, -0.04)[pose]
-    roll = math.radians((0.0, 15.0, -24.0)[pose])
-    push = (0.0, -0.03, -0.10)[pose]
+    tilt = (0.32, 0.08, -0.04, 0.24)[pose]
+    roll = math.radians((0.0, 15.0, -24.0, 0.0)[pose])
+    push = (0.0, -0.03, -0.10, -0.02)[pose]
     neck = Vector((0.0, cy(2.14) - 0.02, 2.14))
 
     def hp(x, y, z):
@@ -471,7 +471,7 @@ def build_penitent(pose=0):
 
     # ---- le masque d'os, au fond de la capuche
     front = hp(0, -1, 0) - hp(0, 0, 0)
-    jaw = (0.0, 0.03, 0.10)[pose]                      # la machoire descend
+    jaw = (0.0, 0.03, 0.10, 0.02)[pose]                      # la machoire descend
     my, mz, mrx, mrz = -0.12, 0.25 - jaw * 0.5, 0.098, 0.150 + jaw * 0.5
     rim = [hp(mrx * math.cos(2 * math.pi * k / 12), my, mz + mrz * math.sin(2 * math.pi * k / 12)) for k in range(12)]
     mid = hp(0, my - 0.04, mz + 0.02)
@@ -482,11 +482,12 @@ def build_penitent(pose=0):
         ex, ez = s * 0.043, mz + mrz * 0.36
         add([hp(ex - .024, fy, ez - s * .004), hp(ex + s * .004, fy, ez - .020), hp(ex + .024, fy, ez + s * .010),
              hp(ex - s * .006, fy, ez + .020)], 0.02, front, kind=5)
-        add([hp(ex - .006, fy - .004, ez), hp(ex, fy - .004, ez - .006), hp(ex + .006, fy - .004, ez),
-             hp(ex, fy - .004, ez + .006)], 1.0, front, kind=2)
+        if pose != 3:                                  # le Rodeur (pose 3) n'a pas d'yeux : c'est sa lanterne qui voit
+            add([hp(ex - .006, fy - .004, ez), hp(ex, fy - .004, ez - .006), hp(ex + .006, fy - .004, ez),
+                 hp(ex, fy - .004, ez + .006)], 1.0, front, kind=2)
     nz = mz + mrz * 0.02
     add([hp(-.011, fy, nz - .018), hp(.011, fy, nz - .018), hp(0, fy, nz + .022)], 0.02, front, kind=5)
-    mh = (0.008, 0.030, 0.085)[pose]                   # la bouche : une fente, puis un trou
+    mh = (0.008, 0.030, 0.085, 0.02)[pose]                   # la bouche : une fente, puis un trou
     mc = mz - mrz * 0.50
     add([hp(-.034, fy, mc + mh * .25), hp(-.016, fy, mc - mh), hp(.016, fy, mc - mh), hp(.034, fy, mc + mh * .25),
          hp(.014, fy, mc + mh), hp(-.014, fy, mc + mh)], 0.02, front, kind=5)
@@ -494,11 +495,11 @@ def build_penitent(pose=0):
     # ---- les bras, trop longs, et quatre doigts par main
     for s in (-1, 1):
         sh = Vector((s * .30, cy(1.98) - .02, 1.98))
-        if pose == 0:
+        if pose == 0 or (pose == 3 and s < 0):
             el, wr = Vector((s * .37, cy(1.4) - .05, 1.42)), Vector((s * .34, -.20 - L, 0.94))
             tips = [wr + Vector((s * dx, -.05 - abs(dx) * .3, -.36 + abs(dx) * .5)) for dx in (-.06, -.02, .02, .06)]
             bend = Vector((0, -.035, 0))
-        elif pose == 1:
+        elif pose == 1 or pose == 3:
             el, wr = Vector((s * .43, -.20 - L, 1.56)), Vector((s * .30, -.54 - L, 1.66))
             tips = [wr + Vector((s * dx, -.27, dz)) for dx, dz in ((-.11, .10), (-.03, .17), (.05, .16), (.12, .07))]
             bend = Vector((0, 0, .05))
@@ -510,6 +511,42 @@ def build_penitent(pose=0):
         tube([sh, el, wr], [.085, .058, .042], 6, 0.9)
         for tip in tips:
             tube([wr, wr.lerp(tip, 0.55) + bend, tip], [.017, .012, .003], 3, 1.25)
+        if pose == 3 and s > 0:                        # la lanterne du Rodeur, au bout de sa chaine
+            lc = wr + Vector((0, -.05, -.34))
+            top, bot = lc + Vector((0, 0, .12)), lc - Vector((0, 0, .12))
+            tube([wr, top], [.008, .008], 3, 0.6)
+            ring = [lc + Vector((.075 * math.cos(math.pi / 2 * k + .785), .075 * math.sin(math.pi / 2 * k + .785), 0)) for k in range(4)]
+            for k in range(4):
+                qa, qb = ring[k], ring[(k + 1) % 4]
+                add([top, qa, qb], 1.0, (qa + qb + top) / 3 - lc, kind=2)
+                add([bot, qb, qa], 1.0, (qa + qb + bot) / 3 - lc, kind=2)
+            print('LANTERNE', tuple(round(v, 3) for v in lc))
+
+
+def build_porte():
+    """Une porte de chene a sommet en plein cintre (elle remplit l'arche de mur_arche), deux pentures de fer.
+    Le PIVOT est sur ses gonds, au sol : on l'ouvre en la faisant tourner. kind 7 = le bois."""
+    W, HJ, TH = 1.9, 2.0, 0.08
+    R = W / 2
+    out = [(0.0, 0.0), (W, 0.0), (W, HJ)]
+    out += [(R + R * math.cos(math.pi * k / 8), HJ + R * math.sin(math.pi * k / 8)) for k in range(1, 8)]
+    out += [(0.0, HJ)]
+    cx, cz = R, 1.4
+    add([(x, -TH / 2, z) for x, z in out], 1.0, (0, -1, 0), kind=7)
+    add([(x, TH / 2, z) for x, z in out], 1.0, (0, 1, 0), kind=7)
+    for i in range(len(out)):
+        (x0, z0), (x1, z1) = out[i], out[(i + 1) % len(out)]
+        add([(x0, -TH / 2, z0), (x1, -TH / 2, z1), (x1, TH / 2, z1), (x0, TH / 2, z0)], 1.0,
+            ((x0 + x1) / 2 - cx, 0, (z0 + z1) / 2 - cz), kind=7)
+
+    def box(x0, x1, y0, y1, z0, z1, col=1.0):
+        loft([[Vector((x0, y0, z)), Vector((x1, y0, z)), Vector((x1, y1, z)), Vector((x0, y1, z))] for z in (z0, z1)], [col])
+
+    for z in (0.42, 1.58):
+        box(0.0, W - 0.14, -TH / 2 - 0.018, TH / 2 + 0.018, z, z + 0.13)
+        box(-0.03, 0.05, -TH / 2 - 0.035, TH / 2 + 0.035, z - 0.03, z + 0.16)
+    box(W - 0.30, W - 0.20, -TH / 2 - 0.07, TH / 2 + 0.07, 1.02, 1.12)      # la poignee
+    box(W - 0.36, W - 0.14, -TH / 2 - 0.022, TH / 2 + 0.022, 0.96, 1.18)    # sa platine
 
 
 def build_autel():
@@ -557,6 +594,8 @@ PIECES = [
     ('penitent', lambda: build_penitent(0), 'Statue', 50, False, ((1.2, -3.9, 1.8), (0, 0, 1.5))),
     ('penitent_2', lambda: build_penitent(1), 'Statue', 50, False, ((1.2, -3.9, 1.8), (0, 0, 1.5))),
     ('penitent_3', lambda: build_penitent(2), 'Statue', 50, False, ((1.6, -3.9, 1.9), (0, -0.3, 1.6))),
+    ('rodeur', lambda: build_penitent(3), 'Statue', 50, False, ((1.8, -3.9, 1.8), (0, -0.2, 1.5))),
+    ('porte', build_porte, 'Fer', 50, False, ((2.6, -4.6, 1.7), (0.95, 0, 1.45))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -595,8 +634,8 @@ def make_object(name, fn, iron):
             continue
         f[kind_l] = kind
         for lp in f.loops:
-            lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind in (4, 6) else 0.0, 1.0)
-    smooth = iron or name.startswith('penitent')
+            lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind in (4, 6) else 0.0, 0.0 if kind == 7 else 1.0)
+    smooth = iron or name.startswith('penitent') or name == 'rodeur'
     if iron or smooth or name in ('pilier', 'fenetre', 'autel'):
         bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] not in (2, 5, 6)])
     bm.normal_update()
@@ -844,7 +883,7 @@ def bake_material(name, iron, grime=False, floor=False, statue=False):
             bcol = g.mix(1.0, bcol, g.math('ADD', 0.30, g.math('MULTIPLY', ao_b, 0.70)), 'MULTIPLY')
             c = g.mix(bone, c, bcol)
             c = g.mix(flag, c, C(0.02, 0.0, 0.0))
-            res['emis'] = g.mix(1.0, C(1.0, 0.07, 0.02), flag, 'MULTIPLY')
+            res['emis'] = g.mix(1.0, C(1.0, 1.0, 1.0), flag, 'MULTIPLY')      # blanc : c'est le jeu qui choisit la couleur
         res.update(color=c, orm=orm, normal=normal)
     else:
         dimp = g.vor(P, 55.0, 'F1')
@@ -855,6 +894,14 @@ def bake_material(name, iron, grime=False, floor=False, statue=False):
         h_i = g.math('ADD', g.math('MULTIPLY', dimp, 0.6), g.math('MULTIPLY', n_med, 0.6))
         h_c = g.math('ADD', g.math('MULTIPLY', cellc, 5.0), g.math('MULTIPLY', n_f, 0.6))
         h = g.mix(flag, h_i, h_c)
+        # le bois de la porte : des planches (un joint tous les 24 cm) et le fil du bois
+        wood = g.math('SUBTRACT', 1.0, att.outputs['Alpha'])
+        spw = g.node('ShaderNodeSeparateXYZ')
+        g.put(spw.inputs[0], P)
+        fr = g.math('FRACT', g.math('MULTIPLY', spw.outputs[0], 4.2))
+        seam = g.math('SUBTRACT', 1.0, g.sstep(0.0, 0.05, g.math('MINIMUM', fr, g.math('SUBTRACT', 1.0, fr))))
+        grain = g.noise(g.vmul(P, (55.0, 55.0, 3.0)), 1.0, 4, 0.6)
+        h = g.mix(wood, h, g.math('SUBTRACT', g.math('MULTIPLY', grain, 0.7), g.math('MULTIPLY', seam, 2.5)))
         normal = g.bump(h, 0.004, g.bevel(0.005))
         edge = g.math('MULTIPLY', g.edge(TN, 0.012, 0.01, 0.22), g.math('ADD', 0.3, g.sstep(0.35, 0.65, n_med)), clamp=True)
         cav = g.math('SUBTRACT', 1.0, g.sstep(0.5, 0.95, g.ao(0.04)))
@@ -879,6 +926,13 @@ def bake_material(name, iron, grime=False, floor=False, statue=False):
         wcol = g.mix(g.sstep(0.3, 0.7, g.noise(g.vmul(P, (30.0, 30.0, 4.0)), 1.0, 3, 0.5)), C(0.80, 0.70, 0.50), C(0.62, 0.52, 0.34))
         wcol = g.mix(g.math('MULTIPLY', cav, 0.6), wcol, C(0.25, 0.18, 0.10))
         c = g.mix(wax, c, wcol)
+        wood_c = g.mix(grain, C(0.070, 0.045, 0.026), C(0.19, 0.125, 0.072))
+        wood_c = g.mix(g.math('MULTIPLY', seam, 0.9), wood_c, C(0.01, 0.008, 0.006))
+        wood_c = g.mix(g.math('MULTIPLY', edge, 0.45), wood_c, C(0.28, 0.20, 0.13))
+        wood_c = g.mix(g.math('MULTIPLY', cav, 0.6), wood_c, C(0.02, 0.015, 0.01))
+        c = g.mix(wood, c, wood_c)
+        metal = g.math('MULTIPLY', metal, g.math('SUBTRACT', 1.0, wood))
+        rough = g.mix(wood, rough, 0.78)
         metal = g.math('MULTIPLY', metal, g.math('SUBTRACT', 1.0, wax))
         rough = g.mix(wax, rough, 0.55)
         orm = g.rgb(metal, g.ao(0.5), rough)
