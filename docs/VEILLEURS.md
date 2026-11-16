@@ -43,7 +43,42 @@ seule, plus vite quand on est traqué ; prier à l'autel ou allumer un cierge la
 la sacristie verrouillée et sa **serrure à crocheter**, le **silex** à y prendre, les cierges qui s'allument en
 **battant le silex** (trois étincelles), et **le Rôdeur** : il fait sa ronde, sa lanterne verte EST son regard,
 elle vire au rouge quand il t'a vu. Un geste raté fait du bruit : il vient voir.
-**Pas encore fait** : la cinématique d'ouverture, le grand château, les cachettes en hauteur, les fenêtres.
+**Fait le 15 et le 16/11**, après deux essais de Martin (« le jeu est nul », « pas flippant du tout », « je déteste
+la police, les voix, la musique quand on se fait voir », « le monstre n'est pas réaliste », « beaucoup trop petit ») :
+
+- **Le grand château** (`Scripts/Night/NightMap.cs`) : il est DESSINÉ dans un plan, une lettre par case de 4 m, et
+  bâti tout seul avec le kit. 14 × 13 cases : vestibule, sacristie, un couloir voûté qui fait le tour, la grande
+  salle (24 × 16 m, 8 m de haut, bordée d'armures), la cour à ciel ouvert sous la lune, la chapelle, la
+  bibliothèque, le dortoir, l'armurerie, la niche du Pénitent. Les monstres y trouvent leur chemin tout seuls.
+- **L'ouverture en cinématique** (`NightFear.cs`, `NightCinema`) : l'homme, le fracas, la forme noire, le noir.
+- **Les monstres ne sont plus des statues éclairées** : des SILHOUETTES noires sans aucun reflet (matière
+  « Ombre »), dans une fumée noire, avec seulement leurs yeux ou leur lanterne. Deux Rôdeurs : un dans le grand
+  couloir, un dans la grande salle.
+- **La prise** : attrapé, on voit le monstre en face une seconde, l'image tremble, puis le noir.
+- **Le son** fabriqué par le code : vent grave, cœur qui s'emballe, chocs et fer qui gémit au loin.
+  **Retirés à la demande de Martin** : toutes les voix (les siennes et les murmures), la musique de traque.
+  Sa musique de fond (« Stone Cathedral Reverb ») et celle de l'aube (« Pax et Lux ») restent.
+- **La police** : une police à empattements du PC (Garamond, sinon Palatino...), avec une ombre.
+- **Plus sombre** : les torches du vestibule s'éteignent à l'ouverture, la torche du joueur porte à 8 m.
+
+**Fait le 16/11 au soir**, après le troisième essai (« le monstre ne fait pas flippant », « pourquoi on voit le
+monstre dans l'animation », « ses mouvements sont prévisibles », « le silex est moche », « la croix plus détaillée ») —
+`Scripts/Night/NightDirector.cs` :
+
+- **L'ouverture ne montre plus le monstre** : on se retourne, il n'y a rien ; les torches meurent, le noir.
+- **Le clignement** : un noir d'un quart de seconde, plus fréquent quand la peur monte. Le Pénitent bondit pendant
+  le clignement, même si on le fixe.
+- **Imprévisible** : le Pénitent hésite parfois, ou se retrouve ailleurs quand on est loin et qu'on ne le voit pas.
+  Les Rôdeurs n'ont plus de ronde : ils vont où ils veulent, se retournent d'un coup, éteignent leur lanterne
+  (éteinte, ils ne voient plus mais entendent courir).
+- **Le château te regarde** : les armures se tournent vers toi dans ton dos ; des pas te suivent et s'arrêtent un
+  pas trop tard ; une silhouette au bout d'un couloir disparaît quand tu ne la regardes plus.
+- **Du détail** : un pot à braises en fer à la place du silex, une croix ouvragée pour la Foi, de la poussière
+  dans la lumière de la torche, des ténèbres au ras du sol.
+
+**Pas encore fait** : les cachettes en hauteur et les fenêtres pour observer (il n'y a pas d'étage), des quêtes
+dans les nouvelles salles (elles sont vides de but), des monstres animés (ils glissent, ils ne marchent pas).
+**Limite dite à Martin** : des modèles générés par le code n'atteindront pas le réalisme d'Elden Ring ou de GTA.
 
 ## Ce que Claude propose (à valider un par un)
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fief
@@ -28,36 +29,16 @@ namespace Fief
             flash = amount < 0f ? -1f : 1f;
         }
 
-        /// <summary>Elle baisse toute seule : cinq minutes pour la perdre au calme, bien moins quand on est traque.</summary>
+        /// <summary>Elle baisse toute seule : huit minutes pour la perdre au calme (le chateau est grand), bien moins quand on est traque.</summary>
         public static void Tick(float dt, bool hunted)
         {
-            float drain = (1f / 300f) * (1f + 2.5f * Penitent.Dread + (hunted ? 3f : 0f));
+            float drain = (1f / 480f) * (1f + 2.5f * Penitent.Dread + (hunted ? 3f : 0f));
             Value = Mathf.Clamp01(Value - drain * dt);
             flash = Mathf.MoveTowards(flash, 0f, dt * 1.6f);
         }
 
-        /// <summary>Une croix en bas a gauche, qui se remplit d'or. Elle bat en rouge quand la foi est basse.</summary>
-        public static void Draw(float w, float h)
-        {
-            float u = Mathf.Round(h * 0.011f);
-            float x = Mathf.Round(w * 0.035f), bottom = Mathf.Round(h * 0.94f);
-            float tall = u * 9f, wide = u * 5f, arm = bottom - tall * 0.68f;
-            Color gold = new Color(1f, 0.78f, 0.32f, 0.95f);
-            if (Value < 0.25f) gold = Color.Lerp(gold, new Color(1f, 0.15f, 0.1f, 0.95f), 0.5f + 0.5f * Mathf.Sin(Time.time * 7f));
-            if (flash > 0f) gold = Color.Lerp(gold, Color.white, flash);
-            if (flash < 0f) gold = Color.Lerp(gold, new Color(1f, 0.1f, 0.08f, 1f), -flash);
-            Color dim = new Color(1f, 1f, 1f, 0.16f);
-            Rect post = new Rect(x + wide * 0.5f - u * 0.5f, bottom - tall, u, tall);
-            Rect beam = new Rect(x, arm, wide, u);
-            GUI.color = dim;
-            GUI.DrawTexture(post, Texture2D.whiteTexture);
-            GUI.DrawTexture(beam, Texture2D.whiteTexture);
-            GUI.color = gold;
-            float fill = Mathf.Round(tall * Value);
-            GUI.DrawTexture(new Rect(post.x, bottom - fill, u, fill), Texture2D.whiteTexture);
-            if (bottom - fill <= arm + u) GUI.DrawTexture(beam, Texture2D.whiteTexture);
-            GUI.color = Color.white;
-        }
+        /// <summary>La croix ouvragee, en bas a gauche (voir FaithIcon, dans NightDirector.cs).</summary>
+        public static void Draw(float w, float h) { FaithIcon.Draw(w, h, Value, flash); }
     }
 
     /// <summary>
@@ -78,7 +59,8 @@ namespace Fief
     {
         public enum Kind { None, Flint, Lock }
         public static Kind Current = Kind.None;
-        public static bool Busy { get { return Current != Kind.None; } }
+        /// <summary>Les mains prises (un geste) ou la tete tenue (une cinematique) : le chevalier ne se controle plus.</summary>
+        public static bool Busy { get { return Current != Kind.None || NightCinema.Playing; } }
 
         static System.Action<bool> done;
         static Vector3 where;
@@ -323,16 +305,29 @@ namespace Fief
         const int Solid = ~(1 << 2);
         enum State { Round, Listen, Hunt, Lost }
 
-        static Prowler instance;
+        /// <summary>(15/11) Tous les Rodeurs du chateau.</summary>
+        public static readonly List<Prowler> All = new List<Prowler>();
+        public static void Forget() { All.Clear(); }
+        public static bool AnyHunting { get { for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].Hunting) return true; return false; } }
+        public static Prowler Toucher { get { for (int i = 0; i < All.Count; i++) if (All[i] != null && All[i].isActiveAndEnabled && All[i].Touching) return All[i]; return null; } }
+        public static void HoldAll(bool held) { for (int i = 0; i < All.Count; i++) if (All[i] != null) All[i].Held = held; }
+        public static void AllHome() { for (int i = 0; i < All.Count; i++) if (All[i] != null) All[i].SendHome(); }
+        public static void AllOff() { for (int i = 0; i < All.Count; i++) if (All[i] != null) All[i].gameObject.SetActive(false); }
         NightPlayer prey;
         Vector3[] round;
         int next;
         State state;
         float wait, seen, unseen, step;
+        // (16/11) Imprevisible : il va ou il veut, se retourne d'un coup, eteint sa lanterne.
+        Vector3 roam;
+        bool roaming;
+        float spin, dark;
         Vector3 noise;
         Light lantern;
         Material skin;
 
+        /// <summary>Tenu par la mise en scene (la prise) : il ne decide plus de rien.</summary>
+        public bool Held;
         public bool Hunting { get { return state == State.Hunt; } }
         public bool Touching { get { return prey != null && Flat(prey.transform.position - transform.position).magnitude < 1.1f; } }
 
@@ -349,8 +344,11 @@ namespace Fief
                 Renderer r = model.GetComponentInChildren<Renderer>();
                 if (r != null && r.sharedMaterial != null)
                 {
-                    p.skin = new Material(r.sharedMaterial);
+                    p.skin = NightKit.Shadow();
+                    if (p.skin == null) p.skin = new Material(r.sharedMaterial);
                     foreach (Renderer each in model.GetComponentsInChildren<Renderer>(true)) each.sharedMaterial = p.skin;
+                    p.skin.color = new Color(0.010f, 0.010f, 0.013f);       // une silhouette, pas une statue
+                    NightKit.Smoke(go.transform, 2.7f);
                 }
             }
             // Sa lanterne : la ou le modele la tient (main droite, devant lui), tournee vers l'avant et un peu vers le sol.
@@ -366,17 +364,20 @@ namespace Fief
             p.lantern.shadows = LightShadows.Soft;
             p.lantern.shadowStrength = 0.9f;
             p.Tint(false);
-            instance = p;
+            All.Add(p);
             return p;
         }
 
         /// <summary>Un bruit a cet endroit : s'il fait sa ronde et qu'il n'est pas trop loin, il vient voir.</summary>
         public static void Hear(Vector3 at)
         {
-            Prowler p = instance;
-            if (p == null || p.state == State.Hunt) return;
-            if (Flat(at - p.transform.position).magnitude > 22f) return;
-            p.noise = at; p.state = State.Listen; p.wait = 0f;
+            for (int i = 0; i < All.Count; i++)
+            {
+                Prowler p = All[i];
+                if (p == null || p.state == State.Hunt) continue;
+                if (Flat(at - p.transform.position).magnitude > 26f) continue;
+                p.noise = at; p.state = State.Listen; p.wait = 0f;
+            }
         }
 
         public void SendHome()
@@ -395,10 +396,25 @@ namespace Fief
 
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 
+        /// <summary>Il souffle sa lanterne quelques secondes : on ne le voit plus, on l'entend marcher.</summary>
+        void Douse(float seconds)
+        {
+            dark = seconds;
+            if (lantern != null) lantern.enabled = false;
+            if (skin != null) skin.SetColor("_EmissionColor", Color.black);
+        }
+
         /// <summary>Sa lanterne t'eclaire-t-elle ? Dans le cone, a portee, et rien entre vous deux.</summary>
         bool Sees()
         {
             if (prey == null || lantern == null) return false;
+            if (dark > 0f)
+            {
+                // Lanterne eteinte : il ne voit plus rien. Mais il ECOUTE : courir pres de lui, c'est se trahir.
+                Vector3 gap = prey.transform.position - transform.position;
+                gap.y = 0f;
+                return gap.magnitude < 8f && FiefInput.SprintHeld && FiefInput.Move.sqrMagnitude > 0.01f;
+            }
             Vector3 eye = lantern.transform.position;
             Vector3 body = prey.transform.position + Vector3.up * 1.2f;
             Vector3 to = body - eye;
@@ -411,7 +427,7 @@ namespace Fief
         bool Go(Vector3 goal, float speed, float turn)
         {
             bool ok;
-            Vector3 target = Penitent.Toward(transform.position, goal, out ok);
+            Vector3 target = NightMap.Toward(transform.position, goal, out ok);
             if (!ok) return false;
             Vector3 step3 = Flat(target - transform.position);
             if (step3.magnitude < 0.05f) return true;
@@ -427,8 +443,13 @@ namespace Fief
 
         void Update()
         {
-            if (prey == null) return;
+            if (prey == null || Held) return;
             float dt = Time.deltaTime;
+            if (dark > 0f)
+            {
+                dark -= dt;
+                if (dark <= 0f && lantern != null) { lantern.enabled = true; Tint(state == State.Hunt); }
+            }
             bool sees = Sees();
             seen = sees ? seen + dt : Mathf.Max(0f, seen - dt * 2f);
 
@@ -437,6 +458,7 @@ namespace Fief
                 state = State.Hunt; unseen = 0f;
                 Tint(true);
                 try { Sfx.GongAt(transform.position); } catch (System.Exception) { }
+                NightAudio.Sting(0.8f);
             }
 
             if (state == State.Hunt)
@@ -459,10 +481,25 @@ namespace Fief
             }
             else
             {
-                if (wait > 0f) { wait -= dt; return; }
-                Vector3 goal = round[next];
-                Go(goal, WalkSpeed, 80f);
-                if (Flat(goal - transform.position).magnitude < 0.25f) { next = (next + 1) % round.Length; wait = 1.2f; }
+                if (wait > 0f)
+                {
+                    wait -= dt;
+                    if (spin != 0f) transform.Rotate(0f, spin * dt, 0f);
+                    return;
+                }
+                spin = 0f;
+                // Plus de ronde : a chaque arrivee, il choisit n'importe quel autre endroit du chateau.
+                if (!roaming) { roam = NightMap.RandomCell(transform.position, 8f, 46f); roaming = true; }
+                bool can = Go(roam, WalkSpeed, 80f);
+                if (!can || Flat(roam - transform.position).magnitude < 0.6f)
+                {
+                    roaming = false;
+                    wait = Random.Range(0.3f, 3.5f);
+                    float dice = Random.value;
+                    if (dice < 0.3f) spin = Random.value < 0.5f ? 150f : -150f;        // il regarde autour de lui
+                    else if (dice < 0.5f) Douse(Random.Range(4f, 9f));                  // il eteint sa lanterne
+                }
+                else if (Random.value < dt * 0.05f) { wait = 1.4f; spin = 190f; }         // en pleine marche : il se retourne
             }
         }
     }

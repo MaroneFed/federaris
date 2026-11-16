@@ -52,6 +52,26 @@ namespace Fief
             Texture2D sparkTex = Tex("Braise_Point.png", false, false);
             Material flameMat = MakeAdditive("Flamme", flameTex);
             Material sparkMat = MakeAdditive("Braise", sparkTex);
+            // (15/11) La fumee noire des monstres : le meme point flou, mais qui ASSOMBRIT au lieu d'eclairer.
+            Material soot = Asset("Fumee", Shader.Find("Legacy Shaders/Particles/Alpha Blended"));
+            Set(soot, "_MainTex", sparkTex);
+            SetColor(soot, "_TintColor", new Color(0f, 0f, 0f, 0.5f));
+            EditorUtility.SetDirty(soot);
+            // (16/11) L'OMBRE : la matiere des monstres. Noire, sans aucun reflet (meme sous la torche, on ne voit
+            // qu'une silhouette), avec seulement les yeux (ou la lanterne) qui brillent.
+            Material ombre = Asset("Ombre", Shader.Find("Standard"));
+            ombre.color = new Color(0.006f, 0.006f, 0.008f);
+            Set(ombre, "_EmissionMap", Tex("Statue_Emission.png", false, false));
+            SetColor(ombre, "_EmissionColor", new Color(0.02f, 0.002f, 0.001f));
+            ombre.EnableKeyword("_EMISSION");
+            SetFloat(ombre, "_Glossiness", 0f);
+            SetFloat(ombre, "_Metallic", 0f);
+            SetFloat(ombre, "_SpecularHighlights", 0f);
+            SetFloat(ombre, "_GlossyReflections", 0f);
+            ombre.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            ombre.EnableKeyword("_GLOSSYREFLECTIONS_OFF");
+            ombre.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
+            EditorUtility.SetDirty(ombre);
             if (!AssetDatabase.IsValidFolder(Root + "/Prefabs")) AssetDatabase.CreateFolder(Root, "Prefabs");
             // Le dernier vecteur : ou nait la flamme (le point "socket_flamme" du modele, s'il est retrouve).
             MakeFirePrefab("torche_murale", "Torche_Murale_Feu", 0.45f, 1.6f, 9f, flameMat, sparkMat, new Vector3(0f, 2.06f, 0.52f));

@@ -549,6 +549,43 @@ def build_porte():
     box(W - 0.36, W - 0.14, -TH / 2 - 0.022, TH / 2 + 0.022, 0.96, 1.18)    # sa platine
 
 
+def build_chevalier():
+    """L'homme de l'ouverture : un chevalier en armure, heaume ferme, 1,92 m. Il regarde vers -Y.
+    Il ne bouge pas : la camera se detourne avant qu'il ne s'enfuie. kind 5 = la fente noire du heaume."""
+    for s in (-1, 1):
+        tube([(s * .11, .0, .0), (s * .12, -.01, .50), (s * .13, .0, .96)], [.075, .068, .095], 8, 0.9)
+        loft([[Vector((s * .11 - .07, -.20, z)), Vector((s * .11 + .07, -.20, z)), Vector((s * .11 + .07, .08, z)),
+               Vector((s * .11 - .07, .08, z))] for z in (0.0, 0.09)], [0.8])
+        tube([(s * .27, .0, 1.46), (s * .31, -.03, 1.18), (s * .28, -.13, .93)], [.07, .058, .052], 8, 0.95)
+        lathe([(0, 1.44), (.10, 1.46), (.12, 1.52), (.07, 1.58), (0, 1.59)], 8, s * .27, 0.0)
+        loft([[Vector((s * .28 - .045, -.19, z)), Vector((s * .28 + .045, -.19, z)), Vector((s * .28 + .045, -.08, z)),
+               Vector((s * .28 - .045, -.08, z))] for z in (0.84, 0.95)], [0.85])
+    lathe([(0, .90), (.20, .90), (.215, 1.08), (.175, 1.20), (.225, 1.40), (.20, 1.50), (.10, 1.56), (0, 1.56)], 12)
+    lathe([(.215, 1.10), (.285, .56), (.265, .56), (.20, 1.10)], 12, closed=True)        # la jupe de mailles
+    lathe([(0, 1.55), (.085, 1.57), (.118, 1.63), (.124, 1.83), (.10, 1.905), (0, 1.92)], 12)   # le heaume
+    add([(-.085, -.126, 1.775), (.085, -.126, 1.775), (.085, -.126, 1.80), (-.085, -.126, 1.80)], 0.02, (0, -1, 0), kind=5)
+    for k in range(-2, 3):
+        x = k * 0.022
+        add([(x - .004, -.124, 1.66), (x + .004, -.124, 1.66), (x + .004, -.124, 1.72), (x - .004, -.124, 1.72)], 0.02, (0, -1, 0), kind=5)
+    lathe([(.118, 1.74), (.132, 1.745), (.132, 1.765), (.118, 1.77)], 12, closed=True)        # le cercle du heaume
+    tube([(.19, -.02, 1.00), (.30, .10, .30)], [.022, .014], 4, 1.0)                           # l'epee au cote
+
+
+def build_braisier():
+    """Le pot a braises (16/11) : c'est ainsi qu'on portait le feu au Moyen Age. Un petit pot de fer,
+    des braises rouges dedans, une anse. Il remplace le cube lumineux qui servait de silex."""
+    lathe([(0, .0), (.07, .0), (.10, .03), (.118, .10), (.104, .165), (.088, .165), (.098, .10), (.086, .04), (0, .035)], 10)
+    lathe([(.104, .15), (.122, .15), (.122, .175), (.104, .175)], 10, closed=True)
+    rng = random.Random(9)
+    jit = {(i, k): (rng.uniform(-0.008, 0.012) if 0 < i < 2 else 0.0) for i in range(3) for k in range(10)}
+    lathe([(0, .125), (.05, .12), (.09, .10)], 10, kind=2, hint=(0, 0, 1), jit=jit)
+    sweep([(-.108, .16), (-.112, .27), (-.06, .335), (.06, .335), (.112, .27), (.108, .16)], 0.0, 0.007, 0.007)
+    for k in range(3):
+        a = 2 * math.pi * k / 3
+        lathe([(0, -.03), (.014, -.03), (.02, .01), (0, .012)], 5, .075 * math.cos(a), .075 * math.sin(a))
+    return (0, 0, .13)
+
+
 def build_autel():
     """Un autel de pierre de 3 m : socle, corps en retrait, corniche, table."""
     def ring(ax, ay, z):
@@ -596,6 +633,8 @@ PIECES = [
     ('penitent_3', lambda: build_penitent(2), 'Statue', 50, False, ((1.6, -3.9, 1.9), (0, -0.3, 1.6))),
     ('rodeur', lambda: build_penitent(3), 'Statue', 50, False, ((1.8, -3.9, 1.8), (0, -0.2, 1.5))),
     ('porte', build_porte, 'Fer', 50, False, ((2.6, -4.6, 1.7), (0.95, 0, 1.45))),
+    ('chevalier', build_chevalier, 'Fer', 50, False, ((1.2, -3.0, 1.5), (0, 0, 1.0))),
+    ('braisier', build_braisier, 'Fer', 50, False, ((0.45, -0.7, 0.42), (0, 0, 0.14))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)

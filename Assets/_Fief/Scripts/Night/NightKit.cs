@@ -24,6 +24,18 @@ namespace Fief
         static readonly List<GameObject> DawnFires = new List<GameObject>();
         /// <summary>(14/11) Le vantail de la porte de la sacristie, pose par Dress ; null si le kit n'a pas de porte.</summary>
         public static Transform DoorLeaf;
+        /// <summary>(14/11) Les feux allumes du vestibule : l'ouverture les souffle, et ils ne se rallument pas.</summary>
+        static readonly List<GameObject> EntryFires = new List<GameObject>();
+
+        public static void SnuffEntryOne(int index)
+        {
+            if (index >= 0 && index < EntryFires.Count && EntryFires[index] != null) EntryFires[index].SetActive(false);
+        }
+
+        public static void SnuffEntry()
+        {
+            for (int i = 0; i < EntryFires.Count; i++) SnuffEntryOne(i);
+        }
         static Transform root;
 
         static GameObject Source(string name)
@@ -35,12 +47,131 @@ namespace Fief
             return src;
         }
 
+        // ------------------------------------------------------------------ (15/11) pour NightMap, qui batit le grand chateau
+
+        /// <summary>Prepare le kit. Renvoie false s'il n'est pas dans le projet.</summary>
+        public static bool Begin(Transform world)
+        {
+            DawnFires.Clear();
+            Sources.Clear();
+            DoorLeaf = null;
+            EntryFires.Clear();
+            if (Source("mur_droit") == null || Source("dalle_sol") == null) return false;
+            root = new GameObject("Kit (le décor)").transform;
+            root.SetParent(world, false);
+            return true;
+        }
+
+        public static GameObject Place(string piece, float x, float z, float yaw, float y, bool upsideDown) { return Put(piece, x, z, yaw, y, upsideDown); }
+        public static void ArchAt(float x, float z, float yaw) { Arch(x, z, yaw); }
+        public static void FireAt(string prefab, float x, float z, float yaw, bool lit) { Fire(prefab, x, z, yaw, lit); }
+
+        /// <summary>Le rayon de lune, pour une fenetre posee a "window" (milieu du mur nord, au sol).</summary>
+        public static void Moon(Vector3 window)
+        {
+            Transform keep = root;
+            Transform holder = new GameObject("Lune de la chapelle").transform;
+            holder.SetParent(keep, false);
+            holder.position = window - new Vector3(0f, 0f, 44f);      // MoonShaft a ete ecrit pour un mur a z = 44
+            root = holder;
+            MoonShaft();
+            root = keep;
+        }
+
+        /// <summary>
+        /// (16/11) Ce qui flotte autour du chevalier et le suit : de la POUSSIERE qui prend la lumiere de la torche,
+        /// et des TENEBRES qui rampent au ras du sol. L'air du chateau n'est plus vide.
+        /// </summary>
+        public static void Ambience(Transform player)
+        {
+            Material mote = Resources.Load<Material>(Dir + "Materials/Braise");
+            Material soot = Resources.Load<Material>(Dir + "Materials/Fumee");
+            for (int kind = 0; kind < 2; kind++)
+            {
+                Material mat = kind == 0 ? mote : soot;
+                if (mat == null) continue;
+                GameObject go = new GameObject(kind == 0 ? "Poussière" : "Ténèbres");
+                go.transform.SetParent(player, false);
+                go.transform.localPosition = new Vector3(0f, kind == 0 ? 1.5f : 0.35f, 0f);
+                ParticleSystem ps = go.AddComponent<ParticleSystem>();
+                ParticleSystem.MainModule main = ps.main;
+                main.loop = true;
+                main.prewarm = true;
+                main.startLifetime = kind == 0 ? 7f : 8f;
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, kind == 0 ? 0.08f : 0.2f);
+                if (kind == 0) main.startSize = new ParticleSystem.MinMaxCurve(0.008f, 0.022f);
+                else main.startSize = new ParticleSystem.MinMaxCurve(2.2f, 4f);
+                main.startColor = kind == 0 ? new Color(1f, 0.82f, 0.55f, 0.30f) : new Color(0f, 0f, 0f, 0.40f);
+                main.maxParticles = kind == 0 ? 260 : 60;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                ParticleSystem.EmissionModule em = ps.emission;
+                em.rateOverTime = kind == 0 ? 34f : 7f;
+                ParticleSystem.ShapeModule sh = ps.shape;
+                sh.shapeType = ParticleSystemShapeType.Box;
+                sh.scale = kind == 0 ? new Vector3(8f, 2.8f, 8f) : new Vector3(13f, 0.3f, 13f);
+                sh.randomDirectionAmount = 1f;
+                ParticleSystem.ColorOverLifetimeModule col = ps.colorOverLifetime;
+                col.enabled = true;
+                Gradient g = new Gradient();
+                g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                    new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.25f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) });
+                col.color = new ParticleSystem.MinMaxGradient(g);
+                go.GetComponent<ParticleSystemRenderer>().sharedMaterial = mat;
+            }
+        }
+
+        /// <summary>La matiere "Ombre" des monstres (une copie, pour pouvoir changer l'eclat des yeux). Null si elle manque.</summary>
+        public static Material Shadow()
+        {
+            Material asset = Resources.Load<Material>(Dir + "Materials/Ombre");
+            return asset != null ? new Material(asset) : null;
+        }
+
+        /// <summary>
+        /// Une fumee noire qui colle a un monstre : elle mange ses contours, on ne sait plus ou il finit.
+        /// Concept Unity : simulationSpace = World : la fumee reste ou elle est nee, donc elle TRAINE derriere lui.
+        /// </summary>
+        public static void Smoke(Transform parent, float height)
+        {
+            Material soot = Resources.Load<Material>(Dir + "Materials/Fumee");
+            if (soot == null) return;
+            GameObject go = new GameObject("Fumée");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
+            ParticleSystem ps = go.AddComponent<ParticleSystem>();
+            ParticleSystem.MainModule main = ps.main;
+            main.loop = true;
+            main.prewarm = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.6f, 2.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.7f, 1.5f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.28f);
+            main.startColor = new Color(0f, 0f, 0f, 0.75f);
+            main.gravityModifier = -0.02f;
+            main.maxParticles = 90;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            ParticleSystem.EmissionModule em = ps.emission;
+            em.rateOverTime = 26f;
+            ParticleSystem.ShapeModule sh = ps.shape;
+            sh.shapeType = ParticleSystemShapeType.Box;
+            sh.scale = new Vector3(0.75f, height, 0.75f);
+            sh.randomDirectionAmount = 1f;
+            ParticleSystem.ColorOverLifetimeModule col = ps.colorOverLifetime;
+            col.enabled = true;
+            Gradient g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.black, 0f), new GradientColorKey(Color.black, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.3f), new GradientAlphaKey(0f, 1f) });
+            col.color = new ParticleSystem.MinMaxGradient(g);
+            go.GetComponent<ParticleSystemRenderer>().sharedMaterial = soot;
+        }
+
         /// <summary>Habille le niveau. Renvoie false si le kit n'est pas dans le projet.</summary>
         public static bool Dress(Transform world)
         {
             DawnFires.Clear();
             Sources.Clear();
             DoorLeaf = null;
+            EntryFires.Clear();
             if (Source("mur_droit") == null || Source("dalle_sol") == null) return false;
 
             // Les blocs deviennent invisibles (ils gardent leur collider).
@@ -192,7 +323,7 @@ namespace Fief
             Vector3 to = new Vector3(0f, 0f, 37.6f);
             Light spot = new GameObject("Rayon de lune").AddComponent<Light>();
             spot.transform.SetParent(root, false);
-            spot.transform.position = from;
+            spot.transform.localPosition = from;
             spot.transform.rotation = Quaternion.LookRotation(to - from, Vector3.up);
             spot.type = LightType.Spot;
             spot.spotAngle = 48f;
@@ -257,7 +388,7 @@ namespace Fief
             if (mote == null) return;
             GameObject dust = new GameObject("Poussière");
             dust.transform.SetParent(root, false);
-            dust.transform.position = new Vector3(0f, 2.4f, 39.5f);
+            dust.transform.localPosition = new Vector3(0f, 2.4f, 39.5f);
             ParticleSystem ps = dust.AddComponent<ParticleSystem>();
             ParticleSystem.MainModule main = ps.main;
             main.loop = true;
@@ -341,6 +472,7 @@ namespace Fief
                 fire.gameObject.SetActive(false);
                 DawnFires.Add(fire.gameObject);
             }
+            else EntryFires.Add(fire.gameObject);
         }
     }
 }
