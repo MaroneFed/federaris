@@ -53,3 +53,16 @@ Exporte chaque pièce en FBX dans un dossier « kit-fief » sur mon Bureau.
 
 Ensuite : glisse le dossier `kit-fief` dans Unity, dans `Assets/_Fief/Resources/Modeles/Kit/`, et
 pousse sur GitHub. C'est avec ces pièces que le code assemblera le château.
+
+## Que Claude Code se branche lui-même sur Blender (20/11)
+
+Le dépôt contient maintenant un fichier **`.mcp.json`** à sa racine : toute session Claude Code
+**qui tourne sur ton PC dans le dossier `federaris`** démarre le connecteur Blender toute seule
+(elle te demande une fois la permission). Une session « dans le cloud » (petit nuage dans la barre
+de gauche) ne peut pas : elle tourne sur un serveur, loin de ton Blender.
+
+1. Récupère la branche sur ton PC (le fichier `.mcp.json` doit être à la racine de `federaris`).
+2. Ouvre Blender ▸ touche **N** ▸ onglet **MCP for Blender** ▸ **Connect to Claude**.
+3. Dans l'appli Claude, ouvre une **nouvelle session de code sur ton PC** (pas dans le cloud), dans le
+   dossier `federaris`. Accepte le serveur « blender » quand il le demande.
+4. Dis-lui : « regarde ma scène Blender ». S'il décrit le cube, c'est gagné.
