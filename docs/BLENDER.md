@@ -27,6 +27,14 @@ vient des textures et de la lumière. Les murs voisins portent tous les mêmes p
 
 # Brancher Claude sur Blender (sur le PC de Martin)
 
+**21/11 — pour Claude Code (l'onglet Code de l'appli Claude)** : le connecteur est déclaré dans `.mcp.json`, à la
+racine du dépôt (`uvx mcp-for-blender` ; l'ancien nom `blender-mcp` marche aussi). Il n'apparaît que dans une
+**nouvelle** session ouverte sur ce dossier, et Claude Code demande une fois s'il faut l'autoriser. Côté Blender :
+`uvx mcp-for-blender install-addon` (une fois), puis Blender ▸ Edit ▸ Preferences ▸ Add-ons ▸ cocher
+**MCP for Blender**, puis vue 3D ▸ touche **N** ▸ onglet **MCP for Blender** ▸ **Start MCP Server** (ou **Connect to
+Claude**). Port 9876, sans mot de passe : à garder sur ce PC.
+Les étapes plus bas valent pour l'ancienne appli Claude Desktop (onglet Chat).
+
 But : que Claude **fabrique les modèles 3D dans Blender sous tes yeux** (murs, portes, torches,
 statues, monstres), puis qu'on les exporte dans le projet Unity.
 
