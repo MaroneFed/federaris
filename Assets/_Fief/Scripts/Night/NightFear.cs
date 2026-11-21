@@ -4,42 +4,27 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// LE SON DE LA PEUR (14/11). Martin, apres avoir joue : "les trucs sont pas flippants du tout".
-    /// Ce qui fait peur dans un jeu, c'est d'abord ce qu'on ENTEND. Tout est fabrique ici par le code
-    /// (aucun fichier) : on peut donc y jouer tout de suite ; les musiques et les voix de Martin
-    /// s'ajoutent par-dessus des qu'il depose ses fichiers.
+    /// LE SON DE LA NUIT (refait le 21/11). Martin : "change tous les sons et la musique, horribles pour les oreilles".
+    /// Avant, presque tout etait FABRIQUE par le calcul (des sinus et du bruit) : ca sonnait faux. Maintenant ce sont de
+    /// VRAIS ENREGISTREMENTS, tous en CC0 (domaine public, voir Resources/Sons/Nuit/LICENCES.txt), ranges par role :
     ///
-    ///   le fond       un vent grave qui ne s'arrete jamais ;
-    ///   le coeur      il bat des que la peur monte, de plus en plus vite ;
-    ///   le chateau    au hasard, loin : un choc, un fer qui gemit, un cri ;
-    ///   les murmures  quand le Penitent est pres (ses vraies voix si Sons/Nuit/Voix/penitent-*.mp3 existent) ;
-    ///   le coup       un accord qui grince, quand le Rodeur te voit et quand on t'attrape ;
-    ///   la musique    Sons/Nuit/Musique/nuit-ambiance, nuit-traque (quand on te chasse), nuit-aube (15/11 : celles de Martin, Suno).
+    ///   Fond      un souffle grave de souterrain, des gouttes, en boucle        Musique  Juhani Junkala, "Horror Atmosphere"
+    ///   Coeur     un vrai battement, lent puis rapide                            Aube     un piano melancolique, a la fin
+    ///   Frisson   de courtes nappes sombres : le coup de peur                    Cri, Gemit, Grogne, Rugit, Souffle : les betes
+    ///   Aboie, Hurle  le chien, les loups                                        Serrure, Feu, Livre, Coffre, Pierre, Chaine : les gestes
     ///
-    /// Concept Unity : un AudioClip est une liste de nombres entre -1 et 1 (44 100 par seconde). On peut
-    /// la calculer soi-meme : un sinus donne une note, du hasard donne du souffle.
+    /// Pour changer un son : remplacer les fichiers du dossier. Il en joue un au hasard, un peu plus grave ou plus aigu
+    /// a chaque fois (jamais deux fois tout a fait le meme).
+    ///
+    /// Concept Unity : Resources.LoadAll charge tous les fichiers d'un dossier "Resources" ; AudioSource.PlayClipAtPoint
+    /// joue un son a un endroit du monde : plus il est loin, moins on l'entend.
     /// </summary>
     public static class NightAudio
     {
-        const int Rate = 44100;
-        static AudioSource bed, heart, calm, chase;
-        static AudioClip beat, sting, whisper, groan, scream, bang, pas, hoof, snort;
-        static readonly List<AudioClip> voices = new List<AudioClip>();
-        static float nextBeat, nextEvent, nextWhisper;
-        static System.Random random = new System.Random(11);
-
-        static float Noise() { return (float)(random.NextDouble() * 2.0 - 1.0); }
-
-        /// <summary>Fabrique un son : "wave" donne la valeur a l'instant t (en secondes).</summary>
-        static AudioClip Make(string name, float seconds, System.Func<float, float, float> wave)
-        {
-            int n = Mathf.RoundToInt(seconds * Rate);
-            float[] data = new float[n];
-            for (int i = 0; i < n; i++) data[i] = Mathf.Clamp(wave.Invoke(i / (float)Rate, Noise()), -1f, 1f);
-            AudioClip clip = AudioClip.Create(name, n, 1, Rate, false);
-            clip.SetData(data, 0);
-            return clip;
-        }
+        const string Dir = "Sons/Nuit/";
+        static AudioSource bed, heart, calm, voice;
+        static readonly Dictionary<string, AudioClip[]> banks = new Dictionary<string, AudioClip[]>();
+        static float nextBeat, nextEvent;
 
         static AudioSource Source(GameObject host, string name, bool loop)
         {
@@ -50,90 +35,65 @@ namespace Fief
             return s;
         }
 
+        /// <summary>Tous les sons d'un role (un dossier de Resources/Sons/Nuit), charges une seule fois.</summary>
+        static AudioClip[] Bank(string role)
+        {
+            AudioClip[] clips;
+            if (banks.TryGetValue(role, out clips)) return clips;
+            clips = Resources.LoadAll<AudioClip>(role.Contains("/") ? role : Dir + role);
+            banks[role] = clips;
+            return clips;
+        }
+
+        static AudioClip Pick(string role)
+        {
+            AudioClip[] clips = Bank(role);
+            return clips.Length == 0 ? null : clips[Random.Range(0, clips.Length)];
+        }
+
+        /// <summary>Un son du role, joue a cet endroit du monde, un peu plus grave ou aigu au hasard.</summary>
+        static void At(string role, Vector3 where, float volume, float minDistance, float pitch)
+        {
+            AudioClip clip = Pick(role);
+            if (clip == null) return;
+            GameObject go = new GameObject("Son : " + role);
+            go.transform.position = where;
+            AudioSource s = go.AddComponent<AudioSource>();
+            s.clip = clip;
+            s.spatialBlend = 1f;
+            s.rolloffMode = AudioRolloffMode.Logarithmic;
+            s.minDistance = minDistance;
+            s.maxDistance = 45f;
+            s.pitch = pitch * Random.Range(0.93f, 1.07f);
+            s.volume = Mathf.Clamp01(volume * Settings.Volume);
+            s.dopplerLevel = 0f;
+            s.Play();
+            Object.Destroy(go, clip.length / Mathf.Max(0.1f, s.pitch) + 0.2f);
+        }
+
+        /// <summary>Un son "dans la tete" (pas d'endroit), sur la voie du coeur.</summary>
+        static void Near(string role, float volume, float pitch)
+        {
+            AudioClip clip = Pick(role);
+            if (clip == null || voice == null) return;
+            voice.pitch = pitch * Random.Range(0.95f, 1.05f);
+            voice.PlayOneShot(clip, volume * Settings.Volume);
+        }
+
         public static void Init(GameObject host)
         {
-            random = new System.Random(11);
-            float wind = 0f, low = 0f;
-            // Le fond : huit secondes de vent grave. Le debut et la fin sont a zero : la boucle ne claque pas.
-            AudioClip air = Make("Vent du chateau", 8f, delegate(float t, float noise)
-            {
-                wind += (noise - wind) * 0.012f;
-                float edge = Mathf.Clamp01(t / 0.4f) * Mathf.Clamp01((8f - t) / 0.4f);
-                return (wind * 5f * (0.55f + 0.45f * Mathf.Sin(6.2832f * 0.125f * t)) + Mathf.Sin(6.2832f * 46f * t) * 0.05f
-                    + Mathf.Sin(6.2832f * 69.3f * t) * 0.03f) * (0.35f + 0.65f * edge);
-            });
-            beat = Make("Coeur", 0.5f, delegate(float t, float noise)
-            {
-                float a = Mathf.Sin(6.2832f * 58f * t) * Mathf.Exp(-t * 22f);
-                float u = t - 0.17f;
-                float b = u > 0f ? Mathf.Sin(6.2832f * 50f * u) * Mathf.Exp(-u * 24f) * 0.7f : 0f;
-                return (a + b) * 0.95f;
-            });
-            sting = Make("Coup", 1.7f, delegate(float t, float noise)
-            {
-                float s = Mathf.Sin(6.2832f * 196f * t) + Mathf.Sin(6.2832f * 207.7f * t) + Mathf.Sin(6.2832f * 277.2f * t)
-                    + Mathf.Sin(6.2832f * 415.3f * t) * 0.7f + Mathf.Sin(6.2832f * 587.3f * t) * 0.5f;
-                return s * 0.2f * Mathf.Exp(-t * 2.3f) + noise * 0.6f * Mathf.Exp(-t * 16f) + Mathf.Sin(6.2832f * 41f * t) * 0.5f * Mathf.Exp(-t * 3f);
-            });
-            whisper = Make("Murmure", 1.5f, delegate(float t, float noise)
-            {
-                low += (noise - low) * 0.22f;
-                float syllables = Mathf.Pow(Mathf.Abs(Mathf.Sin(6.2832f * 2.4f * t + Mathf.Sin(6.2832f * 1.3f * t) * 1.4f)), 3f);
-                float env = Mathf.Clamp01(t / 0.15f) * Mathf.Clamp01((1.5f - t) / 0.3f);
-                return (noise - low) * 0.55f * syllables * env;
-            });
-            groan = Make("Fer qui gemit", 3f, delegate(float t, float noise)
-            {
-                float f = 86f - 26f * (t / 3f);
-                float env = Mathf.Clamp01(t / 0.5f) * Mathf.Clamp01((3f - t) / 0.9f);
-                return (Mathf.Sin(6.2832f * f * t) * 0.6f + Mathf.Sin(6.2832f * f * 1.51f * t) * 0.22f + noise * 0.03f)
-                    * (0.6f + 0.4f * Mathf.Sin(6.2832f * 7f * t)) * env;
-            });
-            float phase = 0f;
-            scream = Make("Cri", 2.2f, delegate(float t, float noise)
-            {
-                float rise = Mathf.Sin(Mathf.Clamp01(t / 0.35f) * 1.5708f);
-                float f = 330f + 290f * rise - 190f * Mathf.Clamp01((t - 0.9f) / 1.3f) + Mathf.Sin(6.2832f * 9f * t) * 22f;
-                phase += 6.2832f * f / Rate;
-                float s = 0f;
-                for (int k = 1; k <= 6; k++) s += Mathf.Sin(phase * k) / k;
-                float env = Mathf.Clamp01(t / 0.05f) * Mathf.Clamp01((2.2f - t) / 0.9f);
-                return (s * 0.42f + noise * 0.13f) * env;
-            });
-            bang = Make("Fracas", 1.3f, delegate(float t, float noise)
-            {
-                return noise * 0.9f * Mathf.Exp(-t * 9f) + Mathf.Sin(6.2832f * 48f * t) * 0.9f * Mathf.Exp(-t * 5f);
-            });
-
-            pas = Make("Pas", 0.18f, delegate(float t, float noise)
-            {
-                return noise * 0.45f * Mathf.Exp(-t * 40f) + Mathf.Sin(6.2832f * 72f * t) * 0.9f * Mathf.Exp(-t * 26f);
-            });
-            hoof = Make("Sabot", 0.14f, delegate(float t, float noise)
-            {
-                return noise * 0.35f * Mathf.Exp(-t * 55f) + Mathf.Sin(6.2832f * 95f * t) * 0.9f * Mathf.Exp(-t * 32f)
-                    + Mathf.Sin(6.2832f * 180f * t) * 0.3f * Mathf.Exp(-t * 60f);
-            });
-            float nose = 0f;
-            snort = Make("Renaclement", 0.9f, delegate(float t, float noise)
-            {
-                nose += (noise - nose) * 0.25f;
-                float env = Mathf.Clamp01(t / 0.05f) * Mathf.Exp(-t * 3.2f) * (0.6f + 0.4f * Mathf.Sin(6.2832f * 28f * t));
-                return (nose * 2.2f + Mathf.Sin(6.2832f * 70f * t) * 0.2f) * env;
-            });
+            banks.Clear();
             bed = Source(host, "Fond", true);
-            bed.clip = air;
-            bed.Play();
+            bed.clip = Pick("Fond");
+            if (bed.clip != null) bed.Play();
             heart = Source(host, "Coeur", false);
-            calm = Source(host, "Musique (calme)", true);
-            chase = Source(host, "Musique (traque)", true);
-            calm.clip = Resources.Load<AudioClip>("Sons/Nuit/Musique/nuit-ambiance");
-            chase.clip = null;      // (15/11) Martin : "la musique est horrible quand on se fait voir". Plus de musique de traque.
+            voice = Source(host, "Voix", false);
+            voice.volume = 1f;
+            heart.volume = 1f;
+            calm = Source(host, "Musique", true);
+            calm.clip = Pick("Musique");
             if (calm.clip != null) calm.Play();
-            if (chase.clip != null) chase.Play();
-            voices.Clear();
-            // (15/11) Martin : "je deteste les voix". Plus aucune voix, plus aucun murmure : seulement le chateau.
-            nextBeat = 0f; nextEvent = 9f; nextWhisper = 2f;
+            nextBeat = 0f; nextEvent = 14f;
         }
 
         /// <summary>A chaque image. "fear" va de 0 (calme) a 1 (il est sur toi).</summary>
@@ -141,72 +101,80 @@ namespace Fief
         {
             if (bed == null) return;
             float vol = Settings.Volume;
-            bed.volume = Mathf.MoveTowards(bed.volume, (night ? 0.5f + 0.3f * fear : 0.08f) * vol, dt * 0.4f);
-            bed.pitch = 1f + 0.35f * fear;       // le vent monte quand on te chasse : c'est lui, la musique de traque
-            calm.volume = Mathf.MoveTowards(calm.volume, (night && !hunted ? 0.4f : 0f) * vol, dt * 0.5f);
-            chase.volume = Mathf.MoveTowards(chase.volume, (night && hunted ? 0.65f : 0f) * vol, dt * 0.9f);
+            // Le fond souffle plus fort quand la peur monte ; la musique, elle, se retire : on n'entend plus que le chateau.
+            bed.volume = Mathf.MoveTowards(bed.volume, (night ? 0.45f + 0.25f * fear : 0.1f) * vol, dt * 0.4f);
+            calm.volume = Mathf.MoveTowards(calm.volume, (night ? 0.38f * (1f - 0.6f * fear) : 0f) * vol, dt * 0.3f);
             if (!night) return;
 
-            if (fear > 0.12f)
+            // Le coeur : un vrai battement, qui bat plus vite et plus fort quand le danger approche.
+            if (fear > 0.15f)
             {
                 nextBeat -= dt;
                 if (nextBeat <= 0f)
                 {
-                    heart.pitch = 0.9f + 0.28f * fear;
-                    heart.PlayOneShot(beat, (0.3f + 0.7f * fear) * vol);
-                    nextBeat = Mathf.Lerp(1.25f, 0.40f, fear);
+                    AudioClip[] beats = Bank("Coeur");
+                    if (beats.Length > 0)
+                    {
+                        AudioClip b = beats[fear > 0.6f && beats.Length > 1 ? 0 : beats.Length - 1];
+                        heart.pitch = 0.95f + 0.15f * fear;
+                        heart.PlayOneShot(b, (0.25f + 0.75f * fear) * vol);
+                        nextBeat = Mathf.Max(b.length * 0.95f, 1.2f) / heart.pitch;
+                    }
+                    else nextBeat = 1f;
                 }
             }
+            // Le chateau vit : au loin, une chaine, une pierre qui tombe, un gemissement, un souffle.
             nextEvent -= dt;
             if (nextEvent <= 0f)
             {
-                nextEvent = Random.Range(12f, 30f);
+                nextEvent = Random.Range(14f, 32f);
                 float a = Random.Range(0f, 6.2832f);
-                Vector3 far = listener + new Vector3(Mathf.Cos(a), 0.2f, Mathf.Sin(a)) * Random.Range(7f, 13f);
-                int pick = Random.Range(0, 4);
-                AudioSource.PlayClipAtPoint(pick % 2 == 0 ? groan : bang, far, 0.7f * vol);
-            }
-            if (fear > 2f)       // les murmures : retires
-            {
-                nextWhisper -= dt;
-                if (nextWhisper <= 0f)
-                {
-                    nextWhisper = Random.Range(2.5f, 5f);
-                    float a = Random.Range(0f, 6.2832f);
-                    Vector3 close = listener + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 1.2f;
-                    AudioClip clip = voices.Count > 0 ? voices[Random.Range(0, voices.Count)] : whisper;
-                    AudioSource.PlayClipAtPoint(clip, close, (0.4f + 0.6f * fear) * vol);
-                }
+                Vector3 far = listener + new Vector3(Mathf.Cos(a), 0.4f, Mathf.Sin(a)) * Random.Range(9f, 16f);
+                string[] roles = { "Chaine", "Pierre", "Gemit", "Souffle", "Pierre" };
+                At(roles[Random.Range(0, roles.Length)], far, 0.55f, 3f, 0.85f);
             }
         }
 
         /// <summary>Un pas, quelque part : les pas qui te suivent.</summary>
-        public static void Step(Vector3 at, float volume) { if (pas != null) AudioSource.PlayClipAtPoint(pas, at, volume * Settings.Volume); }
+        public static void Step(Vector3 at, float volume) { At("Sons/Pas", at, volume * 0.8f, 2f, 0.8f); }
 
-        /// <summary>(21/11) Un sabot qui frappe la pierre (l'arrivee a cheval).</summary>
-        public static void Hoof(float volume, float pitch) { if (heart != null && hoof != null) { heart.pitch = pitch; heart.PlayOneShot(hoof, volume * Settings.Volume); } }
-        public static void Snort() { if (heart != null && snort != null) { heart.pitch = 1f; heart.PlayOneShot(snort, 0.9f * Settings.Volume); } }
+        /// <summary>(21/11) Un sabot qui frappe la pierre (l'arrivee a cheval) : un pas de pierre, plus grave.</summary>
+        public static void Hoof(float volume, float pitch) { Near("Sons/Pas", volume * 0.8f, 0.55f * pitch); }
+        public static void Snort() { Near("Renacle", 0.8f, 0.8f); }
 
-        public static void Sting(float volume) { if (heart != null) heart.PlayOneShot(sting, volume * Settings.Volume); }
-        public static void Bang(Vector3 at, float volume) { if (bang != null) AudioSource.PlayClipAtPoint(bang, at, volume * Settings.Volume); }
-        public static void Scream(Vector3 at, float volume) { if (groan != null) AudioSource.PlayClipAtPoint(groan, at, volume * Settings.Volume); }      // plus de cri : un fer qui gemit
+        /// <summary>Le coup de peur : une courte nappe sombre, et un grondement dessous.</summary>
+        public static void Sting(float volume) { Near("Frisson", volume * 0.9f, 0.9f); }
+        /// <summary>Un fracas dans le chateau (une pierre qui tombe, une porte).</summary>
+        public static void Bang(Vector3 at, float volume) { At("Pierre", at, volume, 4f, 0.75f); }
+        /// <summary>Un cri de bete (ou un gemissement de fantome, au hasard).</summary>
+        public static void Scream(Vector3 at, float volume) { At(Random.value < 0.5f ? "Cri" : "Grogne", at, volume, 3f, 1f); }
 
-        /// <summary>La voix de l'homme de l'ouverture, si Martin l'a deposee (Sons/Nuit/Voix/intro-homme). Renvoie false sinon.</summary>
+        // (21/11) Les voix des betes et des animaux.
+        public static void Growl(Vector3 at, float volume) { At("Grogne", at, volume, 2.5f, 1f); }
+        public static void Roar(Vector3 at, float volume) { At("Rugit", at, volume, 5f, 0.9f); }
+        public static void Moan(Vector3 at, float volume) { At("Gemit", at, volume, 2f, 1f); }
+        public static void Breath(Vector3 at, float volume) { At("Souffle", at, volume, 1.5f, 1f); }
+        public static void Bark(Vector3 at, float volume) { At("Aboie", at, volume, 3f, 1f); }
+        public static void Howl(Vector3 at, float volume) { At("Hurle", at, volume, 8f, 1f); }
+        // (21/11) Les gestes.
+        public static void Lock(Vector3 at) { At("Serrure", at, 0.8f, 1.5f, 1f); }
+        public static void Fire(Vector3 at) { At("Feu", at, 0.6f, 2f, 1f); }
+        public static void Book(Vector3 at) { At("Livre", at, 0.8f, 2f, 1f); }
+        public static void Chest(Vector3 at) { At("Coffre", at, 0.9f, 2f, 0.9f); }
+        /// <summary>Le tonnerre (la cour, les eclairs) : un vrai orage enregistre.</summary>
+        public static void Thunder(Vector3 at) { At("Tonnerre", at, 1f, 20f, 1f); }
+        public static void Chain(Vector3 at) { At("Chaine", at, 0.8f, 3f, 0.9f); }
+        /// <summary>Une trouvaille, une recompense : un tintement clair.</summary>
+        public static void Treasure(Vector3 at) { At("Tresor", at, 0.8f, 3f, 1f); }
+
         public static bool HasVoice { get { return false; } }      // (15/11) les voix sont retirees
+        public static bool Speak(Vector3 at) { return false; }
 
-        public static bool Speak(Vector3 at)
-        {
-            AudioClip line = HasVoice ? Resources.Load<AudioClip>("Sons/Nuit/Voix/intro-homme") : null;
-            if (line == null) return false;
-            AudioSource.PlayClipAtPoint(line, at, Settings.Volume);
-            return true;
-        }
-
-        /// <summary>L'aube : la musique de la fin, une fois.</summary>
+        /// <summary>L'aube : la musique de la fin (le piano), une fois ; la musique de la nuit s'efface.</summary>
         public static void Dawn()
         {
-            AudioClip end = Resources.Load<AudioClip>("Sons/Nuit/Musique/nuit-aube");
-            if (end != null && heart != null) heart.PlayOneShot(end, 0.7f * Settings.Volume);
+            AudioClip end = Pick("Aube");
+            if (calm != null) { calm.Stop(); if (end != null) { calm.clip = end; calm.loop = false; calm.volume = 0.6f * Settings.Volume; calm.Play(); } }
         }
     }
 
@@ -223,24 +191,35 @@ namespace Fief
     /// </summary>
     public static class NightCinema
     {
+        // (21/11) Martin : "le gars au debut, il dit 'survis'. De quoi ? C'est qui ce gars ? Il doit etre en train d'agoniser
+        // sur le sol et t'expliquer qu'il y a peut-etre des survivants a un certain endroit". C'est maintenant UN VEILLEUR,
+        // en armure, couche contre le mur dans une flaque sombre. Il te dit ce qui s'est passe, ou sont les vivants, te
+        // tend sa torche, et meurt. Puis le bruit dans ton dos, les torches qui s'eteignent, le noir (on ne voit RIEN).
         public static bool Playing;
         static float t, bars, black;
         static NightPlayer player;
-        static GameObject knight, shape;
+        static GameObject knight, shape, pool;
         static string line = "";
         static int step;
-        // (15/11) La voix de Martin ("Ne restez pas ici", 9,7 s) : trois phrases, puis le cri a 8,4 s. Quand elle est
-        // la, tout ce qui suit les phrases est retarde de "late" secondes pour que le cri tombe dans le noir.
-        static bool voiced;
-        static float late;
-        static Material dark;
+        static Light dying;
 
         static Vector3 KnightAt, ShapeAt;
 
-        /// <summary>Ou se tiennent l'homme (devant) et la forme noire (derriere), pour un joueur pose a "eye" et tourne vers le nord.</summary>
+        static readonly string[] Lines =
+        {
+            "Toi... tu es vivant...",
+            "Les Veilleurs sont tombés. Tous. L'Abbé a ouvert la crypte... et la nuit est entrée avec lui.",
+            "Il reste des vivants. La cuisinière... aux cuisines. Le palefrenier, aux écuries. Le petit novice... en haut du donjon.",
+            "Prends ma torche. Ne la laisse jamais mourir. Ravive-la à chaque feu.",
+            "Le noir... ne passe pas la lumière. Allume les torches... derrière toi..."
+        };
+        static readonly float[] When = { 2.0f, 5.2f, 10.6f, 16.6f, 21.0f };
+        const float Dies = 25.2f;
+
+        /// <summary>Ou est couche le Veilleur (devant toi, contre le mur) et ou serait la forme (derriere), pour des yeux a "eye".</summary>
         public static void Aim(Vector3 eye)
         {
-            KnightAt = new Vector3(eye.x, 0f, eye.z + 3.4f);
+            KnightAt = new Vector3(eye.x + 0.2f, 0f, eye.z + 3.1f);      // ses pieds ; sa tete est a 1,2 m de toi
             ShapeAt = new Vector3(eye.x, 0f, eye.z - 1.9f);
         }
 
@@ -248,22 +227,60 @@ namespace Fief
         {
             player = who; t = 0f; step = 0; line = ""; bars = 0f; black = 1f;
             Aim(who.transform.position);
-            voiced = NightAudio.HasVoice;
-            late = voiced ? 1.4f : 0f;
             Clear();
             if (Application.isBatchMode) { Finish(); return; }       // les photos de Claude : pas de cinematique
             Stage(world, true, false);
             Playing = true;
-            player.Face(0f, 0f);
+            HeldTorch.Raise = 0f;
+            player.Face(0f, -38f);
         }
 
-        /// <summary>Pose le chevalier et/ou la forme noire (aussi pour les photos).</summary>
+        /// <summary>Pose le Veilleur couche et/ou la forme noire (aussi pour les photos).</summary>
         public static void Stage(Transform world, bool withKnight, bool withShape)
         {
             if (withKnight && knight == null)
             {
                 knight = NightKit.Model("chevalier", world);
-                if (knight != null) { knight.transform.position = KnightAt; knight.transform.rotation = Quaternion.Euler(0f, 180f, 0f); }
+                if (knight != null)
+                {
+                    // Couche sur le dos, la tete vers toi (un peu relevee), le visage vers le plafond.
+                    knight.transform.position = KnightAt + new Vector3(0f, 0.2f, 0f);
+                    knight.transform.rotation = Quaternion.Euler(-82f, 0f, 7f);
+                    Material dim = NightKit.Mat("Fer");
+                    if (dim != null) foreach (Renderer r in knight.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = dim;
+                }
+                // La flaque, sombre et luisante, sous lui : plusieurs taches qui se chevauchent, jamais un rond net.
+                Proto.BeginVisualOnly();
+                pool = new GameObject("Flaque");
+                if (world != null) pool.transform.SetParent(world, false);
+                Material blood = MaterialFactory.GetShiny(new Color(0.07f, 0.006f, 0.006f), 0.92f, 0f);
+                // Une douzaine de petites taches serrees sous le torse et la tete : de pres, elles se fondent en une flaque.
+                System.Random rnd = new System.Random(11);
+                Vector3[] spots = new Vector3[12];
+                float[] sizes = new float[12];
+                for (int i = 0; i < spots.Length; i++)
+                {
+                    float t = i / 11f;
+                    spots[i] = new Vector3((float)(rnd.NextDouble() - 0.5) * 0.7f, 0f, -0.9f - t * 1.1f + (float)(rnd.NextDouble() - 0.5) * 0.3f);
+                    sizes[i] = 0.22f + (float)rnd.NextDouble() * 0.38f * (1f - Mathf.Abs(t - 0.5f));
+                }
+                for (int i = 0; i < spots.Length; i++)
+                {
+                    GameObject spot = Proto.Cylinder(pool.transform, KnightAt + spots[i] + Vector3.up * (0.008f + i * 0.0015f), new Vector3(sizes[i], 0.003f, sizes[i] * (0.75f + 0.04f * (i % 5))), Color.black, "Tache");
+                    spot.transform.rotation = Quaternion.Euler(0f, i * 47f, 0f);
+                    spot.GetComponent<Renderer>().sharedMaterial = blood;
+                }
+                Proto.EndVisualOnly();
+                // Sa torche tombee, encore allumee : c'est elle qui l'eclaire.
+                GameObject lamp = new GameObject("Sa torche");
+                lamp.transform.SetParent(knight != null ? knight.transform.parent : world, false);
+                lamp.transform.position = KnightAt + new Vector3(0.9f, 0.3f, -1.5f);
+                dying = lamp.AddComponent<Light>();
+                dying.type = LightType.Point;
+                dying.color = new Color(1f, 0.6f, 0.3f);
+                dying.range = 5f;
+                dying.intensity = 1.6f;
+                dying.shadows = LightShadows.Soft;
             }
             if (withShape && shape == null)
             {
@@ -271,12 +288,9 @@ namespace Fief
                 if (shape != null)
                 {
                     shape.transform.position = ShapeAt;
-                    Renderer r = shape.GetComponentInChildren<Renderer>();
-                    if (r != null && r.sharedMaterial != null)
+                    Material dark = NightKit.Shadow();
+                    if (dark != null)
                     {
-                        // Noire comme un trou : on ne lit que sa forme, et deux points rouges.
-                        dark = NightKit.Shadow();
-                        if (dark == null) dark = new Material(r.sharedMaterial);
                         dark.color = new Color(0.02f, 0.02f, 0.025f);
                         dark.SetColor("_EmissionColor", new Color(1f, 0.08f, 0.03f) * 2.6f);
                         foreach (Renderer each in shape.GetComponentsInChildren<Renderer>(true)) each.sharedMaterial = dark;
@@ -290,14 +304,19 @@ namespace Fief
             // On les cache tout de suite (Destroy n'agit qu'a la fin de l'image).
             if (knight != null) { knight.SetActive(false); Object.Destroy(knight); }
             if (shape != null) { shape.SetActive(false); Object.Destroy(shape); }
-            knight = null; shape = null;
+            if (pool != null) { pool.SetActive(false); Object.Destroy(pool); }
+            if (dying != null) Object.Destroy(dying.gameObject);
+            knight = null; shape = null; pool = null; dying = null;
         }
 
+        /// <summary>(21/11) Le Veilleur reste la ou il est mort (on repasse devant lui) : seule sa lumiere s'en va.</summary>
         static void Finish()
         {
-            Clear();
+            if (shape != null) { Object.Destroy(shape); shape = null; }
+            if (dying != null) { Object.Destroy(dying.gameObject); dying = null; }
             NightKit.SnuffEntry();          // les torches du vestibule ne se rallument pas : la nuit commence dans le noir
             Playing = false; bars = 0f; black = 0f; line = "";
+            HeldTorch.Raise = 1f;
             if (player != null) { player.Face(0f, 0f); if (player.View != null) player.View.fieldOfView = 72f; }
         }
 
@@ -314,56 +333,56 @@ namespace Fief
             if (FiefInput.ConfirmPressed) { Finish(); return; }
             t += dt;
             Camera cam = player.View;
-            float L = late;
+            const float L = Dies - 5.6f;      // tout ce qui suit sa mort est decale d'autant
             bars = Mathf.MoveTowards(bars, t < 10.6f + L ? 1f : 0f, dt * 1.5f);
 
-            if (t < 5.6f + L)
+            if (t < Dies)
             {
-                // Il nous parle. La camera se resserre doucement sur lui.
-                black = Mathf.MoveTowards(black, 0f, dt / 1.6f);
-                player.Face(0f, -3f);
-                if (cam != null) cam.fieldOfView = Mathf.Lerp(72f, 58f, Mathf.Clamp01((t - 1f) / 4.5f));
+                // Il nous parle : on est penche sur lui. La camera se resserre doucement.
+                black = Mathf.MoveTowards(black, 0f, dt / 2f);
+                float breathe = Mathf.Sin(t * 1.3f) * 1.2f;
+                player.Face(Mathf.Sin(t * 0.4f) * 3f, -36f + breathe);
+                if (cam != null) cam.fieldOfView = Mathf.Lerp(72f, 54f, Mathf.Clamp01((t - 1f) / 14f));
+                if (dying != null) dying.intensity = 1.6f * (0.8f + 0.2f * Mathf.PerlinNoise(t * 6f, 1f)) * Mathf.Clamp01((Dies - t) / 4f + 0.3f);
+                for (int i = 0; i < Lines.Length; i++) if (t >= When[i]) line = Lines[i];
+                // Il tend sa torche : elle monte dans ta main.
+                if (t > 18f) HeldTorch.Raise = Mathf.Clamp01((t - 18f) / 2f);
+                // Il tousse, il souffle.
+                if (At(0, 1.2f) || At(1, 9.8f) || At(2, 15.8f)) NightAudio.Step(KnightAt + Vector3.up * 0.5f, 0.5f);
             }
-            if (At(0, voiced ? 0.8f : 1.8f)) { line = "C'est plus comme avant."; NightAudio.Speak(KnightAt + Vector3.up * 1.7f); }
-            if (At(1, voiced ? 3.1f : 3.7f)) line = "Tout a changé.";
-            if (voiced && step == 2 && t >= 5.6f) line = "Ne restez pas ici.";
-            if (At(2, 5.6f + L))
+            if (At(3, Dies))
             {
-                // Le bruit, derriere nous. Il sursaute.
+                // Il meurt. Sa torche tombee s'eteint.
                 line = "";
+                if (dying != null) dying.intensity = 0f;
+                NightAudio.Sting(0.5f);
+            }
+            if (At(4, 5.6f + L))
+            {
+                // Le bruit, derriere nous.
                 NightAudio.Bang(ShapeAt + Vector3.up, 1f);
-                if (knight != null) knight.transform.position = KnightAt + new Vector3(0.12f, 0f, 0.25f);
-                // (16/11) Martin : "pourquoi on voit le monstre ? on ne doit PAS le voir". On se retourne : il n'y a rien.
-                // Seulement les torches qui meurent l'une apres l'autre, et le noir qui vient.
             }
             if (t >= 5.85f + L && t < 6.5f + L)
             {
                 // On se retourne d'un coup.
                 float k = Mathf.Clamp01((t - 5.85f - L) / 0.55f);
                 k = k * k * (3f - 2f * k);
-                player.Face(180f * k, -3f - 9f * k);
-                if (cam != null) cam.fieldOfView = Mathf.Lerp(58f, 74f, k);
+                player.Face(180f * k, -36f + 26f * k);
+                if (cam != null) cam.fieldOfView = Mathf.Lerp(54f, 74f, k);
             }
-            if (At(3, 6.5f + L))
-            {
-                // La forme noire. Et lui, derriere nous, qui s'enfuit en hurlant.
-                NightAudio.Sting(1f);
-                if (knight != null) { Object.Destroy(knight); knight = null; }
-            }
+            if (At(5, 6.5f + L)) NightAudio.Sting(1f);
             if (t >= 6.5f + L && t < 8.4f + L)
             {
-                player.Face(180f, -12f);
+                // (16/11) On ne voit RIEN. Seulement les torches qui meurent l'une apres l'autre, et le noir qui vient.
+                player.Face(180f, -10f);
                 if (cam != null) cam.fieldOfView = Mathf.Lerp(74f, 56f, Mathf.Clamp01((t - 6.5f - L) / 1.9f));
             }
-            if (At(4, 6.9f + L)) { if (!voiced) NightAudio.Scream(KnightAt + new Vector3(0f, 1.6f, 6f), 1f); }      // la voix de Martin a son propre cri
-            if (At(5, 7.3f + L)) NightKit.SnuffEntryOne(0);
-            if (At(6, 7.8f + L)) NightKit.SnuffEntryOne(1);
-            if (At(7, 8.4f + L))
+            if (At(6, 7.3f + L)) NightKit.SnuffEntryOne(0);
+            if (At(7, 7.8f + L)) NightKit.SnuffEntryOne(1);
+            if (At(8, 8.4f + L))
             {
-                // Noir. Quand la lumiere revient, il n'y a plus personne.
                 black = 1f;
                 NightAudio.Bang(player.transform.position, 0.6f);
-                Clear();
                 player.Face(0f, 0f);
                 if (cam != null) cam.fieldOfView = 72f;
             }
@@ -371,7 +390,7 @@ namespace Fief
             if (t >= 11.6f + L) Finish();
         }
 
-        /// <summary>Les bandes noires, le noir, et ce que dit l'homme.</summary>
+        /// <summary>Les bandes noires, le noir, et ce que dit le Veilleur.</summary>
         public static void Draw(float w, float h, GUIStyle text)
         {
             if (black > 0f)
@@ -387,7 +406,23 @@ namespace Fief
                 GUI.DrawTexture(new Rect(0f, h - band, w, band), Texture2D.whiteTexture);
             }
             GUI.color = Color.white;
-            if (Playing && line.Length > 0) NightFont.Label(new Rect(w * 0.1f, h * 0.80f, w * 0.8f, h * 0.08f), line, text);
+            if (!Playing) return;
+            if (line.Length > 0)
+            {
+                GUIStyle who = new GUIStyle(text);
+                who.fontSize = Mathf.RoundToInt(h * 0.022f);
+                who.fontStyle = FontStyle.Italic;
+                who.normal.textColor = new Color(0.75f, 0.55f, 0.35f);
+                NightFont.Label(new Rect(w * 0.1f, h * 0.76f, w * 0.8f, h * 0.04f), "Un Veilleur, à l'agonie", who);
+                GUIStyle say = new GUIStyle(text);
+                say.wordWrap = true;
+                NightFont.Label(new Rect(w * 0.12f, h * 0.8f, w * 0.76f, h * 0.1f), line, say);
+            }
+            GUIStyle skip = new GUIStyle(text);
+            skip.fontSize = Mathf.RoundToInt(h * 0.016f);
+            skip.alignment = TextAnchor.LowerRight;
+            skip.normal.textColor = new Color(0.6f, 0.55f, 0.5f, 0.6f);
+            GUI.Label(new Rect(0f, 0f, w * 0.97f, h * 0.97f), "Entrée  —  passer", skip);
         }
     }
 

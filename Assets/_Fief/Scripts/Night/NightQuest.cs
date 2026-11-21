@@ -22,7 +22,7 @@ namespace Fief
     /// </summary>
     public static class NightQuest
     {
-        public enum Find { Nothing, Key, Relic, Trap, Tomb, Whisper, Secret, Lantern }
+        public enum Find { Nothing, Key, Relic, Trap, Tomb, Whisper, Secret, Lantern, Oil, HolyWater, Candles, Eternal }
 
         public class Spot
         {
@@ -35,6 +35,7 @@ namespace Fief
             public float open = -1f;      // l'ouverture du couvercle, de 0 a 1 (-1 : ferme)
             public Vector3 lidPos;
             public Quaternion lidRot;
+            public Light glint;
         }
 
         const float SearchTime = 1.5f;
@@ -65,40 +66,46 @@ namespace Fief
 
         static float Flat(Vector3 v) { v.y = 0f; return v.magnitude; }
 
-        /// <summary>Distribue ce que contient chaque cachette. La cle est toujours loin du depart, jamais dans la chapelle.</summary>
+        /// <summary>
+        /// (21/11) Ce que contient chaque cachette. Martin : "les coffres, il y en a trop, on n'a rien dedans". Il n'y en a
+        /// plus qu'un par salle, et CHACUN a quelque chose ; les tombeaux et les rayons vides ne se fouillent plus.
+        ///   huile        ta torche reprend vie (objet 1)          eau benite   les monstres autour fuient (objet 2)
+        ///   bougies      trois bougies a poser par terre (3)       cierge eternel  la bougie qui ne meurt jamais (4)
+        ///   relique      ta torche s'use moins vite                lanterne     ta lumiere porte plus loin
+        /// </summary>
         public static void Deal(Vector3 start)
         {
-            List<Spot> order = new List<Spot>(spots);
-            for (int i = order.Count - 1; i > 0; i--)
+            Dictionary<char, Find> chest = new Dictionary<char, Find>
             {
-                int j = Random.Range(0, i + 1);
-                Spot t = order[i]; order[i] = order[j]; order[j] = t;
-            }
-            // Le passage secret, et le tresor : la lanterne dans le premier coffre, des reliques dans les autres.
-            bool lantern = false;
-            foreach (Spot s in order)
+                { 'H', Find.Oil }, { 'D', Find.Candles }, { 'A', Find.HolyWater }, { 'S', Find.Candles }, { 'P', Find.Oil },
+                { 'B', Find.Oil }, { 'U', Find.Relic }, { 'W', Find.HolyWater }
+            };
+            bool lantern = false, eternal = false, yard = false, grave = false, book = false;
+            foreach (Spot s in spots)
             {
                 if (s.kind == 3) s.find = Find.Secret;
+                else if (s.kind == 2 && !book) { s.find = Find.Relic; book = true; }
                 else if (s.room == 'T') { s.find = lantern ? Find.Relic : Find.Lantern; lantern = true; }
+                else if (s.kind == 0) { Find f; s.find = chest.TryGetValue(s.room, out f) ? f : Find.Oil; }
+                else if (s.kind == 1 && s.room == 'O' && !eternal) { s.find = Find.Eternal; eternal = true; }
+                else if (s.kind == 1 && s.room == 'J' && !grave) { s.find = Find.Tomb; grave = true; }
+                else if (s.kind == 1 && s.room == 'Y' && !yard) { s.find = Find.Candles; yard = true; }
             }
-            Spot key = null;
-            foreach (Spot s in order)
-                if (s.find == Find.Nothing && s.kind != 1 && s.room != 'K' && s.room != 'V' && s.room != 'S' && s.room != 'R' && Flat(s.body.position - start) > 22f) { key = s; break; }
-            if (key == null) foreach (Spot s in order) if (s.find == Find.Nothing && s.kind != 1 && s.room != 'R') { key = s; break; }
-            if (key != null) key.find = Find.Key;
-            Spot tomb = null;
-            foreach (Spot s in order) if (s.kind == 1 && s.room != 'K' && s.room != 'R') { tomb = s; break; }
-            if (tomb == null) foreach (Spot s in order) if (s.kind == 1 && s.room != 'R') { tomb = s; break; }
-            if (tomb != null) tomb.find = Find.Tomb;
-            int relics = 3, traps = 3, whispers = 3;
-            foreach (Spot s in order)
+            spots.RemoveAll(x => x.find == Find.Nothing);
+            // Une lueur d'or filtre sous le couvercle des coffres : on sait qu'ils valent le detour.
+            foreach (Spot s in spots)
             {
-                if (s.find != Find.Nothing) continue;
-                if (relics > 0) { s.find = Find.Relic; relics--; }
-                else if (traps > 0 && s.kind == 0 && s.room != 'R') { s.find = Find.Trap; traps--; }
-                else if (whispers > 0) { s.find = Find.Whisper; whispers--; }
+                if (s.kind != 0 || s.body == null) continue;
+                Light l = new GameObject("Lueur du coffre").AddComponent<Light>();
+                l.transform.SetParent(s.body, false);
+                l.transform.localPosition = new Vector3(0f, 0.55f, 0.2f);
+                l.color = new Color(1f, 0.72f, 0.3f);
+                l.range = 1.6f;
+                l.intensity = 0.7f;
+                l.renderMode = LightRenderMode.ForceVertex;
+                s.glint = l;
             }
-            Debug.Log("[FIEF] " + spots.Count + " cachettes dans le château ; la clé est dans : " + (key != null ? key.body.name + " (" + key.room + ")" : "aucune"));
+            Debug.Log("[FIEF] " + spots.Count + " cachettes, toutes pleines.");
         }
 
         static Spot Nearest(Vector3 p)
@@ -118,8 +125,8 @@ namespace Fief
         {
             Spot s = Nearest(p);
             if (s == null) return null;
-            return s.kind == 0 ? "E (tenir)  —  fouiller le coffre" : s.kind == 1 ? "E (tenir)  —  faire glisser la dalle"
-                : s.kind == 3 ? "E (tenir)  —  un livre dépasse du rayon" : "E (tenir)  —  fouiller les livres";
+            return s.kind == 0 ? "E (tenir)  —  ouvrir le coffre" : s.kind == 1 ? "E (tenir)  —  faire glisser la dalle"
+                : s.kind == 3 ? "E (tenir)  —  un livre dépasse du rayon" : "E (tenir)  —  un livre luit entre les autres";
         }
 
         /// <summary>A chaque image. Renvoie true quand une fouille se termine (ce qu'on a trouve : found, ou : where).</summary>
@@ -131,6 +138,7 @@ namespace Fief
             // Les couvercles qui s'ouvrent.
             foreach (Spot s in spots)
             {
+                if (s.glint != null && s.done) s.glint.intensity = Mathf.MoveTowards(s.glint.intensity, 0f, dt * 0.8f);
                 if (s.open < 0f || s.open >= 1f || s.lid == null) continue;
                 s.open = Mathf.MoveTowards(s.open, 1f, dt / (s.kind == 1 ? 1.8f : 0.6f));
                 float k = s.open * s.open * (3f - 2f * s.open);
@@ -152,7 +160,7 @@ namespace Fief
             if (NightMap.MoonLight != null) NightMap.MoonLight.intensity = 0.55f + 7f * Flash;
 
             // Les armures de la grande salle : elles se tournent toutes vers toi, au prochain clignement.
-            if (armorsPending && NightBlink.Closed)
+            if (armorsPending)
             {
                 armorsPending = false;
                 foreach (Transform a in NightMap.Armors)
@@ -173,6 +181,7 @@ namespace Fief
 
             near.done = true;
             near.open = 0f;
+            if (near.glint != null) near.glint.intensity = 2.2f;
             hold = 0f;
             current = null;
             found = near.find;
@@ -180,9 +189,9 @@ namespace Fief
             if (found == Find.Key) HasKey = true;
             try
             {
-                if (near.kind == 0) Sfx.ClangAt(where);
-                else if (near.kind == 1) Sfx.CrashAt(where);
-                else Sfx.Rustle();
+                if (near.kind == 0) NightAudio.Chest(where);
+                else if (near.kind == 1) NightAudio.Bang(where, 0.9f);
+                else NightAudio.Book(where);
             }
             catch (System.Exception) { }
             return true;
@@ -191,7 +200,7 @@ namespace Fief
         public static void Strike(Vector3 me)
         {
             Flash = 1f;
-            try { Sfx.Thunder(me + new Vector3(12f, 30f, 8f), true); } catch (System.Exception) { }
+            NightAudio.Thunder(me + new Vector3(12f, 30f, 8f));
         }
 
         /// <summary>Le joueur entre dans une salle. La premiere fois, il s'y passe quelque chose. Renvoie une phrase, ou null.</summary>
@@ -217,17 +226,35 @@ namespace Fief
                     lightning = 5f;
                     return null;
                 case 'P':
-                    try { Sfx.RattleAt(NightMap.Center('P') + Vector3.up); } catch (System.Exception) { }
+                    try { NightAudio.Chain(NightMap.Center('P') + Vector3.up); } catch (System.Exception) { }
                     return "Quelqu'un a gratté ces murs. De l'intérieur.";
                 case 'Q':
-                    try { Sfx.ClangAt(NightMap.Center('Q')); } catch (System.Exception) { }
+                    try { NightAudio.Bang(NightMap.Center('Q'), 0.6f); } catch (System.Exception) { }
                     return "Une marmite roule sur les dalles. Le feu brûle encore.";
                 case 'T':
-                    try { Sfx.Choir(NightMap.Center('T')); } catch (System.Exception) { }
+                    try { NightAudio.Treasure(NightMap.Center('T')); } catch (System.Exception) { }
                     return "De la cire, de l'or, et la poussière de cent ans.";
                 case 'A':
-                    try { Sfx.ClangAt(NightMap.Center('A') + Vector3.up); } catch (System.Exception) { }
+                    try { NightAudio.Chain(NightMap.Center('A') + Vector3.up); } catch (System.Exception) { }
                     return "Une lame est tombée du râtelier.";
+                case 'J':
+                    Strike(me);
+                    lightning = 6f;
+                    return "La grande cour. Des yeux, entre les tombes.";
+                case 'B':
+                    NightAudio.Snort();
+                    return "Ça sent la paille et la peur. Un cheval tremble dans sa stalle.";
+                case 'G':
+                    try { NightAudio.Chain(NightMap.Center('G') + Vector3.up); } catch (System.Exception) { }
+                    return "Le donjon. Un escalier monte dans le noir.";
+                case 'U':
+                    return "Quelqu'un respire, tout près. Doucement.";
+                case 'W':
+                    NightPlayer.TorchOut = 1.5f;
+                    return "Les caves. L'air est froid, ta flamme se couche.";
+                case 'O':
+                    NightAudio.Sting(0.7f);
+                    return "Des os, partout. Et quelque chose qui dort au milieu.";
             }
             return null;
         }

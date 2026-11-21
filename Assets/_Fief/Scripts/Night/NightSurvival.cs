@@ -130,14 +130,14 @@ namespace Fief
                 {
                     sparks++;
                     sparkFlash = 1f;
-                    try { Sfx.ClangAt(where); } catch (System.Exception) { }
+                    NightAudio.Lock(where);
                     if (sparks >= 3) { Finish(true); return; }
                     arcSize *= 0.72f; speed *= 1.22f; arcAt = Mathf.Repeat(arcAt + Random.Range(90f, 250f), 360f);
                 }
                 else
                 {
                     missFlash = 1f;
-                    try { Sfx.ChipAt(where); } catch (System.Exception) { }
+                    try { NightAudio.Bang(where, 0.3f); } catch (System.Exception) { }
                     Fumble(0.04f);
                 }
                 return;
@@ -152,12 +152,12 @@ namespace Fief
             if (force)
             {
                 turn = Mathf.MoveTowards(turn, allowed, dt * 1.3f);
-                if (turn >= 0.999f) { try { Sfx.ClangAt(where); } catch (System.Exception) { } Finish(true); return; }
+                if (turn >= 0.999f) { NightAudio.Lock(where); Finish(true); return; }
                 if (turn >= allowed - 0.001f) strain += dt;
                 if (strain > 0.6f)
                 {
                     picks--; strain = 0f; turn = 0f; snap = 1f; missFlash = 1f;
-                    try { Sfx.SnapAt(where); } catch (System.Exception) { }
+                    try { NightAudio.Lock(where); } catch (System.Exception) { }
                     Fumble(0.06f);
                     if (picks <= 0) { Finish(false); return; }
                 }
@@ -490,7 +490,7 @@ namespace Fief
         {
             Locked = false; Open = true;
             if (block != null) block.enabled = false;
-            try { Sfx.BuildAt(Center); } catch (System.Exception) { }
+            try { NightAudio.Lock(Center); } catch (System.Exception) { }
         }
 
         void Update()
@@ -605,7 +605,7 @@ namespace Fief
             transform.position = to;
             state = State.Lost; wait = 4f; seen = 0f;
             Douse(3f);
-            try { Sfx.CrashAt(transform.position + Vector3.up); } catch (System.Exception) { }
+            try { NightAudio.Bang(transform.position + Vector3.up, 0.9f); } catch (System.Exception) { }
             NightAudio.Scream(transform.position + Vector3.up * 1.6f, 0.7f);
         }
 
@@ -668,12 +668,12 @@ namespace Fief
                 Vector3 next = transform.position + step3.normalized * Mathf.Min(speed * Time.deltaTime, step3.magnitude);
                 // (21/11) Ta torche le tient a distance tant qu'elle brule fort ; les feux allumes, il ne les passe pas.
                 if (prey != null && Faith.Value > 0.25f && Flat(prey.transform.position - next).magnitude < 2.6f && Flat(prey.transform.position - transform.position).magnitude >= 2.6f) next = transform.position;
-                next = Ward.Hold(transform.position, next);
+                next = NightWard.Hold(transform.position, next);
                 next.y = NightMap.FloorY(next);
                 transform.position = next;
             }
             step -= Time.deltaTime * speed;
-            if (step <= 0f) { step = 1.05f; try { Sfx.ThudAt(transform.position); } catch (System.Exception) { } }
+            if (step <= 0f) { step = 1.05f; try { NightAudio.Step(transform.position, 0.9f); } catch (System.Exception) { } }
             return true;
         }
 
@@ -693,7 +693,7 @@ namespace Fief
             {
                 state = State.Hunt; unseen = 0f;
                 Tint(true);
-                try { Sfx.GongAt(transform.position); } catch (System.Exception) { }
+                try { NightAudio.Roar(transform.position, 0.8f); } catch (System.Exception) { }
                 NightAudio.Sting(0.8f);
             }
 

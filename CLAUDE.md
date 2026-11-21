@@ -17,6 +17,12 @@
 > ne le peuvent toujours pas (d'où le vérificateur, plus bas). **Martin veut le rendu le plus beau possible, tout de
 > suite, sans version brouillon** (« donne tout, tout le temps ») ; lui dire franchement ce que le low-poly et sa
 > carte graphique (RTX 3050 Ti portable) ne permettent pas.
+>
+> **21/11 — La Nuit a grandi** (détails dans `docs/VEILLEURS.md`, section du 21/11 au soir) : torche en main dont la
+> réserve est `Faith` (plus de foi ni de crucifix), feux à allumer `NightWard` (le nom `Ward` est déjà pris par
+> l'ancien jeu), monstres et survivants animés **Quaternius CC0** (`Resources/Modeles/Monstres` et `Gens`, importés
+> en Legacy par `Editor/ModelesAnimes.cs`, convertis GLB → FBX par Blender), château sur **trois niveaux**
+> (`NightMap.FloorY`). Avant Unity : `python Tools/verifier.py` puis `sh Tools/compiler.sh` (le SDK .NET est sur le PC).
 
 Jeu multijoueur de rivalité sur une île flottante, en première personne, 3D low-poly,
 matchs d'environ 30 min en **manches** de 2 à 8 joueurs, destiné à Steam. Unity 6 + C#.

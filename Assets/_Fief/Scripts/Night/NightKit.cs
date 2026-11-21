@@ -225,8 +225,8 @@ namespace Fief
             if (door != null) DoorLeaf = door.transform;
             Wall(-4f, 8f, 0f); Wall(4f, 8f, 0f);          // ils depassent dehors de 2 m : personne ne le voit
             Arch(0f, 8f, 0f, 0f);
-            Fire("Torche_Murale_Feu", -3f, 8f, 180f, true);
-            Fire("Torche_Murale_Feu", 3f, 8f, 180f, true);
+            Fire("Torche_Murale_Feu", -3f, 8f, 180f, true, 0f);
+            Fire("Torche_Murale_Feu", 3f, 8f, 180f, true, 0f);
 
             // --- LE COULOIR (x -2..2, z 8..32) sous sa voute, la niche du Penitent a droite (z 20..24)
             for (int z = 10; z <= 30; z += 4)
@@ -261,8 +261,8 @@ namespace Fief
             Put("torche_murale", -6f, 38f, 90f);
             Put("torche_murale", 6f, 38f, -90f);
             // Deux braseros de part et d'autre de l'autel : ils s'embrasent a l'aube.
-            Fire("Brasero_Feu", -2.6f, 41.2f, 0f, false);
-            Fire("Brasero_Feu", 2.6f, 41.2f, 0f, false);
+            Fire("Brasero_Feu", -2.6f, 41.2f, 0f, false, 0f);
+            Fire("Brasero_Feu", 2.6f, 41.2f, 0f, false, 0f);
             Put("autel", 0f, 41.5f, 0f);
             // La fenetre gothique et son vitrail, derriere l'autel, et la lune qui passe au travers.
             if (Source("vitrail") != null)

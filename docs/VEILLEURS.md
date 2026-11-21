@@ -113,9 +113,57 @@ quêtes, un boss, beaucoup plus grand ; je n'aime pas la police ni les cubes en 
   marche moins vite que toi. Rallumer les quatre brasiers des coins (le geste du feu) : chacun le fait reculer et
   le tient hors de sa lumière, mais il revient plus vite. Au quatrième, il brûle, et l'aube se lève.
 
-**Pas encore fait** : les cachettes en hauteur et les fenêtres pour observer (il n'y a pas d'étage), des quêtes
-dans les nouvelles salles (elles sont vides de but), des monstres animés (ils glissent, ils ne marchent pas).
-**Limite dite à Martin** : des modèles générés par le code n'atteindront pas le réalisme d'Elden Ring ou de GTA.
+### Le 21/11 au soir (acquis — Martin : « une carte toujours là », « la quête toujours visible », « une torche en main
+qui s'abaisse », « des monstres plus compliqués », « un château beaucoup plus grand », « plus de clignement »)
+
+- **La torche en main** (`NightLight.cs`, `HeldTorch`) : un bâton, une bague de fer, des chiffons, le vrai feu du kit.
+  Elle suit le regard avec retard, se balance au pas, **clic gauche : un coup de torche**. **Sa flamme et sa lumière
+  ont la taille de ta réserve** (`Faith` n'est plus la foi : c'est la réserve de la torche, 5 min pour mourir).
+- **Le crucifix est remplacé par une bougie blanche** (en bas à gauche, `LightGauge`) : sa cire fond avec la réserve,
+  sa flamme vacille, bleuit quand elle meurt ; étincelles d'or quand on la ravive.
+- **Raviver** : E tenu près d'une cheminée (grande salle, cuisines, donjon : infinies) ou d'un feu allumé (qui perd ce
+  qu'on lui prend). **Allumer** (E) : les torches des couloirs, les bouquets de bougies aux coudes, les braseros —
+  ils brûlent un temps (bougies 70 s, torches 150 s, braseros 260 s), **se consument à vue d'œil** (la cire raccourcit),
+  et **aucun monstre ne passe leur lumière** (`NightWard`, `NightMap.Passable`, `NightWard.Hold`).
+- **Plus de clignement** (`NightBlink` ne ferme plus jamais les yeux).
+- **Toujours à l'écran** : la quête en cours en haut à gauche (et deux quêtes de côté), **la petite carte en bas à
+  droite** (parchemin cerclé de fer, toi au milieu, les feux allumés en points d'or), les objets en bas au milieu.
+- **La serrure refaite** : une platine de fer rivetée, un barillet de laiton, la clé de tension, un crochet d'acier
+  qui rougit et casse (tout dessiné par le calcul).
+- **Les coffres** : un par salle au plus, **chacun a quelque chose**, une lueur d'or filtre du couvercle. Les
+  tombeaux et rayons vides ne se fouillent plus. **Les objets** : huile (1), eau bénite (2, tout fuit), bougies à
+  poser (3), le cierge éternel (4, la récompense de l'ossuaire), reliques, lanterne.
+- **L'ouverture** : un Veilleur agonise au sol, explique (l'Abbé, la crypte, les trois vivants et où ils sont), te
+  donne sa torche et meurt. Plus de « Survis. ».
+- **Les survivants** (`Survivor`, modèles Quaternius CC0) : Mathilde la cuisinière (viande + huile), Aubin le
+  palefrenier (bougies), frère Anselme le novice, en haut du donjon (la clé de la chapelle + eau bénite). On leur
+  parle (E, boîte de dialogue), ils partent à la chapelle ; à l'aube, ils y sont.
+- **Croc, le chien des écuries** (`Hound`) : nourri, il te suit, gronde quand un monstre approche, se jette dessus.
+- **Six bêtes animées** (`Beast`, Quaternius CC0, converties par Blender) : les **Âmes** (traversent les murs,
+  boivent ta flamme, un coup les dissipe), le **Boucher** (aveugle, il entend : ne cours pas), le **Démon** (n'approche
+  que si ta torche faiblit, souffle les bougies), **la Bête de l'ossuaire** (charge tout droit, s'assomme contre les
+  murs : frappe-la sonnée, cinq coups), l'**Écorcheur** (ne vient que dans ton dos, fuit ton regard), les **loups** de
+  la cour (tournent autour de la flamme). Ta torche, forte, les tient à 2,5 m. Après une prise, tu te réveilles au
+  dernier feu où tu as ravivé ta torche, et le jeu te dit ce que tu as mal fait.
+- **Le château** (`NightMap`, 27 × 19 cases, **trois niveaux**) : + la grande cour (ciel, puits, arbres morts,
+  cimetière), les écuries, le donjon (rez et **étage**, par un escalier), les **caves et l'ossuaire en sous-sol**
+  (escalier depuis les cuisines). Les murs vont du plus bas au plus haut des deux salles ; les escaliers sont des
+  rampes invisibles sous seize marches.
+
+- **Tous les sons refaits** (21/11 au soir, Martin : « change tous les sons et la musique, horribles pour les
+  oreilles ») : fini les sons fabriqués par le calcul. De **vrais enregistrements CC0** d'OpenGameArt, rangés par
+  rôle dans `Resources/Sons/Nuit/` (Fond, Musique, Aube, Coeur, Frisson, Cri, Gemit, Grogne, Rugit, Souffle, Aboie,
+  Hurle, Serrure, Feu, Livre, Coffre, Pierre, Chaine, Tresor, Tonnerre — sources dans `LICENCES.txt`). Musique :
+  Juhani Junkala, « Horror Atmosphere » (nappes, sans mélodie) ; à l'aube, un piano. Chaque bête a sa voix (la Bête
+  et le Boucher rugissent, les Âmes gémissent, le Démon grogne, l'Écorcheur souffle dans ton dos, les loups hurlent,
+  Croc aboie). Les musiques Suno de la nuit sont **mises de côté** dans `Assets/_Fief/Audio/Ancien-Nuit` (pas
+  supprimées). Changer un son = remplacer les fichiers de son dossier.
+
+**Pas encore fait / limites** : rien de tout ça n'a été joué par un humain ; **Claude n'entend pas** : les sons ont été
+choisis sur leur description, pas à l'oreille ; l'écran (quête, carte, objets, serrure,
+bougie) est dessiné par OnGUI, que les photos de Claude ne voient pas. Les modèles Quaternius sont low-poly
+« mignons » à l'origine : assombris, ils tiennent dans le noir, mais ce ne sont pas des monstres d'Elden Ring.
+Les animations des bêtes sont celles du pack (marche, course, coup), pas faites pour elles.
 
 ## Ce que Claude propose (à valider un par un)
 

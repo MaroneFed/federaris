@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEngine;
 
 namespace Fief
 {
@@ -13,15 +14,32 @@ namespace Fief
     /// </summary>
     public class ModelesAnimes : AssetPostprocessor
     {
+        /// <summary>Changer ce numero force Unity a re-importer ces modeles avec les nouveaux reglages.</summary>
+        public override uint GetVersion() { return 2; }
+
+        /// <summary>(21/11) Les longues pistes de la nuit (musique, aube, fond) se lisent en continu depuis le disque.</summary>
+        void OnPreprocessAudio()
+        {
+            string p = assetPath.Replace("\\", "/");
+            if (!p.Contains("Resources/Sons/Nuit/Musique/") && !p.Contains("Resources/Sons/Nuit/Aube/") && !p.Contains("Resources/Sons/Nuit/Fond/")) return;
+            AudioImporter ai = assetImporter as AudioImporter;
+            if (ai == null) return;
+            AudioImporterSampleSettings set = ai.defaultSampleSettings;
+            set.loadType = AudioClipLoadType.Streaming;
+            ai.defaultSampleSettings = set;
+        }
+
         void OnPreprocessModel()
         {
-            string p = assetPath.Replace('\', '/');
+            string p = assetPath.Replace("\\", "/");
             if (!p.Contains("Resources/Modeles/Monstres/") && !p.Contains("Resources/Modeles/Gens/")) return;
             ModelImporter mi = assetImporter as ModelImporter;
             if (mi == null) return;
             mi.animationType = ModelImporterAnimationType.Legacy;
             mi.importAnimation = true;
             mi.generateAnimations = ModelImporterGenerateAnimations.GenerateAnimations;
+            // (21/11) Lisible par le code : NightBeasts mesure la vraie forme du modele (BakeMesh) pour le mettre a la bonne taille.
+            mi.isReadable = true;
             mi.importCameras = false;
             mi.importLights = false;
         }

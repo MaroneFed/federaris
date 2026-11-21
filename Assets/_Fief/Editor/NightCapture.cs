@@ -64,8 +64,7 @@ namespace Fief
                 {
                     // La nuit telle qu'on la trouve, puis on allume tout pour la seconde serie.
                     Shoot();
-                    foreach (Candle c in Object.FindObjectsByType<Candle>(FindObjectsSortMode.None)) c.Ignite();
-                    NightKit.LightDawnFires();
+                    Prepare();
                     return;
                 }
                 ShootLit();
@@ -82,7 +81,17 @@ namespace Fief
             else if (EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
         }
 
-        static Vector3 Eye(Vector3 ground) { return new Vector3(ground.x, 1.65f, ground.z); }
+        static Vector3 Eye(Vector3 ground) { return new Vector3(ground.x, ground.y + 1.65f, ground.z); }
+
+        /// <summary>(21/11) Le portrait d'un etre (monstre, survivant, chien) : la camera devant lui, a hauteur d'yeux.</summary>
+        static void Portrait(Camera cam, string name, Transform who, float distance, float height)
+        {
+            if (who == null) return;
+            Vector3 front = who.forward;
+            front.y = 0f;
+            Vector3 from = who.position + front.normalized * distance + Vector3.up * 1.6f;
+            Shot(cam, name, from, who.position + Vector3.up * height);
+        }
 
         static void Shoot()
         {
@@ -91,89 +100,110 @@ namespace Fief
             dir = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Logs", "Captures");
             if (Directory.Exists(dir)) foreach (string old in Directory.GetFiles(dir, "*.png")) File.Delete(old);
             Directory.CreateDirectory(dir);
-            Vector3 v = NightMap.Center('V'), h = NightMap.Center('H'), k = NightMap.Center('K'), y = NightMap.Center('Y');
-            Vector3 n = NightMap.Center('N'), s = NightMap.Center('S'), a = NightMap.Center('A'), l = NightMap.Center('L');
+            Vector3 v = NightMap.Center('V'), h = NightMap.Center('H'), k = NightMap.Center('K');
             Vector3 north = Vector3.forward, east = Vector3.right, up = Vector3.up;
 
-            // L'ouverture : l'homme devant, la forme noire derriere.
+            // L'ouverture : le Veilleur agonisant, a nos pieds.
             Vector3 start = Eye(v) - north * 1.6f;
             NightCinema.Aim(start);
             NightCinema.Stage(null, true, false);
-            Shot(cam, "01_ouverture_homme", start, start + north * 3.4f - up * 0.1f);
-            NightCinema.Stage(null, false, true);
-            Shot(cam, "02_ouverture_forme", start, start - north * 1.9f + up * 0.6f);
+            Shot(cam, "01_ouverture_veilleur", start, start + north * 1.6f - up * 1.45f);
             NightCinema.Clear();
 
-            Shot(cam, "03_vestibule", Eye(v) - north * 2.5f + east * 2f, Eye(v) + north * 4f - east * 3f);
-            Shot(cam, "04_porte_sacristie", Eye(v) + east * 1f, Eye(s) + east * 3.5f);
-            Shot(cam, "05_couloir_sud", Eye(NightMap.CellCenter(7, 3)), Eye(NightMap.CellCenter(12, 3)));
-            Shot(cam, "06_grande_salle", Eye(h) - north * 6.5f - east * 9f, Eye(h) + north * 5f + east * 8f + up * 1.5f);
-            Shot(cam, "07_grande_salle_armures", Eye(h) - east * 6f, Eye(h) + east * 6f + north * 7.2f);
-            Shot(cam, "08_cour", Eye(y) - north * 3f - east * 3f, Eye(y) + north * 3f + east * 3f + up * 2.5f);
-            Shot(cam, "09_armurerie", Eye(a) - north * 1.4f - east * 2.5f, Eye(a) + north * 1.6f + east * 1f);
-            Shot(cam, "10_bibliotheque", Eye(l) - north * 4f - east * 6f, Eye(l) + north * 2f + east * 4f);
-            Shot(cam, "11_couloir_ouest", Eye(NightMap.CellCenter(1, 4)), Eye(NightMap.CellCenter(1, 8)));
-            Shot(cam, "12_chapelle", Eye(k) - north * 4.5f, Eye(k) + north * 6f + up * 1.2f);
+            Shot(cam, "02_vestibule", Eye(v) - north * 2.5f + east * 2f, Eye(v) + north * 4f - east * 3f);
+            Shot(cam, "03_couloir_torches", Eye(NightMap.CellCenter(7, 3)), Eye(NightMap.CellCenter(12, 3)));
+            Shot(cam, "04_grande_salle", Eye(h) - north * 6.5f - east * 9f, Eye(h) + north * 5f + east * 8f + up * 1.5f);
+            Vector3 j = NightMap.Center('J');
+            Shot(cam, "05_grande_cour", Eye(j) - north * 10f - east * 9f, Eye(j) + north * 6f + east * 6f + up * 2f);
+            Vector3 b = NightMap.Center('B');
+            Shot(cam, "06_ecuries", Eye(b) - east * 10f - north * 1.2f, Eye(b) + east * 6f + north * 1.5f);
+            Vector3 g = NightMap.Center('G');
+            Shot(cam, "07_donjon", Eye(g) - north * 7f, Eye(g) + north * 6f + up * 1f);
+            Shot(cam, "08_escalier_monte", new Vector3(98f, 1.65f, 29f), new Vector3(98f, 5.5f, 42f));
+            Vector3 u = NightMap.Center('U');
+            Shot(cam, "09_donjon_etage", Eye(u) - north * 6f + east * 2f, Eye(u) + north * 5f - east * 2f);
+            Shot(cam, "10_escalier_descend", new Vector3(58f, 1.65f, 37f), new Vector3(58f, -3.5f, 50f));
+            Vector3 w = NightMap.Center('W');
+            Shot(cam, "11_caves", Eye(w) - north * 6f - east * 5f, Eye(w) + north * 4f + east * 4f);
+            Vector3 o = NightMap.Center('O');
+            Shot(cam, "12_ossuaire", Eye(o) - north * 6.5f - east * 4f, Eye(o) + north * 2f + east * 2f);
+            Shot(cam, "13_cuisines", Eye(NightMap.Center('Q')) - east * 5f - north * 3f, Eye(NightMap.Center('Q')) + east * 6f);
+            Shot(cam, "14_chapelle", Eye(k) - north * 4.5f, Eye(k) + north * 6f + up * 1.2f);
 
-            // Le Penitent : endormi dans sa niche, puis ses deux autres poses, yeux allumes.
+            // Les vivants, et le chien.
+            foreach (Survivor s in Survivor.All) Portrait(cam, "15_survivant_" + s.Id, s.transform, 2.6f, 1.3f);
+            if (Hound.Dog != null) Portrait(cam, "16_chien", Hound.Dog.transform, 2.4f, 0.5f);
+
+            // Le Penitent dans sa niche, un Rodeur.
             Penitent monster = Object.FindAnyObjectByType<Penitent>();
-            Vector3 hallway = Eye(NightMap.CellCenter(1, 5));
-            Shot(cam, "13_penitent_dort", hallway + north * 0.2f, Eye(n) + up * 0.3f);
-            if (monster != null)
-            {
-                monster.ShowPose(1); monster.Glare(1.4f);
-                Shot(cam, "14_penitent_vu", hallway - north * 1.2f, Eye(n) + up * 0.3f);
-                monster.ShowPose(2); monster.Glare(2.6f);
-                Shot(cam, "15_penitent_veut", Eye(n) - east * 2.6f + north * 0.3f, Eye(n) + up * 0.5f);
-                monster.ShowPose(0); monster.Glare(0f);
-            }
-
-            // Un Rodeur dans le couloir du nord : de face (sa lanterne sur nous), puis de dos.
+            Vector3 n = NightMap.Center('N');
+            if (monster != null) { monster.ShowPose(2); monster.Glare(2.6f); Shot(cam, "17_penitent", Eye(n) - east * 2.6f + north * 0.3f, Eye(n) + up * 0.5f); monster.ShowPose(0); monster.Glare(0f); }
             NightPlayer knight = Object.FindAnyObjectByType<NightPlayer>();
             if (knight != null)
             {
                 Vector3 from = NightMap.CellCenter(8, 8), to = NightMap.CellCenter(4, 8);
                 Prowler rodeur = Prowler.Spawn(null, new[] { from, to }, knight);
                 rodeur.transform.rotation = Quaternion.LookRotation(to - from);
-                Shot(cam, "16_rodeur_face", Eye(to) + east * 1.5f, Eye(from) + up * 0.1f);
-                Shot(cam, "17_rodeur_dos", Eye(from) + east * 5f, Eye(from));
+                Shot(cam, "18_rodeur", Eye(to) + east * 1.5f, Eye(from) + up * 0.1f);
                 Object.Destroy(rodeur.gameObject);
                 Prowler.Forget();
-
-                // (21/11) Les nouvelles salles, et l'Abbe dans sa crypte.
-                Vector3 cr = NightMap.Center('R');
-                Abbot boss = Abbot.Spawn(null, NightMap.AbbotHome, knight);
-                Shot(cam, "21_crypte_abbe", Eye(NightMap.CryptEntry) + up * 0.1f, NightMap.AbbotHome + up * 3f);
-                Object.Destroy(boss.gameObject);
-                Shot(cam, "22_crypte", Eye(cr) - north * 6f - east * 5f, Eye(cr) + north * 4f + east * 3f);
-                Shot(cam, "23_tresor", Eye(NightMap.Center('T')) - north * 1.2f - east * 2.5f, Eye(NightMap.Center('T')) + north * 2f + east * 1f);
-                Shot(cam, "24_cuisines", Eye(NightMap.Center('Q')) - east * 5f - north * 3f, Eye(NightMap.Center('Q')) + east * 6f);
-                Shot(cam, "25_cachots", Eye(NightMap.Center('P')) - east * 5f + north * 3f, Eye(NightMap.Center('P')) + east * 5f - north * 2f);
             }
+        }
 
-            // (21/11) Dehors : le chemin d'arrivee, la facade et la porte, dans la brume.
-            Color fogColor = RenderSettings.fogColor;
-            float fogDensity = RenderSettings.fogDensity;
-            RenderSettings.fogColor = new Color(0.028f, 0.034f, 0.05f);
-            RenderSettings.fogDensity = 0.03f;
-            cam.backgroundColor = RenderSettings.fogColor;
-            Shot(cam, "26_dehors_chemin", new Vector3(26f, 2.45f, -60f), new Vector3(26f, 5f, 3f));
-            Shot(cam, "27_dehors_porte", new Vector3(24.5f, 2.45f, -6f), new Vector3(26f, 3.2f, 3.4f));
-            Shot(cam, "28_dehors_cimetiere", new Vector3(21f, 1.8f, -46f), new Vector3(14f, 0.6f, -32f));
-            RenderSettings.fogColor = fogColor;
-            RenderSettings.fogDensity = fogDensity;
-            cam.backgroundColor = fogColor;
+        /// <summary>
+        /// (21/11) Entre les deux series : les monstres en rang dans la grande cour (on attend 250 images que leurs
+        /// animations jouent), et tous les feux allumes.
+        /// </summary>
+        static void Prepare()
+        {
+            NightPlayer knight = Object.FindAnyObjectByType<NightPlayer>();
+            Vector3 j = NightMap.Center('J');
+            float[] xs = { -10f, -6f, -1.5f, 3f, 6.5f, 10f };
+            Beast.Kind[] kinds = { Beast.Kind.Soul, Beast.Kind.Butcher, Beast.Kind.Demon, Beast.Kind.Brute, Beast.Kind.Flayer, Beast.Kind.Wolf };
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                Beast found = null;
+                foreach (Beast b in Beast.All) if (b != null && b.kind == kinds[i]) { found = b; break; }
+                if (found == null && knight != null) found = Beast.Spawn(null, kinds[i], j, knight);
+                if (found == null) continue;
+                found.gameObject.SetActive(true);
+                Vector3 at = new Vector3(j.x + xs[i], 0f, j.z - 6f);
+                found.transform.position = at + (kinds[i] == Beast.Kind.Soul ? Vector3.up * 0.4f : Vector3.zero);
+                found.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                found.Held = true;
+                Animation a = found.GetComponentInChildren<Animation>();
+                Puppet.Play(a, 1f, false, "|Walk;|Flying_Idle;|Idle");
+            }
+            foreach (Candle c in Object.FindObjectsByType<Candle>(FindObjectsSortMode.None)) c.Ignite();
+            foreach (NightWard w in NightWard.All) if (w != null) w.Ignite();
+            if (knight != null)
+            {
+                NightLight.Candles(null, NightMap.CellCenter(9, 3) + Vector3.right * 1f, 90f, true);
+                NightLight.Eternal(null, NightMap.CellCenter(5, 3) + Vector3.forward * 1f);
+            }
+            NightKit.LightDawnFires();
         }
 
         static void ShootLit()
         {
             Camera cam = Camera.main;
             if (cam == null) throw new System.Exception("pas de caméra");
-            Vector3 k = NightMap.Center('K'), h = NightMap.Center('H');
+            Vector3 k = NightMap.Center('K'), h = NightMap.Center('H'), j = NightMap.Center('J');
             Vector3 north = Vector3.forward, east = Vector3.right, up = Vector3.up;
-            Shot(cam, "18_chapelle_allumee", Eye(k) - north * 4.5f, Eye(k) + north * 6f + up * 1.2f);
-            Shot(cam, "19_autel", Eye(k) + east * 2.2f, Eye(k) + north * 6f - east * 0.6f + up * 1f);
-            Shot(cam, "20_grande_salle_allumee", Eye(h) - north * 6.5f - east * 9f, Eye(h) + north * 5f + east * 8f + up * 1.5f);
+            // Les monstres, un par un, de face : la camera a trois metres, a hauteur d'homme.
+            float[] xs = { -10f, -6f, -1.5f, 3f, 6.5f, 10f };
+            string[] names = { "20_ame", "21_boucher", "22_demon", "23_bete", "24_ecorcheur", "25_loup" };
+            for (int i = 0; i < xs.Length; i++)
+            {
+                Vector3 at = new Vector3(j.x + xs[i], 0f, j.z - 6f);
+                Shot(cam, names[i], at + new Vector3(0f, 1.65f, -3.4f), at + up * (i == 5 ? 0.5f : 1.3f));
+            }
+            Shot(cam, "26_cour_rangee", Eye(j) - north * 11.5f, Eye(j) - north * 6f + up * 0.4f);
+            Shot(cam, "27_couloir_allume", Eye(NightMap.CellCenter(7, 3)), Eye(NightMap.CellCenter(12, 3)));
+            Shot(cam, "28_bougies_cierge", Eye(NightMap.CellCenter(7, 3)) + north * 0.3f, NightMap.CellCenter(5, 3) + north * 1f + up * 0.5f);
+            Shot(cam, "29_chapelle_allumee", Eye(k) - north * 4.5f, Eye(k) + north * 6f + up * 1.2f);
+            Shot(cam, "30_grande_salle_allumee", Eye(h) - north * 6.5f - east * 9f, Eye(h) + north * 5f + east * 8f + up * 1.5f);
+            Shot(cam, "31_grande_cour_allumee", Eye(j) + north * 8f + east * 8f, Eye(j) - north * 4f - east * 6f);
             Debug.Log("[FIEF] Photos de la nuit dans " + dir);
         }
 

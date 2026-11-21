@@ -12,38 +12,38 @@ namespace Fief
     ///   Faith (NightSurvival.cs)  la reserve de ta torche, de 0 (eteinte) a 1 (pleine). Elle baisse toute seule.
     ///   HeldTorch                 la torche dans ta main droite : elle suit ton regard avec un peu de retard, se balance
     ///                             quand tu marches, frappe (clic gauche) ; sa flamme a la taille de ta reserve.
-    ///   Ward                      un feu qu'on allume avec sa torche (E) : une torche murale, un bouquet de bougies, un
+    ///   NightWard                      un feu qu'on allume avec sa torche (E) : une torche murale, un bouquet de bougies, un
     ///                             brasero. Il brule un temps, se consume a vue d'oeil, puis s'eteint. Tant qu'il brule,
-    ///                             AUCUN monstre ne passe a cote (NightMap.Passable, Ward.Hold).
+    ///                             AUCUN monstre ne passe a cote (NightMap.Passable, NightWard.Hold).
     ///   NightLight                ce qui fabrique les feux du chateau (NightMap les pose).
     /// </summary>
     public static class NightLight
     {
         static Transform parent;
 
-        public static void Clear() { Ward.All.Clear(); parent = null; }
+        public static void Clear() { NightWard.All.Clear(); parent = null; }
 
         /// <summary>Une torche de fer sur un mur : "d" est la direction du mur vu du milieu de la case (0 nord, 1 est, 2 sud, 3 ouest).</summary>
-        public static Ward WallTorch(Transform under, float x, float z, int d, float floor)
+        public static NightWard WallTorch(Transform under, float x, float z, int d, float floor)
         {
             float yaw = d == 0 ? 180f : d == 1 ? -90f : d == 2 ? 0f : 90f;
             NightKit.FireAtY("Torche_Murale_Feu", x, z, yaw, false, floor);
             GameObject fire = NightKit.LastFire;
             if (fire == null) return null;
             Vector3 face = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
-            Ward w = Ward.Make(under, Ward.Kind.Torch, new Vector3(x, floor, z) + face * 0.9f, 150f);
+            NightWard w = NightWard.Make(under, NightWard.Kind.Torch, new Vector3(x, floor, z) + face * 0.9f, 150f);
             w.UseFire(fire);
             return w;
         }
 
         /// <summary>Un brasero sur pied : il brule longtemps et repousse loin.</summary>
-        public static Ward Brazier(Transform under, Vector3 at)
+        public static NightWard Brazier(Transform under, Vector3 at)
         {
             at.y = NightMap.FloorY(at);
             NightKit.FireAtY("Brasero_Feu", at.x, at.z, 0f, false, at.y);
             GameObject fire = NightKit.LastFire;
             if (fire == null) return null;
-            Ward w = Ward.Make(under, Ward.Kind.Brazier, at, 260f);
+            NightWard w = NightWard.Make(under, NightWard.Kind.Brazier, at, 260f);
             w.UseFire(fire);
             BoxCollider box = new GameObject("Brasero").AddComponent<BoxCollider>();
             box.transform.SetParent(w.transform, false);
@@ -56,20 +56,20 @@ namespace Fief
         /// Trois bougies blanches dans une coupelle de fer, posees au sol. "placed" : celles que tu poses toi-meme (objet 3),
         /// allumees tout de suite. Elles fondent a vue d'oeil.
         /// </summary>
-        public static Ward Candles(Transform under, Vector3 at, float life, bool placed)
+        public static NightWard Candles(Transform under, Vector3 at, float life, bool placed)
         {
             at.y = NightMap.FloorY(at);
-            Ward w = Ward.Make(under, Ward.Kind.Candles, at, life);
+            NightWard w = NightWard.Make(under, NightWard.Kind.Candles, at, life);
             w.BuildCandles(false);
             if (placed) w.Ignite();
             return w;
         }
 
         /// <summary>(21/11) LE CIERGE ETERNEL, la recompense de l'ossuaire : une haute bougie qui ne meurt jamais.</summary>
-        public static Ward Eternal(Transform under, Vector3 at)
+        public static NightWard Eternal(Transform under, Vector3 at)
         {
             at.y = NightMap.FloorY(at);
-            Ward w = Ward.Make(under, Ward.Kind.Eternal, at, 9999f);
+            NightWard w = NightWard.Make(under, NightWard.Kind.Eternal, at, 9999f);
             w.BuildCandles(true);
             w.Ignite();
             return w;
@@ -87,10 +87,10 @@ namespace Fief
     }
 
     /// <summary>Un feu a allumer : torche murale, bougies, brasero, cierge eternel.</summary>
-    public class Ward : MonoBehaviour
+    public class NightWard : MonoBehaviour
     {
         public enum Kind { Torch, Candles, Brazier, Eternal }
-        public static readonly List<Ward> All = new List<Ward>();
+        public static readonly List<NightWard> All = new List<NightWard>();
 
         public Kind kind;
         /// <summary>Le point au sol que les monstres ne passent pas.</summary>
@@ -113,12 +113,12 @@ namespace Fief
         readonly List<Transform> flames = new List<Transform>();
         float seed;
 
-        public static Ward Make(Transform under, Kind kind, Vector3 center, float life)
+        public static NightWard Make(Transform under, Kind kind, Vector3 center, float life)
         {
             GameObject go = new GameObject(kind == Kind.Torch ? "Torche à allumer" : kind == Kind.Brazier ? "Brasero à allumer" : kind == Kind.Eternal ? "Cierge éternel" : "Bougies à allumer");
             go.transform.SetParent(under != null ? under : NightLight.Root, false);
             go.transform.position = center;
-            Ward w = go.AddComponent<Ward>();
+            NightWard w = go.AddComponent<NightWard>();
             w.kind = kind; w.Center = center; w.Life = life; w.Burn = life;
             w.seed = center.x * 1.3f + center.z * 2.1f;
             All.Add(w);
@@ -127,7 +127,7 @@ namespace Fief
 
         void OnDestroy() { All.Remove(this); }
 
-        /// <summary>Un feu du kit (son "Feu", eteint) devient celui de ce Ward.</summary>
+        /// <summary>Un feu du kit (son "Feu", eteint) devient celui de ce NightWard.</summary>
         public void UseFire(GameObject kitFire)
         {
             fire = kitFire;
@@ -187,7 +187,7 @@ namespace Fief
             if (fire != null) fire.SetActive(true);
             foreach (Transform f in flames) f.gameObject.SetActive(true);
             if (glow != null) glow.enabled = true;
-            try { Sfx.BellAt(transform.position); } catch (System.Exception) { }
+            try { NightAudio.Fire(transform.position); } catch (System.Exception) { }
             return true;
         }
 
@@ -214,7 +214,7 @@ namespace Fief
             if (fire != null) fire.SetActive(false);
             foreach (Transform f in flames) f.gameObject.SetActive(false);
             if (glow != null) glow.enabled = false;
-            try { Sfx.ChipAt(transform.position); } catch (System.Exception) { }
+            try { NightAudio.Bang(transform.position, 0.3f); } catch (System.Exception) { }
         }
 
         /// <summary>La cire fond : chaque colonne raccourcit, sa flamme descend avec elle.</summary>
@@ -264,19 +264,19 @@ namespace Fief
         {
             for (int i = 0; i < All.Count; i++)
             {
-                Ward w = All[i];
+                NightWard w = All[i];
                 if (w != null && w.Burning && Mathf.Abs(w.Center.y - p.y) < 3f && Flat(w.Center, p) < w.Radius) return true;
             }
             return false;
         }
 
-        static Ward Closest(Vector3 p, bool burning, float within)
+        static NightWard Closest(Vector3 p, bool burning, float within)
         {
-            Ward best = null;
+            NightWard best = null;
             float bestD = within;
             for (int i = 0; i < All.Count; i++)
             {
-                Ward w = All[i];
+                NightWard w = All[i];
                 if (w == null || w.Burning != burning || w.Spent || Mathf.Abs(w.transform.position.y - p.y) > 2.5f) continue;
                 float d = Flat(w.transform.position, p);
                 if (d < bestD) { bestD = d; best = w; }
@@ -284,8 +284,8 @@ namespace Fief
             return best;
         }
 
-        public static Ward NearestUnlit(Vector3 p) { return Closest(p, false, 2.3f); }
-        public static Ward NearestBurning(Vector3 p, float within) { return Closest(p, true, within); }
+        public static NightWard NearestUnlit(Vector3 p) { return Closest(p, false, 2.3f); }
+        public static NightWard NearestBurning(Vector3 p, float within) { return Closest(p, true, within); }
 
         /// <summary>
         /// Un monstre voudrait aller de "from" a "to" : s'il entrerait dans la lumiere d'un feu, il reste ou il est ; s'il y est
@@ -295,7 +295,7 @@ namespace Fief
         {
             for (int i = 0; i < All.Count; i++)
             {
-                Ward w = All[i];
+                NightWard w = All[i];
                 if (w == null || !w.Burning || Mathf.Abs(w.Center.y - from.y) > 3f) continue;
                 float r = w.Radius;
                 float dFrom = Flat(w.Center, from), dTo = Flat(w.Center, to);
@@ -329,6 +329,8 @@ namespace Fief
         Quaternion lastLook;
         float swing = -1f, raise = 1f, phase;
         public static bool Shown = true;
+        /// <summary>Ou est la flamme (la lumiere du chevalier s'y accroche).</summary>
+        public Transform FlamePoint { get { return flame; } }
         /// <summary>De 0 (cachee, sous l'ecran) a 1 (en main). L'ouverture la fait monter quand le mourant te la donne.</summary>
         public static float Raise = 1f;
 
@@ -339,8 +341,10 @@ namespace Fief
             HeldTorch t = go.AddComponent<HeldTorch>();
             t.rig = new GameObject("Bras").transform;
             t.rig.SetParent(go.transform, false);
-            Material wood = MaterialFactory.GetShiny(new Color(0.17f, 0.1f, 0.055f), 0.18f, 0f);
-            Material rag = MaterialFactory.GetShiny(new Color(0.09f, 0.06f, 0.035f), 0.05f, 0f);
+            Material wood = MaterialFactory.GetShiny(new Color(0.36f, 0.22f, 0.11f), 0.22f, 0f);
+            Material rag = MaterialFactory.GetShiny(new Color(0.24f, 0.16f, 0.09f), 0.05f, 0f);
+            // Le haut des chiffons couve : des braises orange sous la flamme.
+            Material ember = MaterialFactory.GetGlow(new Color(1f, 0.38f, 0.08f), 1.6f);
             Material iron = NightKit.Mat("Fer");
             Proto.BeginVisualOnly();
             GameObject stick = Proto.Cylinder(t.rig, new Vector3(0f, -0.05f, 0f), new Vector3(0.042f, 0.26f, 0.042f), Color.white, "Manche");
@@ -353,13 +357,14 @@ namespace Fief
             {
                 GameObject wrap = Proto.Cylinder(t.rig, new Vector3(0f, 0.235f + i * 0.035f, 0f), new Vector3(0.078f - i * 0.006f, 0.022f, 0.078f - i * 0.006f), Color.white, "Chiffon");
                 wrap.transform.localRotation = Quaternion.Euler(i * 7f - 9f, i * 40f, i * 5f);
-                wrap.GetComponent<Renderer>().sharedMaterial = rag;
+                wrap.GetComponent<Renderer>().sharedMaterial = i == 3 ? ember : rag;
             }
+
             Proto.EndVisualOnly();
             foreach (Renderer r in t.rig.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             Transform holder = new GameObject("Feu").transform;
             holder.SetParent(t.rig, false);
-            holder.localPosition = new Vector3(0f, 0.33f, 0f);
+            holder.localPosition = new Vector3(0f, 0.36f, 0f);
             GameObject fire = NightKit.LooseFlame("Torche_Murale_Feu", holder);
             if (fire != null)
             {
@@ -368,6 +373,7 @@ namespace Fief
                 fire.transform.localScale = Vector3.one * 0.7f;
             }
             t.flame = holder;
+            t.rig.localScale = Vector3.one * 0.92f;
             t.rig.localPosition = t.home;
             t.lastLook = eye.transform.rotation;
             return t;
@@ -422,6 +428,8 @@ namespace Fief
                 bool on = fuel > 0.001f && raise > 0.05f;
                 if (flame.gameObject.activeSelf != on) flame.gameObject.SetActive(on);
                 flame.localScale = Vector3.one * (0.3f + 0.75f * fuel);
+                // La flamme monte toujours vers le ciel, quelle que soit la facon dont on tient la torche.
+                flame.rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized + Vector3.forward * 0.0001f, Vector3.up);
             }
         }
     }

@@ -184,3 +184,6 @@ ModelImporterGenerateAnimations
 AnimationState
 WrapMode
 SkinnedMeshRenderer
+AudioImporter
+AudioImporterSampleSettings
+AudioClipLoadType

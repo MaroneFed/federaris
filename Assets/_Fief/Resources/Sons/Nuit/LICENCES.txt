@@ -1,0 +1,16 @@
+Sons de La Nuit (21/11) - tous en CC0 (domaine public), pris sur OpenGameArt.org :
+  Fond      dungeon_ambient    "Loopable Dungeon Ambience"            opengameart.org/content/loopable-dungeon-ambience
+  Musique   nuit-junkala       Juhani Junkala, "Horror Atmosphere"    opengameart.org/content/horror-atmosphere
+  Aube      aube-piano         "At the end of hope"                   opengameart.org/content/at-the-end-of-hope
+  Coeur     heartbeat          "Heartbeat sounds"                     opengameart.org/content/heartbeat-sounds
+  Cri       scream_horror1     "Horror scream1" + 80 CC0 creature SFX opengameart.org/content/horror-scream1
+  Gemit     qubodup GhostMoans + ghostbreath                          opengameart.org/content/ghost-monster-voice-moaning-growling , /ghost-breath
+  Grogne    monster-snarls, silent_beast_growl, 80 CC0 creature/RPG SFX
+  Rugit     troll-roars + roar_* (80 CC0 creature/RPG SFX)            opengameart.org/content/big-scary-troll-sounds
+  Souffle   troll-idle-noises, breath, snore
+  Aboie, Hurle  80 CC0 creature SFX                                    opengameart.org/content/80-cc0-creature-sfx
+  Frisson   "Dark Ambiences"                                          opengameart.org/content/dark-ambiences
+  Serrure, Feu, Livre, Coffre, Pierre, Chaine  80 CC0 RPG SFX          opengameart.org/content/80-cc0-rpg-sfx
+Les anciennes musiques de la nuit (Suno) sont rangees dans Assets/_Fief/Audio/Ancien-Nuit (plus chargees).
+  Tresor    item_gem, spell (80 CC0 RPG SFX)
+  Tonnerre  "Rain long thunder"                                      opengameart.org/content/rain-long-thunder

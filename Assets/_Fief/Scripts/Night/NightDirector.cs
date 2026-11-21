@@ -19,9 +19,8 @@ namespace Fief
 
         public static void Tick(float dt, float fear)
         {
-            if (shut > 0f) { shut -= dt; return; }
-            next -= dt * (1f + 2.2f * fear);
-            if (next <= 0f) { shut = 0.30f; next = Random.Range(5f, 11f); }
+            // (21/11) Martin : "fermer les yeux, c'est une mecanique horrible". Le chevalier ne cligne plus jamais.
+            shut = 0f;
         }
 
         public static void Draw(float w, float h)
@@ -181,86 +180,185 @@ namespace Fief
     }
 
     /// <summary>
-    /// LA CROIX DE LA FOI (16/11). Martin : "la croix en bas, il faut que ce soit plus detaille".
-    /// Une croix aux bouts trefles, dessinee par le calcul : un contour grave, un coeur qui se remplit d'or
-    /// par le bas, un cercle au croisement, un halo. Elle se fele et vire au rouge quand la foi est basse.
+    /// LA RESERVE DE LUMIERE (21/11). Martin : "le crucifix en bas a gauche, j'aime pas du tout son design ; que ce soit
+    /// notre reserve de lumiere". Plus de croix : UNE BOUGIE BLANCHE dans sa coupelle de fer. Sa cire a la hauteur de ta
+    /// reserve, elle fond quand ta torche s'use, sa flamme vacille, retrecit, vire au bleu quand il ne reste presque rien.
+    /// Quand tu ravives ta torche a un feu, des etincelles d'or montent ; quand tu en perds, un eclat rouge.
     ///
-    /// Concept Unity : on calcule pour chaque pixel sa DISTANCE au bord de la forme. Pres de zero : c'est le
-    /// contour ; negatif : c'est l'interieur. Avec ca on dessine n'importe quelle forme nette a toute taille.
+    /// Concept Unity : les images sont fabriquees pixel par pixel une seule fois (SetPixels), puis seulement etirees.
     /// </summary>
-    public static class FaithIcon
+    public static class LightGauge
     {
-        const int W = 128, H = 192;
-        static Texture2D line, fill, glow;
+        static Texture2D wax, top, flame, halo, dish;
 
-        static float Shape(float x, float y)
+        static float Smooth(float a, float b, float x) { float t = Mathf.Clamp01((x - a) / (b - a)); return t * t * (3f - 2f * t); }
+
+        static Texture2D Make(int w, int h)
         {
-            // x de -1 a 1, y de -1.5 (bas) a 1.5 (haut). Deux barres, quatre bouts ronds, un cercle au croisement.
-            float cy = 0.42f;
-            float post = Mathf.Max(Mathf.Abs(x) - 0.13f, Mathf.Abs(y + 0.05f) - 1.22f);
-            float beam = Mathf.Max(Mathf.Abs(x) - 0.72f, Mathf.Abs(y - cy) - 0.13f);
-            float d = Mathf.Min(post, beam);
-            d = Mathf.Min(d, Mathf.Sqrt(x * x + (y - 1.2f) * (y - 1.2f)) - 0.22f);
-            d = Mathf.Min(d, Mathf.Sqrt(x * x + (y + 1.28f) * (y + 1.28f)) - 0.22f);
-            d = Mathf.Min(d, Mathf.Sqrt((x - 0.72f) * (x - 0.72f) + (y - cy) * (y - cy)) - 0.22f);
-            d = Mathf.Min(d, Mathf.Sqrt((x + 0.72f) * (x + 0.72f) + (y - cy) * (y - cy)) - 0.22f);
-            float ring = Mathf.Abs(Mathf.Sqrt(x * x + (y - cy) * (y - cy)) - 0.40f) - 0.055f;
-            return Mathf.Min(d, ring);
+            Texture2D t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            t.hideFlags = HideFlags.HideAndDontSave;
+            t.wrapMode = TextureWrapMode.Clamp;
+            return t;
         }
 
         static void Build()
         {
-            line = new Texture2D(W, H, TextureFormat.RGBA32, false);
-            fill = new Texture2D(W, H, TextureFormat.RGBA32, false);
-            glow = new Texture2D(W, H, TextureFormat.RGBA32, false);
-            Color[] a = new Color[W * H], b = new Color[W * H], c = new Color[W * H];
-            for (int py = 0; py < H; py++)
-                for (int px = 0; px < W; px++)
+            if (wax != null) return;
+            // La cire : une colonne creme, ombree sur les bords comme un cylindre, avec des coulures le long du flanc.
+            wax = Make(64, 128);
+            Color[] px = new Color[64 * 128];
+            for (int y = 0; y < 128; y++)
+                for (int x = 0; x < 64; x++)
                 {
-                    float x = (px + 0.5f) / W * 2f - 1f, y = (py + 0.5f) / H * 3f - 1.5f;
-                    float d = Shape(x, y);
-                    float edge = Mathf.Clamp01(1f - Mathf.Abs(d + 0.018f) / 0.03f);
-                    float inside = Mathf.Clamp01(-(d + 0.045f) / 0.02f);
-                    // Un leger relief : plus clair en haut a gauche.
-                    float shade = 0.78f + 0.22f * Mathf.Clamp01(0.5f + (y - x) * 0.25f);
-                    a[py * W + px] = new Color(1f, 1f, 1f, edge);
-                    b[py * W + px] = new Color(shade, shade, shade, inside);
-                    c[py * W + px] = new Color(1f, 1f, 1f, Mathf.Clamp01(1f - d / 0.38f) * 0.55f * Mathf.Clamp01(1f - inside));
+                    float u = (x + 0.5f) / 64f * 2f - 1f;
+                    float shade = Mathf.Sqrt(Mathf.Max(0f, 1f - u * u));
+                    float drip = Mathf.PerlinNoise(x * 0.25f, y * 0.02f) * 0.08f;
+                    Color c = Color.Lerp(new Color(0.55f, 0.5f, 0.42f), new Color(0.98f, 0.95f, 0.86f), shade * 0.85f + 0.15f - drip);
+                    c += new Color(1f, 0.8f, 0.5f, 0f) * Smooth(0.3f, -0.4f, u) * 0.06f;
+                    c.a = 1f - Smooth(0.9f, 1f, Mathf.Abs(u));
+                    px[y * 64 + x] = c;
                 }
-            Texture2D[] all = { line, fill, glow };
-            Color[][] px3 = { a, b, c };
-            for (int i = 0; i < 3; i++)
-            {
-                all[i].SetPixels(px3[i]);
-                all[i].Apply();
-                all[i].hideFlags = HideFlags.HideAndDontSave;
-                all[i].wrapMode = TextureWrapMode.Clamp;
-            }
+            wax.SetPixels(px); wax.Apply();
+
+            // Le haut : une cuvette de cire fondue, translucide, eclairee par la flamme.
+            top = Make(64, 32);
+            px = new Color[64 * 32];
+            for (int y = 0; y < 32; y++)
+                for (int x = 0; x < 64; x++)
+                {
+                    float u = (x + 0.5f) / 64f * 2f - 1f, v = (y + 0.5f) / 32f * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    Color c = Color.Lerp(new Color(1f, 0.93f, 0.72f), new Color(0.92f, 0.86f, 0.74f), Smooth(0.2f, 0.9f, r));
+                    c.a = 1f - Smooth(0.85f, 1f, r);
+                    px[y * 64 + x] = c;
+                }
+            top.SetPixels(px); top.Apply();
+
+            // La flamme : une goutte, coeur blanc, puis jaune, orange, et un bord rouge qui s'efface.
+            flame = Make(64, 128);
+            px = new Color[64 * 128];
+            for (int y = 0; y < 128; y++)
+                for (int x = 0; x < 64; x++)
+                {
+                    float u = (x + 0.5f) / 64f * 2f - 1f, v = (y + 0.5f) / 128f;
+                    // Une goutte : large en bas (v ~ 0.25), pointue en haut.
+                    float width = v < 0.25f ? Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow((0.25f - v) / 0.25f, 2f))) : Mathf.Pow(1f - (v - 0.25f) / 0.75f, 0.85f);
+                    float d = width <= 0.001f ? 9f : Mathf.Abs(u) / width;
+                    float core = 1f - Smooth(0f, 0.55f, d + Mathf.Max(0f, v - 0.45f));
+                    Color c = Color.Lerp(new Color(1f, 0.35f, 0.08f), new Color(1f, 0.78f, 0.3f), Smooth(0.2f, 0.9f, 1f - d));
+                    c = Color.Lerp(c, new Color(1f, 0.98f, 0.9f), core);
+                    // Le pied de la flamme est bleu, comme une vraie flamme de bougie.
+                    c = Color.Lerp(c, new Color(0.35f, 0.5f, 1f), Smooth(0.14f, 0.02f, v) * 0.7f);
+                    c.a = (1f - Smooth(0.6f, 1f, d)) * Smooth(0f, 0.06f, v);
+                    px[y * 64 + x] = c;
+                }
+            flame.SetPixels(px); flame.Apply();
+
+            // Le halo : une lueur ronde, tres douce.
+            halo = Make(64, 64);
+            px = new Color[64 * 64];
+            for (int y = 0; y < 64; y++)
+                for (int x = 0; x < 64; x++)
+                {
+                    float r = Mathf.Sqrt((x - 31.5f) * (x - 31.5f) + (y - 31.5f) * (y - 31.5f)) / 31.5f;
+                    float a = Mathf.Clamp01(1f - r);
+                    px[y * 64 + x] = new Color(1f, 1f, 1f, a * a * a);
+                }
+            halo.SetPixels(px); halo.Apply();
+
+            // La coupelle : une assiette de fer vue un peu de dessus, avec son anneau pour la tenir.
+            dish = Make(128, 48);
+            px = new Color[128 * 48];
+            for (int y = 0; y < 48; y++)
+                for (int x = 0; x < 128; x++)
+                {
+                    float u = (x + 0.5f) / 128f * 2f - 1f, v = (y + 0.5f) / 48f * 2f - 1f;
+                    float plateD = Mathf.Sqrt(u * u * 0.95f + v * v * 2.6f) - 0.92f;
+                    float ringD = Mathf.Abs(Mathf.Sqrt((u - 0.88f) * (u - 0.88f) * 6f + v * v * 3f) - 0.32f) - 0.07f;
+                    float d = Mathf.Min(plateD, ringD);
+                    float n = Mathf.PerlinNoise(x * 0.15f, y * 0.15f);
+                    Color c = Color.Lerp(new Color(0.09f, 0.09f, 0.1f), new Color(0.38f, 0.36f, 0.34f), Smooth(-0.6f, 0.6f, v) * 0.7f + n * 0.3f);
+                    c.a = 1f - Smooth(-0.02f, 0.02f, d);
+                    px[y * 128 + x] = c;
+                }
+            dish.SetPixels(px); dish.Apply();
         }
 
         public static void Draw(float w, float h, float value, float flash)
         {
-            if (line == null) Build();
-            float tall = Mathf.Round(h * 0.15f), wide = Mathf.Round(tall * W / H);
-            Rect box = new Rect(Mathf.Round(w * 0.028f), Mathf.Round(h * 0.965f - tall), wide, tall);
-            Color gold = new Color(1f, 0.76f, 0.30f);
-            Color red = new Color(1f, 0.14f, 0.09f);
-            float low = Mathf.Clamp01((0.28f - value) / 0.28f);
-            float beat = 0.5f + 0.5f * Mathf.Sin(Time.time * (3f + 7f * low));
-            Color ink = Color.Lerp(gold, red, low * (0.55f + 0.45f * beat));
-            if (flash > 0f) ink = Color.Lerp(ink, Color.white, flash);
-            if (flash < 0f) ink = Color.Lerp(ink, red, -flash);
+            Build();
+            float t = Time.time;
+            float unit = Mathf.Round(h * 0.01f);
+            float baseX = Mathf.Round(h * 0.07f), baseY = Mathf.Round(h * 0.95f);
+            float waxW = unit * 3.4f, waxMax = unit * 17f;
+            float waxH = Mathf.Max(unit * 0.8f, waxMax * value);
+            float cx = baseX + unit * 5f;
+            bool dying = value < 0.25f;
 
-            GUI.color = new Color(ink.r, ink.g, ink.b, (0.25f + 0.5f * value) * (0.7f + 0.3f * beat));
-            GUI.DrawTexture(box, glow);
+            // Une ombre chaude derriere : l'endroit du coin de l'ecran ou la bougie eclaire.
             GUI.color = new Color(0f, 0f, 0f, 0.55f);
-            GUI.DrawTexture(box, fill);                                   // le creux, sombre
-            // L'or qui monte : on ne dessine que le bas de l'image, jusqu'a la hauteur de la foi.
-            float level = Mathf.Clamp01(value);
-            GUI.color = ink;
-            GUI.DrawTextureWithTexCoords(new Rect(box.x, box.y + tall * (1f - level), wide, tall * level), fill, new Rect(0f, 0f, 1f, level));
-            GUI.color = new Color(0.92f, 0.86f, 0.74f, 0.9f);
-            GUI.DrawTexture(box, line);
+            GUI.DrawTexture(new Rect(cx - unit * 12f, baseY - unit * 28f, unit * 24f, unit * 32f), halo);
+            float flick = 0.85f + 0.15f * Mathf.PerlinNoise(t * 9f, 3f);
+            if (value > 0.001f)
+            {
+                GUI.color = dying ? new Color(0.5f, 0.6f, 1f, 0.18f * flick) : new Color(1f, 0.62f, 0.25f, (0.16f + 0.22f * value) * flick);
+                float g = unit * (10f + 10f * value);
+                GUI.DrawTexture(new Rect(cx - g, baseY - waxH - unit * 4f - g, g * 2f, g * 2f), halo);
+            }
+
+            // La cire, puis sa cuvette.
+            GUI.color = Color.white;
+            Rect column = new Rect(Mathf.Round(cx - waxW * 0.5f), Mathf.Round(baseY - unit * 1.2f - waxH), Mathf.Round(waxW), Mathf.Round(waxH));
+            GUI.DrawTexture(column, wax);
+            GUI.DrawTexture(new Rect(column.x - unit * 0.15f, column.y - unit * 0.55f, column.width + unit * 0.3f, unit * 1.1f), top);
+            // Une coulure qui descend lentement le long du flanc.
+            float run = Mathf.Repeat(t * 0.05f, 1f);
+            GUI.color = new Color(1f, 0.97f, 0.88f, 0.9f);
+            GUI.DrawTexture(new Rect(column.xMax - unit * 0.9f, column.y + unit * 0.2f, unit * 0.55f, Mathf.Min(column.height * 0.7f, unit * 1.2f + run * column.height * 0.6f)), wax);
+            // La meche.
+            GUI.color = new Color(0.08f, 0.06f, 0.05f);
+            GUI.DrawTexture(new Rect(Mathf.Round(cx - unit * 0.12f), column.y - unit * 1.1f, Mathf.Max(1f, Mathf.Round(unit * 0.25f)), unit * 1.1f), Texture2D.whiteTexture);
+            // La coupelle de fer, devant la cire.
+            GUI.color = Color.white;
+            GUI.DrawTexture(new Rect(cx - unit * 6f, baseY - unit * 2.2f, unit * 12f, unit * 4.5f), dish);
+
+            // La flamme : sa taille suit la reserve ; elle se couche un peu, tremble, bleuit quand elle meurt.
+            if (value > 0.001f)
+            {
+                float size = unit * (2.2f + 5.5f * Mathf.Sqrt(value)) * flick;
+                float lean = (Mathf.PerlinNoise(t * 1.7f, 9f) - 0.5f) * 10f;
+                Rect f = new Rect(cx - size * 0.32f, column.y - unit * 0.9f - size, size * 0.64f, size);
+                Matrix4x4 keep = GUI.matrix;
+                GUIUtility.RotateAroundPivot(lean, new Vector2(cx, column.y - unit * 0.9f));
+                GUI.color = dying ? Color.Lerp(new Color(0.55f, 0.7f, 1f), Color.white, 0.5f + 0.5f * Mathf.Sin(t * 6f)) : Color.white;
+                GUI.DrawTexture(f, flame);
+                GUI.matrix = keep;
+            }
+            else
+            {
+                // Eteinte : un mince fil de fumee qui monte de la meche.
+                GUI.color = new Color(0.6f, 0.6f, 0.62f, 0.35f);
+                for (int i = 0; i < 4; i++)
+                {
+                    float k = Mathf.Repeat(t * 0.4f + i * 0.25f, 1f);
+                    GUI.DrawTexture(new Rect(cx - unit * 0.6f + Mathf.Sin(t * 2f + i) * unit * 0.6f, column.y - unit * (1.5f + 6f * k), unit * 1.2f, unit * 1.2f), halo);
+                }
+            }
+
+            // On vient de la raviver : des etincelles d'or qui montent. D'en perdre : un eclat rouge.
+            if (flash > 0f)
+                for (int i = 0; i < 6; i++)
+                {
+                    float k = Mathf.Repeat(t * 0.9f + i / 6f, 1f);
+                    GUI.color = new Color(1f, 0.8f, 0.35f, flash * (1f - k));
+                    float s = unit * 0.9f;
+                    GUI.DrawTexture(new Rect(cx + Mathf.Sin(i * 2.3f + t) * unit * 4f - s * 0.5f, column.y - unit * (2f + 10f * k), s, s), halo);
+                }
+            else if (flash < 0f)
+            {
+                GUI.color = new Color(1f, 0.15f, 0.08f, -flash * 0.5f);
+                GUI.DrawTexture(new Rect(cx - unit * 9f, column.y - unit * 9f, unit * 18f, unit * 18f), halo);
+            }
             GUI.color = Color.white;
         }
     }

@@ -594,7 +594,7 @@ namespace Fief
                 }
             // Les feux qui brulent : de petits points d'or (la ou les monstres ne passent pas).
             float dot = Mathf.Max(3f, Mathf.Round(s * 0.16f));
-            foreach (Ward w in Ward.All)
+            foreach (NightWard w in NightWard.All)
             {
                 if (w == null || !w.Burning) continue;
                 int wc = Col(w.Center), wr = Row(w.Center);
@@ -944,6 +944,8 @@ namespace Fief
             GameObject horse = NightKit.Place("cheval", x1 - 6f, z1 - 1.7f, 180f, 0f, false);
             if (horse != null) Box(new Vector3(x1 - 6f, 1f, z1 - 1.7f), new Vector3(0.8f, 2f, 2.4f), 0f, "Cheval");
             StableHorse = horse != null ? horse.transform : null;
+            // Une lanterne oubliee, accrochee a une poutre : on devine les stalles, le cheval, la paille.
+            Glow(new Vector3(x1 - 7.5f, 3.1f, z1 - 3.2f), new Color(1f, 0.66f, 0.35f), 11f, 0.75f, "Lanterne des écuries");
             foreach (GameObject c in AlongWalls('B', "coffre", ChestSize, 4, 3, 1, 1)) Chest(c, 'B');
         }
 
@@ -1053,7 +1055,7 @@ namespace Fief
             if (b == '.') return false;
             if (a != b && !(Door(c, r, d) && !locked.Contains(a) && !locked.Contains(b))) return false;
             // (21/11) Une case ou brule une torche, des bougies : les monstres n'y passent pas.
-            return !Ward.Blocks(CellCenter(c + DX[d], r + DZ[d]));
+            return !NightWard.Blocks(CellCenter(c + DX[d], r + DZ[d]));
         }
 
         /// <summary>
