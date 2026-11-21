@@ -148,6 +148,65 @@ namespace Fief
             return all.ToArray();
         }
 
+        /// <summary>
+        /// (21/11 soir) Une SILHOUETTE : toutes les matieres remplacees par l'Ombre du kit (noire, mate). On lit la forme,
+        /// jamais les details : le cerveau invente le reste, et ce qu'il invente est pire.
+        /// </summary>
+        public static Material Silhouette(GameObject model, float grey)
+        {
+            Material m = NightKit.Shadow();
+            if (m == null) m = new Material(Shader.Find("Standard"));
+            m.color = new Color(grey, grey, grey * 1.15f);
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
+            if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", 0.35f);
+            foreach (Renderer r in model.GetComponentsInChildren<Renderer>(true))
+            {
+                Material[] mats = new Material[r.sharedMaterials.Length];
+                for (int i = 0; i < mats.Length; i++) mats[i] = m;
+                r.sharedMaterials = mats;
+            }
+            return m;
+        }
+
+        /// <summary>Deux points de braise, minuscules, poses sur l'os de la tete (ils suivent ses mouvements).</summary>
+        public static Material EmberEyes(GameObject model, float size)
+        {
+            Transform head = null;
+            foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
+            {
+                string n = t.name.ToLowerInvariant();
+                if (n.EndsWith("head") || n.Contains("|head") || n == "head") { head = t; break; }
+            }
+            Material glow = MaterialFactory.GetGlow(new Color(1f, 0.1f, 0.02f), 6f);
+            Material mine = new Material(glow);
+            Transform holder = new GameObject("Yeux de braise").transform;
+            if (head != null)
+            {
+                holder.SetParent(head, false);
+                holder.position = head.position + model.transform.parent.forward * 0.16f + Vector3.up * 0.06f;
+            }
+            else
+            {
+                holder.SetParent(model.transform.parent, false);
+                holder.localPosition = new Vector3(0f, 0.86f, 0.2f);
+            }
+            holder.rotation = model.transform.parent.rotation;
+            Proto.BeginVisualOnly();
+            for (int s = -1; s <= 1; s += 2)
+            {
+                GameObject eye = Proto.Sphere(null, Vector3.zero, Vector3.one, Color.red, "Oeil");
+                eye.transform.SetParent(holder, false);
+                Vector3 ls = holder.lossyScale;
+                eye.transform.localScale = new Vector3(size / Mathf.Max(0.0001f, Mathf.Abs(ls.x)), size * 0.55f / Mathf.Max(0.0001f, Mathf.Abs(ls.y)), size / Mathf.Max(0.0001f, Mathf.Abs(ls.z)));
+                eye.transform.localPosition = new Vector3(s * 0.055f / Mathf.Max(0.0001f, Mathf.Abs(ls.x)), 0f, 0f);
+                Renderer r = eye.GetComponent<Renderer>();
+                r.sharedMaterial = mine;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            Proto.EndVisualOnly();
+            return mine;
+        }
+
         /// <summary>Un spectre : une matiere qui s'ajoute a l'image (on voit au travers), d'un bleu glace.</summary>
         public static Material Ghostly(GameObject model, Color tint)
         {
@@ -238,6 +297,15 @@ namespace Fief
         Vector3 noise;
         Vector3 charge;
         float hp, flee, stun, think, heard, step, bob, gone, lunge;
+        // (21/11 soir) La peur : la matiere noire, les yeux de braise, les saccades, l'apparition.
+        Material skin;
+        Material pupils;
+        GameObject model;
+        int age;
+        float frozen, twitch, revealCooldown;
+        bool revealed;
+        /// <summary>De 0 (aucune bete pres de toi) a 1 (une bete sur toi). La torche, le brouillard, le coeur la lisent.</summary>
+        public static float Dread;
         bool roaming, hunting, charging, dead, sleeping;
         public bool Held;
 
@@ -280,15 +348,29 @@ namespace Fief
             }
         }
 
+        /// <summary>De combien on etire le corps : grand et maigre, ou bas et long. L'inquietant, c'est le "presque humain".</summary>
+        static Vector3 Stretch(Kind k)
+        {
+            switch (k)
+            {
+                case Kind.Demon: return new Vector3(0.7f, 1.45f, 0.7f);
+                case Kind.Flayer: return new Vector3(0.6f, 1.5f, 0.6f);
+                case Kind.Butcher: return new Vector3(0.95f, 1.2f, 0.85f);
+                case Kind.Brute: return new Vector3(1.1f, 1.05f, 1.25f);
+                case Kind.Soul: return new Vector3(0.75f, 1.6f, 0.75f);
+                default: return new Vector3(0.8f, 1.1f, 1.35f);
+            }
+        }
+
         static float Height(Kind k)
         {
             switch (k)
             {
                 case Kind.Soul: return 1.5f;
-                case Kind.Butcher: return 2.35f;
-                case Kind.Demon: return 2.6f;
-                case Kind.Brute: return 3.0f;
-                case Kind.Flayer: return 2.05f;
+                case Kind.Butcher: return 2.5f;
+                case Kind.Demon: return 2.9f;
+                case Kind.Brute: return 3.1f;
+                case Kind.Flayer: return 2.6f;
                 default: return 1.15f;
             }
         }
@@ -303,26 +385,32 @@ namespace Fief
             b.kind = kind; b.prey = prey; b.home = at;
             b.hp = kind == Kind.Brute ? 5f : kind == Kind.Butcher ? 3f : 1f;
             b.sleeping = kind == Kind.Brute;
-            GameObject model = Puppet.Spawn(Model(kind), go.transform, Height(kind));
+            // (21/11 soir) Martin : "rends les monstres beaucoup plus flippants". Plus de couleurs, plus de bonnes joues :
+            //   - un CORPS ETIRE (plus grand, plus maigre) : le corps est pose dans un "holder" etire, la taille finale reste juste ;
+            //   - une SILHOUETTE NOIRE (la matiere Ombre, comme le Penitent), dans une fumee epaisse ;
+            //   - plus de gros yeux de dessin anime : deux POINTS DE BRAISE, minuscules, sur la tete (l'os "Head").
+            Transform body = new GameObject("Corps").transform;
+            body.SetParent(go.transform, false);
+            body.localScale = Stretch(kind);
+            GameObject model = Puppet.Spawn(Model(kind), body, Height(kind));
             if (model != null)
             {
                 b.anim = model.GetComponentInChildren<Animation>();
-                Color red = new Color(1f, 0.08f, 0.03f) * 3f;
                 if (kind == Kind.Soul) b.ghost = Puppet.Ghostly(model, new Color(0.25f, 0.45f, 0.7f, 0.5f));
-                else Puppet.Darken(model, kind == Kind.Wolf ? 0.22f : 0.1f, kind == Kind.Butcher ? Color.black : red * 0.45f);
-                // Une fumee noire colle a eux : on ne sait plus ou ils finissent.
-                if (kind != Kind.Wolf) NightKit.Smoke(go.transform, Height(kind));
+                else b.skin = Puppet.Silhouette(model, kind == Kind.Wolf ? 0.03f : 0.012f);
+                if (kind != Kind.Wolf) { NightKit.Smoke(go.transform, Height(kind)); NightKit.Smoke(go.transform, Height(kind) * 0.5f); }
+                b.model = model;      // les yeux de braise viendront quand le modele aura sa taille finale (Update)
             }
-            // Deux points rouges dans le noir (le Boucher est aveugle : pas d'yeux).
+            // Une lueur rouge, faible, la ou sont les yeux (le Boucher est aveugle : rien).
             if (kind != Kind.Butcher && kind != Kind.Soul)
             {
-                b.eyes = new GameObject("Yeux").AddComponent<Light>();
+                b.eyes = new GameObject("Lueur des yeux").AddComponent<Light>();
                 b.eyes.transform.SetParent(go.transform, false);
                 b.eyes.transform.localPosition = new Vector3(0f, Height(kind) * 0.86f, 0.35f);
                 b.eyes.type = LightType.Point;
                 b.eyes.color = new Color(1f, 0.12f, 0.05f);
-                b.eyes.range = 2.2f;
-                b.eyes.intensity = 0.8f;
+                b.eyes.range = 1.6f;
+                b.eyes.intensity = 0.6f;
             }
             Puppet.Play(b.anim, 1f, false, "|Idle;|Flying_Idle;|Idle_2");
             All.Add(b);
@@ -518,6 +606,8 @@ namespace Fief
 
         void Update()
         {
+            age++;
+            if (age == 4 && model != null && kind != Kind.Butcher && kind != Kind.Soul) pupils = Puppet.EmberEyes(model, kind == Kind.Wolf ? 0.03f : 0.04f);
             if (prey == null || Held || dead) return;
             float dt = Time.deltaTime;
             if (gone > 0f)
@@ -548,7 +638,8 @@ namespace Fief
                 Puppet.Play(anim, 0.6f, false, "|Duck;|HitReact;|Idle");
                 return;
             }
-            if (eyes != null) eyes.intensity = 0.6f + 0.6f * Mathf.PerlinNoise(Time.time * 3f, transform.position.x);
+            if (eyes != null) eyes.intensity = 0.4f + 0.5f * Mathf.PerlinNoise(Time.time * 3f, transform.position.x);
+            if (Scare(dist, sameFloor, dt)) return;
 
             switch (kind)
             {
@@ -560,6 +651,69 @@ namespace Fief
                 default: TickWolf(dist, sameFloor); break;
             }
         }
+
+        /// <summary>
+        /// (21/11 soir) CE QUI FAIT PEUR, pour toutes les betes :
+        ///   la SAISIE    il se fige net (l'animation s'arrete en plein geste), puis repart d'un coup, plus pres : jamais
+        ///                un mouvement regulier qu'on pourrait lire ;
+        ///   le TIC       regarde-le : sa tete, son corps tressaillent, sans raison ;
+        ///   l'APPARITION la premiere fois qu'il entre dans ta lumiere, pres de toi : un hurlement, l'image tremble ;
+        ///   les FEUX     pres de lui, les bougies vacillent, ta torche tousse (Dread).
+        /// Renvoie true quand il est fige (il ne fait rien d'autre cette image).
+        /// </summary>
+        bool Scare(float dist, bool sameFloor, float dt)
+        {
+            if (kind == Kind.Wolf && dist > 10f) return false;
+            float near = sameFloor ? Mathf.InverseLerp(14f, 2f, dist) : 0f;
+            if (near > Dread) Dread = near;
+            bool watched = Watched();
+
+            // L'apparition.
+            revealCooldown -= dt;
+            if (!revealed && watched && dist < 9f && revealCooldown <= 0f && kind != Kind.Wolf)
+            {
+                revealed = true;
+                revealCooldown = 25f;
+                NightAudio.Scream(transform.position + Vector3.up * 1.8f, 1f);
+                NightAudio.Sting(1f);
+                NightPlayer.Shake = Mathf.Max(NightPlayer.Shake, 0.75f);
+                NightPlayer.Punch = 1f;
+                frozen = 0.35f;
+            }
+            if (dist > 22f) revealed = false;
+
+            // La saisie : fige, l'animation arretee en plein geste.
+            if (frozen > 0f)
+            {
+                frozen -= dt;
+                if (anim != null) anim.enabled = false;
+                if (frozen <= 0f && anim != null) anim.enabled = true;
+                if (frozen > 0f) return true;
+            }
+            else if (dist < 20f && sameFloor && kind != Kind.Wolf && Random.value < dt * (watched ? 0.25f : 0.6f))
+                frozen = Random.Range(0.12f, 0.5f);
+
+            // Le tic : quand tu le regardes, il tressaille.
+            twitch -= dt;
+            if (watched && dist < 16f && twitch <= 0f)
+            {
+                twitch = Random.Range(0.4f, 1.6f);
+                transform.Rotate(0f, Random.Range(-14f, 14f), 0f);
+                if (anim != null) foreach (AnimationState st in anim) st.speed = Random.Range(0.5f, 2.4f);
+            }
+
+            // Les feux tremblent pres de lui ; il les eteint s'il est un Demon ou l'Ecorcheur.
+            if (dist < 30f)
+            {
+                NightWard w = NightWard.NearestBurning(transform.position, 4f);
+                if (w != null && (kind == Kind.Demon || kind == Kind.Flayer) && !watched && Random.value < dt * 0.3f) w.Snuff();
+            }
+            if (pupils != null) pupils.SetColor("_EmissionColor", new Color(1f, 0.1f, 0.02f) * (3f + 5f * near + Mathf.Sin(Time.time * 13f) * near));
+            return false;
+        }
+
+        /// <summary>Chaque image, la peur repart de zero : les betes la remontent dans leur Update.</summary>
+        public static void ResetDread() { Dread = Mathf.MoveTowards(Dread, 0f, Time.deltaTime * 2f); }
 
         void TickSoul(float dist, bool sameFloor)
         {

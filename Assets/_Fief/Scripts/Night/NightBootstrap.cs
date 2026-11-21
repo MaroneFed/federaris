@@ -36,6 +36,8 @@ namespace Fief
         NightDoor sacristy;
         Vector3 AltarAt, start, lastSafe;
         float fear, grab;
+        float scare;          // (21/11 soir) l'eclat rouge du jumpscare
+        bool grabByAbbot;
         Transform grabber;
         string grabWhy = "";
         bool hitThisSwing, began;
@@ -211,7 +213,8 @@ namespace Fief
             bool hold = !Calm || grab > 0f;
             if (!began && Calm) { began = true; Beast.HoldAll(false); Say("Trouve les survivants. Garde ta torche allumée.", 7f); }
             if (night && Calm) Faith.Tick(dt, hunted);
-            float want = Mathf.Max(Penitent.Dread, Mathf.Max(hunted ? 0.85f : 0f, Mathf.Clamp01((0.25f - Faith.Value) / 0.25f)));
+            Beast.ResetDread();
+            float want = Mathf.Max(Mathf.Max(Penitent.Dread, Beast.Dread), Mathf.Max(hunted ? 0.85f : 0f, Mathf.Clamp01((0.25f - Faith.Value) / 0.25f)));
             fear = Mathf.MoveTowards(fear, night ? want : 0f, dt * 0.8f);
             NightAudio.Tick(dt, fear, hunted, player.transform.position, night);
             NightDirector.Tick(dt, player, fear, night);
@@ -452,6 +455,7 @@ namespace Fief
             if ((byPenitent || prowler != null || beast != null || byAbbot) && caught <= 0f && grab <= 0f && night && Calm)
             {
                 grab = 0.95f;
+                grabByAbbot = byAbbot;
                 grabber = byAbbot ? abbot.transform : beast != null ? beast.transform : prowler != null ? prowler.transform : penitent.transform;
                 grabWhy = byAbbot ? "Il t'a eu. Reste dans la lumière des brasiers."
                     : beast != null ? Lesson(beast)
@@ -466,6 +470,11 @@ namespace Fief
                 Prowler.HoldAll(true);
                 Beast.HoldAll(true);
                 if (byPenitent) { penitent.ShowPose(2); penitent.Glare(3.4f); }
+                // (21/11 soir) LE JUMPSCARE : un hurlement en pleine face, l'image se resserre et saute, un eclat rouge.
+                NightAudio.Scream(player.transform.position + player.transform.forward * 0.6f + Vector3.up * 1.6f, 1f);
+                NightAudio.Roar(player.transform.position + player.transform.forward, 1f);
+                NightPlayer.Punch = 1f;
+                scare = 1f;
             }
             if (grab > 0f)
             {
@@ -473,10 +482,13 @@ namespace Fief
                 Vector3 ahead = player.transform.forward;
                 if (grabber != null)
                 {
-                    grabber.position = player.transform.position + ahead * (byAbbot ? 1.5f : 1f);
+                    // Il fond sur toi : de deux metres a un demi-metre en un clin d'oeil, le visage plein l'ecran.
+                    float k = Mathf.Clamp01((0.95f - grab) / 0.18f);
+                    grabber.position = player.transform.position + ahead * Mathf.Lerp(grabByAbbot ? 2.4f : 2f, grabByAbbot ? 1.1f : 0.55f, k * k);
                     grabber.rotation = Quaternion.LookRotation(-ahead, Vector3.up);
                 }
-                player.Face(player.Yaw, Mathf.MoveTowards(player.Pitch, 12f, dt * 120f));
+                // On leve les yeux vers sa tete (ils sont tous plus grands que toi), la tete secouee.
+                player.Face(player.Yaw + Random.Range(-2f, 2f), Mathf.MoveTowards(player.Pitch, -24f + Random.Range(-3f, 3f), dt * 260f));
                 NightPlayer.Shake = 1f;
                 if (grab <= 0f) Release();
             }
@@ -726,6 +738,15 @@ namespace Fief
             if (caught > 0f)
             {
                 GUI.color = new Color(0f, 0f, 0f, Mathf.Clamp01(caught / 0.8f));
+                GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+            }
+            // Le jumpscare : un eclat rouge, et des images noires qui sautent, comme un coeur qui rate.
+            if (scare > 0f)
+            {
+                if (Event.current.type == EventType.Repaint) scare = Mathf.MoveTowards(scare, 0f, Time.unscaledDeltaTime * 1.1f);
+                bool cut = scare > 0.4f && Mathf.Repeat(Time.unscaledTime * 17f, 1f) < 0.18f;
+                GUI.color = cut ? new Color(0f, 0f, 0f, 0.85f) : new Color(0.55f, 0f, 0f, scare * 0.45f);
                 GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
                 GUI.color = Color.white;
             }
@@ -1174,6 +1195,8 @@ namespace Fief
         /// <summary>(21/11) La hauteur des yeux (2,45 m a cheval), le balancement du galop, la lanterne trouvee au tresor.</summary>
         public static float EyeHeight = 1.65f;
         public static float RideBob;
+        /// <summary>(21/11 soir) Le coup de camera d'une apparition : l'image se resserre d'un coup, puis revient.</summary>
+        public static float Punch;
         public static bool Lantern;
         /// <summary>(21/11) La torche tenue en main (NightLight.cs).</summary>
         public HeldTorch Torch;
@@ -1261,6 +1284,11 @@ namespace Fief
             View.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             // (14/11) La tete qui balance en marchant, et l'image qui tremble quand on est pris.
             Shake = Mathf.MoveTowards(Shake, 0f, Time.deltaTime * 2.5f);
+            if (Punch > 0f)
+            {
+                Punch = Mathf.MoveTowards(Punch, 0f, Time.deltaTime * 1.6f);
+                if (!NightCinema.Playing && !NightIntro.Playing) View.fieldOfView = 72f - 16f * Punch * Punch;
+            }
             View.transform.localPosition = new Vector3(Mathf.Cos(bob * 0.5f) * 0.018f, EyeHeight + RideBob + Mathf.Sin(bob) * 0.032f, 0f)
                 + Random.insideUnitSphere * (Shake * 0.045f);
 
@@ -1281,12 +1309,12 @@ namespace Fief
             float t = Time.time;
             float flame = 1.05f + Mathf.Sin(t * 9f) * 0.09f + Mathf.Sin(t * 21f) * 0.06f + Mathf.PerlinNoise(t * 3f, 0f) * 0.18f;
             // (12/11) Le Penitent approche : la flamme faiblit, puis tousse (de courts trous noirs).
-            float dread = Penitent.Dread;
+            float dread = Mathf.Max(Penitent.Dread, Beast.Dread);
             float cough = dread > 0.3f && Mathf.PerlinNoise(t * 11f, 3f) > 0.70f ? 0.6f * dread : 0f;
             // (21/11) Sa lumiere suit la reserve : pleine, elle porte a neuf metres ; presque vide, a deux ; morte, une braise.
             float fuel = Faith.Value;
             torch.intensity = flame * (1f - 0.45f * dread) * (1f - cough) * (fuel > 0.001f ? 0.35f + 0.65f * Mathf.Sqrt(fuel) : 0.05f);
-            torch.range = 2.2f + 6.8f * fuel - 2f * dread * fuel + (Lantern ? 3f : 0f);
+            torch.range = 2.2f + 6.8f * fuel - 3f * dread * fuel + (Lantern ? 3f : 0f);
             if (HeldTorch.Raise < 0.5f) torch.intensity *= 0.3f;
             // La lumiere part de la flamme : les ombres bougent avec ta main.
             if (Torch != null && Torch.FlamePoint != null && HeldTorch.Raise > 0.5f) torch.transform.position = Torch.FlamePoint.position + View.transform.forward * 0.05f;

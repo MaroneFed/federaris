@@ -54,6 +54,8 @@ namespace Fief
         static bool wasMoving;
         static Vector3 lastPos;
         static GameObject ghost;
+        static float visitorStare;
+        static bool visitorEyes;
 
         public static void Begin(NightPlayer player)
         {
@@ -139,30 +141,38 @@ namespace Fief
             }
             wasMoving = moving;
 
-            // --- l'apparition
+            // --- (21/11 soir) LE VISITEUR. Une silhouette immense, tout au bout du couloir, qui te regarde. Tant que tu la
+            // fixes, ta torche tousse de temps en temps... et a chaque fois que la lumiere revient, elle est PLUS PRES.
+            // Detourne les yeux : elle disparait. Fixe-la trop longtemps : elle est sur toi, elle hurle, et plus rien.
             if (ghost == null)
             {
                 ghostTimer -= dt;
                 if (ghostTimer <= 0f)
                 {
-                    ghostTimer = Random.Range(45f, 90f);
-                    Vector3 spot = NightMap.RandomCell(me, 13f, 24f);
-                    if (!Physics.Linecast(me + Vector3.up * 1.6f, spot + Vector3.up * 1.6f, Solid, QueryTriggerInteraction.Ignore))
+                    ghostTimer = Random.Range(50f, 100f);
+                    Vector3 spot = NightMap.RandomCell(me, 13f, 22f);
+                    spot.y = NightMap.FloorY(spot);
+                    if (Mathf.Abs(spot.y - me.y) < 1f && !Physics.Linecast(me + Vector3.up * 1.6f, spot + Vector3.up * 1.6f, Solid, QueryTriggerInteraction.Ignore))
                     {
-                        ghost = NightKit.Model("penitent", null);
+                        ghost = new GameObject("LE VISITEUR");
+                        ghost.transform.position = spot;
+                        Transform body = new GameObject("Corps").transform;
+                        body.SetParent(ghost.transform, false);
+                        body.localScale = new Vector3(0.55f, 1.6f, 0.55f);
+                        GameObject m = Puppet.Spawn("Modeles/Monstres/Monstre_Ninja", body, 3.2f);
+                        if (m != null)
+                        {
+                            Puppet.Silhouette(m, 0.006f);
+                            Puppet.Play(m.GetComponentInChildren<Animation>(), 0.2f, false, "|Idle");
+                        }
+                        else { Object.Destroy(ghost); ghost = null; }
                         if (ghost != null)
                         {
-                            Material dark = NightKit.Shadow();
-                            if (dark != null)
-                            {
-                                dark.SetColor("_EmissionColor", Color.black);
-                                foreach (Renderer r in ghost.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = dark;
-                            }
-                            ghost.transform.position = spot;
+                            NightKit.Smoke(ghost.transform, 3.2f);
                             Vector3 face = me - spot;
                             face.y = 0f;
                             ghost.transform.rotation = Quaternion.LookRotation(face.normalized, Vector3.up);
-                            ghostLife = 14f;
+                            ghostLife = 16f; visitorStare = 0f; visitorEyes = false;
                         }
                     }
                 }
@@ -172,9 +182,47 @@ namespace Fief
                 ghostLife -= dt;
                 Vector3 d = ghost.transform.position - me;
                 d.y = 0f;
-                // Elle ne s'en va que lorsque tu ne peux pas la voir partir.
-                bool unseen = !Sees(cam, ghost.transform.position + Vector3.up * 1.8f);
-                if ((d.magnitude < 9f || ghostLife <= 0f) && unseen) { Object.Destroy(ghost); ghost = null; }
+                bool seen = Sees(cam, ghost.transform.position + Vector3.up * 2.2f);
+                if (!visitorEyes && ghostLife < 15.5f)
+                {
+                    // Ses yeux s'allument une demi-seconde apres qu'il est apparu (le modele a sa taille finale).
+                    visitorEyes = true;
+                    GameObject model = ghost.GetComponentInChildren<Animation>() != null ? ghost.GetComponentInChildren<Animation>().gameObject : null;
+                    if (model != null) Puppet.EmberEyes(model, 0.05f);
+                }
+                if (seen)
+                {
+                    visitorStare += dt;
+                    if (visitorStare > 1.4f)
+                    {
+                        // La torche tousse : le noir un quart de seconde... et il a avance.
+                        visitorStare = 0f;
+                        NightPlayer.TorchOut = 0.28f;
+                        NightAudio.Breath(ghost.transform.position, 0.9f);
+                        float step = Mathf.Min(d.magnitude * 0.4f, d.magnitude - 1.2f);
+                        Vector3 to = ghost.transform.position - d.normalized * Mathf.Max(0f, step);
+                        to.y = NightMap.FloorY(to);
+                        ghost.transform.position = to;
+                        if (d.magnitude - step < 3f)
+                        {
+                            // Il est sur toi : le hurlement, l'image qui saute. Puis plus rien.
+                            NightAudio.Scream(me + Vector3.up * 1.6f + player.transform.forward, 1f);
+                            NightAudio.Sting(1f);
+                            NightPlayer.Shake = 1f;
+                            NightPlayer.Punch = 1f;
+                            NightPlayer.TorchOut = 0.6f;
+                            Object.Destroy(ghost);
+                            ghost = null;
+                            return;
+                        }
+                    }
+                }
+                // Tu detournes les yeux (ou tu attends trop) : quand tu regardes de nouveau, il n'y a plus personne.
+                if ((!seen && visitorStare > 0f) || (ghostLife <= 0f && !seen))
+                {
+                    Object.Destroy(ghost);
+                    ghost = null;
+                }
             }
         }
     }

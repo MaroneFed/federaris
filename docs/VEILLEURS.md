@@ -159,6 +159,17 @@ qui s'abaisse », « des monstres plus compliqués », « un château beaucoup p
   Croc aboie). Les musiques Suno de la nuit sont **mises de côté** dans `Assets/_Fief/Audio/Ancien-Nuit` (pas
   supprimées). Changer un son = remplacer les fichiers de son dossier.
 
+- **Des monstres bien plus flippants** (21/11 au soir, Martin : « je veux que le joueur se chie dessus ») :
+  **silhouettes noires** (la matière Ombre du Pénitent) dans une double fumée, **corps étirés** (grands et maigres :
+  le Démon et l'Écorcheur font 2,9 et 2,6 m), plus de gros yeux de dessin animé mais **deux points de braise** sur
+  l'os de la tête, qui brûlent plus fort quand ils approchent. Ils **se figent net puis repartent** (jamais un mouvement
+  régulier), **tressaillent** quand on les regarde, et **la première fois qu'ils entrent dans ta lumière, ils hurlent**
+  (l'image se resserre et tremble). Près d'eux, ta torche tousse et le brouillard s'épaissit (`Beast.Dread`) ; le
+  Démon et l'Écorcheur **soufflent les feux**. **La prise est un jumpscare** : il fond sur toi jusqu'à 50 cm, le
+  visage plein l'écran, hurlement, éclat rouge, images noires qui sautent. **Le Visiteur** (`NightDirector`) : une
+  silhouette de 3 m au bout d'un couloir ; tant que tu la fixes, ta torche tousse et **à chaque fois, elle est plus
+  près** ; détourne les yeux, elle disparaît ; fixe-la trop longtemps, elle est sur toi.
+
 **Pas encore fait / limites** : rien de tout ça n'a été joué par un humain ; **Claude n'entend pas** : les sons ont été
 choisis sur leur description, pas à l'oreille ; l'écran (quête, carte, objets, serrure,
 bougie) est dessiné par OnGUI, que les photos de Claude ne voient pas. Les modèles Quaternius sont low-poly
