@@ -84,6 +84,8 @@ namespace Fief
         /// <summary>E (29/09 : "que E, ca soit la touche pour interagir") : prendre la Couronne, un don, monter sur une arbaleste.</summary>
         public static bool InteractHeld { get { return KeyHeld(KeyCode.E); } }
         public static bool InteractPressed { get { return KeyPressed(KeyCode.E); } }
+        /// <summary>(21/11) La Nuit : une touche quelconque vient d'etre enfoncee (les objets 1 a 4, M, I).</summary>
+        public static bool Pressed(KeyCode code) { return KeyPressed(code); }
         public static bool JumpPressed { get { return KeyPressed(KeyCode.Space); } }
         public static bool CancelPressed { get { return KeyPressed(KeyCode.Escape); } }
         public static bool HelpPressed { get { return KeyPressed(KeyCode.F1); } }
@@ -229,6 +231,13 @@ namespace Fief
                 case KeyCode.KeypadEnter: return k.numpadEnterKey;
                 case KeyCode.Tab: return k.tabKey;
                 case KeyCode.B: return k.bKey;                 // (v44.1) la danse ; sans elle, B ne repondait jamais
+                // (21/11) La Nuit : les objets (1 a 4), la carte (M), le carnet (I).
+                case KeyCode.Alpha1: return k.digit1Key;
+                case KeyCode.Alpha2: return k.digit2Key;
+                case KeyCode.Alpha3: return k.digit3Key;
+                case KeyCode.Alpha4: return k.digit4Key;
+                case KeyCode.M: return k.mKey;
+                case KeyCode.I: return k.iKey;
             }
             return null;
         }

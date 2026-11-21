@@ -68,8 +68,28 @@ namespace Fief
         }
 
         public static GameObject Place(string piece, float x, float z, float yaw, float y, bool upsideDown) { return Put(piece, x, z, yaw, y, upsideDown); }
-        public static void ArchAt(float x, float z, float yaw) { Arch(x, z, yaw); }
-        public static void FireAt(string prefab, float x, float z, float yaw, bool lit) { Fire(prefab, x, z, yaw, lit); }
+        public static void ArchAt(float x, float z, float yaw) { Arch(x, z, yaw, 0f); }
+        public static void FireAt(string prefab, float x, float z, float yaw, bool lit) { Fire(prefab, x, z, yaw, lit, 0f); }
+        /// <summary>(21/11) Le chateau a des etages et des caves : une arche, un feu, poses a la hauteur y.</summary>
+        public static void ArchAtY(float x, float z, float yaw, float y) { Arch(x, z, yaw, y); }
+        public static void FireAtY(string prefab, float x, float z, float yaw, bool lit, float y) { Fire(prefab, x, z, yaw, lit, y); }
+        /// <summary>(21/11) Une matiere du kit (Pierre, Fer, Statue...), ou null.</summary>
+        public static Material Mat(string name) { return Resources.Load<Material>(Dir + "Materials/" + name); }
+        /// <summary>(21/11) Le feu d'un prefab du kit (Torche_Murale_Feu, Cierge_Feu...), detache de son support, pose sous parent. Null sans kit.</summary>
+        public static GameObject LooseFlame(string prefab, Transform parent)
+        {
+            GameObject src = Source("Prefabs/" + prefab);
+            if (src == null) return null;
+            GameObject go = Object.Instantiate(src);
+            Transform fire = go.transform.Find("Feu");
+            if (fire == null) { Object.Destroy(go); return null; }
+            fire.SetParent(parent, false);
+            fire.localPosition = Vector3.zero;
+            fire.localRotation = Quaternion.identity;
+            go.SetActive(false);
+            Object.Destroy(go);
+            return fire.gameObject;
+        }
 
         /// <summary>Le rayon de lune, pour une fenetre posee a "window" (milieu du mur nord, au sol).</summary>
         public static void Moon(Vector3 window)
@@ -197,14 +217,14 @@ namespace Fief
                 for (int z = 2; z <= 6; z += 4) { Floor(x, z); Ceiling(x, z, 4f); }
             Wall(-2f, 0f, 0f); Wall(2f, 0f, 0f);
             Wall(-4f, 2f, 90f); Wall(-4f, 6f, 90f);
-            Wall(4f, 2f, 90f); Arch(4f, 6f, 90f);       // (14/11) l'arche de la sacristie
+            Wall(4f, 2f, 90f); Arch(4f, 6f, 90f, 0f);       // (14/11) l'arche de la sacristie
             // LA SACRISTIE (x 4..8, z 4..8) et sa porte de chene : ses gonds sont a z 5,05.
             Floor(6f, 6f); Ceiling(6f, 6f, 4f);
             Wall(6f, 4f, 0f); Wall(8f, 8f, 0f); Wall(8f, 6f, 90f);
             GameObject door = Put("porte", 4f, 5.05f, 90f);
             if (door != null) DoorLeaf = door.transform;
             Wall(-4f, 8f, 0f); Wall(4f, 8f, 0f);          // ils depassent dehors de 2 m : personne ne le voit
-            Arch(0f, 8f, 0f);
+            Arch(0f, 8f, 0f, 0f);
             Fire("Torche_Murale_Feu", -3f, 8f, 180f, true);
             Fire("Torche_Murale_Feu", 3f, 8f, 180f, true);
 
@@ -214,7 +234,7 @@ namespace Fief
                 Floor(0f, z);
                 Put("voute_couloir", 0f, z, 0f);
                 Wall(-2f, z, 90f);
-                if (z == 22) Arch(2f, z, 90f); else Wall(2f, z, 90f);
+                if (z == 22) Arch(2f, z, 90f, 0f); else Wall(2f, z, 90f);
             }
             for (int i = 0; i < 5; i++)
                 for (int s = -1; s <= 1; s += 2) Put("pilier", s * 1.55f, 12f + i * 4f, 0f);
@@ -234,7 +254,7 @@ namespace Fief
             {
                 float y = level * 4f;
                 Wall(-4f, 32f, 0f, y); Wall(4f, 32f, 0f, y);
-                if (level == 0) Arch(0f, 32f, 0f); else Wall(0f, 32f, 0f, y);
+                if (level == 0) Arch(0f, 32f, 0f, 0f); else Wall(0f, 32f, 0f, y);
                 for (int x = -4; x <= 4; x += 4) Wall(x, 44f, 0f, y);
                 for (int z = 34; z <= 42; z += 4) { Wall(-6f, z, 90f, y); Wall(6f, z, 90f, y); }
             }
@@ -444,9 +464,9 @@ namespace Fief
         static void Wall(float x, float z, float yaw, float y = 0f) { Put("mur_droit", x, z, yaw, y); }
 
         /// <summary>Un mur a arche : la porte fait 2 m de large, donc deux blocs invisibles pour ses montants.</summary>
-        static void Arch(float x, float z, float yaw)
+        static void Arch(float x, float z, float yaw, float y)
         {
-            GameObject arch = Put("mur_arche", x, z, yaw);
+            GameObject arch = Put("mur_arche", x, z, yaw, y);
             if (arch == null) return;
             for (int s = -1; s <= 1; s += 2)
             {
@@ -459,13 +479,13 @@ namespace Fief
         }
 
         /// <summary>Une torche ou un brasero avec son feu ; "lit" a false : le feu attend l'aube.</summary>
-        static void Fire(string prefab, float x, float z, float yaw, bool lit)
+        static void Fire(string prefab, float x, float z, float yaw, bool lit, float y)
         {
             GameObject src = Source("Prefabs/" + prefab);
             if (src == null) return;
             GameObject go = Object.Instantiate(src, root);
             go.name = prefab;
-            go.transform.position = new Vector3(x, 0f, z);
+            go.transform.position = new Vector3(x, y, z);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f) * src.transform.rotation;
             Transform fire = go.transform.Find("Feu");
             LastFire = fire != null ? fire.gameObject : null;

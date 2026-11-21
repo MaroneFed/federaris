@@ -177,3 +177,10 @@ LobbyMatchList_t
 SteamNetworkingIdentity
 SteamNetworkingMessage_t
 SteamNetworkingMessagesSessionRequest_t
+AssetPostprocessor
+ModelImporter
+ModelImporterAnimationType
+ModelImporterGenerateAnimations
+AnimationState
+WrapMode
+SkinnedMeshRenderer
