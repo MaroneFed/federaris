@@ -75,6 +75,7 @@ namespace Fief
             if (!AssetDatabase.IsValidFolder(Root + "/Prefabs")) AssetDatabase.CreateFolder(Root, "Prefabs");
             // Le dernier vecteur : ou nait la flamme (le point "socket_flamme" du modele, s'il est retrouve).
             MakeFirePrefab("torche_murale", "Torche_Murale_Feu", 0.45f, 1.6f, 9f, flameMat, sparkMat, new Vector3(0f, 2.06f, 0.52f));
+            MakeFirePrefab("cheminee", "Cheminee_Feu", 1.4f, 3.4f, 17f, flameMat, sparkMat, new Vector3(0f, 0.08f, 0.05f));
             MakeFirePrefab("brasero", "Brasero_Feu", 1.0f, 2.4f, 13f, flameMat, sparkMat, new Vector3(0f, 1.24f, 0f));
             MakeFirePrefab("cierge", "Cierge_Feu", 0.22f, 0f, 0f, flameMat, sparkMat, new Vector3(0f, 1.61f, 0f));     // sa lumiere : celle de Candle
             AssetDatabase.SaveAssets();

@@ -64,6 +64,25 @@ namespace Fief
             NightBlink.Reset();
         }
 
+        /// <summary>Une silhouette, la, tout de suite (la bibliotheque s'en sert).</summary>
+        public static void Summon(Vector3 spot, Vector3 me)
+        {
+            if (ghost != null) return;
+            ghost = NightKit.Model("penitent", null);
+            if (ghost == null) return;
+            Material dark = NightKit.Shadow();
+            if (dark != null)
+            {
+                dark.SetColor("_EmissionColor", Color.black);
+                foreach (Renderer r in ghost.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = dark;
+            }
+            ghost.transform.position = spot;
+            Vector3 face = me - spot;
+            face.y = 0f;
+            if (face.magnitude > 0.1f) ghost.transform.rotation = Quaternion.LookRotation(face.normalized, Vector3.up);
+            ghostLife = 14f;
+        }
+
         /// <summary>Le joueur voit-il ce point ? (dans l'image, et rien devant)</summary>
         public static bool Sees(Camera cam, Vector3 point)
         {

@@ -76,6 +76,19 @@ monstre dans l'animation », « ses mouvements sont prévisibles », « le silex
 - **Du détail** : un pot à braises en fer à la place du silex, une croix ouvragée pour la Foi, de la poussière
   dans la lumière de la torche, des ténèbres au ras du sol.
 
+**Fait le 21/11** (le frère de Martin : « pas de pièces vides, plus de rebondissements, du style HeroQuest ») —
+`Scripts/Night/NightQuest.cs` et `NightMap.Furniture` :
+
+- **Toutes les salles meublées** (dix pièces neuves dans le kit) : le festin abandonné et la cheminée allumée de la
+  grande salle, les rayonnages de la bibliothèque, les lits du dortoir, les râteliers de l'armurerie, les tombes de
+  la cour, les gisants et les bancs de la chapelle, des coffres un peu partout.
+- **La chapelle est fermée à clé.** La clé est cachée au hasard (jamais près du départ) dans un coffre ou une
+  bibliothèque. **Fouiller** = tenir E 1,5 s : relique (+foi), piège (−foi, et le bruit attire les Rôdeurs),
+  un tombeau d'où sort un Rôdeur de plus, un bruit tout près, ou rien. Trouver la clé réveille le Pénitent.
+- **Un événement par salle**, la première fois : les armures se tournent toutes vers toi au prochain clignement
+  (grande salle), un livre tombe et une silhouette apparaît (bibliothèque), la torche s'étouffe (dortoir), une lame
+  tombe (armurerie), l'orage et ses éclairs (cour).
+
 **Pas encore fait** : les cachettes en hauteur et les fenêtres pour observer (il n'y a pas d'étage), des quêtes
 dans les nouvelles salles (elles sont vides de but), des monstres animés (ils glissent, ils ne marchent pas).
 **Limite dite à Martin** : des modèles générés par le code n'atteindront pas le réalisme d'Elden Ring ou de GTA.

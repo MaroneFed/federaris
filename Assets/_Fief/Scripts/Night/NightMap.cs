@@ -48,6 +48,12 @@ namespace Fief
 
         static void Keep(GameObject armor) { if (armor != null) Armors.Add(armor.transform); }
 
+        /// <summary>La lune (NightQuest la fait flamber pendant les eclairs de la cour).</summary>
+        public static Light MoonLight;
+        /// <summary>La salle (sa lettre majuscule) ou se trouve ce point ; '.' hors du chateau.</summary>
+        public static char RoomAt(Vector3 p) { return grid == null ? '.' : Room(Col(p), Row(p)); }
+        static readonly List<Vector3> taken = new List<Vector3>();
+
         /// <summary>Une case du chateau prise au hasard, entre "min" et "max" metres de "near" (jamais dans une salle fermee a cle).</summary>
         public static Vector3 RandomCell(Vector3 near, float min, float max)
         {
@@ -96,6 +102,7 @@ namespace Fief
             doors.Clear();
             locked.Clear();
             Armors.Clear();
+            taken.Clear();
             deep = Plan.Length;
             wide = Plan[0].Length;
             grid = new char[wide, deep];
@@ -207,19 +214,7 @@ namespace Fief
             // L'armurerie : encore des armures. La bibliotheque : de longues tables de pierre. Le dortoir : des cierges morts.
             Bounds('A', out x0, out z0, out x1, out z1);
             for (float x = x0 + 1.2f; x < x1; x += 1.9f) Keep(NightKit.Place("chevalier", x, z1 - 0.8f, 180f, 0f, false));
-            Bounds('L', out x0, out z0, out x1, out z1);
-            for (float x = x0 + 4f; x < x1 - 1f; x += 5f)
-            {
-                NightKit.Place("autel", x, (z0 + z1) * 0.5f + 1f, 90f, 0f, false);
-                Block(blocks, new Vector3(x, 0.55f, (z0 + z1) * 0.5f + 1f), new Vector3(1.3f, 1.1f, 3.1f));
-                NightKit.Place("cierge", x + 1.2f, z1 - 1.2f, 0f, 0f, false);
-            }
-            Bounds('D', out x0, out z0, out x1, out z1);
-            for (float z = z0 + 2f; z < z1; z += 3f)
-            {
-                NightKit.Place("cierge", x0 + 1f, z, 0f, 0f, false);
-                NightKit.Place("cierge", x1 - 1f, z, 0f, 0f, false);
-            }
+            Furniture(blocks);
 
             // Le vestibule : deux torches allumees de part et d'autre de la porte (l'ouverture les soufflera).
             Bounds('V', out x0, out z0, out x1, out z1);
@@ -233,6 +228,7 @@ namespace Fief
 
             // La lune : elle n'eclaire que la cour, les plafonds font de l'ombre partout ailleurs.
             Light moon = new GameObject("Lune").AddComponent<Light>();
+            MoonLight = moon;
             moon.transform.SetParent(blocks, false);
             moon.type = LightType.Directional;
             moon.color = new Color(0.45f, 0.6f, 1f);
@@ -240,6 +236,157 @@ namespace Fief
             moon.shadows = LightShadows.Soft;
             moon.shadowStrength = 1f;
             moon.transform.rotation = Quaternion.Euler(58f, 35f, 0f);
+        }
+
+        // ------------------------------------------------------------------ (21/11) les meubles
+
+        static bool NearDoor(Vector3 p, float r)
+        {
+            foreach (Vector4 d in doors.Values) if (new Vector2(d.x - p.x, d.y - p.z).magnitude < r) return true;
+            return false;
+        }
+
+        static bool Taken(Vector3 p, float r)
+        {
+            foreach (Vector3 t in taken) if (new Vector2(t.x - p.x, t.z - p.z).magnitude < r) return true;
+            return false;
+        }
+
+        static void SolidBox(Transform blocks, Vector3 p, float yaw, Vector3 size)
+        {
+            BoxCollider box = new GameObject("Meuble").AddComponent<BoxCollider>();
+            box.transform.SetParent(blocks, false);
+            box.transform.position = p + Vector3.up * size.y * 0.5f;
+            box.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            box.size = size;
+        }
+
+        /// <summary>Pose un meuble au sol, avec son collider (largeur, hauteur, profondeur).</summary>
+        static GameObject Put(Transform blocks, string piece, float x, float z, float yaw, Vector3 size)
+        {
+            GameObject go = NightKit.Place(piece, x, z, yaw, 0f, false);
+            if (go == null) return null;
+            Vector3 p = new Vector3(x, 0f, z);
+            taken.Add(p);
+            SolidBox(blocks, p, yaw, size);
+            return go;
+        }
+
+        /// <summary>
+        /// Pose "piece" dos aux murs de la salle, face a la piece. sides : 1 nord, 2 est, 4 sud, 8 ouest.
+        /// every : un emplacement de mur sur "every". Jamais devant une porte, jamais sur un autre meuble.
+        /// </summary>
+        static List<GameObject> AlongWalls(Transform blocks, char room, string piece, Vector3 size, int sides, int every, int salt)
+        {
+            List<GameObject> list = new List<GameObject>();
+            int n = 0;
+            for (int c = 0; c < wide; c++)
+                for (int r = 0; r < deep; r++)
+                {
+                    if (Room(c, r) != room) continue;
+                    for (int d = 0; d < 4; d++)
+                    {
+                        if ((sides & (1 << d)) == 0 || Room(c + DX[d], r + DZ[d]) == room || Door(c, r, d)) continue;
+                        n++;
+                        if ((n + salt) % every != 0) continue;
+                        Vector3 p = CellCenter(c, r) + new Vector3(DX[d], 0f, DZ[d]) * (2f - 0.27f - size.z * 0.5f);
+                        if (NearDoor(p, 2f) || Taken(p, 1.3f)) continue;
+                        float yaw = d == 0 ? 180f : d == 1 ? -90f : d == 2 ? 0f : 90f;
+                        GameObject go = Put(blocks, piece, p.x, p.z, yaw, size);
+                        if (go != null) list.Add(go);
+                    }
+                }
+            return list;
+        }
+
+        /// <summary>Un coffre qu'on peut fouiller : son couvercle tourne sur sa charniere.</summary>
+        static void Chest(GameObject body, char room)
+        {
+            if (body == null) return;
+            GameObject lid = NightKit.Place("coffre_couvercle", 0f, 0f, 0f, 0f, false);
+            if (lid != null)
+            {
+                lid.transform.SetParent(body.transform, false);
+                lid.transform.localPosition = new Vector3(0f, 0.42f, -0.26f);
+                lid.transform.localRotation = Quaternion.identity;
+            }
+            NightQuest.Add(body.transform, 0, lid != null ? lid.transform : null, room);
+        }
+
+        /// <summary>Un tombeau qu'on peut ouvrir : sa dalle glisse.</summary>
+        static void Tomb(Transform blocks, float x, float z, float yaw, char room)
+        {
+            GameObject body = Put(blocks, "tombeau", x, z, yaw, new Vector3(2.4f, 0.95f, 1.2f));
+            if (body == null) return;
+            GameObject lid = NightKit.Place("tombeau_couvercle", 0f, 0f, 0f, 0f, false);
+            if (lid != null)
+            {
+                lid.transform.SetParent(body.transform, false);
+                lid.transform.localPosition = new Vector3(0f, 0.80f, 0f);
+                lid.transform.localRotation = Quaternion.identity;
+            }
+            NightQuest.Add(body.transform, 1, lid != null ? lid.transform : null, room);
+        }
+
+        static readonly Vector3 ChestSize = new Vector3(0.95f, 0.62f, 0.56f);
+        static readonly Vector3 TableSize = new Vector3(2.45f, 0.86f, 0.92f);
+        static readonly Vector3 BenchSize = new Vector3(2.0f, 0.46f, 0.36f);
+
+        /// <summary>Une longue table et ses deux bancs (le long de x).</summary>
+        static void Feast(Transform blocks, float x, float z)
+        {
+            Put(blocks, "table", x, z, 0f, TableSize);
+            Put(blocks, "banc", x, z - 0.85f, 0f, BenchSize);
+            Put(blocks, "banc", x, z + 0.85f, 180f, BenchSize);
+        }
+
+        /// <summary>Plus une seule salle vide : chaque piece a ses meubles, et ses cachettes a fouiller.</summary>
+        static void Furniture(Transform blocks)
+        {
+            float x0, z0, x1, z1;
+            // La grande salle : le festin abandonne (deux longues tables), et une grande cheminee ou le feu brule encore.
+            Bounds('H', out x0, out z0, out x1, out z1);
+            float zc = (z0 + z1) * 0.5f;
+            for (float x = x0 + 6f; x < x1 - 3f; x += 6f) { Feast(blocks, x, zc - 3f); Feast(blocks, x, zc + 3f); }
+            NightKit.FireAt("Cheminee_Feu", x0 + 0.72f, zc, 90f, true);
+            NightKit.KeepLit();
+            SolidBox(blocks, new Vector3(x0 + 0.72f, 0f, zc), 90f, new Vector3(2.7f, 2f, 0.95f));
+            taken.Add(new Vector3(x0 + 0.72f, 0f, zc));
+            foreach (GameObject c in AlongWalls(blocks, 'H', "coffre", ChestSize, 2, 2, 0)) Chest(c, 'H');
+
+            // La bibliotheque : des rayonnages sur tous les murs, deux tables de lecture.
+            Bounds('L', out x0, out z0, out x1, out z1);
+            int shelf = 0;
+            foreach (GameObject b in AlongWalls(blocks, 'L', "bibliotheque", new Vector3(1.95f, 2.6f, 0.46f), 15, 1, 0))
+                if (shelf++ % 3 == 0) NightQuest.Add(b.transform, 2, null, 'L');
+            Feast(blocks, (x0 + x1) * 0.5f - 3f, (z0 + z1) * 0.5f);
+            Feast(blocks, (x0 + x1) * 0.5f + 3f, (z0 + z1) * 0.5f);
+
+            // Le dortoir : des lits contre les murs, un coffre au fond.
+            AlongWalls(blocks, 'D', "lit", new Vector3(2.15f, 0.6f, 0.98f), 10, 1, 0);
+            foreach (GameObject c in AlongWalls(blocks, 'D', "coffre", ChestSize, 1, 1, 0)) Chest(c, 'D');
+
+            // L'armurerie : des rateliers d'armes, un coffre.
+            AlongWalls(blocks, 'A', "ratelier", new Vector3(1.75f, 2.2f, 0.5f), 4, 1, 0);
+            foreach (GameObject c in AlongWalls(blocks, 'A', "coffre", ChestSize, 8, 1, 0)) Chest(c, 'A');
+
+            // La cour : deux tombes sous la lune.
+            Bounds('Y', out x0, out z0, out x1, out z1);
+            Tomb(blocks, x0 + 2.5f, (z0 + z1) * 0.5f, 90f, 'Y');
+            Tomb(blocks, x0 + 5.5f, (z0 + z1) * 0.5f, 90f, 'Y');
+
+            // La chapelle : deux gisants le long des murs, des bancs devant l'autel.
+            Bounds('K', out x0, out z0, out x1, out z1);
+            float kc = (x0 + x1) * 0.5f, kz = (z0 + z1) * 0.5f;
+            Tomb(blocks, x0 + 1.15f, kz, 90f, 'K');
+            Tomb(blocks, x1 - 1.15f, kz, 90f, 'K');
+            for (int i = 0; i < 2; i++)
+                for (int s = -1; s <= 1; s += 2) Put(blocks, "banc", kc + s * 2f, z0 + 2.9f + i * 1.7f, 180f, BenchSize);
+
+            // Le vestibule : des bancs pour ceux qui attendaient, un coffre. La sacristie : un coffre.
+            AlongWalls(blocks, 'V', "banc", BenchSize, 2, 1, 0);
+            foreach (GameObject c in AlongWalls(blocks, 'V', "coffre", ChestSize, 8, 1, 0)) Chest(c, 'V');
+            foreach (GameObject c in AlongWalls(blocks, 'S', "coffre", ChestSize, 1, 2, 0)) Chest(c, 'S');
         }
 
         static void Block(Transform parent, Vector3 at, Vector3 size)

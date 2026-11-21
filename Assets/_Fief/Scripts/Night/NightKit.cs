@@ -32,6 +32,9 @@ namespace Fief
             if (index >= 0 && index < EntryFires.Count && EntryFires[index] != null) EntryFires[index].SetActive(false);
         }
 
+        /// <summary>Le dernier feu pose ne fait pas partie de ceux que l'ouverture souffle (la cheminee).</summary>
+        public static void KeepLit() { if (EntryFires.Count > 0) EntryFires.RemoveAt(EntryFires.Count - 1); }
+
         public static void SnuffEntry()
         {
             for (int i = 0; i < EntryFires.Count; i++) SnuffEntryOne(i);

@@ -301,9 +301,9 @@ def loft(rings, cols):
     for i in range(len(rings) - 1):
         a, b = rings[i], rings[i + 1]
         for k in range(n):
-            add([a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]], cols[i])
-    add(list(reversed(rings[0])), cols[0])
-    add(rings[-1], cols[-1])
+            add([a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]], cols[i], kind=KIND[0])
+    add(list(reversed(rings[0])), cols[0], kind=KIND[0])
+    add(rings[-1], cols[-1], kind=KIND[0])
 
 
 def lathe(prof, n, cx=0.0, cy=0.0, closed=False, col=1.0, kind=0, hint=None, jit=None):
@@ -586,6 +586,173 @@ def build_braisier():
     return (0, 0, .13)
 
 
+KIND = [0]          # (21/11) le "kind" que loft() donne a ses faces : 7 = le bois
+
+
+def wood(fn, *a, **k):
+    """Appelle fn (loft, tube, lathe...) avec des faces en bois."""
+    KIND[0] = 7
+    try:
+        return fn(*a, **k)
+    finally:
+        KIND[0] = 0
+
+
+def cube(x0, x1, y0, y1, z0, z1, col=1.0, kind=0, skip=()):
+    """Une boite. skip : faces a ne pas faire ('bas', 'haut', 'gauche', 'droite', 'avant', 'arriere')."""
+    c = Vector(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
+    P = lambda x, y, z: Vector((x, y, z))
+    faces = {
+        'bas': [P(x0, y0, z0), P(x0, y1, z0), P(x1, y1, z0), P(x1, y0, z0)],
+        'haut': [P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)],
+        'gauche': [P(x0, y0, z0), P(x0, y0, z1), P(x0, y1, z1), P(x0, y1, z0)],
+        'droite': [P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)],
+        'avant': [P(x0, y0, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1)],
+        'arriere': [P(x0, y1, z0), P(x0, y1, z1), P(x1, y1, z1), P(x1, y1, z0)],
+    }
+    for name, f in faces.items():
+        if name in skip:
+            continue
+        add(f, col, sum(f, Vector()) / 4 - c, kind=kind)
+
+
+# ---------------------------------------------------------------- (21/11) LES MEUBLES
+# Le frere de Martin : "pas de pieces vides, du style HeroQuest". Chaque salle a maintenant ses meubles.
+# Tous regardent vers -Y (vers +Z dans Unity) : on les pose dos au mur. Le bois est le kind 7 de la matiere Fer.
+
+def build_table():
+    W, D, H = 1.2, 0.45, 0.80
+    cube(-W, W, -D, D, H - 0.08, H, 1.0, 7)
+    for sx in (-1, 1):
+        x = sx * (W - 0.25)
+        cube(x - 0.06, x + 0.06, -D + 0.08, D - 0.08, 0.0, 0.07, 0.9, 7, ('bas',))
+        cube(x - 0.05, x + 0.05, -0.06, 0.06, 0.07, H - 0.08, 0.85, 7, ('bas', 'haut'))
+        cube(x - 0.045, x + 0.045, -D + 0.07, D - 0.07, H - 0.16, H - 0.08, 0.9, 7)
+    cube(-W + 0.3, W - 0.3, -0.04, 0.04, 0.24, 0.32, 0.8, 7)
+    lathe([(0, H), (.04, H), (.05, H + .13), (.044, H + .13), (.034, H + .02), (0, H + .02)], 8, -0.45, -0.12)
+    lathe([(0, H), (.05, H), (.045, H + .03), (.012, H + .04), (.012, H + .14), (0, H + .14)], 8, 0.6, 0.15)
+    cube(0.05, 0.36, -0.28, -0.05, H, H + 0.035, 0.45, 7, ('bas',))
+    cube(0.08, 0.39, -0.27, -0.06, H + 0.035, H + 0.06, 0.7, 7, ('bas',))
+
+
+def build_banc():
+    cube(-1.0, 1.0, -0.17, 0.17, 0.40, 0.46, 1.0, 7)
+    for sx in (-1, 1):
+        cube(sx * 0.78 - 0.04, sx * 0.78 + 0.04, -0.15, 0.15, 0.0, 0.40, 0.85, 7, ('bas', 'haut'))
+    cube(-0.78, 0.78, -0.03, 0.03, 0.14, 0.2, 0.8, 7)
+
+
+def build_lit():
+    cube(-1.05, 1.05, -0.48, 0.48, 0.18, 0.30, 0.8, 7)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            cube(sx * 1.0 - 0.05, sx * 1.0 + 0.05, sy * 0.43 - 0.05, sy * 0.43 + 0.05, 0.0, 0.36, 0.75, 7, ('bas',))
+    cube(0.96, 1.08, -0.48, 0.48, 0.30, 0.95, 0.7, 7)
+    cube(-1.0, 0.95, -0.44, 0.44, 0.30, 0.42, 1.25, 7, ('bas',))           # la paillasse
+    cube(-0.2, 0.96, -0.46, 0.46, 0.42, 0.47, 0.42, 7, ('bas',))             # la couverture
+    cube(0.62, 0.9, -0.28, 0.28, 0.42, 0.52, 1.35, 7, ('bas',))              # le traversin
+
+
+def build_bibliotheque():
+    W, D, H = 0.95, 0.22, 2.5
+    rng = random.Random(21)
+    cube(-W, -W + 0.06, -D, D, 0, H, 0.8, 7, ('bas',))
+    cube(W - 0.06, W, -D, D, 0, H, 0.8, 7, ('bas',))
+    cube(-W, W, D - 0.03, D, 0, H, 0.55, 7, ('bas', 'arriere'))
+    cube(-W - 0.04, W + 0.04, -D - 0.04, D, H, H + 0.08, 0.85, 7)
+    shelves = [0.06, 0.56, 1.06, 1.56, 2.06]
+    for z in shelves:
+        cube(-W + 0.06, W - 0.06, -D, D - 0.03, z - 0.035, z, 0.75, 7, ('arriere',))
+    for z in shelves[:4]:
+        x = -W + 0.08
+        while x < W - 0.14:
+            if rng.random() < 0.07:
+                x += rng.uniform(0.12, 0.3)
+                continue
+            col = rng.choice([0.3, 0.45, 0.6, 0.8, 1.05, 1.25])
+            bd = rng.uniform(0.15, 0.19)
+            if rng.random() < 0.06 and x + 0.3 < W - 0.08:
+                cube(x, x + 0.27, -D + 0.01, -D + 0.01 + bd, z, z + 0.05, col, 7, ('bas', 'arriere'))
+                cube(x + 0.02, x + 0.25, -D + 0.02, -D + bd, z + 0.05, z + 0.09, col * 0.8, 7, ('bas', 'arriere'))
+                x += 0.3
+                continue
+            bw, bh = rng.uniform(0.05, 0.09), rng.uniform(0.27, 0.42)
+            cube(x, x + bw, -D + 0.015, -D + 0.015 + bd, z, z + bh, col, 7, ('bas', 'arriere'))
+            x += bw + 0.005
+
+
+def build_coffre():
+    W, D, H = 0.45, 0.26, 0.42
+    cube(-W, W, -D, D, 0.02, H, 1.0, 7, ('bas',))
+    for sx in (-0.3, 0.3):
+        cube(sx - 0.03, sx + 0.03, -D - 0.012, D + 0.012, 0.0, H + 0.004, 1.0, 0, ('bas',))
+    cube(-W - 0.012, W + 0.012, -D - 0.012, D + 0.012, 0.0, 0.05, 1.0, 0, ('bas',))
+    cube(-0.06, 0.06, -D - 0.026, -D, H - 0.17, H - 0.02, 1.0, 0, ('arriere',))
+
+
+def build_coffre_couvercle():
+    """Le couvercle : son origine est la CHARNIERE (en haut, a l'arriere de la caisse). Le jeu l'ouvre en le tournant."""
+    W, D, Hc = 0.46, 0.272, 0.17
+
+    def ring(x, grow=1.0):
+        pts = [Vector((x, -D + D * grow * math.cos(math.pi * k / 7), Hc * grow * math.sin(math.pi * k / 7))) for k in range(8)]
+        return pts
+
+    wood(loft, [ring(-W), ring(W)], [1.0])
+    for sx in (-0.3, 0.3):
+        loft([ring(sx - 0.03, 1.05), ring(sx + 0.03, 1.05)], [1.0])
+    cube(-0.05, 0.05, -2 * D - 0.03, -2 * D + 0.004, -0.06, 0.02, 1.0, 0)
+
+
+def build_tombeau():
+    W, D, H = 1.05, 0.48, 0.80
+    cube(-W - 0.08, W + 0.08, -D - 0.08, D + 0.08, 0, 0.12, 0.85, 0, ('bas',))
+    cube(-W, W, -D, D, 0.12, H - 0.06, 1.0, 0, ('bas', 'haut'))
+    cube(-W - 0.04, W + 0.04, -D - 0.04, D + 0.04, H - 0.06, H, 0.9)
+    for x in (-0.62, 0.0, 0.62):
+        cube(x - 0.05, x + 0.05, -D - 0.03, -D, 0.12, H - 0.06, 0.82, 0, ('arriere', 'bas', 'haut'))
+        cube(x - 0.05, x + 0.05, D, D + 0.03, 0.12, H - 0.06, 0.82, 0, ('avant', 'bas', 'haut'))
+
+
+def build_tombeau_couvercle():
+    """La dalle : son origine est le milieu du dessus du tombeau. Le jeu la fait glisser."""
+    cube(-1.12, 1.12, -0.53, 0.53, 0.0, 0.13, 0.95, 0, ('bas',))
+    cube(-0.85, 0.75, -0.055, 0.055, 0.13, 0.19, 1.05, 0, ('bas',))           # la croix gravee
+    cube(0.42, 0.54, -0.32, 0.32, 0.13, 0.19, 1.05, 0, ('bas',))
+    cube(-1.04, 1.04, -0.47, -0.43, 0.13, 0.16, 0.85, 0, ('bas',))             # le liseré
+    cube(-1.04, 1.04, 0.43, 0.47, 0.13, 0.16, 0.85, 0, ('bas',))
+
+
+def build_ratelier():
+    for sx in (-1, 1):
+        cube(sx * 0.8 - 0.05, sx * 0.8 + 0.05, -0.06, 0.06, 0.0, 1.75, 0.85, 7, ('bas',))
+        cube(sx * 0.8 - 0.07, sx * 0.8 + 0.07, -0.3, 0.12, 0.0, 0.06, 0.8, 7, ('bas',))
+    cube(-0.85, 0.85, -0.05, 0.05, 0.22, 0.30, 0.9, 7)
+    cube(-0.85, 0.85, -0.05, 0.05, 1.42, 1.50, 0.9, 7)
+    for i, x in enumerate((-0.6, -0.3, 0.0, 0.3, 0.6)):
+        wood(tube, [(x, -0.11, 0.05), (x, -0.07, 1.0), (x, -0.03, 2.05)], [.018, .017, .016], 5, 0.8)
+        if i % 2 == 0:
+            lathe([(0, 2.03), (.03, 2.06), (.012, 2.27), (0, 2.28)], 4, x, -0.03)            # une lance
+        else:
+            loft([[Vector((x - .006, -0.03 + dy, z)) for dy, z in ((-.13, 1.92), (.0, 2.12), (.0, 1.98), (-.12, 1.86))],
+                  [Vector((x + .006, -0.03 + dy, z)) for dy, z in ((-.13, 1.92), (.0, 2.12), (.0, 1.98), (-.12, 1.86))]], [1.0])  # une hache
+    lathe([(0, .0), (.3, .0), (.32, .04), (.05, .07), (0, .07)], 10, 0, 0)                   # un bouclier rond contre le pied
+    # (le bouclier est pose a plat au sol devant le ratelier : un ecu tombe)
+
+
+def build_cheminee():
+    W = 1.25
+    cube(-W, -W + 0.3, -0.45, 0.45, 0, 1.6, 1.0, 0, ('bas',))
+    cube(W - 0.3, W, -0.45, 0.45, 0, 1.6, 1.0, 0, ('bas',))
+    cube(-W - 0.06, W + 0.06, -0.52, 0.45, 1.6, 1.95, 0.95)
+    cube(-W + 0.3, W - 0.3, 0.36, 0.45, 0, 1.6, 0.2, 0, ('bas', 'arriere'))
+    cube(-W - 0.12, W + 0.12, -0.8, 0.45, 0, 0.06, 0.8, 0, ('bas',))
+    hood = [(1.95, W + 0.02, -0.5), (2.4, 1.05, -0.36), (3.6, 0.62, 0.05)]
+    loft([[Vector((-w, yf, z)), Vector((w, yf, z)), Vector((w, 0.45, z)), Vector((-w, 0.45, z))] for z, w, yf in hood], [0.95, 1.0])
+    cube(-W - 0.08, W + 0.08, -0.56, 0.45, 1.95, 2.03, 0.85)
+    return (0, -0.05, 0.08)
+
+
 def build_autel():
     """Un autel de pierre de 3 m : socle, corps en retrait, corniche, table."""
     def ring(ax, ay, z):
@@ -635,6 +802,16 @@ PIECES = [
     ('porte', build_porte, 'Fer', 50, False, ((2.6, -4.6, 1.7), (0.95, 0, 1.45))),
     ('chevalier', build_chevalier, 'Fer', 50, False, ((1.2, -3.0, 1.5), (0, 0, 1.0))),
     ('braisier', build_braisier, 'Fer', 50, False, ((0.45, -0.7, 0.42), (0, 0, 0.14))),
+    ('table', build_table, 'Fer', 50, False, ((2.0, -2.6, 1.6), (0, 0, 0.6))),
+    ('banc', build_banc, 'Fer', 50, False, ((1.6, -2.0, 1.1), (0, 0, 0.3))),
+    ('lit', build_lit, 'Fer', 50, False, ((2.0, -2.4, 1.5), (0, 0, 0.4))),
+    ('bibliotheque', build_bibliotheque, 'Fer', 50, False, ((1.6, -3.4, 1.7), (0, 0, 1.25))),
+    ('coffre', build_coffre, 'Fer', 50, False, ((1.0, -1.4, 0.9), (0, 0, 0.25))),
+    ('coffre_couvercle', build_coffre_couvercle, 'Fer', 50, False, ((1.0, -1.4, 0.7), (0, -0.27, 0.05))),
+    ('ratelier', build_ratelier, 'Fer', 50, False, ((1.8, -3.0, 1.6), (0, 0, 1.0))),
+    ('tombeau', build_tombeau, 'Pierre', 40, True, ((2.4, -3.0, 1.8), (0, 0, 0.45))),
+    ('tombeau_couvercle', build_tombeau_couvercle, 'Pierre', 40, False, ((2.0, -2.4, 1.6), (0, 0, 0.1))),
+    ('cheminee', build_cheminee, 'Pierre', 40, True, ((3.0, -4.6, 2.4), (0, 0, 1.6))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -675,7 +852,7 @@ def make_object(name, fn, iron):
         for lp in f.loops:
             lp[col_l] = (col, 1.0 if kind == 2 else 0.0, 1.0 if kind in (4, 6) else 0.0, 0.0 if kind == 7 else 1.0)
     smooth = iron or name.startswith('penitent') or name == 'rodeur'
-    if iron or smooth or name in ('pilier', 'fenetre', 'autel'):
+    if iron or smooth or name in ('pilier', 'fenetre', 'autel', 'tombeau', 'tombeau_couvercle', 'cheminee'):
         bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if f[kind_l] not in (2, 5, 6)])
     bm.normal_update()
     for f in bm.faces:
@@ -967,6 +1144,7 @@ def bake_material(name, iron, grime=False, floor=False, statue=False):
         c = g.mix(wax, c, wcol)
         wood_c = g.mix(grain, C(0.070, 0.045, 0.026), C(0.19, 0.125, 0.072))
         wood_c = g.mix(g.math('MULTIPLY', seam, 0.9), wood_c, C(0.01, 0.008, 0.006))
+        wood_c = g.mix(1.0, wood_c, tint, 'MULTIPLY')       # (21/11) chaque planche, chaque livre, son ton
         wood_c = g.mix(g.math('MULTIPLY', edge, 0.45), wood_c, C(0.28, 0.20, 0.13))
         wood_c = g.mix(g.math('MULTIPLY', cav, 0.6), wood_c, C(0.02, 0.015, 0.01))
         c = g.mix(wood, c, wood_c)
