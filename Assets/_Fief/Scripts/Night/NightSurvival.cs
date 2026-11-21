@@ -17,31 +17,35 @@ namespace Fief
     /// </summary>
     public static class Faith
     {
-        /// <summary>De 0 (perdue) a 1.</summary>
-        public static float Value = 0.85f;
+        // (21/11) Ce n'est plus la foi : c'est LA RESERVE DE TA TORCHE (Martin : "le crucifix, que ce soit notre reserve de
+        // lumiere, qu'on puisse la reprendre dans un feu"). Le nom de la classe reste, pour ne rien casser ailleurs.
+        /// <summary>De 0 (la torche est morte) a 1 (pleine).</summary>
+        public static float Value = 1f;
         static float flash;
+        /// <summary>Le dernier changement : +1 (on vient de la raviver), -1 (on vient d'en perdre).</summary>
+        public static float Flash { get { return flash; } }
 
-        /// <summary>(21/11) La lanterne et la benediction des reliques : la foi s'eteint moins vite.</summary>
+        /// <summary>La lanterne du tresor : la torche s'use moins vite.</summary>
         public static float Scale = 1f;
 
-        public static void Reset() { Value = 0.85f; flash = 0f; Scale = 1f; }
+        public static void Reset() { Value = 1f; flash = 0f; Scale = 1f; }
 
         public static void Add(float amount)
         {
             Value = Mathf.Clamp01(Value + amount);
-            flash = amount < 0f ? -1f : 1f;
+            if (Mathf.Abs(amount) > 0.004f) flash = amount < 0f ? -1f : 1f;
         }
 
-        /// <summary>Elle baisse toute seule : huit minutes pour la perdre au calme (le chateau est grand), bien moins quand on est traque.</summary>
+        /// <summary>Elle baisse toute seule : cinq minutes pour mourir au calme, plus vite quand on court ou qu'on est traque.</summary>
         public static void Tick(float dt, bool hunted)
         {
-            float drain = Scale * (1f / 480f) * (1f + 2.5f * Penitent.Dread + (hunted ? 3f : 0f));
+            float drain = Scale * (1f / 300f) * (1f + 0.8f * Penitent.Dread + (hunted ? 0.6f : 0f) + (FiefInput.SprintHeld ? 0.5f : 0f));
             Value = Mathf.Clamp01(Value - drain * dt);
             flash = Mathf.MoveTowards(flash, 0f, dt * 1.6f);
         }
 
-        /// <summary>La croix ouvragee, en bas a gauche (voir FaithIcon, dans NightDirector.cs).</summary>
-        public static void Draw(float w, float h) { FaithIcon.Draw(w, h, Value, flash); }
+        /// <summary>La bougie de la reserve, en bas a gauche (voir LightGauge, dans NightDirector.cs).</summary>
+        public static void Draw(float w, float h) { LightGauge.Draw(w, h, Value, flash); }
     }
 
     /// <summary>
@@ -104,8 +108,9 @@ namespace Fief
         /// <summary>Un bruit dans le chateau : le Rodeur vient voir, et la foi en prend un coup.</summary>
         static void Fumble(float faithCost)
         {
-            Faith.Add(-faithCost);
+            Faith.Add(-faithCost * 0.5f);
             Prowler.Hear(where);
+            Beast.Hear(where);
         }
 
         public static void Tick(float dt)
@@ -193,53 +198,260 @@ namespace Fief
             GUI.matrix = saved;
         }
 
+        // ------------------------------------------------------------------ (21/11) le dessin, refait
+        // Martin : "le crochetage de serrure, j'aime pas du tout le design". Plus de traits blancs sur fond noir : une
+        // vraie serrure, vue de pres. Une platine de fer forge rivetee, un barillet de laiton avec son trou de cle, la
+        // clef de tension en bas (elle tourne quand tu forces), le crochet d'acier qui entre par le trou et suit la
+        // souris. Il tremble et rougit quand il force trop ; il casse dans un eclat. Tout est fabrique par le calcul.
+
+        static Texture2D plate, plug, pickTex, wrench, sparkTex;
+
+        static float Smooth(float edge0, float edge1, float x) { float t = Mathf.Clamp01((x - edge0) / (edge1 - edge0)); return t * t * (3f - 2f * t); }
+
+        /// <summary>La platine : un disque de fer brosse, bord biseaute, huit rivets, la rouille dans les creux.</summary>
+        static Texture2D Plate()
+        {
+            if (plate != null) return plate;
+            const int N = 512;
+            plate = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            plate.hideFlags = HideFlags.HideAndDontSave;
+            Color[] px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float u = (x + 0.5f) / N * 2f - 1f, v = (y + 0.5f) / N * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    float a = 1f - Smooth(0.965f, 0.985f, r);
+                    float n = Mathf.PerlinNoise(x * 0.05f, y * 0.05f) * 0.5f + Mathf.PerlinNoise(x * 0.21f, y * 0.013f) * 0.35f + Mathf.PerlinNoise(x * 0.6f, y * 0.6f) * 0.15f;
+                    Color iron = Color.Lerp(new Color(0.16f, 0.16f, 0.17f), new Color(0.33f, 0.32f, 0.31f), n);
+                    // Le biseau : clair en haut a gauche, sombre en bas a droite.
+                    float bevel = Smooth(0.86f, 0.95f, r) * (1f - Smooth(0.95f, 0.98f, r));
+                    float lightDir = (-u + v) * 0.5f;
+                    iron += new Color(1f, 1f, 1f, 0f) * bevel * lightDir * 0.35f;
+                    // Le creux central ou tourne le barillet.
+                    float well = 1f - Smooth(0.5f, 0.56f, r);
+                    iron = Color.Lerp(iron, iron * 0.35f, well);
+                    iron += new Color(1f, 1f, 1f, 0f) * Smooth(0.54f, 0.56f, r) * (1f - Smooth(0.56f, 0.6f, r)) * (u - v) * 0.25f;
+                    // La rouille.
+                    float rust = Mathf.Clamp01((Mathf.PerlinNoise(x * 0.03f + 40f, y * 0.03f) - 0.55f) * 3f) * Smooth(0.6f, 0.9f, r);
+                    iron = Color.Lerp(iron, new Color(0.32f, 0.14f, 0.06f), rust * 0.6f);
+                    // Huit rivets.
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float ang = k * Mathf.PI / 4f + Mathf.PI / 8f;
+                        float dx = u - Mathf.Cos(ang) * 0.76f, dy = v - Mathf.Sin(ang) * 0.76f;
+                        float d = Mathf.Sqrt(dx * dx + dy * dy);
+                        if (d < 0.06f)
+                        {
+                            float dome = Mathf.Sqrt(Mathf.Max(0f, 1f - (d / 0.06f) * (d / 0.06f)));
+                            iron = Color.Lerp(new Color(0.08f, 0.08f, 0.08f), new Color(0.55f, 0.53f, 0.5f), dome * (0.5f + 0.5f * (-dx + dy) / 0.06f));
+                        }
+                    }
+                    iron.a = a;
+                    px[y * N + x] = iron;
+                }
+            plate.SetPixels(px);
+            plate.Apply();
+            return plate;
+        }
+
+        /// <summary>Le barillet : un disque de laiton use, et son trou de serrure (un rond et une fente).</summary>
+        static Texture2D Plug()
+        {
+            if (plug != null) return plug;
+            const int N = 256;
+            plug = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            plug.hideFlags = HideFlags.HideAndDontSave;
+            Color[] px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float u = (x + 0.5f) / N * 2f - 1f, v = (y + 0.5f) / N * 2f - 1f;
+                    float r = Mathf.Sqrt(u * u + v * v);
+                    float a = 1f - Smooth(0.96f, 0.99f, r);
+                    float n = Mathf.PerlinNoise(x * 0.08f, y * 0.08f);
+                    Color brass = Color.Lerp(new Color(0.38f, 0.27f, 0.1f), new Color(0.72f, 0.55f, 0.25f), n * 0.6f + 0.4f * (1f - r));
+                    brass += new Color(1f, 0.9f, 0.7f, 0f) * Smooth(0.85f, 0.95f, r) * (1f - Smooth(0.95f, 0.99f, r)) * (-u + v) * 0.3f;
+                    // Le trou : un rond en haut, une fente qui descend.
+                    float hole = Mathf.Min(Mathf.Sqrt(u * u + (v - 0.18f) * (v - 0.18f)) - 0.17f, Mathf.Max(Mathf.Abs(u) - 0.075f, Mathf.Abs(v + 0.2f) - 0.32f));
+                    float dark = 1f - Smooth(-0.01f, 0.015f, hole);
+                    brass = Color.Lerp(brass, new Color(0.01f, 0.008f, 0.005f), dark);
+                    brass += new Color(1f, 0.85f, 0.5f, 0f) * (Smooth(0.0f, 0.02f, hole) * (1f - Smooth(0.02f, 0.05f, hole))) * 0.25f;
+                    brass.a = a;
+                    px[y * N + x] = brass;
+                }
+            plug.SetPixels(px);
+            plug.Apply();
+            return plug;
+        }
+
+        /// <summary>Le crochet : une tige d'acier fine, son bout recourbe en haut, un manche entoure de cuir en bas.</summary>
+        static Texture2D Pick()
+        {
+            if (pickTex != null) return pickTex;
+            const int W = 48, H = 512;
+            pickTex = new Texture2D(W, H, TextureFormat.RGBA32, false);
+            pickTex.hideFlags = HideFlags.HideAndDontSave;
+            Color[] px = new Color[W * H];
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++)
+                {
+                    float u = (x + 0.5f) / W - 0.5f, v = (y + 0.5f) / H;
+                    Color c = new Color(0f, 0f, 0f, 0f);
+                    if (v < 0.36f)
+                    {
+                        // Le manche de cuir, avec ses tours de laniere.
+                        float half = 0.32f;
+                        if (Mathf.Abs(u) < half)
+                        {
+                            float wrap = 0.5f + 0.5f * Mathf.Sin(v * 220f + u * 8f);
+                            c = Color.Lerp(new Color(0.12f, 0.06f, 0.03f), new Color(0.32f, 0.18f, 0.08f), wrap * (1f - Mathf.Abs(u) / half));
+                            c.a = 1f - Smooth(half - 0.06f, half, Mathf.Abs(u));
+                        }
+                    }
+                    else
+                    {
+                        // La tige d'acier, qui s'affine, et le crochet au bout.
+                        float half = Mathf.Lerp(0.12f, 0.07f, (v - 0.36f) / 0.64f);
+                        float hook = v > 0.93f ? (v - 0.93f) / 0.07f : 0f;
+                        float cx = -hook * hook * 0.28f;
+                        float d = Mathf.Abs(u - cx);
+                        if (d < half)
+                        {
+                            float shine = 1f - d / half;
+                            c = Color.Lerp(new Color(0.35f, 0.36f, 0.38f), new Color(0.92f, 0.93f, 0.95f), shine * shine);
+                            c.a = 1f - Smooth(half * 0.75f, half, d);
+                        }
+                    }
+                    px[y * W + x] = c;
+                }
+            pickTex.SetPixels(px);
+            pickTex.Apply();
+            return pickTex;
+        }
+
+        /// <summary>La clef de tension : une barre de fer pliee en L.</summary>
+        static Texture2D Wrench()
+        {
+            if (wrench != null) return wrench;
+            const int N = 128;
+            wrench = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            wrench.hideFlags = HideFlags.HideAndDontSave;
+            Color[] px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float u = (x + 0.5f) / N, v = (y + 0.5f) / N;
+                    float bar = Mathf.Max(Mathf.Abs(u - 0.5f) - 0.035f, Mathf.Abs(v - 0.45f) - 0.45f);
+                    float foot = Mathf.Max(Mathf.Abs(u - 0.62f) - 0.15f, Mathf.Abs(v - 0.06f) - 0.035f);
+                    float d = Mathf.Min(bar, foot);
+                    Color c = Color.Lerp(new Color(0.3f, 0.3f, 0.32f), new Color(0.75f, 0.75f, 0.78f), Mathf.Clamp01(-d * 30f));
+                    c.a = 1f - Smooth(-0.004f, 0.004f, d);
+                    px[y * N + x] = c;
+                }
+            wrench.SetPixels(px);
+            wrench.Apply();
+            return wrench;
+        }
+
+        /// <summary>Une etincelle ronde et douce (le silex, la casse).</summary>
+        public static Texture2D Spark()
+        {
+            if (sparkTex != null) return sparkTex;
+            const int N = 64;
+            sparkTex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            sparkTex.hideFlags = HideFlags.HideAndDontSave;
+            Color[] px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float r = Mathf.Sqrt((x - 31.5f) * (x - 31.5f) + (y - 31.5f) * (y - 31.5f)) / 31.5f;
+                    float a = Mathf.Clamp01(1f - r);
+                    px[y * N + x] = new Color(1f, 1f, 1f, a * a);
+                }
+            sparkTex.SetPixels(px);
+            sparkTex.Apply();
+            return sparkTex;
+        }
+
+        static void Rotated(Texture2D tex, Rect r, float degrees, Vector2 pivot, Color color)
+        {
+            Matrix4x4 saved = GUI.matrix;
+            GUIUtility.RotateAroundPivot(degrees, pivot);
+            GUI.color = color;
+            GUI.DrawTexture(r, tex);
+            GUI.matrix = saved;
+        }
+
         public static void Draw(float w, float h)
         {
             if (Current == Kind.None) return;
-            Vector2 c = new Vector2(Mathf.Round(w * 0.5f), Mathf.Round(h * 0.5f));
-            float R = Mathf.Round(h * 0.13f);
-            GUI.color = new Color(0f, 0f, 0f, 0.45f);
+            Vector2 c = new Vector2(Mathf.Round(w * 0.5f), Mathf.Round(h * 0.45f));
+            float R = Mathf.Round(h * 0.2f);
+            // Le reste du monde s'assombrit : on est penche sur la serrure.
+            GUI.color = new Color(0f, 0f, 0f, 0.55f);
             GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
             Color gold = new Color(1f, 0.78f, 0.32f);
-            Color iron = new Color(0.75f, 0.76f, 0.8f);
-            Color red = new Color(1f, 0.2f, 0.12f);
+            Color red = new Color(1f, 0.25f, 0.12f);
 
             if (Current == Kind.Flint)
             {
                 GUI.color = Color.Lerp(new Color(1f, 1f, 1f, 0.35f), red, missFlash);
-                GUI.DrawTexture(new Rect(c.x - R, c.y - R, R * 2f, R * 2f), Ring());
+                GUI.DrawTexture(new Rect(c.x - R * 0.7f, c.y - R * 0.7f, R * 1.4f, R * 1.4f), Ring());
                 for (float d = -arcSize * 0.5f; d <= arcSize * 0.5f; d += 3f)
-                    Mark(c, R * 0.905f, arcAt + d, R * 0.06f, R * 0.14f, Color.Lerp(gold, Color.white, sparkFlash));
-                Mark(c, R * 0.905f, angle, R * 0.05f, R * 0.30f, Color.white);
-                for (int i = 0; i < 3; i++)           // les trois etincelles a faire
+                    Mark(c, R * 0.63f, arcAt + d, R * 0.04f, R * 0.1f, Color.Lerp(gold, Color.white, sparkFlash));
+                Mark(c, R * 0.63f, angle, R * 0.035f, R * 0.2f, Color.white);
+                for (int i = 0; i < 3; i++)
                 {
                     GUI.color = i < sparks ? gold : new Color(1f, 1f, 1f, 0.2f);
-                    float s = R * 0.13f;
-                    GUI.DrawTexture(new Rect(c.x + (i - 1) * s * 1.8f - s * 0.5f, c.y - s * 0.5f, s, s), Texture2D.whiteTexture);
+                    float s = R * 0.12f;
+                    GUI.DrawTexture(new Rect(c.x + (i - 1) * s * 1.8f - s * 0.5f, c.y - s * 0.5f, s, s), Spark());
                 }
+                GUI.color = Color.white;
+                return;
             }
-            else
+
+            float stress = Mathf.Clamp01(strain / 0.6f);
+            float shake = strain > 0f ? Mathf.Sin(Time.unscaledTime * 75f) * 2.2f * stress : 0f;
+            // Un halo chaud derriere la platine : la flamme de ta torche, tout pres.
+            GUI.color = new Color(1f, 0.6f, 0.25f, 0.18f);
+            GUI.DrawTexture(new Rect(c.x - R * 1.8f, c.y - R * 1.8f, R * 3.6f, R * 3.6f), Spark());
+            // La platine, puis le barillet qui tourne avec la tension.
+            GUI.color = Color.white;
+            GUI.DrawTexture(new Rect(c.x - R, c.y - R, R * 2f, R * 2f), Plate());
+            float plugR = R * 0.54f;
+            Rotated(Plug(), new Rect(c.x - plugR, c.y - plugR, plugR * 2f, plugR * 2f), turn * 90f + shake * 0.3f, c, Color.white);
+            // La clef de tension : elle entre par le bas de la fente et tourne avec le barillet.
+            float wr = R * 0.62f;
+            Rotated(Wrench(), new Rect(c.x - wr * 0.5f, c.y + plugR * 0.1f, wr, wr), turn * 90f, c, new Color(1f, 1f, 1f, 0.95f));
+            // Le crochet : il sort du trou de la serrure, pivote autour, suit la souris. Rouge quand il force trop.
+            float len = R * 1.45f, thick = R * 0.12f;
+            Vector2 pivot = c + new Vector2(0f, -plugR * 0.18f);
+            Color steel = snap > 0f ? red : Color.Lerp(Color.white, red, stress * 0.8f);
+            Rotated(Pick(), new Rect(pivot.x - thick * 0.5f, pivot.y, thick, len), 180f + pick + shake, pivot, steel);
+            // Quand le crochet est tout pres du bon angle et qu'on force, une lueur d'or tremble dans la fente.
+            float near = 1f - Mathf.Clamp01((Mathf.Abs(pick - sweet) - 4f) / 38f);
+            if (turn > 0.05f)
             {
-                // Le barillet : il tourne quand on force. Sa fente tourne avec lui.
-                GUI.color = Color.Lerp(iron, red, Mathf.Max(missFlash, strain / 0.6f) * 0.8f);
-                GUI.DrawTexture(new Rect(c.x - R, c.y - R, R * 2f, R * 2f), Ring());
-                float shake = strain > 0f ? Mathf.Sin(Time.time * 70f) * 3f * (strain / 0.6f) : 0f;
-                Matrix4x4 saved = GUI.matrix;
-                GUIUtility.RotateAroundPivot(turn * 90f + shake, c);
-                GUI.color = new Color(0f, 0f, 0f, 0.85f);
-                GUI.DrawTexture(new Rect(c.x - R * 0.07f, c.y - R * 0.55f, R * 0.14f, R * 1.1f), Texture2D.whiteTexture);
-                GUI.matrix = saved;
-                // Le crochet : une tige qui part du centre.
-                saved = GUI.matrix;
-                GUIUtility.RotateAroundPivot(pick + shake, c);
-                GUI.color = snap > 0f ? red : gold;
-                GUI.DrawTexture(new Rect(c.x - R * 0.025f, c.y - R * 1.25f, R * 0.05f, R * 1.25f), Texture2D.whiteTexture);
-                GUI.matrix = saved;
-                for (int i = 0; i < 4; i++)           // les crochets qui restent
-                {
-                    GUI.color = i < picks ? gold : new Color(1f, 1f, 1f, 0.18f);
-                    GUI.DrawTexture(new Rect(c.x - R + i * R * 0.16f, c.y + R * 1.2f, R * 0.05f, R * 0.3f), Texture2D.whiteTexture);
-                }
+                GUI.color = new Color(1f, 0.8f, 0.35f, 0.35f * near * turn);
+                float g = R * 0.5f;
+                GUI.DrawTexture(new Rect(c.x - g, c.y - g, g * 2f, g * 2f), Spark());
+            }
+            // La casse : un eclat blanc.
+            if (snap > 0f)
+            {
+                GUI.color = new Color(1f, 0.85f, 0.6f, snap);
+                float g = R * (0.3f + (1f - snap) * 0.8f);
+                GUI.DrawTexture(new Rect(pivot.x - g, pivot.y - g, g * 2f, g * 2f), Spark());
+            }
+            // Les crochets qui restent : de petites tiges d'acier, sous la serrure.
+            for (int i = 0; i < 4; i++)
+            {
+                Color left = i < picks ? new Color(1f, 1f, 1f, 0.95f) : new Color(1f, 1f, 1f, 0.12f);
+                float pw = R * 0.07f, ph = R * 0.5f;
+                Rect slot = new Rect(c.x + (i - 1.5f) * pw * 2.6f - pw * 0.5f, c.y + R * 1.1f, pw, ph);
+                GUI.color = left;
+                GUI.DrawTexture(slot, Pick());
             }
             GUI.color = Color.white;
         }
@@ -383,10 +595,24 @@ namespace Fief
             }
         }
 
+        /// <summary>(21/11) Un coup de torche en pleine face : il recule, souffle sa lanterne, et perd ta trace.</summary>
+        public void Burn(Vector3 from)
+        {
+            Vector3 away = Flat(transform.position - from);
+            if (away.sqrMagnitude < 0.01f) away = -transform.forward;
+            Vector3 to = transform.position + away.normalized * 2.5f;
+            to.y = NightMap.FloorY(to);
+            transform.position = to;
+            state = State.Lost; wait = 4f; seen = 0f;
+            Douse(3f);
+            try { Sfx.CrashAt(transform.position + Vector3.up); } catch (System.Exception) { }
+            NightAudio.Scream(transform.position + Vector3.up * 1.6f, 0.7f);
+        }
+
         public void SendHome()
         {
             transform.position = round[0];
-            next = 1 % round.Length; state = State.Round; seen = unseen = wait = 0f;
+            next = 1 % round.Length; state = State.Round; roaming = false; seen = unseen = wait = 0f;
             Tint(false);
         }
 
@@ -438,7 +664,14 @@ namespace Fief
             transform.rotation = Quaternion.RotateTowards(transform.rotation, face, turn * Time.deltaTime);
             // Il n'avance que s'il regarde a peu pres ou il va : ses demi-tours prennent du temps, et c'est voulu.
             if (Quaternion.Angle(transform.rotation, face) < 35f)
-                transform.position += step3.normalized * Mathf.Min(speed * Time.deltaTime, step3.magnitude);
+            {
+                Vector3 next = transform.position + step3.normalized * Mathf.Min(speed * Time.deltaTime, step3.magnitude);
+                // (21/11) Ta torche le tient a distance tant qu'elle brule fort ; les feux allumes, il ne les passe pas.
+                if (prey != null && Faith.Value > 0.25f && Flat(prey.transform.position - next).magnitude < 2.6f && Flat(prey.transform.position - transform.position).magnitude >= 2.6f) next = transform.position;
+                next = Ward.Hold(transform.position, next);
+                next.y = NightMap.FloorY(next);
+                transform.position = next;
+            }
             step -= Time.deltaTime * speed;
             if (step <= 0f) { step = 1.05f; try { Sfx.ThudAt(transform.position); } catch (System.Exception) { } }
             return true;
