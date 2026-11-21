@@ -22,13 +22,13 @@ namespace Fief
     /// </summary>
     public static class NightQuest
     {
-        public enum Find { Nothing, Key, Relic, Trap, Tomb, Whisper }
+        public enum Find { Nothing, Key, Relic, Trap, Tomb, Whisper, Secret, Lantern }
 
         public class Spot
         {
             public Transform body;
             public Transform lid;
-            public int kind;              // 0 coffre, 1 tombeau, 2 bibliotheque
+            public int kind;              // 0 coffre, 1 tombeau, 2 bibliotheque, 3 la bibliotheque du passage secret
             public char room;
             public Find find;
             public bool done;
@@ -74,21 +74,28 @@ namespace Fief
                 int j = Random.Range(0, i + 1);
                 Spot t = order[i]; order[i] = order[j]; order[j] = t;
             }
+            // Le passage secret, et le tresor : la lanterne dans le premier coffre, des reliques dans les autres.
+            bool lantern = false;
+            foreach (Spot s in order)
+            {
+                if (s.kind == 3) s.find = Find.Secret;
+                else if (s.room == 'T') { s.find = lantern ? Find.Relic : Find.Lantern; lantern = true; }
+            }
             Spot key = null;
             foreach (Spot s in order)
-                if (s.kind != 1 && s.room != 'K' && s.room != 'V' && s.room != 'S' && Flat(s.body.position - start) > 22f) { key = s; break; }
-            if (key == null) foreach (Spot s in order) if (s.kind != 1) { key = s; break; }
+                if (s.find == Find.Nothing && s.kind != 1 && s.room != 'K' && s.room != 'V' && s.room != 'S' && s.room != 'R' && Flat(s.body.position - start) > 22f) { key = s; break; }
+            if (key == null) foreach (Spot s in order) if (s.find == Find.Nothing && s.kind != 1 && s.room != 'R') { key = s; break; }
             if (key != null) key.find = Find.Key;
             Spot tomb = null;
-            foreach (Spot s in order) if (s.kind == 1 && s.room != 'K') { tomb = s; break; }
-            if (tomb == null) foreach (Spot s in order) if (s.kind == 1) { tomb = s; break; }
+            foreach (Spot s in order) if (s.kind == 1 && s.room != 'K' && s.room != 'R') { tomb = s; break; }
+            if (tomb == null) foreach (Spot s in order) if (s.kind == 1 && s.room != 'R') { tomb = s; break; }
             if (tomb != null) tomb.find = Find.Tomb;
             int relics = 3, traps = 3, whispers = 3;
             foreach (Spot s in order)
             {
                 if (s.find != Find.Nothing) continue;
                 if (relics > 0) { s.find = Find.Relic; relics--; }
-                else if (traps > 0 && s.kind == 0) { s.find = Find.Trap; traps--; }
+                else if (traps > 0 && s.kind == 0 && s.room != 'R') { s.find = Find.Trap; traps--; }
                 else if (whispers > 0) { s.find = Find.Whisper; whispers--; }
             }
             Debug.Log("[FIEF] " + spots.Count + " cachettes dans le château ; la clé est dans : " + (key != null ? key.body.name + " (" + key.room + ")" : "aucune"));
@@ -111,7 +118,8 @@ namespace Fief
         {
             Spot s = Nearest(p);
             if (s == null) return null;
-            return s.kind == 0 ? "E (tenir)  —  fouiller le coffre" : s.kind == 1 ? "E (tenir)  —  faire glisser la dalle" : "E (tenir)  —  fouiller les livres";
+            return s.kind == 0 ? "E (tenir)  —  fouiller le coffre" : s.kind == 1 ? "E (tenir)  —  faire glisser la dalle"
+                : s.kind == 3 ? "E (tenir)  —  un livre dépasse du rayon" : "E (tenir)  —  fouiller les livres";
         }
 
         /// <summary>A chaque image. Renvoie true quand une fouille se termine (ce qu'on a trouve : found, ou : where).</summary>
@@ -180,7 +188,7 @@ namespace Fief
             return true;
         }
 
-        static void Strike(Vector3 me)
+        public static void Strike(Vector3 me)
         {
             Flash = 1f;
             try { Sfx.Thunder(me + new Vector3(12f, 30f, 8f), true); } catch (System.Exception) { }
@@ -208,6 +216,15 @@ namespace Fief
                     Strike(me);
                     lightning = 5f;
                     return null;
+                case 'P':
+                    try { Sfx.RattleAt(NightMap.Center('P') + Vector3.up); } catch (System.Exception) { }
+                    return "Quelqu'un a gratté ces murs. De l'intérieur.";
+                case 'Q':
+                    try { Sfx.ClangAt(NightMap.Center('Q')); } catch (System.Exception) { }
+                    return "Une marmite roule sur les dalles. Le feu brûle encore.";
+                case 'T':
+                    try { Sfx.Choir(NightMap.Center('T')); } catch (System.Exception) { }
+                    return "De la cire, de l'or, et la poussière de cent ans.";
                 case 'A':
                     try { Sfx.ClangAt(NightMap.Center('A') + Vector3.up); } catch (System.Exception) { }
                     return "Une lame est tombée du râtelier.";

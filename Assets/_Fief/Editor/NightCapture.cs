@@ -139,7 +139,30 @@ namespace Fief
                 Shot(cam, "17_rodeur_dos", Eye(from) + east * 5f, Eye(from));
                 Object.Destroy(rodeur.gameObject);
                 Prowler.Forget();
+
+                // (21/11) Les nouvelles salles, et l'Abbe dans sa crypte.
+                Vector3 cr = NightMap.Center('R');
+                Abbot boss = Abbot.Spawn(null, NightMap.AbbotHome, knight);
+                Shot(cam, "21_crypte_abbe", Eye(NightMap.CryptEntry) + up * 0.1f, NightMap.AbbotHome + up * 3f);
+                Object.Destroy(boss.gameObject);
+                Shot(cam, "22_crypte", Eye(cr) - north * 6f - east * 5f, Eye(cr) + north * 4f + east * 3f);
+                Shot(cam, "23_tresor", Eye(NightMap.Center('T')) - north * 1.2f - east * 2.5f, Eye(NightMap.Center('T')) + north * 2f + east * 1f);
+                Shot(cam, "24_cuisines", Eye(NightMap.Center('Q')) - east * 5f - north * 3f, Eye(NightMap.Center('Q')) + east * 6f);
+                Shot(cam, "25_cachots", Eye(NightMap.Center('P')) - east * 5f + north * 3f, Eye(NightMap.Center('P')) + east * 5f - north * 2f);
             }
+
+            // (21/11) Dehors : le chemin d'arrivee, la facade et la porte, dans la brume.
+            Color fogColor = RenderSettings.fogColor;
+            float fogDensity = RenderSettings.fogDensity;
+            RenderSettings.fogColor = new Color(0.028f, 0.034f, 0.05f);
+            RenderSettings.fogDensity = 0.03f;
+            cam.backgroundColor = RenderSettings.fogColor;
+            Shot(cam, "26_dehors_chemin", new Vector3(26f, 2.45f, -60f), new Vector3(26f, 5f, 3f));
+            Shot(cam, "27_dehors_porte", new Vector3(24.5f, 2.45f, -6f), new Vector3(26f, 3.2f, 3.4f));
+            Shot(cam, "28_dehors_cimetiere", new Vector3(21f, 1.8f, -46f), new Vector3(14f, 0.6f, -32f));
+            RenderSettings.fogColor = fogColor;
+            RenderSettings.fogDensity = fogDensity;
+            cam.backgroundColor = fogColor;
         }
 
         static void ShootLit()

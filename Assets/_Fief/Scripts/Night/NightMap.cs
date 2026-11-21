@@ -21,21 +21,28 @@ namespace Fief
     public static class NightMap
     {
         public const float Cell = 4f;
+        // (21/11) Agrandi : la crypte (R) derriere l'autel, le tresor (T) derriere la bibliotheque, les cachots (P),
+        // les cuisines (Q). Les salles d'avant gardent leurs cases : on n'a ajoute que des rangees au nord et des
+        // colonnes a l'est.
         static readonly string[] Plan =
         {
-            "..............",
-            ".KKK.LLLL.DDD.",
-            ".KKK.LLLL.DDD.",
-            ".KkK.LlLL.DdD.",
-            ".CcCCCcCCCCcC.",
-            ".C..HHhHHHYYC.",
-            ".C..HHHHHHYyc.",
-            ".cn.HHHHHHAac.",
-            ".C..HHhHHH..C.",
-            ".CCCCCcCCCCCC.",
-            "...SsvvV......",
-            ".....VVV......",
-            ".............."
+            "..................",
+            ".RRRR.............",
+            ".RRRR.............",
+            ".RRRR.TT..........",
+            ".rRRR.tT..........",
+            ".kKK.LlLL.DDD.....",
+            ".KKK.LLLL.DDD.....",
+            ".KkK.LlLL.DdDQQQQ.",
+            ".CcCCCcCCCCccqQQQ.",
+            ".C..HHhHHHYYCQQQQ.",
+            ".C..HHHHHHYyc.....",
+            ".cn.HHHHHHAacPPPP.",
+            ".C..HHhHHH..cpPPP.",
+            ".CCCCCcCCCCCCPPPP.",
+            "...SsvvV..........",
+            ".....VVV..........",
+            ".................."
         };
 
         static char[,] grid;
@@ -61,7 +68,7 @@ namespace Fief
             {
                 int c = Random.Range(0, wide), r = Random.Range(0, deep);
                 char room = Room(c, r);
-                if (room == '.' || locked.Contains(room) || room == 'N' || room == 'S') continue;
+                if (room == '.' || locked.Contains(room) || room == 'N' || room == 'S' || room == 'R' || room == 'T') continue;
                 Vector3 p = CellCenter(c, r);
                 float d = new Vector2(p.x - near.x, p.z - near.z).magnitude;
                 if (d >= min && d <= max) return p;
@@ -73,7 +80,7 @@ namespace Fief
 
         static char At(int c, int r) { return c < 0 || r < 0 || c >= wide || r >= deep ? '.' : grid[c, r]; }
         static char Room(int c, int r) { return char.ToUpperInvariant(At(c, r)); }
-        static bool Tall(char room) { return room == 'H' || room == 'K' || room == 'Y'; }
+        static bool Tall(char room) { return room == 'H' || room == 'K' || room == 'Y' || room == 'R'; }
         public static Vector3 CellCenter(int c, int r) { return new Vector3(c * Cell + 2f, 0f, r * Cell + 2f); }
         static int Col(Vector3 p) { return Mathf.FloorToInt(p.x / Cell); }
         static int Row(Vector3 p) { return Mathf.FloorToInt(p.z / Cell); }
@@ -103,6 +110,8 @@ namespace Fief
             locked.Clear();
             Armors.Clear();
             taken.Clear();
+            secrets.Clear(); revealed.Clear(); covers.Clear(); CryptFires.Clear();
+            seen = null; lastC = lastR = -1;
             deep = Plan.Length;
             wide = Plan[0].Length;
             grid = new char[wide, deep];
@@ -149,6 +158,7 @@ namespace Fief
                                 NightKit.ArchAt(ex, ez, yaw);
                                 string key = room < other ? "" + room + other : "" + other + room;
                                 doors[key] = new Vector4(ex, ez, yaw, 0f);
+                                if (IsSecret(key)) secrets[key] = new Vector4(ex, ez, yaw, d);
                             }
                             else
                             {
@@ -180,6 +190,7 @@ namespace Fief
                 }
 
             Furnish(blocks);
+            BuildSecrets(blocks);
             Ready = true;
             return true;
         }
@@ -236,6 +247,205 @@ namespace Fief
             moon.shadows = LightShadows.Soft;
             moon.shadowStrength = 1f;
             moon.transform.rotation = Quaternion.Euler(58f, 35f, 0f);
+        }
+
+        // ------------------------------------------------------------------ (21/11) les passages secrets
+
+        /// <summary>Les portes cachees : derriere l'autel vers la crypte (KR), derriere un rayon de la bibliotheque vers le tresor (LT).</summary>
+        static readonly string[] SecretKeys = { "KR", "LT" };
+        static readonly Dictionary<string, Vector4> secrets = new Dictionary<string, Vector4>();     // x, z, yaw, direction
+        static readonly HashSet<string> revealed = new HashSet<string>();
+
+        class Cover
+        {
+            public Transform piece;
+            public Collider wall;
+            public Vector3 closed;
+            public Vector3 open;
+            public float k;
+            public float target;
+            public float speed;
+        }
+        static readonly Dictionary<string, Cover> covers = new Dictionary<string, Cover>();
+
+        /// <summary>Les brasiers de la crypte (le boss) et l'endroit ou l'on arrive dans la crypte.</summary>
+        public static readonly List<GameObject> CryptFires = new List<GameObject>();
+        public static Vector3 CryptEntry;
+        public static Vector3 AbbotHome;
+
+        static bool IsSecret(string key) { return System.Array.IndexOf(SecretKeys, key) >= 0; }
+        public static bool Revealed(string key) { return revealed.Contains(key); }
+
+        static void BuildSecrets(Transform blocks)
+        {
+            foreach (KeyValuePair<string, Vector4> s in secrets)
+            {
+                Vector4 v = s.Value;
+                int d = (int)v.w;
+                Vector3 door = new Vector3(v.x, 0f, v.y), dir = new Vector3(DX[d], 0f, DZ[d]);
+                Cover cv = new Cover();
+                GameObject piece;
+                if (s.Key == "LT")
+                {
+                    // Une bibliotheque comme les autres, collee devant l'arche, cote bibliotheque. Elle glissera de cote.
+                    Vector3 at = door - dir * 0.5f;
+                    piece = NightKit.Place("bibliotheque", at.x, at.z, d == 0 ? 180f : d == 1 ? -90f : d == 2 ? 0f : 90f, 0f, false);
+                    cv.closed = at;
+                    cv.open = at + new Vector3(DZ[d], 0f, DX[d]) * 2.05f;
+                    cv.speed = 1f / 1.6f;
+                    if (piece != null) NightQuest.Add(piece.transform, 3, null, 'L');
+                }
+                else
+                {
+                    // Un pan de mur, pile dans l'arche. Il s'enfoncera dans le sol.
+                    piece = NightKit.Place("mur_droit", door.x, door.z, v.z, 0f, false);
+                    cv.closed = door;
+                    cv.open = door + Vector3.down * 4.1f;
+                    cv.speed = 1f / 4f;
+                }
+                if (piece == null) continue;
+                cv.piece = piece.transform;
+                BoxCollider box = new GameObject("Passage secret").AddComponent<BoxCollider>();
+                box.transform.SetParent(blocks, false);
+                box.transform.position = cv.closed + Vector3.up * 2f;
+                box.transform.rotation = Quaternion.Euler(0f, v.z, 0f);
+                box.size = new Vector3(4.2f, 4f, 0.6f);
+                cv.wall = box;
+                covers[s.Key] = cv;
+                Lock(s.Key[1]);
+            }
+        }
+
+        /// <summary>Le passage s'ouvre (le mur s'enfonce, la bibliotheque glisse) ; la salle cachee apparait sur la carte.</summary>
+        public static void Reveal(string key)
+        {
+            Cover cv;
+            if (!covers.TryGetValue(key, out cv)) return;
+            revealed.Add(key);
+            cv.target = 1f;
+            Unlock(key[1]);
+        }
+
+        /// <summary>Le passage se referme (le mur remonte) : on est enferme.</summary>
+        public static void Seal(string key)
+        {
+            Cover cv;
+            if (!covers.TryGetValue(key, out cv)) return;
+            cv.target = 0f;
+            cv.speed = 1f / 1.2f;
+            if (cv.wall != null) cv.wall.enabled = true;
+        }
+
+        public static void Tick(float dt, Vector3 player)
+        {
+            foreach (Cover cv in covers.Values)
+            {
+                if (Mathf.Approximately(cv.k, cv.target) || cv.piece == null) continue;
+                cv.k = Mathf.MoveTowards(cv.k, cv.target, dt * cv.speed);
+                float e = cv.k * cv.k * (3f - 2f * cv.k);
+                Vector3 p = Vector3.Lerp(cv.closed, cv.open, e);
+                cv.piece.position = new Vector3(p.x, p.y + Mathf.Sin(cv.k * 40f) * 0.01f * (1f - cv.k) * cv.k * 4f, p.z);
+                if (cv.k >= 1f && cv.wall != null) cv.wall.enabled = false;
+            }
+            Visit(player);
+        }
+
+        // ------------------------------------------------------------------ (21/11) la carte du carnet
+
+        static bool[,] seen;
+        static int lastC = -1, lastR = -1;
+        static readonly Dictionary<char, string> Names = new Dictionary<char, string>
+        {
+            { 'V', "Vestibule" }, { 'S', "Sacristie" }, { 'N', "Niche" }, { 'H', "Grande salle" }, { 'K', "Chapelle" },
+            { 'Y', "Cour" }, { 'L', "Bibliothèque" }, { 'D', "Dortoir" }, { 'A', "Armurerie" }, { 'P', "Cachots" },
+            { 'Q', "Cuisines" }, { 'R', "Crypte" }, { 'T', "Trésor" }
+        };
+
+        /// <summary>Le joueur est ici : la salle entiere apparait sur la carte (dans un couloir, les cases autour de lui).</summary>
+        static void Visit(Vector3 p)
+        {
+            if (grid == null) return;
+            if (seen == null || seen.GetLength(0) != wide || seen.GetLength(1) != deep) seen = new bool[wide, deep];
+            int c0 = Col(p), r0 = Row(p);
+            if (c0 == lastC && r0 == lastR) return;
+            lastC = c0; lastR = r0;
+            char room = Room(c0, r0);
+            if (room == '.') return;
+            for (int c = 0; c < wide; c++)
+                for (int r = 0; r < deep; r++)
+                {
+                    if (Room(c, r) != room) continue;
+                    if (room == 'C' && (Mathf.Abs(c - c0) > 2 || Mathf.Abs(r - r0) > 2)) continue;
+                    seen[c, r] = true;
+                }
+        }
+
+        public static void DrawMap(Rect area, Vector3 player, float yaw, GUIStyle label)
+        {
+            if (grid == null || seen == null) return;
+            float s = Mathf.Floor(Mathf.Min(area.width / wide, area.height / deep));
+            float ox = Mathf.Round(area.x + (area.width - s * wide) * 0.5f), oy = Mathf.Round(area.y + (area.height - s * deep) * 0.5f);
+            float t = Mathf.Max(2f, Mathf.Round(s * 0.09f));
+            Color ink = new Color(0.2f, 0.11f, 0.05f, 0.9f), wash = new Color(0.45f, 0.3f, 0.15f, 0.22f), red = new Color(0.6f, 0.05f, 0.03f, 0.9f);
+            for (int c = 0; c < wide; c++)
+                for (int r = 0; r < deep; r++)
+                {
+                    if (!seen[c, r]) continue;
+                    char room = Room(c, r);
+                    Rect cell = new Rect(ox + c * s, oy + (deep - 1 - r) * s, s, s);
+                    GUI.color = room == 'C' ? new Color(wash.r, wash.g, wash.b, 0.12f) : room == 'R' ? new Color(0.35f, 0.05f, 0.02f, 0.25f) : wash;
+                    GUI.DrawTexture(cell, Texture2D.whiteTexture);
+                    for (int d = 0; d < 4; d++)
+                    {
+                        char other = Room(c + DX[d], r + DZ[d]);
+                        if (other == room) continue;
+                        Rect line = d == 0 ? new Rect(cell.x, cell.y, s, t) : d == 1 ? new Rect(cell.xMax - t, cell.y, t, s)
+                            : d == 2 ? new Rect(cell.x, cell.yMax - t, s, t) : new Rect(cell.x, cell.y, t, s);
+                        string key = room < other ? "" + room + other : "" + other + room;
+                        bool door = Door(c, r, d) && (!IsSecret(key) || revealed.Contains(key));
+                        GUI.color = ink;
+                        if (!door) { GUI.DrawTexture(line, Texture2D.whiteTexture); continue; }
+                        // Une porte : deux bouts de mur et un trou ; en rouge si elle est fermee a cle.
+                        float gap = s * 0.5f, side = (s - gap) * 0.5f;
+                        if (d % 2 == 0)
+                        {
+                            GUI.DrawTexture(new Rect(line.x, line.y, side, t), Texture2D.whiteTexture);
+                            GUI.DrawTexture(new Rect(line.xMax - side, line.y, side, t), Texture2D.whiteTexture);
+                            if (locked.Contains(room) || locked.Contains(other)) { GUI.color = red; GUI.DrawTexture(new Rect(line.x + side, line.y, gap, t), Texture2D.whiteTexture); }
+                        }
+                        else
+                        {
+                            GUI.DrawTexture(new Rect(line.x, line.y, t, side), Texture2D.whiteTexture);
+                            GUI.DrawTexture(new Rect(line.x, line.yMax - side, t, side), Texture2D.whiteTexture);
+                            if (locked.Contains(room) || locked.Contains(other)) { GUI.color = red; GUI.DrawTexture(new Rect(line.x, line.y + side, t, gap), Texture2D.whiteTexture); }
+                        }
+                    }
+                }
+            // Le nom des salles deja vues.
+            GUIStyle ls = new GUIStyle(label);
+            ls.fontSize = Mathf.Max(10, Mathf.RoundToInt(s * 0.38f));
+            foreach (KeyValuePair<char, string> n in Names)
+            {
+                float minC = 999f, maxC = -1f, minR = 999f, maxR = -1f;
+                bool any = false;
+                for (int c = 0; c < wide; c++)
+                    for (int r = 0; r < deep; r++)
+                        if (seen[c, r] && Room(c, r) == n.Key) { any = true; minC = Mathf.Min(minC, c); maxC = Mathf.Max(maxC, c); minR = Mathf.Min(minR, r); maxR = Mathf.Max(maxR, r); }
+                if (!any) continue;
+                float cx = ox + (minC + maxC + 1f) * 0.5f * s, cy = oy + (deep - (minR + maxR + 1f) * 0.5f) * s;
+                GUI.color = Color.white;
+                GUI.Label(new Rect(cx - s * 3f, cy - s * 0.4f, s * 6f, s * 0.8f), n.Value, ls);
+            }
+            // Toi : une fleche rouge qui regarde ou tu regardes.
+            Vector2 me = new Vector2(ox + player.x / Cell * s, oy + (deep - player.z / Cell) * s);
+            Matrix4x4 keep = GUI.matrix;
+            GUIUtility.RotateAroundPivot(yaw, me);
+            GUI.color = red;
+            float a = Mathf.Max(6f, s * 0.35f);
+            GUI.DrawTexture(new Rect(me.x - a * 0.18f, me.y - a, a * 0.36f, a * 1.1f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(me.x - a * 0.4f, me.y - a * 0.1f, a * 0.8f, a * 0.36f), Texture2D.whiteTexture);
+            GUI.matrix = keep;
+            GUI.color = Color.white;
         }
 
         // ------------------------------------------------------------------ (21/11) les meubles
@@ -387,6 +597,59 @@ namespace Fief
             AlongWalls(blocks, 'V', "banc", BenchSize, 2, 1, 0);
             foreach (GameObject c in AlongWalls(blocks, 'V', "coffre", ChestSize, 8, 1, 0)) Chest(c, 'V');
             foreach (GameObject c in AlongWalls(blocks, 'S', "coffre", ChestSize, 1, 2, 0)) Chest(c, 'S');
+
+            // Les cachots : des paillasses, des coffres ou l'on jetait ce qu'on prenait aux prisonniers.
+            AlongWalls(blocks, 'P', "lit", new Vector3(2.15f, 0.6f, 0.98f), 15, 2, 1);
+            foreach (GameObject c in AlongWalls(blocks, 'P', "coffre", ChestSize, 15, 3, 0)) Chest(c, 'P');
+
+            // Les cuisines : une grande cheminee qui brule encore, la table des cuisiniers, des coffres.
+            Bounds('Q', out x0, out z0, out x1, out z1);
+            float qz = (z0 + z1) * 0.5f;
+            NightKit.FireAt("Cheminee_Feu", x1 - 0.72f, qz, -90f, true);
+            NightKit.KeepLit();
+            SolidBox(blocks, new Vector3(x1 - 0.72f, 0f, qz), -90f, new Vector3(2.7f, 2f, 0.95f));
+            taken.Add(new Vector3(x1 - 0.72f, 0f, qz));
+            Feast(blocks, (x0 + x1) * 0.5f - 1.5f, qz);
+            foreach (GameObject c in AlongWalls(blocks, 'Q', "coffre", ChestSize, 5, 2, 0)) Chest(c, 'Q');
+
+            // Le tresor : trois coffres au fond, sous une lueur d'or.
+            foreach (GameObject c in AlongWalls(blocks, 'T', "coffre", ChestSize, 1, 1, 0)) Chest(c, 'T');
+            Bounds('T', out x0, out z0, out x1, out z1);
+            Light gold = new GameObject("Lueur du trésor").AddComponent<Light>();
+            gold.transform.SetParent(blocks, false);
+            gold.transform.position = new Vector3((x0 + x1) * 0.5f, 2.6f, (z0 + z1) * 0.5f);
+            gold.color = new Color(1f, 0.75f, 0.35f);
+            gold.range = 6f;
+            gold.intensity = 0.8f;
+
+            // La crypte : deux gisants au milieu, quatre piliers, quatre brasiers eteints aux coins (le combat).
+            Bounds('R', out x0, out z0, out x1, out z1);
+            float rx = (x0 + x1) * 0.5f, rz = (z0 + z1) * 0.5f;
+            Tomb(blocks, rx, rz - 2.6f, 0f, 'R');
+            Tomb(blocks, rx, rz + 2.6f, 0f, 'R');
+            for (int i = -1; i <= 1; i += 2)
+                for (int j = -1; j <= 1; j += 2)
+                {
+                    Vector3 p = new Vector3(rx + i * 4f, 0f, rz + j * 4f);
+                    NightKit.Place("pilier", p.x, p.z, 0f, 0f, false);
+                    NightKit.Place("pilier", p.x, p.z, 0f, 4f, false);
+                    SolidBox(blocks, p, 0f, new Vector3(1f, 8f, 1f));
+                }
+            Vector3[] fires = { new Vector3(x0 + 1.6f, 0f, rz), new Vector3(x0 + 1.6f, 0f, z1 - 1.6f), new Vector3(x1 - 1.6f, 0f, z1 - 1.6f), new Vector3(x1 - 1.6f, 0f, z0 + 1.6f) };
+            foreach (Vector3 f in fires)
+            {
+                NightKit.FireAt("Brasero_Feu", f.x, f.z, 0f, false);
+                if (NightKit.LastFire != null) CryptFires.Add(NightKit.LastFire);
+                SolidBox(blocks, f, 0f, new Vector3(0.8f, 1.2f, 0.8f));
+            }
+            CryptEntry = new Vector3(x0 + 2f, 0f, z0 + 1.6f);
+            AbbotHome = new Vector3(x1 - 3f, 0f, z1 - 4f);
+            Light cold = new GameObject("Froid de la crypte").AddComponent<Light>();
+            cold.transform.SetParent(blocks, false);
+            cold.transform.position = new Vector3(rx, 6f, rz);
+            cold.color = new Color(0.4f, 0.5f, 0.9f);
+            cold.range = 14f;
+            cold.intensity = 0.35f;
         }
 
         static void Block(Transform parent, Vector3 at, Vector3 size)

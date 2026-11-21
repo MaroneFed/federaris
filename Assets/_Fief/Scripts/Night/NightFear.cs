@@ -23,7 +23,7 @@ namespace Fief
     {
         const int Rate = 44100;
         static AudioSource bed, heart, calm, chase;
-        static AudioClip beat, sting, whisper, groan, scream, bang, pas;
+        static AudioClip beat, sting, whisper, groan, scream, bang, pas, hoof, snort;
         static readonly List<AudioClip> voices = new List<AudioClip>();
         static float nextBeat, nextEvent, nextWhisper;
         static System.Random random = new System.Random(11);
@@ -109,6 +109,18 @@ namespace Fief
             {
                 return noise * 0.45f * Mathf.Exp(-t * 40f) + Mathf.Sin(6.2832f * 72f * t) * 0.9f * Mathf.Exp(-t * 26f);
             });
+            hoof = Make("Sabot", 0.14f, delegate(float t, float noise)
+            {
+                return noise * 0.35f * Mathf.Exp(-t * 55f) + Mathf.Sin(6.2832f * 95f * t) * 0.9f * Mathf.Exp(-t * 32f)
+                    + Mathf.Sin(6.2832f * 180f * t) * 0.3f * Mathf.Exp(-t * 60f);
+            });
+            float nose = 0f;
+            snort = Make("Renaclement", 0.9f, delegate(float t, float noise)
+            {
+                nose += (noise - nose) * 0.25f;
+                float env = Mathf.Clamp01(t / 0.05f) * Mathf.Exp(-t * 3.2f) * (0.6f + 0.4f * Mathf.Sin(6.2832f * 28f * t));
+                return (nose * 2.2f + Mathf.Sin(6.2832f * 70f * t) * 0.2f) * env;
+            });
             bed = Source(host, "Fond", true);
             bed.clip = air;
             bed.Play();
@@ -170,6 +182,10 @@ namespace Fief
 
         /// <summary>Un pas, quelque part : les pas qui te suivent.</summary>
         public static void Step(Vector3 at, float volume) { if (pas != null) AudioSource.PlayClipAtPoint(pas, at, volume * Settings.Volume); }
+
+        /// <summary>(21/11) Un sabot qui frappe la pierre (l'arrivee a cheval).</summary>
+        public static void Hoof(float volume, float pitch) { if (heart != null && hoof != null) { heart.pitch = pitch; heart.PlayOneShot(hoof, volume * Settings.Volume); } }
+        public static void Snort() { if (heart != null && snort != null) { heart.pitch = 1f; heart.PlayOneShot(snort, 0.9f * Settings.Volume); } }
 
         public static void Sting(float volume) { if (heart != null) heart.PlayOneShot(sting, volume * Settings.Volume); }
         public static void Bang(Vector3 at, float volume) { if (bang != null) AudioSource.PlayClipAtPoint(bang, at, volume * Settings.Volume); }
@@ -427,10 +443,19 @@ namespace Fief
     {
         static Font font;
 
+        static Font gothic;
+
+        /// <summary>(21/11) La police des titres : une gothique (Old English), celle des manuscrits.</summary>
+        public static Font Title()
+        {
+            if (gothic == null) gothic = Font.CreateDynamicFontFromOSFont(new[] { "Old English Text MT", "Centaur", "Book Antiqua", "Georgia" }, 64);
+            return gothic;
+        }
+
         public static Font Get()
         {
             if (font == null)
-                font = Font.CreateDynamicFontFromOSFont(new[] { "Garamond", "EB Garamond", "Palatino Linotype", "Book Antiqua", "Constantia", "Georgia", "Times New Roman" }, 36);
+                font = Font.CreateDynamicFontFromOSFont(new[] { "Centaur", "Book Antiqua", "Palatino Linotype", "Cambria", "Georgia", "Times New Roman" }, 36);
             return font;
         }
 

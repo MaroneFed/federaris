@@ -34,7 +34,11 @@ namespace Fief
         // (14/11) LA SURVIE : la foi, la sacristie verrouillee, le silex, le Rodeur. Voir NightSurvival.cs.
         Prowler grabbed;
         NightDoor chapel;          // (21/11) la chapelle est fermee a cle : la cle est cachee dans le chateau
-        char lastRoom = '.';        // (15/11) celui qui te tient : il y a maintenant plusieurs Rodeurs (Prowler.All)
+        char lastRoom = '.';
+        // (21/11) Le boss de la crypte, et le brasier qu'on est en train de rallumer.
+        Abbot abbot;
+        bool bossFight, grabAbbot;
+        GameObject lightingFire;        // (15/11) celui qui te tient : il y a maintenant plusieurs Rodeurs (Prowler.All)
         NightDoor sacristy;
         GameObject flint;
         bool hasFlint;
@@ -69,6 +73,11 @@ namespace Fief
             Prowler.Forget();
             NightQuest.Clear();
             if (!NightMap.Build(world)) Debug.LogError("[FIEF] Kit absent (Resources/Modeles/Kit) : pas de château.");
+            try { NightIntro.Build(world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Dehors ignoré : " + e.Message); }
+            Journal.Reset();
+            NightUI.Reset();
+            NightIntro.Playing = false;
+            NightIntro.Finished = false;
             QualitySettings.pixelLightCount = 8;
             QualitySettings.shadowDistance = 90f;
             BuildChapel();
@@ -84,8 +93,10 @@ namespace Fief
             NightQuest.Deal(start);
             try { NightAudio.Init(gameObject); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Sons de la nuit ignorés : " + e.Message); }
             message = "Survis.";
-            try { NightCinema.Begin(player, world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Ouverture ignorée : " + e.Message); NightCinema.Playing = false; }
-            messageUntil = Time.time + 17f;
+            messageUntil = 0f;
+            // (21/11) Le menu, devant le chateau ; puis l'arrivee a cheval ; puis l'ouverture. (Pas pour les photos de Claude.)
+            if (Application.isBatchMode) BeginInside();
+            else { NightUI.OpenMenu(); try { NightIntro.MenuView(player); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Menu dehors ignoré : " + e.Message); } }
             Debug.Log("[FIEF] La Nuit, V0 : quatre cierges à rallumer. Le Pénitent s'éveille au premier.");
         }
 
@@ -165,15 +176,33 @@ namespace Fief
 
         // ------------------------------------------------------------------ la partie
 
+        /// <summary>On entre : l'ouverture (l'homme, le noir), puis la nuit commence.</summary>
+        void BeginInside()
+        {
+            player.Teleport(start, 0f);
+            try { NightCinema.Begin(player, world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Ouverture ignorée : " + e.Message); NightCinema.Playing = false; }
+            Say("Survis.", 20f);
+            Journal.ChangedAt = Time.unscaledTime + 12f;
+        }
+
         void Update()
         {
             if (player == null) return;
+            // (21/11) Le menu, la pause, le carnet ; l'arrivee a cheval.
+            bool playingNow = !NightUI.MenuOpen && !NightIntro.Playing && !NightCinema.Playing && grab <= 0f;
+            if (NightUI.Tick(playingNow)) Application.Quit();
+            if (NightUI.MenuOpen) NightIntro.MenuTick(Time.unscaledDeltaTime);
+            if (NightUI.StartRequested) { NightUI.StartRequested = false; NightIntro.Begin(player); }
+            NightIntro.Tick(Time.deltaTime);
+            if (NightIntro.Finished) { NightIntro.Finished = false; BeginInside(); }
+            NightMap.Tick(Time.deltaTime, player.transform.position);
+            if (bossFight && abbot != null && abbot.Burnt) EndNight();
             float dt = Time.deltaTime;
             bool night = dawn <= 0f;
             bool hunted = Prowler.AnyHunting;
             NightCinema.Tick(dt);
             NightGames.Tick(dt);
-            if (night && !NightCinema.Playing) Faith.Tick(dt, hunted);
+            if (night && !NightCinema.Playing && !NightIntro.Playing && !NightUI.MenuOpen) Faith.Tick(dt, hunted);
             // La peur : le Penitent tout pres, le Rodeur qui te chasse, ou la foi qui s'eteint.
             float want = Mathf.Max(Penitent.Dread, Mathf.Max(hunted ? 0.85f : 0f, Mathf.Clamp01((0.3f - Faith.Value) / 0.3f)));
             fear = Mathf.MoveTowards(fear, night ? want : 0f, dt * 0.8f);
@@ -186,7 +215,7 @@ namespace Fief
             bool canAct = night && !NightGames.Busy && caught <= 0f && grab <= 0f;
             if (NightQuest.Tick(dt, player.transform.position, canAct && FiefInput.InteractHeld, out found, out where)) OnFind(found, where);
             // --- (21/11) chaque salle, la premiere fois qu'on y entre, a son evenement
-            if (night && !NightCinema.Playing)
+            if (night && !NightCinema.Playing && !NightIntro.Playing && !NightUI.MenuOpen)
             {
                 char room = NightMap.RoomAt(player.transform.position);
                 if (room != lastRoom)
@@ -194,6 +223,8 @@ namespace Fief
                     lastRoom = room;
                     string happened = NightQuest.Enter(room, player.transform.position);
                     if (happened != null) Say(happened, 4f);
+                    if (room == 'L') Journal.Show("secret");
+                    if (room == 'R' && !bossFight && abbot == null) StartBoss();
                 }
             }
 
@@ -210,6 +241,11 @@ namespace Fief
                 {
                     if (NightQuest.HasKey) { chapel.Unlock(); NightMap.Unlock('K'); Say("La clé tourne. La chapelle est ouverte.", 5f); }
                     else { Say("Fermée à clé. Fouille le château.", 4f); try { Sfx.Deny(); } catch (System.Exception) { } }
+                }
+                else if (press && bossFight && NearestCryptFire() != null)
+                {
+                    lightingFire = NearestCryptFire();
+                    NightGames.StartFlint(lightingFire.transform.position, OnBrazier);
                 }
                 else if (press && near != null)
                 {
@@ -232,24 +268,26 @@ namespace Fief
 
             // --- attrape (le Penitent, le Rodeur), ou la foi perdue : le noir, et tu te reveilles dans le vestibule
             bool byPenitent = penitent.Touching, byProwler = Prowler.Toucher != null, faithless = Faith.Value <= 0f;
+            bool byAbbot = abbot != null && abbot.Touching;
             // LA PRISE : il ne te renvoie pas gentiment au vestibule. Il est devant toi, il te tient, tu le vois
             // en face pendant presque une seconde, l'image tremble, l'accord grince. Puis le noir.
-            if ((byPenitent || byProwler || faithless) && caught <= 0f && grab <= 0f && night && !NightCinema.Playing)
+            if ((byPenitent || byProwler || byAbbot || faithless) && caught <= 0f && grab <= 0f && night && !NightCinema.Playing && !NightIntro.Playing && !NightUI.MenuOpen)
             {
-                grab = 0.95f; grabProwler = byProwler; grabFaithless = faithless; grabbed = Prowler.Toucher;
+                grab = 0.95f; grabProwler = byProwler; grabFaithless = faithless; grabbed = Prowler.Toucher; grabAbbot = byAbbot;
+                if (abbot != null) abbot.Active = false;
                 NightGames.Abort();
                 NightCinema.Playing = true;
                 NightAudio.Sting(1f);
                 penitent.Held = true;
                 Prowler.HoldAll(true);
-                if (!byProwler) { penitent.ShowPose(2); penitent.Glare(3.4f); }
+                if (!byProwler && !byAbbot) { penitent.ShowPose(2); penitent.Glare(3.4f); }
             }
             if (grab > 0f)
             {
                 grab -= dt;
-                Transform monster = grabProwler && grabbed != null ? grabbed.transform : penitent.transform;
+                Transform monster = grabAbbot && abbot != null ? abbot.transform : grabProwler && grabbed != null ? grabbed.transform : penitent.transform;
                 Vector3 ahead = player.transform.forward;
-                monster.position = player.transform.position + ahead * 0.95f;
+                monster.position = player.transform.position + ahead * (grabAbbot ? 1.5f : 0.95f);
                 monster.rotation = Quaternion.LookRotation(-ahead, Vector3.up);
                 player.Face(player.Yaw, Mathf.MoveTowards(player.Pitch, -24f, dt * 170f));
                 NightPlayer.Shake = 1f;
@@ -264,11 +302,21 @@ namespace Fief
                 NightPlayer.Shake = 0f;
                 caught = 1.6f;
                 try { Sfx.Thud(); } catch (System.Exception) { }
-                player.Teleport(start, 0f);
-                penitent.Reset();
-                Prowler.AllHome();
+                if (bossFight)
+                {
+                    // Dans la crypte : on se reveille contre le mur referme, et lui retourne au fond.
+                    player.Teleport(NightMap.CryptEntry + Vector3.up * 0.1f, 0f);
+                    if (abbot != null) { abbot.SendHome(NightMap.AbbotHome); abbot.Active = true; }
+                }
+                else
+                {
+                    player.Teleport(start, 0f);
+                    penitent.Reset();
+                    Prowler.AllHome();
+                }
                 if (faithless) Faith.Add(0.5f); else Faith.Add(-0.2f);
                 Say(faithless ? "Ta foi s'est éteinte. Prie à l'autel, rallume les cierges."
+                    : grabAbbot ? "Il t'a eu. Reste dans la lumière des brasiers."
                     : byProwler ? "Sa lanterne t'a vu. Reste derrière lui."
                     : "Il t'a eu. Il n'avance que quand tu ne le regardes pas.", 6f);
             }
@@ -284,7 +332,7 @@ namespace Fief
                 if (player.View != null) player.View.backgroundColor = RenderSettings.fogColor;
             }
             // (12/11) Tant qu'il fait nuit : plus le Penitent est pres, plus le noir se referme.
-            else RenderSettings.fogDensity = 0.072f + 0.045f * Penitent.Dread;
+            else if (!NightIntro.Playing && !NightUI.MenuOpen) RenderSettings.fogDensity = 0.072f + 0.045f * Penitent.Dread;
         }
 
         Candle lighting;
@@ -301,7 +349,24 @@ namespace Fief
         {
             switch (found)
             {
+                case NightQuest.Find.Secret:
+                    NightMap.Reveal("LT");
+                    Journal.Done("secret");
+                    NightAudio.Bang(where + Vector3.up, 0.9f);
+                    Say("Le livre s'enfonce. Tout le rayon pivote sur le côté...", 5f);
+                    break;
+                case NightQuest.Find.Lantern:
+                    Journal.Lantern = true;
+                    NightPlayer.Lantern = true;
+                    Faith.Scale *= 0.7f;
+                    Faith.Add(0.2f);
+                    try { Sfx.Choir(where); } catch (System.Exception) { }
+                    Say("La lanterne des Veilleurs. Ta lumière porte plus loin.", 5f);
+                    break;
                 case NightQuest.Find.Key:
+                    Journal.Key = true;
+                    Journal.Done("cle");
+                    Journal.Show("cierges");
                     Say("Une clé de fer, froide. Celle de la chapelle. Quelque chose s'est réveillé.", 6f);
                     Faith.Add(0.1f);
                     NightAudio.Sting(0.9f);
@@ -310,7 +375,10 @@ namespace Fief
                     Prowler.Hear(where);
                     break;
                 case NightQuest.Find.Relic:
-                    Say("Une relique. Ta foi se réchauffe.", 4f);
+                    Journal.Relics++;
+                    Journal.Show("reliques");
+                    Say(Journal.Relics == 3 ? "Une troisième relique. Tu te sens béni." : "Une relique. Ta foi se réchauffe.", 4f);
+                    if (Journal.Relics == 3) { Journal.Done("reliques"); Faith.Scale *= 0.5f; }
                     Faith.Add(0.3f);
                     try { Sfx.Choir(where); } catch (System.Exception) { }
                     break;
@@ -369,6 +437,9 @@ namespace Fief
         void TakeFlint()
         {
             hasFlint = true;
+            Journal.Fire = true;
+            Journal.Done("feu");
+            Journal.Show("cle");
             if (flint != null) flint.SetActive(false);
             Faith.Add(0.1f);
             NightAudio.Bang(player.transform.position + Vector3.forward * 8f, 0.9f);
@@ -389,13 +460,63 @@ namespace Fief
             if (lit == 1) { penitent.Wake(); Say("Quelque chose a bougé dans le couloir. Ne le quitte pas des yeux.", 6f); }
             if (lit >= candles.Count)
             {
-                dawn = 0.001f;
-                penitent.Crumble();
-                Prowler.AllOff();
-                NightKit.LightDawnFires();
-                NightAudio.Dawn();
-                Say("L'aube se lève. Tu as tenu.", 12f);
+                // (21/11) Ce n'est pas fini : derriere l'autel, le mur s'enfonce dans le sol. La crypte.
+                NightMap.Reveal("KR");
+                Journal.Done("cierges");
+                Journal.Show("crypte");
+                NightAudio.Sting(0.8f);
+                NightAudio.Bang(NightMap.Center('K') + new Vector3(-4f, 1f, 6f), 1f);
+                NightPlayer.Shake = 0.6f;
+                Say("Derrière l'autel, un pan de mur s'enfonce dans le sol...", 6f);
             }
+        }
+
+        /// <summary>(21/11) On descend dans la crypte : le mur remonte derriere toi, et l'Abbe se leve.</summary>
+        void StartBoss()
+        {
+            bossFight = true;
+            Journal.Done("crypte");
+            Journal.Show("abbe");
+            NightMap.Seal("KR");
+            penitent.Crumble();
+            Prowler.AllOff();
+            abbot = Abbot.Spawn(world, NightMap.AbbotHome, player);
+            NightAudio.Sting(1f);
+            NightAudio.Bang(NightMap.CryptEntry + Vector3.up, 1f);
+            Say("Le mur se referme derrière toi. Tu n'es pas seul.", 6f);
+        }
+
+        GameObject NearestCryptFire()
+        {
+            foreach (GameObject f in NightMap.CryptFires)
+                if (f != null && !f.activeSelf && Near(f.transform.position, 2.1f)) return f;
+            return null;
+        }
+
+        void OnBrazier(bool lit)
+        {
+            if (!lit || lightingFire == null) { lightingFire = null; return; }
+            lightingFire.SetActive(true);
+            lightingFire = null;
+            int count = 0;
+            foreach (GameObject f in NightMap.CryptFires) if (f != null && f.activeSelf) count++;
+            Faith.Add(0.15f);
+            if (abbot == null) return;
+            if (count >= NightMap.CryptFires.Count) { abbot.Burn(); Say("Il brûle.", 4f); }
+            else { abbot.Stagger(count); Say(count + " brasier" + (count > 1 ? "s" : "") + " sur " + NightMap.CryptFires.Count + ". Il recule... et revient plus vite.", 4f); }
+        }
+
+        /// <summary>L'Abbe a brule : le mur s'ouvre, l'aube se leve.</summary>
+        void EndNight()
+        {
+            bossFight = false;
+            dawn = 0.001f;
+            NightMap.Reveal("KR");
+            Journal.Done("abbe");
+            Prowler.AllOff();
+            NightKit.LightDawnFires();
+            NightAudio.Dawn();
+            Say("L'aube se lève. Tu as tenu. Le château est délivré.", 14f);
         }
 
         /// <summary>La sacristie : sa porte (si le kit en a une), un socle, et le silex qui luit dessus.</summary>
@@ -478,17 +599,9 @@ namespace Fief
             NightBlink.Draw(w, h);
             NightVeil.Draw(w, h, fear);
 
-            // Les quatre cierges, en haut : un point par cierge, dore quand il brule.
-            float size = Mathf.Round(h * 0.018f), gap = size * 1.8f;
-            float x0 = Mathf.Round(w * 0.5f - (candles.Count - 1) * gap * 0.5f - size * 0.5f);
-            for (int i = 0; i < candles.Count; i++)
-            {
-                GUI.color = candles[i].Burning ? new Color(1f, 0.75f, 0.3f) : new Color(1f, 1f, 1f, 0.22f);
-                GUI.DrawTexture(new Rect(x0 + i * gap, Mathf.Round(h * 0.035f), size, size), Texture2D.whiteTexture);
-            }
-            GUI.color = Color.white;
-
-            if (dawn <= 0f) Faith.Draw(w, h);
+            // (21/11) Plus de petits cubes en haut de l'ecran : les quetes et l'inventaire sont dans le carnet (Tab).
+            bool inGame = !NightUI.MenuOpen && !NightIntro.Playing;
+            if (dawn <= 0f && inGame) Faith.Draw(w, h);
             NightGames.Draw(w, h);
             NightQuest.Draw(w, h);
             if (NightQuest.Flash > 0f)
@@ -497,13 +610,13 @@ namespace Fief
                 GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
                 GUI.color = Color.white;
             }
-            if (NightQuest.HasKey && dawn <= 0f) NightFont.Label(new Rect(w * 0.70f, h * 0.90f, w * 0.27f, h * 0.06f), "Clé de la chapelle", text);
-            if (dawn <= 0f && !NightGames.Busy)
+            if (dawn <= 0f && !NightGames.Busy && inGame)
             {
                 string hint = null;
                 if (sacristy != null && sacristy.Locked && Near(sacristy.Center, 2.3f)) hint = "E  —  crocheter la serrure";
                 else if (!hasFlint && Near(FlintAt, 2f) && (sacristy == null || sacristy.Open)) hint = "E  —  prendre les braises";
                 else if (chapel != null && chapel.Locked && Near(chapel.Center, 2.3f)) hint = NightQuest.HasKey ? "E  —  ouvrir la chapelle" : "E  —  la porte de la chapelle";
+                else if (bossFight && NearestCryptFire() != null) hint = "E  —  rallumer le brasier";
                 else if (NightQuest.Hint(player.transform.position) != null) hint = NightQuest.Hint(player.transform.position);
                 else if (NearestUnlit() != null) hint = "E  —  ranimer les braises";
                 else if (Near(AltarAt, 2.4f) && Time.time > prayedAt + 60f) hint = "E (tenir)  —  prier";
@@ -512,9 +625,10 @@ namespace Fief
             else if (NightGames.Current != NightGames.Kind.None)
                 NightFont.Label(new Rect(0f, h * 0.72f, w, h * 0.06f), NightGames.Current == NightGames.Kind.Lock
                     ? "Souris : le crochet     Espace : forcer     E : lâcher" : "Espace : souffler dans l'or     E : lâcher", text);
-            if (Cursor.lockState != CursorLockMode.Locked) NightFont.Label(new Rect(0f, h * 0.44f, w, h * 0.06f), "Clic : reprendre     —     Échap : quitter", text);
-            if (Time.time < messageUntil && !NightCinema.Playing) NightFont.Label(new Rect(w * 0.1f, h * 0.8f, w * 0.8f, h * 0.1f), message, text);
+            if (Time.time < messageUntil && !NightCinema.Playing && inGame && !NightUI.Blocking) NightFont.Label(new Rect(w * 0.1f, h * 0.8f, w * 0.8f, h * 0.1f), message, text);
             NightCinema.Draw(w, h, text);
+            NightIntro.Draw(w, h);
+            NightUI.Draw(w, h, text, player != null ? player.transform.position : Vector3.zero, player != null ? player.Yaw : 0f);
         }
     }
 
@@ -912,6 +1026,19 @@ namespace Fief
         public static float Shake;
         /// <summary>(21/11) La torche s'etouffe pendant ce nombre de secondes.</summary>
         public static float TorchOut;
+        /// <summary>(21/11) La hauteur des yeux (2,45 m a cheval), le balancement du galop, la lanterne trouvee au tresor.</summary>
+        public static float EyeHeight = 1.65f;
+        public static float RideBob;
+        public static bool Lantern;
+
+        /// <summary>Pose le chevalier ailleurs, sans toucher a son regard.</summary>
+        public void Place(Vector3 at)
+        {
+            body.enabled = false;
+            transform.position = at;
+            body.enabled = true;
+            fall = 0f;
+        }
         public float Yaw { get { return yaw; } }
         public float Pitch { get { return pitch; } }
         /// <summary>La mise en scene tourne la tete du chevalier (cinematique, prise).</summary>
@@ -973,13 +1100,7 @@ namespace Fief
         {
             // Echap rend la souris ; un clic la reprend.
             // (12/11) Un second Echap, souris deja rendue, quitte le jeu (dans le .exe ; sans effet dans l'editeur).
-            if (FiefInput.CancelPressed)
-            {
-                if (Cursor.lockState != CursorLockMode.Locked) Application.Quit();
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-            if (FiefInput.ShootPressed) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+            // (21/11) Echap, la souris et les menus : c'est NightUI qui s'en occupe.
 
             if (Cursor.lockState == CursorLockMode.Locked && !NightGames.Busy)
             {
@@ -991,7 +1112,7 @@ namespace Fief
             View.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             // (14/11) La tete qui balance en marchant, et l'image qui tremble quand on est pris.
             Shake = Mathf.MoveTowards(Shake, 0f, Time.deltaTime * 2.5f);
-            View.transform.localPosition = new Vector3(Mathf.Cos(bob * 0.5f) * 0.018f, 1.65f + Mathf.Sin(bob) * 0.032f, 0f)
+            View.transform.localPosition = new Vector3(Mathf.Cos(bob * 0.5f) * 0.018f, EyeHeight + RideBob + Mathf.Sin(bob) * 0.032f, 0f)
                 + Random.insideUnitSphere * (Shake * 0.045f);
 
             Vector2 input = NightGames.Busy ? Vector2.zero : FiefInput.Move;      // les mains prises : on ne bouge plus
@@ -1014,7 +1135,8 @@ namespace Fief
             float dread = Penitent.Dread;
             float cough = dread > 0.3f && Mathf.PerlinNoise(t * 11f, 3f) > 0.70f ? 0.6f * dread : 0f;
             torch.intensity = flame * (1f - 0.45f * dread) * (1f - cough);
-            torch.range = 8f - 2.5f * dread;
+            torch.range = 8f - 2.5f * dread + (Lantern ? 3.5f : 0f);
+            if (Lantern) torch.intensity *= 1.25f;
             if (TorchOut > 0f) { TorchOut -= Time.deltaTime; torch.intensity *= 0.04f; }
         }
     }

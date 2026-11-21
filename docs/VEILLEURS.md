@@ -89,6 +89,30 @@ monstre dans l'animation », « ses mouvements sont prévisibles », « le silex
   (grande salle), un livre tombe et une silhouette apparaît (bibliothèque), la torche s'étouffe (dortoir), une lame
   tombe (armurerie), l'orage et ses éclairs (cour).
 
+**Fait le 21/11 au soir** (Martin : « une vidéo où on arrive à cheval, tout délabré ; des passages secrets, plusieurs
+quêtes, un boss, beaucoup plus grand ; je n'aime pas la police ni les cubes en haut ; un menu, une carte, un inventaire ») :
+
+- **Le menu** se dessine sur le paysage, devant le château (`NightUI`) : Entrer dans la nuit, Commandes, Quitter.
+  **Échap** : la pause. **Tab** (ou M, I) : **le carnet**, sur parchemin — la carte à gauche (elle se révèle salle
+  par salle, portes fermées en rouge, une flèche pour toi), les quêtes et ce que tu portes à droite (une lettrine
+  par objet). L'objectif s'écrit à la plume en haut à gauche quand il change. Plus de petits cubes en haut.
+- **Les polices** : Old English (gothique) pour les titres, Centaur (livre ancien) pour le texte. **Attention** : ce
+  sont des polices de Windows/Office, prises sur le PC ; un autre PC sans Office retombe sur Book Antiqua ou Georgia.
+  Pour un jeu vendu, il faudra une police libre (OFL) rangée dans le projet.
+- **L'arrivée à cheval** (`NightIntro`, 25 s, Entrée pour passer) : le chemin de dalles brisées, les ruines, les
+  arbres morts, le cimetière aux tombes ouvertes, la façade de 12 m et ses tours, deux braseros allumés devant la
+  porte ; au pas, puis au galop ; un éclair, une silhouette traverse le chemin, au suivant plus rien ; le cheval
+  renâcle, la porte s'ouvre seule, on met pied à terre, le noir. Puis l'ouverture d'avant.
+- **Le château agrandi** (`NightMap`, 18 × 17 cases) : + la crypte, le trésor, les cuisines (cheminée allumée), les
+  cachots. **Deux passages secrets** : derrière l'autel (s'ouvre quand les quatre cierges brûlent) et derrière un
+  rayon de la bibliothèque (« un livre dépasse » : le trésor et la lanterne des Veilleurs).
+- **Les quêtes** (`Journal`) : trouver du feu → la clé de la chapelle → les quatre cierges → descendre derrière
+  l'autel → le boss. En option : trois reliques (bénédiction : la foi s'éteint deux fois moins vite), le passage
+  de la bibliothèque (la lanterne : la torche porte plus loin).
+- **Le boss, l'Abbé** (`NightBoss.cs`) : la crypte se referme derrière toi. 4,5 m, il ne s'arrête jamais mais
+  marche moins vite que toi. Rallumer les quatre brasiers des coins (le geste du feu) : chacun le fait reculer et
+  le tient hors de sa lumière, mais il revient plus vite. Au quatrième, il brûle, et l'aube se lève.
+
 **Pas encore fait** : les cachettes en hauteur et les fenêtres pour observer (il n'y a pas d'étage), des quêtes
 dans les nouvelles salles (elles sont vides de but), des monstres animés (ils glissent, ils ne marchent pas).
 **Limite dite à Martin** : des modèles générés par le code n'atteindront pas le réalisme d'Elden Ring ou de GTA.

@@ -753,6 +753,37 @@ def build_cheminee():
     return (0, -0.05, 0.08)
 
 
+def build_arbre():
+    """(21/11) Un arbre mort, tordu, pour l'arrivee a cheval. Des branches qui se divisent trois fois."""
+    rng = random.Random(77)
+
+    def branch(p, d, length, r, depth):
+        end = p + d * length
+        bend = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), 0.0)) * length * 0.12
+        wood(tube, [p, p.lerp(end, 0.5) + bend, end], [r, r * 0.8, r * 0.55], 5, 0.32)
+        if depth == 0:
+            return
+        for _ in range(rng.randint(2, 3)):
+            nd = (d + Vector((rng.uniform(-1.0, 1.0), rng.uniform(-1.0, 1.0), rng.uniform(-0.15, 0.35)))).normalized()
+            branch(end, nd, length * rng.uniform(0.5, 0.72), r * 0.55, depth - 1)
+
+    branch(Vector((0, 0, -0.4)), Vector((0.06, 0.03, 1)).normalized(), 2.8, 0.24, 3)
+
+
+def build_cheval():
+    """(21/11) La tete et l'encolure du cheval, vues par le cavalier (l'oeil du cavalier est a 2,45 m, au-dessus
+    de l'origine). Le reste du cheval est sous la camera : on ne le voit jamais. Il regarde vers -Y."""
+    tube([(0, -0.30, 1.72), (0, -0.68, 2.0), (0, -1.0, 2.2)], [0.22, 0.17, 0.13], 8, 1.0)
+    tube([(0, -0.98, 2.24), (0, -1.24, 2.02), (0, -1.44, 1.80)], [0.135, 0.11, 0.085], 8, 1.0)
+    for s in (-1, 1):
+        lathe([(0, 2.28), (0.035, 2.28), (0.0, 2.43)], 4, s * 0.07, -0.98)
+        tube([(s * 0.09, -1.36, 1.86), (s * 0.16, -0.62, 1.96), (s * 0.19, -0.16, 1.9)], [0.008, 0.008, 0.008], 3, 1.0)
+    for i in range(10):
+        t = i / 9.0
+        p = Vector((0, -0.32, 1.92)).lerp(Vector((0, -0.98, 2.35)), t)
+        cube(-0.012, 0.012, p.y - 0.05, p.y + 0.05, p.z, p.z + 0.13 - 0.04 * t, 1.0)
+
+
 def build_autel():
     """Un autel de pierre de 3 m : socle, corps en retrait, corniche, table."""
     def ring(ax, ay, z):
@@ -812,6 +843,8 @@ PIECES = [
     ('tombeau', build_tombeau, 'Pierre', 40, True, ((2.4, -3.0, 1.8), (0, 0, 0.45))),
     ('tombeau_couvercle', build_tombeau_couvercle, 'Pierre', 40, False, ((2.0, -2.4, 1.6), (0, 0, 0.1))),
     ('cheminee', build_cheminee, 'Pierre', 40, True, ((3.0, -4.6, 2.4), (0, 0, 1.6))),
+    ('arbre_mort', build_arbre, 'Fer', 50, False, ((4.5, -6.0, 3.0), (0, 0, 2.2))),
+    ('cheval', build_cheval, 'Statue', 50, False, ((1.4, -2.6, 2.6), (0, -0.9, 2.0))),
 ]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)

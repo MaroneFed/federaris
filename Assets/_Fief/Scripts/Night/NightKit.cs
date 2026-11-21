@@ -24,6 +24,8 @@ namespace Fief
         static readonly List<GameObject> DawnFires = new List<GameObject>();
         /// <summary>(14/11) Le vantail de la porte de la sacristie, pose par Dress ; null si le kit n'a pas de porte.</summary>
         public static Transform DoorLeaf;
+        /// <summary>(21/11) Le "Feu" du dernier FireAt (les brasiers de la crypte s'en souviennent).</summary>
+        public static GameObject LastFire;
         /// <summary>(14/11) Les feux allumes du vestibule : l'ouverture les souffle, et ils ne se rallument pas.</summary>
         static readonly List<GameObject> EntryFires = new List<GameObject>();
 
@@ -466,6 +468,7 @@ namespace Fief
             go.transform.position = new Vector3(x, 0f, z);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f) * src.transform.rotation;
             Transform fire = go.transform.Find("Feu");
+            LastFire = fire != null ? fire.gameObject : null;
             if (fire == null) return;
             // Ces feux-la projettent des ombres (les autres lumieres du kit n'en font pas : ca coute cher).
             Light glow = fire.GetComponentInChildren<Light>(true);

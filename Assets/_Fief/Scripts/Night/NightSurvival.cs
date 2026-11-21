@@ -21,7 +21,10 @@ namespace Fief
         public static float Value = 0.85f;
         static float flash;
 
-        public static void Reset() { Value = 0.85f; flash = 0f; }
+        /// <summary>(21/11) La lanterne et la benediction des reliques : la foi s'eteint moins vite.</summary>
+        public static float Scale = 1f;
+
+        public static void Reset() { Value = 0.85f; flash = 0f; Scale = 1f; }
 
         public static void Add(float amount)
         {
@@ -32,7 +35,7 @@ namespace Fief
         /// <summary>Elle baisse toute seule : huit minutes pour la perdre au calme (le chateau est grand), bien moins quand on est traque.</summary>
         public static void Tick(float dt, bool hunted)
         {
-            float drain = (1f / 480f) * (1f + 2.5f * Penitent.Dread + (hunted ? 3f : 0f));
+            float drain = Scale * (1f / 480f) * (1f + 2.5f * Penitent.Dread + (hunted ? 3f : 0f));
             Value = Mathf.Clamp01(Value - drain * dt);
             flash = Mathf.MoveTowards(flash, 0f, dt * 1.6f);
         }
@@ -60,7 +63,7 @@ namespace Fief
         public enum Kind { None, Flint, Lock }
         public static Kind Current = Kind.None;
         /// <summary>Les mains prises (un geste) ou la tete tenue (une cinematique) : le chevalier ne se controle plus.</summary>
-        public static bool Busy { get { return Current != Kind.None || NightCinema.Playing; } }
+        public static bool Busy { get { return Current != Kind.None || NightCinema.Playing || NightIntro.Playing || NightUI.Blocking; } }
 
         static System.Action<bool> done;
         static Vector3 where;

@@ -94,6 +94,7 @@ namespace Fief
 
         public static void Tick(float dt, NightPlayer player, float fear, bool night)
         {
+            if (NightIntro.Playing || NightUI.MenuOpen) return;
             NightBlink.Tick(dt, night ? fear : 0f);
             if (!night || player == null || NightCinema.Playing) return;
             Camera cam = player.View;
