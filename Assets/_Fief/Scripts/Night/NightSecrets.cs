@@ -108,9 +108,9 @@ namespace Fief
                     link.transform.localRotation = Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg);
                     if (iron != null) link.GetComponent<Renderer>().sharedMaterial = iron;
                 }
-                Color glyph = name == Order[0] ? new Color(1f, 0.45f, 0.1f) : name == Order[1] ? new Color(0.6f, 0.75f, 1f) : new Color(0.85f, 0.82f, 0.72f);
-                GameObject sign = Proto.Sphere(root.transform, new Vector3(0f, 0.32f, 0.03f), new Vector3(0.1f, 0.1f, 0.03f), glyph, "Symbole");
-                sign.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetGlow(glyph, 0.6f);
+                // Le symbole : grave dans la pierre, sombre, a peine visible (plus de lueur qui crie "ici !").
+                GameObject sign = Proto.Sphere(root.transform, new Vector3(0f, 0.32f, 0.02f), new Vector3(0.11f, 0.11f, 0.02f), Color.black, "Symbole");
+                sign.GetComponent<Renderer>().sharedMaterial = MaterialFactory.GetShiny(new Color(0.08f, 0.07f, 0.06f), 0.1f, 0f);
             }
             else
             {
@@ -126,20 +126,29 @@ namespace Fief
 
         static bool Near(Vector3 me, Vector3 p, float r) { return Mathf.Abs(me.y - p.y) < 2f && new Vector2(me.x - p.x, me.z - p.z).magnitude < r; }
 
-        static Lever NearLever(Vector3 me)
+        /// <summary>(22/11) "Plus secrets" : il faut etre tout pres ET regarder la chose pour qu'elle se revele.</summary>
+        static bool Facing(Transform eye, Vector3 p)
         {
-            foreach (Lever l in rings) if (Near(me, l.at, 1.7f)) return l;
-            if (zLever != null && !NightMap.Revealed("PZ") && Near(me, zLever.at, 1.7f)) return zLever;
-            if (xLever != null && !NightMap.Revealed("DX") && Near(me, xLever.at, 1.7f)) return xLever;
+            Vector3 to = p - eye.position;
+            return to.magnitude < 2.2f && Vector3.Dot(eye.forward, to.normalized) > 0.82f;
+        }
+
+        static Lever NearLever(Transform eye)
+        {
+            Vector3 me = eye.position - Vector3.up * 1.65f;
+            foreach (Lever l in rings) if (Near(me, l.at, 1.4f) && Facing(eye, l.at + Vector3.up * 1.4f)) return l;
+            if (zLever != null && !NightMap.Revealed("PZ") && Near(me, zLever.at, 1.6f) && Facing(eye, zLever.at + Vector3.up * 1.4f)) return zLever;
+            if (xLever != null && !NightMap.Revealed("DX") && Near(me, xLever.at, 1.6f) && Facing(eye, xLever.at + Vector3.up * 1.4f)) return xLever;
             return null;
         }
 
-        public static string Hint(Vector3 me)
+        public static string Hint(Transform eye)
         {
-            Lever l = NearLever(me);
+            Vector3 me = eye.position - Vector3.up * 1.65f;
+            Lever l = NearLever(eye);
             if (l != null)
             {
-                if (rings.Contains(l)) return NightMap.Revealed("QZ") ? null : "E  —  tirer l'anneau de " + l.name;
+                if (rings.Contains(l)) return NightMap.Revealed("QZ") ? null : "E  —  un vieil anneau de fer, scellé au mur";
                 return "E  —  abaisser le levier";
             }
             if (trapOpen && NightMap.TrapTomb != null && Near(me, NightMap.TrapTomb.position, 2f)) return "E  —  descendre l'escalier sous la tombe";
@@ -147,9 +156,10 @@ namespace Fief
         }
 
         /// <summary>E vient d'etre enfonce. Renvoie true si un mecanisme a repondu.</summary>
-        public static bool Interact(Vector3 me)
+        public static bool Interact(Transform eye)
         {
-            Lever l = NearLever(me);
+            Vector3 me = eye.position - Vector3.up * 1.65f;
+            Lever l = NearLever(eye);
             if (l != null)
             {
                 l.pull = 0.001f; l.down = true;
@@ -161,13 +171,14 @@ namespace Fief
                 {
                     progress++;
                     NightAudio.Lock(l.at + Vector3.up * 1.4f);
+                    if (progress == 1) Message = "Sous l'anneau, gravé dans la pierre : " + l.name + ". Un cliquetis, dans le mur.";
                     if (progress >= Order.Length)
                     {
                         NightMap.Reveal("QZ");
                         NightAudio.Bang(l.at + Vector3.up, 0.9f);
                         Message = "Un déclic sourd, derrière le mur du sud. Les pierres s'enfoncent...";
                     }
-                    else Message = "Un cliquetis, dans le mur.";
+                    else if (progress > 1) Message = "Sous l'anneau, gravé : " + l.name + ". Encore un cliquetis.";
                 }
                 else
                 {
@@ -178,7 +189,7 @@ namespace Fief
                     NightAudio.Bang(l.at + Vector3.up, 1f);
                     Beast.Hear(l.at);
                     Prowler.Hear(l.at);
-                    Message = "Les anneaux retombent avec fracas. Ça s'est entendu.";
+                    Message = "Sous l'anneau, gravé : " + l.name + ". Les anneaux retombent avec fracas. Ça s'est entendu.";
                 }
                 return true;
             }

@@ -59,6 +59,7 @@ namespace Fief
         {
             DawnFires.Clear();
             Sources.Clear();
+            refined.Clear();
             DoorLeaf = null;
             EntryFires.Clear();
             if (Source("mur_droit") == null || Source("dalle_sol") == null) return false;
@@ -453,7 +454,86 @@ namespace Fief
             go.name = piece;
             go.transform.position = new Vector3(x, y, z);
             go.transform.rotation = Quaternion.Euler(upsideDown ? 180f : 0f, yaw, 0f) * src.transform.rotation;
+            Refine(go);
             return go;
+        }
+
+        // ------------------------------------------------------------------ (22/11) "les textures doivent etre plus belles"
+        // Les textures du kit (4096 px) sont etalees sur des pieces de 4 m : de pres, la pierre devient floue. On ajoute
+        // par-dessus un GRAIN DE DETAIL (une petite texture de bosses et de taches, repetee 8 fois par piece) : de pres,
+        // la pierre a des pores, des eclats, une matiere. Concept Unity : le shader Standard a deux emplacements "Detail"
+        // (_DetailAlbedoMap et _DetailNormalMap) faits exactement pour ca.
+
+        static readonly Dictionary<Material, Material> refined = new Dictionary<Material, Material>();
+        static Texture2D detailAlbedo, detailNormal;
+
+        static void BuildDetail()
+        {
+            const int N = 256;
+            float[] hgt = new float[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float u = x / (float)N, v = y / (float)N;
+                    // Du bruit qui se repete sans couture (on additionne des sinus de periode entiere et du bruit de Perlin enroule).
+                    float a = Mathf.PerlinNoise(Mathf.Sin(u * 6.2832f) * 3f + 10f, Mathf.Cos(v * 6.2832f) * 3f + 4f);
+                    float b = Mathf.PerlinNoise(u * 24f % 24f + 0.5f, v * 24f % 24f + 0.5f);
+                    float c = Mathf.PerlinNoise(u * 64f, v * 64f);
+                    hgt[y * N + x] = a * 0.45f + b * 0.35f + c * 0.2f;
+                }
+            detailAlbedo = new Texture2D(N, N, TextureFormat.RGBA32, true);
+            detailNormal = new Texture2D(N, N, TextureFormat.RGBA32, true, true);
+            Color[] alb = new Color[N * N], nrm = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float h0 = hgt[y * N + x];
+                    float hx = hgt[y * N + (x + 1) % N] - hgt[y * N + (x + N - 1) % N];
+                    float hy = hgt[((y + 1) % N) * N + x] - hgt[((y + N - 1) % N) * N + x];
+                    Vector3 n = new Vector3(-hx * 3f, -hy * 3f, 1f).normalized;
+                    // Le format "DXT5nm" qu'attend Unity : x dans l'alpha, y dans le vert.
+                    nrm[y * N + x] = new Color(1f, n.y * 0.5f + 0.5f, 1f, n.x * 0.5f + 0.5f);
+                    float g = 0.42f + 0.16f * h0;
+                    alb[y * N + x] = new Color(g, g, g * 0.98f, 1f);
+                }
+            detailAlbedo.SetPixels(alb); detailAlbedo.Apply(true);
+            detailNormal.SetPixels(nrm); detailNormal.Apply(true);
+            detailAlbedo.wrapMode = TextureWrapMode.Repeat; detailNormal.wrapMode = TextureWrapMode.Repeat;
+            detailAlbedo.anisoLevel = 8; detailNormal.anisoLevel = 8;
+            detailAlbedo.hideFlags = HideFlags.HideAndDontSave; detailNormal.hideFlags = HideFlags.HideAndDontSave;
+        }
+
+        /// <summary>Les matieres de pierre de cette piece recoivent le grain de detail (une copie partagee par matiere).</summary>
+        static void Refine(GameObject go)
+        {
+            foreach (Renderer r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                Material[] mats = r.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    Material m = mats[i];
+                    if (m == null || m.shader == null || m.shader.name != "Standard") continue;
+                    string n = m.name;
+                    if (!n.StartsWith("Pierre") && !n.StartsWith("Statue")) continue;
+                    Material better;
+                    if (!refined.TryGetValue(m, out better))
+                    {
+                        if (detailAlbedo == null) BuildDetail();
+                        better = new Material(m);
+                        better.name = m.name + " (grain)";
+                        better.SetTexture("_DetailAlbedoMap", detailAlbedo);
+                        better.SetTexture("_DetailNormalMap", detailNormal);
+                        better.SetFloat("_DetailNormalMapScale", 0.7f);
+                        better.SetTextureScale("_DetailAlbedoMap", new Vector2(8f, 8f));
+                        better.EnableKeyword("_DETAIL_MULX2");
+                        refined[m] = better;
+                    }
+                    mats[i] = better;
+                    changed = true;
+                }
+                if (changed) r.sharedMaterials = mats;
+            }
         }
 
         static void Floor(float x, float z) { Put("dalle_sol", x, z, 0f); }

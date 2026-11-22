@@ -41,7 +41,7 @@ namespace Fief
         {
             quests.Clear();
             Fire = Key = Lantern = Eternal = Meat = false;
-            Relics = 0; Oil = 0; HolyWater = 0; Candles = 0; Rescued = 0;      // (22/11) plus dur : rien au depart
+            Relics = 0; Oil = 1; HolyWater = 0; Candles = 2; Rescued = 0;
             // (21/11) L'histoire : le Veilleur mourant t'a parle de trois survivants. Le novice a la cle de la chapelle.
             // (22/11) Martin : "pas toutes les quetes en meme temps". Les vivants, un par un : la suivante n'apparait
             // que quand la precedente est faite (le Veilleur n'a parle que de la cuisiniere ; elle parle du palefrenier...).
@@ -56,7 +56,7 @@ namespace Fief
             Add("bete", "La Bête de l'ossuaire", "Sous les caves. Elle charge tout droit : esquive, qu'elle se brise sur un mur, puis frappe.", true);
             Add("reliques", "Trois reliques", "Chacune fait durer ta torche.", true);
             Add("sacristie", "La sacristie verrouillée", "À gauche du vestibule. Crochète-la.", true);
-            Add("secrets", "Les passages secrets", "Mathilde a parlé d'anneaux, au mur sud des cuisines.", true);
+            Add("secrets", "Les passages secrets", "Le château en cache. À toi de les trouver.", true);
             Show("cuisiniere");
         }
 

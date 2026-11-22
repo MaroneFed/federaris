@@ -57,6 +57,8 @@ namespace Fief
         static bool armorsPending;
 
         public static bool HasKey;
+        /// <summary>(22/11) Les yeux du chevalier : un passage secret ne se devine qu'en le regardant de pres.</summary>
+        public static Transform Viewer;
         /// <summary>L'eclair (1 : tout blanc). NightBootstrap le dessine.</summary>
         public static float Flash;
 
@@ -128,6 +130,12 @@ namespace Fief
             {
                 if (s.done || s.body == null) continue;
                 float d = Flat(s.body.position - p);
+                if (s.kind == 3)
+                {
+                    if (d > 1.3f || Viewer == null) continue;
+                    Vector3 to = s.body.position + Vector3.up * 1.2f - Viewer.position;
+                    if (Vector3.Dot(Viewer.forward, to.normalized) < 0.8f) continue;
+                }
                 if (d < (s.kind == 1 ? 1.9f : 1.6f) && d < bestD) { bestD = d; best = s; }
             }
             return best;

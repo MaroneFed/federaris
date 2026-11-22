@@ -74,6 +74,14 @@ namespace Fief
             yield return Shot("jeu");
             NightPlayer p = Object.FindAnyObjectByType<NightPlayer>();
             if (p != null) { p.Face(180f, 0f); yield return new WaitForSecondsRealtime(0.5f); yield return Shot("jeu_porte_entree"); p.Face(0f, 0f); }
+            if (p != null)
+            {
+                p.Face(250f, 8f);
+                NightBonfire.Shown = 3f;
+                yield return new WaitForSecondsRealtime(1f);
+                yield return Shot("feu_de_veille");
+                p.Face(0f, 0f);
+            }
             NightUI.BookOpen = true;
             yield return new WaitForSecondsRealtime(0.5f);
             yield return Shot("carnet");

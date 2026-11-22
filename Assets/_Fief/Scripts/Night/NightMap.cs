@@ -1078,6 +1078,9 @@ namespace Fief
             return found;
         }
 
+        /// <summary>(22/11) Vrai pendant que le chien cherche son chemin : les feux ne l'arretent pas.</summary>
+        public static bool Friendly;
+
         /// <summary>Une salle fermee a cle : les monstres n'y entrent pas.</summary>
         public static void Lock(char room) { locked.Add(room); }
         public static void Unlock(char room) { locked.Remove(room); }
@@ -1092,8 +1095,10 @@ namespace Fief
                 string key = a < b ? "" + a + b : "" + b + a;
                 if (IsSecret(key) && !revealed.Contains(key)) return false;
             }
+            // (22/11) Une salle ou brule un feu de veille : les monstres n'y entrent pas (le chien, si).
+            if (!Friendly && a != b && NightBonfire.Safe(b)) return false;
             // (21/11) Une case ou brule une torche, des bougies : les monstres n'y passent pas.
-            return !NightWard.Blocks(CellCenter(c + DX[d], r + DZ[d]));
+            return Friendly || !NightWard.Blocks(CellCenter(c + DX[d], r + DZ[d]));
         }
 
         /// <summary>

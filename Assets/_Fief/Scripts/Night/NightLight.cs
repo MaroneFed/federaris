@@ -21,7 +21,12 @@ namespace Fief
     {
         static Transform parent;
 
-        public static void Clear() { NightWard.All.Clear(); parent = null; }
+        public static void Clear() { NightWard.All.Clear(); parent = null; pairs.Clear(); }
+
+        /// <summary>(22/11) Les torches des couloirs vont par deux, face a face : la premiere de chaque case attend sa soeur.</summary>
+        static readonly Dictionary<Vector2Int, NightWard> pairs = new Dictionary<Vector2Int, NightWard>();
+        /// <summary>Une phrase a dire au joueur ("" : rien).</summary>
+        public static string Message = "";
 
         /// <summary>Une torche de fer sur un mur : "d" est la direction du mur vu du milieu de la case (0 nord, 1 est, 2 sud, 3 ouest).</summary>
         public static NightWard WallTorch(Transform under, float x, float z, int d, float floor)
@@ -33,6 +38,10 @@ namespace Fief
             Vector3 face = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             NightWard w = NightWard.Make(under, NightWard.Kind.Torch, new Vector3(x, floor, z) + face * 0.9f, 150f);
             w.UseFire(fire);
+            Vector2Int cell = new Vector2Int(Mathf.FloorToInt(w.Center.x / NightMap.Cell), Mathf.FloorToInt(w.Center.z / NightMap.Cell));
+            NightWard sister;
+            if (pairs.TryGetValue(cell, out sister)) { sister.Partner = w; w.Partner = sister; }
+            else pairs[cell] = w;
             return w;
         }
 
@@ -93,6 +102,11 @@ namespace Fief
         public static readonly List<NightWard> All = new List<NightWard>();
 
         public Kind kind;
+        /// <summary>(22/11) La torche d'en face, dans un couloir. Martin : "il faut que t'allumes deux pour que les gars
+        /// ne puissent pas passer". Une seule torche eclaire ; les DEUX ensemble barrent tout le couloir.</summary>
+        public NightWard Partner;
+        int serial;
+        static int counter;
         /// <summary>Le point au sol que les monstres ne passent pas.</summary>
         public Vector3 Center;
         public float Life;
@@ -119,6 +133,7 @@ namespace Fief
             go.transform.SetParent(under != null ? under : NightLight.Root, false);
             go.transform.position = center;
             NightWard w = go.AddComponent<NightWard>();
+            w.serial = ++counter;
             w.kind = kind; w.Center = center; w.Life = life; w.Burn = life;
             w.seed = center.x * 1.3f + center.z * 2.1f;
             All.Add(w);
@@ -186,6 +201,7 @@ namespace Fief
             if (Burn <= 0f) Burn = Life * 0.6f;      // une torche rallumee : il ne reste qu'un peu de poix
             if (fire != null) fire.SetActive(true);
             foreach (Transform f in flames) f.gameObject.SetActive(true);
+            if (kind == Kind.Torch) NightLight.Message = Partner == null ? "" : Partner.Burning ? "Les deux torches se répondent. Plus rien ne passera ici." : "Une torche. Allume celle d'en face : à deux, elles barrent le couloir.";
             if (glow != null) glow.enabled = true;
             try { NightAudio.Fire(transform.position); } catch (System.Exception) { }
             return true;
@@ -259,13 +275,30 @@ namespace Fief
 
         static float Flat(Vector3 a, Vector3 b) { a.y = 0f; b.y = 0f; return (a - b).magnitude; }
 
+        /// <summary>
+        /// La zone que ce feu interdit aux monstres. Une torche seule : aucune. Une paire de torches allumees : tout le
+        /// couloir entre elles (on ne la compte qu'une fois, sur la premiere des deux).
+        /// </summary>
+        bool Zone(out Vector3 center, out float radius)
+        {
+            center = Center; radius = Radius;
+            if (!Burning) return false;
+            if (kind != Kind.Torch) return true;
+            if (Partner == null || !Partner.Burning || Partner.serial < serial) return false;
+            center = (Center + Partner.Center) * 0.5f;
+            radius = 2.6f;
+            return true;
+        }
+
         /// <summary>Un feu brule-t-il assez pres de ce point pour qu'un monstre n'y passe pas ?</summary>
         public static bool Blocks(Vector3 p)
         {
             for (int i = 0; i < All.Count; i++)
             {
                 NightWard w = All[i];
-                if (w != null && w.Burning && Mathf.Abs(w.Center.y - p.y) < 3f && Flat(w.Center, p) < w.Radius) return true;
+                Vector3 c;
+                float r;
+                if (w != null && w.Zone(out c, out r) && Mathf.Abs(c.y - p.y) < 3f && Flat(c, p) < r) return true;
             }
             return false;
         }
@@ -293,15 +326,26 @@ namespace Fief
         /// </summary>
         public static Vector3 Hold(Vector3 from, Vector3 to)
         {
+            // (22/11) Les feux de veille : leur salle entiere est interdite ; s'il y est deja, il en sort.
+            char rFrom = NightMap.RoomAt(from), rTo = NightMap.RoomAt(to);
+            if (NightBonfire.Safe(rFrom))
+            {
+                Vector3 out0 = from - NightMap.Center(rFrom);
+                out0.y = 0f;
+                if (out0.sqrMagnitude < 0.01f) out0 = Vector3.forward;
+                return from + out0.normalized * Mathf.Max(0.03f, (to - from).magnitude);
+            }
+            if (NightBonfire.Safe(rTo)) return from;
             for (int i = 0; i < All.Count; i++)
             {
                 NightWard w = All[i];
-                if (w == null || !w.Burning || Mathf.Abs(w.Center.y - from.y) > 3f) continue;
-                float r = w.Radius;
-                float dFrom = Flat(w.Center, from), dTo = Flat(w.Center, to);
+                Vector3 wc;
+                float r;
+                if (w == null || !w.Zone(out wc, out r) || Mathf.Abs(wc.y - from.y) > 3f) continue;
+                float dFrom = Flat(wc, from), dTo = Flat(wc, to);
                 if (dFrom < r)
                 {
-                    Vector3 away = from - w.Center;
+                    Vector3 away = from - wc;
                     away.y = 0f;
                     if (away.sqrMagnitude < 0.01f) away = Vector3.forward;
                     return from + away.normalized * Mathf.Max(0.02f, (to - from).magnitude);

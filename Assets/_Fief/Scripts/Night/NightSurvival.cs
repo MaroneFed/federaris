@@ -39,7 +39,7 @@ namespace Fief
         /// <summary>Elle baisse toute seule : cinq minutes pour mourir au calme, plus vite quand on court ou qu'on est traque.</summary>
         public static void Tick(float dt, bool hunted)
         {
-            float drain = Scale * (1f / 210f) * (1f + 0.8f * Mathf.Max(Penitent.Dread, Beast.Dread) + (hunted ? 0.8f : 0f) + (FiefInput.SprintHeld ? 0.6f : 0f));      // (22/11) plus dur
+            float drain = Scale * (1f / 300f) * (1f + 0.8f * Mathf.Max(Penitent.Dread, Beast.Dread) + (hunted ? 0.8f : 0f) + (FiefInput.SprintHeld ? 0.6f : 0f));      // (22/11) plus dur
             Value = Mathf.Clamp01(Value - drain * dt);
             flash = Mathf.MoveTowards(flash, 0f, dt * 1.6f);
         }
@@ -516,7 +516,7 @@ namespace Fief
     /// </summary>
     public class Prowler : MonoBehaviour
     {
-        const float WalkSpeed = 1.7f, ChaseSpeed = 5.1f, ViewAngle = 70f, ViewRange = 13f;      // (22/11) plus dur : il court presque aussi vite que toi
+        const float WalkSpeed = 1.6f, ChaseSpeed = 4.6f, ViewAngle = 66f, ViewRange = 11.5f;      // (22/11) reequilibre : plus vite que ta marche, moins que ta course
         const int Solid = ~(1 << 2);
         enum State { Round, Listen, Hunt, Lost }
 
@@ -667,7 +667,7 @@ namespace Fief
             {
                 Vector3 next = transform.position + step3.normalized * Mathf.Min(speed * Time.deltaTime, step3.magnitude);
                 // (21/11) Ta torche le tient a distance tant qu'elle brule fort ; les feux allumes, il ne les passe pas.
-                if (prey != null && Faith.Value > 0.4f && Flat(prey.transform.position - next).magnitude < 2.6f && Flat(prey.transform.position - transform.position).magnitude >= 2.6f) next = transform.position;
+                if (prey != null && Faith.Value > 0.3f && Flat(prey.transform.position - next).magnitude < 2.6f && Flat(prey.transform.position - transform.position).magnitude >= 2.6f) next = transform.position;
                 next = NightWard.Hold(transform.position, next);
                 next.y = NightMap.FloorY(next);
                 transform.position = next;

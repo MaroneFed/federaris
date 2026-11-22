@@ -130,7 +130,7 @@ namespace Fief
                 nextEvent = Random.Range(14f, 32f);
                 float a = Random.Range(0f, 6.2832f);
                 Vector3 far = listener + new Vector3(Mathf.Cos(a), 0.4f, Mathf.Sin(a)) * Random.Range(9f, 16f);
-                string[] roles = { "Chaine", "Pierre", "Gemit", "Souffle", "Pierre" };
+                string[] roles = { "Chaine", "Pierre", "Chaine", "Pierre", "Frisson" };      // (22/11) plus de respirations
                 At(roles[Random.Range(0, roles.Length)], far, 0.55f, 3f, 0.85f);
             }
         }

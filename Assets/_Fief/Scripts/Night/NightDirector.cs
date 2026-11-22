@@ -199,7 +199,7 @@ namespace Fief
                         // La torche tousse : le noir un quart de seconde... et il a avance.
                         visitorStare = 0f;
                         NightPlayer.TorchOut = 0.28f;
-                        NightAudio.Breath(ghost.transform.position, 0.9f);
+                        NightAudio.Bang(ghost.transform.position, 0.35f);
                         float step = Mathf.Min(d.magnitude * 0.4f, d.magnitude - 1.2f);
                         Vector3 to = ghost.transform.position - d.normalized * Mathf.Max(0f, step);
                         to.y = NightMap.FloorY(to);

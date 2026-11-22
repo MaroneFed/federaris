@@ -200,6 +200,26 @@ difficulté beaucoup plus haut », « quand on meurt, on perd tout »)
   retour au menu).
 - **La luminosité** : une ligne dans le menu et la pause (gauche / droite), gardée d'une partie à l'autre.
 
+### Le 22/11, plus tard (Martin : « le jeu est impossible, il faudrait des checkpoints, des gros feux comme dans
+Elden Ring », « il faut allumer deux torches pour qu'ils ne puissent pas passer », « la pierre ne peut pas brûler,
+comment tu veux faire ? », « des bruits de respiration horribles », « les passages plus secrets, les textures plus belles »)
+
+- **Les feux de veille** (`NightBonfire.cs`) : un grand brasero cerclé de pierres dans le vestibule (allumé dès le
+  début), la grande salle, les cuisines, la grande cour, le donjon et son étage, les caves, la chapelle. On les
+  **ranime** avec sa torche (E) : grand titre « Feu de veille » ; **aucun monstre n'entre dans sa salle** ; la torche
+  s'y remplit ; c'est **le point de retour**. **La mort définitive est retirée** : pris, on se relève au dernier feu.
+- **Les torches des couloirs vont par paires**, face à face : une seule éclaire ; **les deux allumées barrent tout le
+  couloir** (`NightWard.Partner`, `Zone`).
+- **Le Pénitent se repousse** : un coup de torche en face le défait en ombre, il retourne dans sa niche et y dort 40 s.
+- **Plus de respirations** (le souffle du Pénitent, de l'Écorcheur, du Visiteur, du château).
+- **Plus flippant** : près d'une bête, l'image saute au noir une fraction de seconde.
+- **Difficulté rééquilibrée** : la torche dure 5 min, une flamme au-dessus de 30 % tient les monstres, une huile et
+  deux bougies au départ, le Rôdeur à 4,6 m/s (moins que ta course), le Pénitent ne s'éveille plus tout de suite.
+- **Passages vraiment secrets** : plus de symbole qui luit (gravé, sombre) ; un anneau, un livre, une bouteille ne se
+  révèlent que **tout près ET en les regardant** ; le nom gravé sous un anneau ne se lit qu'en le tirant.
+- **Textures** : un **grain de détail** (pores, éclats) sur toute la pierre (`NightKit.Refine`), et le filtrage
+  anisotrope (les dalles restent nettes jusqu'au loin).
+
 **Pas encore fait / limites** : rien de tout ça n'a été joué par un humain ; **Claude n'entend pas** : les sons ont été
 choisis sur leur description, pas à l'oreille ; l'écran (quête, carte, objets, serrure,
 bougie) est dessiné par OnGUI, que les photos de Claude ne voient pas. Les modèles Quaternius sont low-poly

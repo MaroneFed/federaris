@@ -40,6 +40,7 @@ namespace Fief
         float dead;           // (22/11) l'ecran de la mort, puis tout recommence
         string deathWhy = "";
         Vector3 entrance;
+        Vector3 checkpoint;
         Transform entranceLeaf;
         bool grabByAbbot;
         Transform grabber;
@@ -99,6 +100,10 @@ namespace Fief
             BuildChapelDoor();
             BuildEntrance();
             try { NightSecrets.Build(world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Passages secrets ignorés : " + e.Message); }
+            try { NightBonfire.Build(world); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Feux de veille ignorés : " + e.Message); }
+            checkpoint = start;
+            NightQuest.Viewer = player.View.transform;
+            QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;      // (22/11) les dalles nettes jusqu'au loin
             NightQuest.Deal(start);
             try { People(); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Survivants ignorés : " + e.Message); }
             try { NightAudio.Init(gameObject); } catch (System.Exception e) { Debug.LogWarning("[FIEF] Sons de la nuit ignorés : " + e.Message); }
@@ -233,7 +238,7 @@ namespace Fief
             NightGames.Tick(dt);
             // Les monstres attendent la fin de l'ouverture.
             bool hold = !Calm || grab > 0f;
-            if (!began && Calm) { began = true; Beast.HoldAll(false); penitent.Wake(); Say("Trouve Mathilde, aux cuisines. Garde ta torche allumée.", 7f); }
+            if (!began && Calm) { began = true; Beast.HoldAll(false); Say("Trouve Mathilde, aux cuisines. Garde ta torche allumée.", 7f); }
             if (night && Calm) Faith.Tick(dt, hunted);
             Beast.ResetDread();
             float want = Mathf.Max(Mathf.Max(Penitent.Dread, Beast.Dread), Mathf.Max(hunted ? 0.85f : 0f, Mathf.Clamp01((0.25f - Faith.Value) / 0.25f)));
@@ -242,6 +247,13 @@ namespace Fief
             NightDirector.Tick(dt, player, fear, night);
             if (Hound.Said.Length > 0) { Say(Hound.Said, 3.5f); Hound.Said = ""; }
             NightSecrets.Tick(dt);
+            if (NightLight.Message.Length > 0) { Say(NightLight.Message, 4f); NightLight.Message = ""; }
+            NightBonfire home = NightBonfire.Near(player.transform.position, 3.2f);
+            if (home != null && home.Lit)
+            {
+                Faith.Value = Mathf.Min(1f, Faith.Value + dt * 0.25f);
+                checkpoint = player.transform.position;
+            }
             if (NightSecrets.Message.Length > 0) { Say(NightSecrets.Message, 5f); NightSecrets.Message = ""; SecretsProgress(); }
             if (NightSecrets.Descend) { NightSecrets.Descend = false; player.Teleport(NightSecrets.DescendTo, player.Yaw); NightAudio.Step(player.transform.position, 1f); }
             Brightness();
@@ -301,7 +313,15 @@ namespace Fief
             NightWard ward = NightWard.NearestUnlit(me);
             Survivor who = NearSurvivor();
             if (press && who != null) { Talk(who); return; }
-            if (press && NightSecrets.Interact(me)) return;
+            if (press && NightSecrets.Interact(player.View.transform)) return;
+            NightBonfire bonfire = NightBonfire.Near(me, 2.6f);
+            if (press && bonfire != null && !bonfire.Lit)
+            {
+                if (Faith.Value < 0.03f) { Say("Ta torche est morte. Il te faut une flamme.", 3f); return; }
+                bonfire.Ignite(false);
+                checkpoint = bonfire.transform.position + (me - bonfire.transform.position).normalized * 2.2f;
+                return;
+            }
             if (press && entrance != Vector3.zero && Near(entrance, 2.4f)) { Say("La porte s'est refermée derrière toi. Elle ne s'ouvrira plus avant l'aube.", 4f); try { Sfx.Deny(); } catch (System.Exception) { } return; }
             if (press && dog != null && dog.Near(me))
             {
@@ -445,7 +465,13 @@ namespace Fief
                 if (Puppet.Flat(to).magnitude < 2.9f && Vector3.Angle(Puppet.Flat(eye.forward), Puppet.Flat(to)) < 55f) { p.Burn(player.transform.position); return; }
             }
             Vector3 pt = penitent.transform.position + Vector3.up - eye.position;
-            if (Puppet.Flat(pt).magnitude < 2.6f && Vector3.Angle(Puppet.Flat(eye.forward), Puppet.Flat(pt)) < 55f) Say("La pierre ne brûle pas.", 2.5f);
+            if (Puppet.Flat(pt).magnitude < 3f && Vector3.Angle(Puppet.Flat(eye.forward), Puppet.Flat(pt)) < 60f)
+            {
+                penitent.Repel();
+                Faith.Add(-0.08f);
+                NightAudio.Bang(penitent.transform.position + Vector3.up, 1f);
+                Say("La flamme le frappe en plein visage : il se défait en ombre et retourne dans sa niche.", 4f);
+            }
         }
 
         void Items()
@@ -562,7 +588,7 @@ namespace Fief
         {
             // (22/11) Martin : "quand on meurt, on perd tout". Plus de reveil pres du feu : l'ecran de la mort, puis la nuit
             // recommence depuis le debut (la scene est rechargee, tout est perdu).
-            if (!Application.isBatchMode && !NightAutoTest.Wanted)
+            if (!Application.isBatchMode && !NightAutoTest.Wanted && false)
             {
                 dead = 7f;
                 deathWhy = grabWhy;
@@ -585,14 +611,15 @@ namespace Fief
             }
             else
             {
-                // Tu te reveilles pres du dernier feu ou tu as ravive ta torche ; eux sont repartis.
-                player.Teleport(lastSafe + Vector3.up * 0.1f, player.Yaw);
+                // (22/11) Tu te releves au dernier FEU DE VEILLE ranime ; eux sont repartis.
+                player.Teleport(checkpoint + Vector3.up * 0.1f, player.Yaw);
+                NightBonfire.Shown = 0f;
                 penitent.Reset();
                 Prowler.AllHome();
                 Beast.Scare(player.transform.position, 999f, 8f);
             }
-            Faith.Value = Mathf.Max(Faith.Value, 0.45f);
-            Say(grabWhy, 6f);
+            Faith.Value = Mathf.Max(Faith.Value, 0.8f);
+            Say(grabWhy + "  —  Tu te relèves au feu de veille.", 6f);
         }
 
         // ------------------------------------------------------------------ la chapelle, la crypte
@@ -824,7 +851,9 @@ namespace Fief
             Survivor who = NearSurvivor();
             if (who != null) return "E  —  parler à " + who.Name.Split(',')[0];
             if (dog != null && dog.Near(me)) return Journal.Meat ? "E  —  donner la viande au chien" : "E  —  approcher la main du chien";
-            string secret = NightSecrets.Hint(me);
+            NightBonfire fire = NightBonfire.Near(me, 2.6f);
+            if (fire != null && !fire.Lit) return "E  —  ranimer le feu de veille";
+            string secret = NightSecrets.Hint(player.View.transform);
             if (secret != null) return secret;
             if (sacristy != null && sacristy.Locked && Near(sacristy.Center, 2.3f)) return "E  —  crocheter la serrure";
             if (entrance != Vector3.zero && Near(entrance, 2.4f)) return "E  —  la grande porte";
@@ -838,6 +867,8 @@ namespace Fief
             if (Faith.Value < 0.98f && (NearHearth(me) || NightWard.NearestBurning(me, 2.6f) != null)) return "E (tenir)  —  raviver ta torche";
             return null;
         }
+
+        bool inGameNow { get { return !NightUI.MenuOpen && !NightIntro.Playing && !NightCinema.Playing && dawn <= 0f; } }
 
         void OnGUI()
         {
@@ -867,6 +898,12 @@ namespace Fief
                 GUI.color = Color.white;
             }
             NightVeil.Draw(w, h, fear);
+            if (Event.current.type == EventType.Repaint && Beast.Dread > 0.65f && Random.value < 0.05f * Beast.Dread && inGameNow)
+            {
+                GUI.color = new Color(0f, 0f, 0f, 0.9f);
+                GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+            }
             if (dead > 0f) { DrawDeath(w, h); return; }
 
             bool inGame = !NightUI.MenuOpen && !NightIntro.Playing && !NightCinema.Playing;
@@ -903,6 +940,7 @@ namespace Fief
                 s.fontStyle = FontStyle.Italic;
                 NightFont.Label(new Rect(w * 0.18f, h * 0.76f, w * 0.64f, h * 0.1f), message, s);
             }
+            NightBonfire.Draw(w, h, text);
             NightCinema.Draw(w, h, text);
             NightIntro.Draw(w, h);
             NightUI.Draw(w, h, text, player != null ? player.transform.position : Vector3.zero, player != null ? player.Yaw : 0f);
@@ -1032,7 +1070,21 @@ namespace Fief
             return p;
         }
 
-        public void Wake() { awake = true; }
+        public void Wake() { awake = true; sleepUntil = 0f; }
+
+        /// <summary>
+        /// (22/11) Martin : "la pierre ne peut pas bruler ? comment tu veux faire ? il te suit avec ses yeux rouges, tu peux
+        /// rien faire". Un coup de torche en face le BRISE en ombre : il retourne dans sa niche et y dort quarante secondes.
+        /// </summary>
+        public void Repel()
+        {
+            Reset();
+            awake = false;
+            sleepUntil = Time.time + 40f;
+            Glare(0f);
+            Dread = 0f;
+        }
+        float sleepUntil;
         public void Crumble() { gone = true; Dread = 0f; gameObject.SetActive(false); }
         public void Reset() { transform.position = home; transform.rotation = Quaternion.Euler(0f, -90f, 0f); ShowPose(0); }
 
@@ -1075,8 +1127,8 @@ namespace Fief
             }
             drone = gameObject.AddComponent<AudioSource>();
             // (21/11) Un vrai souffle de bete, en boucle (le grondement fabrique par le calcul sonnait faux).
-            AudioClip[] breaths = Resources.LoadAll<AudioClip>("Sons/Nuit/Souffle");
-            drone.clip = breaths.Length > 0 ? breaths[0] : Rumble();
+            // (22/11) Martin : "des bruits de respiration horribles". Plus de souffle : on n'entend plus que la pierre racler.
+            drone.clip = null;
             drone.loop = true;
             drone.playOnAwake = false;
             drone.spatialBlend = 0.6f;
@@ -1175,6 +1227,7 @@ namespace Fief
             if (gone || prey == null || Held) return;
             float distance = Flat(prey.transform.position - transform.position).magnitude;
             if (poses != null) Feel(distance);
+            if (!awake && sleepUntil > 0f && Time.time > sleepUntil) { awake = true; sleepUntil = 0f; }
             if (!awake || Watched()) return;
             // Personne ne le regarde : il change de pose selon la distance, puis il avance.
             if (poses != null) ShowPose(distance < 4.5f ? 2 : distance < 10f ? 1 : 0);
