@@ -4,23 +4,35 @@ using UnityEngine;
 namespace Fief
 {
     /// <summary>
-    /// L'ABBE (21/11) : le boss, dans la crypte. Martin : "des boss, rendre le truc beaucoup plus grand".
+    /// L'ABBE, le boss de la crypte (refait le 22/11 — Martin : "le duel du gros monstre est nul").
     ///
-    /// Quand on descend derriere l'autel, le mur remonte : on est enferme avec lui. Il est immense (4,5 m), noir,
-    /// et lui, il ne s'arrete JAMAIS, qu'on le regarde ou non. Il marche moins vite que toi : tu peux lui echapper,
-    /// tourner autour des piliers. Mais pour sortir, il faut rallumer les quatre brasiers des coins (le geste du
-    /// feu, trois etincelles, pendant qu'il approche). Un brasier allume : il recule en hurlant, et il ne peut plus
-    /// entrer dans sa lumiere. A chaque brasier il devient plus rapide. Au quatrieme, il brule.
+    /// Quand on descend derriere l'autel, le mur remonte : on est enferme avec lui. Il fait 4,6 m, il est noir, la nuque
+    /// cassee, deux braises pour yeux. Pour sortir, il faut que les QUATRE brasiers des coins brulent EN MEME TEMPS.
+    /// Le combat a trois temps, qui changent a chaque brasier allume :
     ///
-    /// Concept Unity : localScale grossit un modele (ici 1,65 fois) sans le refaire.
+    ///   1. LA TRAQUE      il marche vers toi, sans jamais s'arreter. Il ne peut pas entrer dans la lumiere d'un brasier.
+    ///   2. LES AMES       (un brasier brule) il hurle et fait sortir deux Ames des gisants ; il marche plus vite.
+    ///   3. LE SOUFFLE     (deux brasiers) toutes les vingt secondes, il ETEINT un brasier allume d'un revers de bras :
+    ///                     il faut y retourner.
+    ///   4. LA CHARGE      (trois brasiers) il recule, gronde... et charge en ligne droite. Ecarte-toi.
+    ///
+    /// Ta torche (clic gauche) le fait reculer deux secondes : ca coute de la flamme, mais ca sauve. Au quatrieme brasier,
+    /// il brule et s'enfonce dans le sol.
+    ///
+    /// Concept Unity : une "machine a etats" : selon un nombre (ici combien de brasiers brulent), le meme Update fait
+    /// des choses differentes.
     /// </summary>
     public class Abbot : MonoBehaviour
     {
-        const float Reach = 1.6f, SafeRadius = 3.4f;
+        const float Reach = 1.9f, SafeRadius = 3.4f;
         NightPlayer prey;
         Material skin;
         Light glow;
-        float speed = 1.9f, stagger, step, burn = -1f, growl;
+        CreepyRig rig;
+        Animation anim;
+        float speed = 2.1f, stagger, step, burn = -1f, growl, snuffTimer = 20f, chargeTimer = 6f, chargeTime, windup;
+        int lit;
+        Vector3 chargeDir;
         public bool Active;
         public bool Burnt { get { return burn >= 3f; } }
 
@@ -28,7 +40,7 @@ namespace Fief
         {
             get
             {
-                if (!Active || burn >= 0f || prey == null) return false;
+                if (!Active || burn >= 0f || prey == null || stagger > 0f) return false;
                 Vector3 d = prey.transform.position - transform.position;
                 d.y = 0f;
                 return d.magnitude < Reach;
@@ -42,32 +54,64 @@ namespace Fief
             go.transform.position = at;
             Abbot a = go.AddComponent<Abbot>();
             a.prey = prey;
-            GameObject model = NightKit.Model("penitent_3", go.transform);
+            Transform body = new GameObject("Corps").transform;
+            body.SetParent(go.transform, false);
+            body.localScale = new Vector3(0.72f, 1.35f, 0.72f);
+            GameObject model = Puppet.Spawn("Modeles/Monstres/Monstre_Demon", body, 4.6f);
             if (model != null)
             {
-                model.transform.localScale = Vector3.one * 1.65f;
-                a.skin = NightKit.Shadow();
-                if (a.skin != null)
-                    foreach (Renderer r in model.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = a.skin;
+                a.anim = model.GetComponentInChildren<Animation>();
+                a.skin = Puppet.Silhouette(model, 0.01f);
+                a.rig = CreepyRig.Add(model, go.transform, prey.transform, 62f, 30f);
+                Puppet.Play(a.anim, 0.7f, false, "|Walk");
             }
-            NightKit.Smoke(go.transform, 4.4f);
+            else
+            {
+                GameObject statue = NightKit.Model("penitent_3", go.transform);
+                if (statue != null) statue.transform.localScale = Vector3.one * 1.65f;
+            }
+            NightKit.Smoke(go.transform, 4.6f);
+            NightKit.Smoke(go.transform, 2.4f);
             a.glow = new GameObject("Braise de l'Abbé").AddComponent<Light>();
             a.glow.transform.SetParent(go.transform, false);
-            a.glow.transform.localPosition = new Vector3(0f, 3.4f, 0.6f);
+            a.glow.transform.localPosition = new Vector3(0f, 3.8f, 0.6f);
             a.glow.type = LightType.Point;
             a.glow.color = new Color(1f, 0.12f, 0.05f);
-            a.glow.range = 7f;
-            a.glow.intensity = 1.4f;
+            a.glow.range = 8f;
+            a.glow.intensity = 1.6f;
             a.Active = true;
+            NightAudio.Roar(at + Vector3.up * 3f, 1f);
             return a;
         }
 
-        /// <summary>Un brasier vient de s'allumer : il recule, il hurle, il repart plus vite.</summary>
-        public void Stagger(int lit)
+        /// <summary>Un brasier vient de s'allumer : il recule, il hurle, et le combat change.</summary>
+        public void Stagger(int count)
         {
-            stagger = 2.2f;
-            speed = 1.9f + 0.45f * lit;
+            lit = count;
+            stagger = 2.4f;
+            speed = 2.1f + 0.5f * count;
             NightAudio.Sting(1f);
+            NightAudio.Roar(transform.position + Vector3.up * 3f, 1f);
+            NightPlayer.Shake = Mathf.Max(NightPlayer.Shake, 0.8f);
+            NightPlayer.Punch = 0.8f;
+            // Le deuxieme temps : deux Ames sortent des gisants.
+            if (count == 1 || count == 3)
+                for (int i = 0; i < 2; i++)
+                {
+                    Vector3 p = NightMap.Center('R') + new Vector3(i == 0 ? -1.5f : 1.5f, 0.4f, i == 0 ? -2.6f : 2.6f);
+                    try { Beast.Spawn(transform.parent, Beast.Kind.Soul, p, prey); } catch (System.Exception) { }
+                }
+        }
+
+        /// <summary>Un coup de torche : il recule deux secondes en hurlant.</summary>
+        public void Hit(Vector3 from)
+        {
+            if (burn >= 0f) return;
+            stagger = Mathf.Max(stagger, 2f);
+            chargeTime = 0f; windup = 0f;
+            Vector3 away = transform.position - from;
+            away.y = 0f;
+            if (away.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(-away.normalized, Vector3.up);
             NightAudio.Scream(transform.position + Vector3.up * 3f, 1f);
         }
 
@@ -76,54 +120,115 @@ namespace Fief
         {
             if (burn >= 0f) return;
             burn = 0f;
-            NightAudio.Sting(1f);
+            NightAudio.Roar(transform.position + Vector3.up * 3f, 1f);
             NightAudio.Bang(transform.position + Vector3.up * 2f, 1f);
         }
 
-        public void SendHome(Vector3 home) { transform.position = home; stagger = 1.5f; }
+        public void SendHome(Vector3 home) { transform.position = home; stagger = 1.5f; chargeTime = 0f; windup = 0f; }
 
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
+
+        bool InLight(Vector3 p)
+        {
+            foreach (GameObject f in NightMap.CryptFires)
+                if (f != null && f.activeInHierarchy && Flat(p - f.transform.position).magnitude < SafeRadius) return true;
+            return false;
+        }
 
         void Update()
         {
             if (!Active || prey == null) return;
             float dt = Time.deltaTime;
-            if (skin != null)
-                skin.SetColor("_EmissionColor", new Color(1f, 0.08f, 0.03f) * (burn >= 0f ? 6f * (1f - burn / 3f) : 2.4f + Mathf.Sin(Time.time * 5f)));
+            float dist = Flat(prey.transform.position - transform.position).magnitude;
+            if (rig != null) rig.Shiver = Mathf.InverseLerp(10f, 2f, dist);
+            if (skin != null && skin.HasProperty("_EmissionColor"))
+                skin.SetColor("_EmissionColor", burn >= 0f ? new Color(1f, 0.15f, 0.03f) * 5f * (1f - burn / 3f) : Color.black);
             if (burn >= 0f)
             {
                 // Il brule : il tremble, il s'enfonce, sa braise grossit puis s'eteint.
                 burn += dt;
-                transform.position += Vector3.down * dt * 1.6f;
-                transform.localScale = Vector3.one * (1f - burn / 3.4f);
-                if (glow != null) glow.intensity = 6f * Mathf.Clamp01(1f - burn / 3f);
+                transform.position += Vector3.down * dt * 1.6f + Random.insideUnitSphere * 0.04f;
+                if (glow != null) { glow.intensity = 7f * Mathf.Clamp01(1f - burn / 3f); glow.range = 14f; }
                 if (burn >= 3f) { Active = false; gameObject.SetActive(false); }
                 return;
             }
             if (stagger > 0f)
             {
                 stagger -= dt;
-                transform.position -= transform.forward * dt * 1.2f;
+                transform.position -= transform.forward * dt * 1.4f;
+                Puppet.Play(anim, 1.4f, false, "|HitReact;|Idle");
                 return;
             }
+
+            // Le souffle (deux brasiers ou plus) : il eteint un brasier allume, au loin, d'un geste.
+            if (lit >= 2)
+            {
+                snuffTimer -= dt;
+                if (snuffTimer <= 0f)
+                {
+                    snuffTimer = 20f;
+                    foreach (GameObject f in NightMap.CryptFires)
+                        if (f != null && f.activeSelf)
+                        {
+                            f.SetActive(false);
+                            lit = Mathf.Max(0, lit - 1);
+                            NightAudio.Roar(transform.position + Vector3.up * 3f, 1f);
+                            NightAudio.Bang(f.transform.position + Vector3.up, 0.8f);
+                            Abbot.Snuffed = true;
+                            break;
+                        }
+                }
+            }
+
             Vector3 to = Flat(prey.transform.position - transform.position);
+            // La charge (trois brasiers) : il recule, gronde une seconde... et fonce tout droit.
+            if (lit >= 3)
+            {
+                if (chargeTime > 0f)
+                {
+                    chargeTime -= dt;
+                    Vector3 n = transform.position + chargeDir * 11f * dt;
+                    if (InLight(n) || Physics.Linecast(transform.position + Vector3.up, n + Vector3.up + chargeDir, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                    {
+                        chargeTime = 0f; stagger = 2.5f;
+                        NightAudio.Bang(transform.position + Vector3.up * 2f, 1f);
+                        NightPlayer.Shake = 1f;
+                        return;
+                    }
+                    transform.position = n;
+                    Puppet.Play(anim, 1.8f, false, "|Run");
+                    return;
+                }
+                if (windup > 0f)
+                {
+                    windup -= dt;
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to.normalized, Vector3.up), 200f * dt);
+                    if (windup <= 0f) { chargeDir = to.normalized; chargeTime = 1.6f; NightAudio.Scream(transform.position + Vector3.up * 3f, 1f); }
+                    Puppet.Play(anim, 0.3f, false, "|Idle");
+                    return;
+                }
+                chargeTimer -= dt;
+                if (chargeTimer <= 0f && dist > 4f && dist < 16f) { chargeTimer = Random.Range(6f, 9f); windup = 1.1f; NightAudio.Roar(transform.position + Vector3.up * 3f, 1f); return; }
+            }
+
             if (to.magnitude < 0.05f) return;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to.normalized, Vector3.up), 120f * dt);
             Vector3 next = transform.position + to.normalized * speed * dt;
             // La lumiere d'un brasier allume : il ne peut pas y entrer.
-            foreach (GameObject f in NightMap.CryptFires)
+            if (InLight(next))
             {
-                if (f == null || !f.activeInHierarchy) continue;
-                if (Flat(next - f.transform.position).magnitude < SafeRadius)
-                {
-                    growl -= dt;
-                    if (growl <= 0f) { growl = 2.5f; NightAudio.Bang(transform.position + Vector3.up * 2f, 0.5f); }
-                    return;
-                }
+                growl -= dt;
+                if (growl <= 0f) { growl = 3f; NightAudio.Growl(transform.position + Vector3.up * 3f, 0.9f); }
+                Puppet.Play(anim, 0.4f, false, "|Idle");
+                return;
             }
             transform.position = next;
+            Puppet.Play(anim, 0.6f + 0.15f * speed, false, "|Walk");
             step -= dt;
             if (step <= 0f) { step = 1.1f; NightAudio.Bang(transform.position, 0.45f); NightPlayer.Shake = Mathf.Max(NightPlayer.Shake, 0.25f); }
         }
+
+        /// <summary>Il vient d'eteindre un brasier (NightBootstrap le dit au joueur).</summary>
+        public static bool Snuffed;
     }
 }

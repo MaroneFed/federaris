@@ -170,6 +170,36 @@ qui s'abaisse », « des monstres plus compliqués », « un château beaucoup p
   silhouette de 3 m au bout d'un couloir ; tant que tu la fixes, ta torche tousse et **à chaque fois, elle est plus
   près** ; détourne les yeux, elle disparaît ; fixe-la trop longtemps, elle est sur toi.
 
+### Le 22/11 (acquis — Martin : « des animations flippantes », « les bugs », « le duel du gros monstre est nul »,
+« beaucoup plus de passages secrets, et des compliqués », « pas toutes les quêtes en même temps », « un niveau de
+difficulté beaucoup plus haut », « quand on meurt, on perd tout »)
+
+- **Le test automatique** (`NightAutoTest`) : `FIEF-La-Nuit.exe -autotest` se joue tout seul (menu, arrivée,
+  ouverture, carnet, pause, serrure, dialogue, passages, l'Abbé) et prend de **vraies captures, interface comprise**,
+  dans `Logs/AutoTest`. C'est ainsi que Claude a trouvé les bugs : **la grande porte s'ouvrait sur un mur** (le
+  vestibule a maintenant une arche ; la porte claque derrière toi), **le carnet coupait les noms d'objets et les
+  détails de quêtes** (hauteurs calculées).
+- **Les animations flippantes** (`NightHorror.cs`, `CreepyRig`) : par-dessus l'animation du pack, la **nuque cassée**
+  (tête penchée à 45-70°), la **tête qui te suit toujours** (jusqu'à 120°, plus loin qu'un cou humain), des
+  **craquements** (la tête bascule d'un coup), le **dos voûté**, les **bras qui pendent**, un **tremblement** près de toi.
+- **L'Abbé refait** (`NightBoss.cs`) : un géant de 4,6 m (le Démon étiré, en silhouette, nuque cassée), en phases :
+  traque → il fait sortir des Âmes → il **éteint** un brasier allumé toutes les 20 s → il **charge** en ligne droite.
+  Un coup de torche le fait reculer deux secondes. Les quatre brasiers allumés ensemble : il brûle.
+- **Huit passages secrets** (`NightSecrets.cs`, trois salles cachées dans le plan : Z, X, I) : la crypte (cierges),
+  le trésor (un livre), **le garde-manger** (trois anneaux au mur sud des cuisines, dans l'ordre que donne Mathilde ;
+  une erreur : fracas de chaînes, le Boucher entend), sa sortie vers les cachots (levier), **le passage dérobé**
+  (les trois bougeoirs de la bibliothèque allumés en même temps), sa sortie vers le dortoir (levier), **la cave
+  cachée** (une bouteille d'un râtelier), **la tombe creuse** de la cour (les deux braseros allumés : un escalier
+  jusqu'à l'ossuaire). Chaque salle cachée a son coffre.
+- **Les quêtes une par une** : Mathilde → Aubin → le novice → la chapelle ; chacun dit où est le suivant. À l'écran,
+  la quête en cours et une seule quête de côté.
+- **Plus dur** : la torche meurt en 3 min 30 au calme, rien au départ, la flamme doit être au-dessus de 40 % pour
+  tenir les monstres, le Rôdeur court à 5,1 m/s et voit à 13 m, trois Rôdeurs, le Démon, deux Âmes et trois loups dès
+  le début, le Pénitent éveillé tout de suite, le Boucher entend la course à 24 m.
+- **La mort définitive** : pris, c'est l'écran « Tu es mort », puis **tout recommence** (le château est rebâti,
+  retour au menu).
+- **La luminosité** : une ligne dans le menu et la pause (gauche / droite), gardée d'une partie à l'autre.
+
 **Pas encore fait / limites** : rien de tout ça n'a été joué par un humain ; **Claude n'entend pas** : les sons ont été
 choisis sur leur description, pas à l'oreille ; l'écran (quête, carte, objets, serrure,
 bougie) est dessiné par OnGUI, que les photos de Claude ne voient pas. Les modèles Quaternius sont low-poly

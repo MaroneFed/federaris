@@ -301,6 +301,7 @@ namespace Fief
         Material skin;
         Material pupils;
         GameObject model;
+        CreepyRig rig;
         int age;
         float frozen, twitch, revealCooldown;
         bool revealed;
@@ -400,6 +401,8 @@ namespace Fief
                 else b.skin = Puppet.Silhouette(model, kind == Kind.Wolf ? 0.03f : 0.012f);
                 if (kind != Kind.Wolf) { NightKit.Smoke(go.transform, Height(kind)); NightKit.Smoke(go.transform, Height(kind) * 0.5f); }
                 b.model = model;      // les yeux de braise viendront quand le modele aura sa taille finale (Update)
+                // (22/11) La nuque cassee, le dos voute, les bras qui pendent, la tete qui te suit.
+                b.rig = CreepyRig.Add(model, go.transform, prey != null ? prey.transform : null, kind == Kind.Wolf ? 18f : kind == Kind.Brute ? 30f : Random.Range(45f, 70f), kind == Kind.Wolf ? 0f : 24f);
             }
             // Une lueur rouge, faible, la ou sont les yeux (le Boucher est aveugle : rien).
             if (kind != Kind.Butcher && kind != Kind.Soul)
@@ -556,7 +559,7 @@ namespace Fief
             Vector3 next = transform.position + flat.normalized * Mathf.Min(speed * Time.deltaTime, flat.magnitude);
             // Ta torche : tant qu'elle brule fort, rien ne s'approche a moins de deux metres et demi (sauf une Bete qui charge).
             float hold = kind == Kind.Wolf ? 4f : 2.5f;
-            bool scaresIt = kind != Kind.Brute && Faith.Value > (kind == Kind.Wolf ? 0.15f : 0.25f);
+            bool scaresIt = kind != Kind.Brute && Faith.Value > (kind == Kind.Wolf ? 0.3f : 0.4f);      // (22/11) il faut une flamme bien haute
             if (scaresIt && prey != null)
             {
                 float dNext = Puppet.Flat(prey.transform.position - next).magnitude;
@@ -708,6 +711,7 @@ namespace Fief
                 NightWard w = NightWard.NearestBurning(transform.position, 4f);
                 if (w != null && (kind == Kind.Demon || kind == Kind.Flayer) && !watched && Random.value < dt * 0.3f) w.Snuff();
             }
+            if (rig != null) rig.Shiver = near;
             if (pupils != null) pupils.SetColor("_EmissionColor", new Color(1f, 0.1f, 0.02f) * (3f + 5f * near + Mathf.Sin(Time.time * 13f) * near));
             return false;
         }
@@ -728,7 +732,7 @@ namespace Fief
             bool hunt = dist < 24f;
             heard -= Time.deltaTime;
             if (hunt && dist < 14f && heard <= 0f) { heard = Random.Range(4f, 9f); NightAudio.Moan(transform.position, 0.7f); }
-            if (hunt) Go(prey.transform.position, 1.5f + (Faith.Value < 0.3f ? 0.8f : 0f));
+            if (hunt) Go(prey.transform.position, 1.9f + (Faith.Value < 0.4f ? 1f : 0f));
             else Wander(1.1f);
             Puppet.Play(anim, 1f, false, hunt ? "|Fast_Flying" : "|Flying_Idle");
         }
@@ -736,12 +740,12 @@ namespace Fief
         void TickButcher(float dist, bool sameFloor)
         {
             // Aveugle. Il entend : courir a 18 m, marcher a 4 m, rester immobile : rien.
-            bool loud = FiefInput.Move.sqrMagnitude > 0.01f && sameFloor && (FiefInput.SprintHeld ? dist < 18f : dist < 4f);
+            bool loud = FiefInput.Move.sqrMagnitude > 0.01f && sameFloor && (FiefInput.SprintHeld ? dist < 24f : dist < 6f);
             if (loud) { if (heard <= 0f) NightAudio.Roar(transform.position + Vector3.up * 2f, 0.9f); noise = prey.transform.position; heard = 6f; }
             if (heard > 0f)
             {
                 heard -= Time.deltaTime;
-                Go(noise, 4.6f);
+                Go(noise, 5.4f);
                 Puppet.Play(anim, 1.2f, false, "|Run");
                 if (Puppet.Flat(noise - transform.position).magnitude < 1f) heard = Mathf.Min(heard, 1.5f);
                 return;
@@ -753,7 +757,7 @@ namespace Fief
         void TickDemon(float dist, bool sameFloor)
         {
             // Il te suit toujours, de loin. Torche forte : il reste a 10 m et plus. Torche faible : il vient.
-            bool bold = Faith.Value < 0.45f;
+            bool bold = Faith.Value < 0.6f;
             float keep = bold ? 0f : 10f;
             if (dist > 40f || !sameFloor)
             {
@@ -768,7 +772,7 @@ namespace Fief
                 Puppet.Play(anim, 1f, false, "|Idle");
                 return;
             }
-            if (dist > keep + 0.5f) { Go(prey.transform.position, bold ? 3.9f : 2f); Puppet.Play(anim, bold ? 1.3f : 0.8f, false, bold ? "|Run" : "|Walk"); }
+            if (dist > keep + 0.5f) { Go(prey.transform.position, bold ? 4.7f : 2.4f); Puppet.Play(anim, bold ? 1.3f : 0.8f, false, bold ? "|Run" : "|Walk"); }
             else if (!bold && dist < keep - 1.5f) { Go(transform.position + Puppet.Flat(transform.position - prey.transform.position).normalized * 3f, 2.2f); Puppet.Play(anim, 0.8f, false, "|Walk"); }
             else Puppet.Play(anim, 1f, false, "|Idle");
             think -= Time.deltaTime;
@@ -793,7 +797,7 @@ namespace Fief
             {
                 // Tout droit, sans tourner. Contre un mur : sonnee quatre secondes.
                 Vector3 dir = Puppet.Flat(charge - transform.position);
-                Vector3 next = transform.position + dir.normalized * 8.5f * Time.deltaTime;
+                Vector3 next = transform.position + dir.normalized * 10f * Time.deltaTime;
                 bool wall = Physics.Linecast(transform.position + Vector3.up * 1.2f, next + Vector3.up * 1.2f + dir.normalized * 0.9f, ~(1 << 2), QueryTriggerInteraction.Ignore);
                 if (wall || NightWard.Hold(transform.position, next) != next)
                 {
@@ -851,8 +855,8 @@ namespace Fief
                 }
                 return;
             }
-            Go(prey.transform.position, 4.2f);
-            Puppet.Play(anim, 1.4f, false, "|Run");
+            Go(prey.transform.position, 5f);
+            Puppet.Play(anim, 1.5f, false, "|Run");
             // Son souffle, tout pres, dans ton dos.
             heard -= Time.deltaTime;
             if (dist < 7f && heard <= 0f) { heard = 3f; NightAudio.Breath(transform.position, 0.8f); }
@@ -866,7 +870,7 @@ namespace Fief
                 // Ils tournent autour de ta flamme : chacun garde son angle, a quatre metres.
                 bob += Time.deltaTime * 0.6f;
                 float a = bob + home.x;
-                Vector3 ring = prey.transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Faith.Value > 0.15f ? 4.3f : 0.5f);
+                Vector3 ring = prey.transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Faith.Value > 0.3f ? 4.3f : 0.5f);
                 Go(ring, 6.2f);
                 Puppet.Play(anim, 1.2f, false, "|Gallop;|Walk");
                 heard -= Time.deltaTime;

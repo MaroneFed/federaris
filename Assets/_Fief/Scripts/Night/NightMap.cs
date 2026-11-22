@@ -36,16 +36,16 @@ namespace Fief
             "...........................",
             ".................OOOO......",
             ".RRRR........WWWWOOOO......",
-            ".RRRR........WWWwoOOO......",
-            ".RRRR.TT.....WWWWOOOO..UUU.",
+            ".RRRR......IiwWWwoOOO......",
+            ".RRRR.TT...IIWWWWOOOO..UUU.",
             ".rRRR.tT.....WwWW......UUU.",
             ".kKK.LlLL.DDD.f..BBBBBBUUU.",
-            ".KKK.LLLL.DDD.f..BBBBBBUuU.",
+            ".KKK.LLLlxdDD.f..BBBBBBUuU.",
             ".KkK.LlLL.DdDQqQQBBbBBB.e..",
             ".CcCCCcCCCCccqQQQJJjJJJ.e..",
-            ".C..HHhHHHYYCQQQqjJJJJJGgG.",
-            ".C..HHHHHHYyc....JJJJJJGGG.",
-            ".cn.HHHHHHAacPPPPJJJJJjgGG.",
+            ".C..HHhHHHYYCQQqqjJJJJJGgG.",
+            ".C..HHHHHHYycZzzZJJJJJJGGG.",
+            ".cn.HHHHHHAacPpPPJJJJJjgGG.",
             ".C..HHhHHH..cpPPpjJJJJJGGG.",
             ".CCCCCcCCCCCCPPPPJJJJJJGGG.",
             "...SsvvV...................",
@@ -120,7 +120,7 @@ namespace Fief
             switch (room)
             {
                 case 'U': return 4f;
-                case 'W': case 'O': case 'F': return -4f;
+                case 'W': case 'O': case 'F': case 'I': return -4f;
                 default: return 0f;
             }
         }
@@ -131,7 +131,7 @@ namespace Fief
             switch (room)
             {
                 case 'U': case 'E': return 8f;
-                case 'W': case 'O': return 0f;
+                case 'W': case 'O': case 'I': return 0f;
                 case 'F': return 4f;
                 case 'H': case 'K': case 'Y': case 'R': case 'J': return 8f;
                 default: return 4f;
@@ -210,7 +210,7 @@ namespace Fief
             Armors.Clear();
             Hearths.Clear();
             taken.Clear();
-            secrets.Clear(); revealed.Clear(); covers.Clear(); CryptFires.Clear();
+            secrets.Clear(); revealed.Clear(); covers.Clear(); CryptFires.Clear(); TrapTomb = null;
             seen = null; lastC = lastR = -1;
             deep = Plan.Length;
             wide = Plan[0].Length;
@@ -265,6 +265,14 @@ namespace Fief
                             string key = room < other ? "" + room + other : "" + other + room;
                             doors[key] = new Vector4(ex, ez, yaw, doorY);
                             if (IsSecret(key)) secrets[key] = new Vector4(ex, ez, yaw, d);
+                        }
+                        // (22/11) La grande porte du chateau : la ou l'arrivee a cheval entre, au sud du vestibule (x = 26).
+                        // Avant, la porte de dehors s'ouvrait sur un mur de briques.
+                        if (room == 'V' && d == 2 && other == '.' && Mathf.Abs(ex - 26f) < 0.1f)
+                        {
+                            NightKit.ArchAtY(ex, ez, yaw, 0f);
+                            Box(new Vector3(ex, 2f, ez), new Vector3(4.5f, 4f, 0.5f), yaw, "Grande porte");
+                            continue;
                         }
                         for (float y = lo; y < hi - 0.01f; y += 4f)
                         {
@@ -391,7 +399,12 @@ namespace Fief
         // ------------------------------------------------------------------ (21/11) les passages secrets
 
         /// <summary>Les portes cachees : derriere l'autel vers la crypte (KR), derriere un rayon de la bibliotheque vers le tresor (LT).</summary>
-        static readonly string[] SecretKeys = { "KR", "LT" };
+        static readonly string[] SecretKeys = { "KR", "LT", "QZ", "PZ", "LX", "DX", "IW" };
+        /// <summary>(22/11) La salle que cache chaque passage (fermee aux monstres tant qu'aucun de ses passages n'est ouvert).</summary>
+        static char Hidden(string key) { return key == "KR" ? 'R' : key == "LT" ? 'T' : key == "IW" ? 'I' : key[1]; }
+        /// <summary>Combien de passages secrets sont ouverts.</summary>
+        public static int SecretsOpen { get { return revealed.Count; } }
+        public static int SecretsTotal { get { return SecretKeys.Length; } }
         static readonly Dictionary<string, Vector4> secrets = new Dictionary<string, Vector4>();     // x, z, yaw, direction
         static readonly HashSet<string> revealed = new HashSet<string>();
 
@@ -424,34 +437,40 @@ namespace Fief
                 Vector3 door = new Vector3(v.x, 0f, v.y), dir = new Vector3(DX[d], 0f, DZ[d]);
                 Cover cv = new Cover();
                 GameObject piece;
-                if (s.Key == "LT")
+                if (s.Key == "LT" || s.Key == "IW")
                 {
-                    // Une bibliotheque comme les autres, collee devant l'arche, cote bibliotheque. Elle glissera de cote.
-                    Vector3 at = door - dir * 0.5f;
-                    piece = NightKit.Place("bibliotheque", at.x, at.z, d == 0 ? 180f : d == 1 ? -90f : d == 2 ? 0f : 90f, 0f, false);
-                    cv.closed = at;
-                    cv.open = at + new Vector3(DZ[d], 0f, DX[d]) * 2.05f;
+                    // Un meuble comme les autres, colle devant l'arche, cote public. Il glissera de cote.
+                    // (LT : une bibliotheque, un livre depasse ; IW : un ratelier de bouteilles, une bouteille vide.)
+                    bool fromHigh = s.Key == "IW";      // pour IW, la case "c,r" est dans la cave cachee : le cote public est en face
+                    Vector3 side = fromHigh ? dir : -dir;
+                    float y = door.y + (s.Key == "IW" ? -4f : 0f);
+                    Vector3 at = door + side * 0.5f;
+                    float face = fromHigh ? (d == 0 ? 0f : d == 1 ? 90f : d == 2 ? 180f : -90f) : (d == 0 ? 180f : d == 1 ? -90f : d == 2 ? 0f : 90f);
+                    piece = NightKit.Place(s.Key == "LT" ? "bibliotheque" : "ratelier", at.x, at.z, face, y, false);
+                    cv.closed = new Vector3(at.x, y, at.z);
+                    cv.open = cv.closed + new Vector3(DZ[d], 0f, DX[d]) * 2.05f;
                     cv.speed = 1f / 1.6f;
-                    if (piece != null) NightQuest.Add(piece.transform, 3, null, 'L');
+                    if (piece != null) NightQuest.AddSecret(piece.transform, s.Key, s.Key == "LT" ? 'L' : 'W');
                 }
                 else
                 {
                     // Un pan de mur, pile dans l'arche. Il s'enfoncera dans le sol.
-                    piece = NightKit.Place("mur_droit", door.x, door.z, v.z, 0f, false);
-                    cv.closed = door;
-                    cv.open = door + Vector3.down * 4.1f;
+                    float y0 = FloorY(door - dir * 0.6f);
+                    piece = NightKit.Place("mur_droit", door.x, door.z, v.z, y0, false);
+                    cv.closed = new Vector3(door.x, y0, door.z);
+                    cv.open = cv.closed + Vector3.down * 4.1f;
                     cv.speed = 1f / 4f;
                 }
                 if (piece == null) continue;
                 cv.piece = piece.transform;
                 BoxCollider box = new GameObject("Passage secret").AddComponent<BoxCollider>();
                 box.transform.SetParent(blocks, false);
-                box.transform.position = cv.closed + Vector3.up * 2f;
+                box.transform.position = new Vector3(door.x, cv.closed.y + 2f, door.z);
                 box.transform.rotation = Quaternion.Euler(0f, v.z, 0f);
                 box.size = new Vector3(4.2f, 4f, 0.6f);
                 cv.wall = box;
                 covers[s.Key] = cv;
-                Lock(s.Key[1]);
+                Lock(Hidden(s.Key));
             }
         }
 
@@ -462,7 +481,7 @@ namespace Fief
             if (!covers.TryGetValue(key, out cv)) return;
             revealed.Add(key);
             cv.target = 1f;
-            Unlock(key[1]);
+            Unlock(Hidden(key));
         }
 
         /// <summary>Le passage se referme (le mur remonte) : on est enferme.</summary>
@@ -498,7 +517,8 @@ namespace Fief
             { 'V', "Vestibule" }, { 'S', "Sacristie" }, { 'N', "Niche" }, { 'H', "Grande salle" }, { 'K', "Chapelle" },
             { 'Y', "Préau" }, { 'L', "Bibliothèque" }, { 'D', "Dortoir" }, { 'A', "Armurerie" }, { 'P', "Cachots" },
             { 'Q', "Cuisines" }, { 'R', "Crypte" }, { 'T', "Trésor" }, { 'J', "Grande cour" }, { 'B', "Écuries" },
-            { 'G', "Donjon" }, { 'U', "Donjon, étage" }, { 'W', "Caves" }, { 'O', "Ossuaire" }
+            { 'G', "Donjon" }, { 'U', "Donjon, étage" }, { 'W', "Caves" }, { 'O', "Ossuaire" },
+            { 'Z', "Garde-manger secret" }, { 'X', "Passage dérobé" }, { 'I', "Cave cachée" }
         };
 
         /// <summary>Le nom d'une salle (pour l'ecran), ou "".</summary>
@@ -714,11 +734,14 @@ namespace Fief
             NightQuest.Add(body.transform, 0, lid != null ? lid.transform : null, room);
         }
 
+        /// <summary>(22/11) La tombe de la cour qui cache un escalier vers l'ossuaire.</summary>
+        public static Transform TrapTomb;
+
         /// <summary>Un tombeau qu'on peut ouvrir : sa dalle glisse.</summary>
-        static void Tomb(float x, float z, float yaw, char room)
+        static GameObject Tomb(float x, float z, float yaw, char room)
         {
             GameObject body = Put("tombeau", x, z, yaw, new Vector3(2.4f, 0.95f, 1.2f));
-            if (body == null) return;
+            if (body == null) return null;
             GameObject lid = NightKit.Place("tombeau_couvercle", 0f, 0f, 0f, 0f, false);
             if (lid != null)
             {
@@ -727,6 +750,7 @@ namespace Fief
                 lid.transform.localRotation = Quaternion.identity;
             }
             NightQuest.Add(body.transform, 1, lid != null ? lid.transform : null, room);
+            return body;
         }
 
         static readonly Vector3 ChestSize = new Vector3(0.95f, 0.62f, 0.56f);
@@ -826,6 +850,11 @@ namespace Fief
 
             BuildCrypt();
             BuildYard();
+            // (22/11) Les salles cachees : chacune a son coffre.
+            foreach (GameObject c in AlongWalls('Z', "coffre", ChestSize, 1, 2, 0, 1)) Chest(c, 'Z');
+            foreach (GameObject c in AlongWalls('X', "coffre", ChestSize, 4, 1, 0, 1)) Chest(c, 'X');
+            foreach (GameObject c in AlongWalls('I', "coffre", ChestSize, 1, 1, 0, 1)) Chest(c, 'I');
+            AlongWalls('I', "ratelier", new Vector3(1.75f, 2.2f, 0.5f), 8, 1, 0, 1);
             BuildStables();
             BuildKeep();
             BuildCellars();
@@ -899,7 +928,11 @@ namespace Fief
             SolidBox(well, 0f, new Vector3(2.5f, 1f, 2.5f));
             taken.Add(well);
             // Le cimetiere des Veilleurs, contre le mur sud (aucune porte de ce cote).
-            for (int i = 0; i < 3; i++) Tomb(x0 + 6f + i * 6f, z0 + 1.4f, 0f, 'J');
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject t = Tomb(x0 + 6f + i * 6f, z0 + 1.4f, 0f, 'J');
+                if (i == 1 && t != null) TrapTomb = t.transform;      // (22/11) la tombe creuse (NightSecrets)
+            }
             NightLight.Brazier(blocks, new Vector3(cx - 4f, 0f, cz - 4f));
             NightLight.Brazier(blocks, new Vector3(cx + 5f, 0f, z1 - 3f));
         }
@@ -1054,6 +1087,11 @@ namespace Fief
             char a = Room(c, r), b = Room(c + DX[d], r + DZ[d]);
             if (b == '.') return false;
             if (a != b && !(Door(c, r, d) && !locked.Contains(a) && !locked.Contains(b))) return false;
+            if (a != b)
+            {
+                string key = a < b ? "" + a + b : "" + b + a;
+                if (IsSecret(key) && !revealed.Contains(key)) return false;
+            }
             // (21/11) Une case ou brule une torche, des bougies : les monstres n'y passent pas.
             return !NightWard.Blocks(CellCenter(c + DX[d], r + DZ[d]));
         }

@@ -163,6 +163,7 @@ namespace Fief
                         if (m != null)
                         {
                             Puppet.Silhouette(m, 0.006f);
+                            CreepyRig.Add(m, ghost.transform, player.transform, 75f, 30f);
                             Puppet.Play(m.GetComponentInChildren<Animation>(), 0.2f, false, "|Idle");
                         }
                         else { Object.Destroy(ghost); ghost = null; }

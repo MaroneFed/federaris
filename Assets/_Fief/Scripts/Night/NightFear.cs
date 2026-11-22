@@ -309,6 +309,9 @@ namespace Fief
             knight = null; shape = null; pool = null; dying = null;
         }
 
+        /// <summary>Passer l'ouverture (le test automatique, ou Entree).</summary>
+        public static void Skip() { if (Playing) Finish(); }
+
         /// <summary>(21/11) Le Veilleur reste la ou il est mort (on repasse devant lui) : seule sa lumiere s'en va.</summary>
         static void Finish()
         {

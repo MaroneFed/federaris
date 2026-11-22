@@ -41,9 +41,13 @@ namespace Fief
         {
             quests.Clear();
             Fire = Key = Lantern = Eternal = Meat = false;
-            Relics = 0; Oil = 1; HolyWater = 0; Candles = 0; Rescued = 0;
+            Relics = 0; Oil = 0; HolyWater = 0; Candles = 0; Rescued = 0;      // (22/11) plus dur : rien au depart
             // (21/11) L'histoire : le Veilleur mourant t'a parle de trois survivants. Le novice a la cle de la chapelle.
-            Add("survivants", "Retrouver les survivants", "La cuisinière aux cuisines, le palefrenier aux écuries, le novice en haut du donjon.", false);
+            // (22/11) Martin : "pas toutes les quetes en meme temps". Les vivants, un par un : la suivante n'apparait
+            // que quand la precedente est faite (le Veilleur n'a parle que de la cuisiniere ; elle parle du palefrenier...).
+            Add("cuisiniere", "Retrouver Mathilde, la cuisinière", "Elle se cache près du feu des cuisines, à l'est du grand couloir.", false);
+            Add("palefrenier", "Retrouver Aubin, le palefrenier", "Aux écuries, au nord de la grande cour.", false);
+            Add("novice", "Retrouver le novice", "Barricadé en haut du donjon, à l'est de la grande cour. Prends l'escalier.", false);
             Add("cle", "Ouvrir la chapelle", "Le novice t'a donné la clé. La chapelle est au nord-ouest du château.", false);
             Add("cierges", "Rallumer les quatre cierges", "Dans la chapelle : approche ta torche de chaque cierge (E).", false);
             Add("crypte", "Descendre derrière l'autel", "Le mur s'est ouvert. Quelque chose attend en bas.", false);
@@ -52,9 +56,8 @@ namespace Fief
             Add("bete", "La Bête de l'ossuaire", "Sous les caves. Elle charge tout droit : esquive, qu'elle se brise sur un mur, puis frappe.", true);
             Add("reliques", "Trois reliques", "Chacune fait durer ta torche.", true);
             Add("sacristie", "La sacristie verrouillée", "À gauche du vestibule. Crochète-la.", true);
-            Add("secret", "Le rayon qui sonne creux", "Un livre, dans la bibliothèque, n'est pas comme les autres.", true);
-            Show("survivants");
-            Show("sacristie");
+            Add("secrets", "Les passages secrets", "Mathilde a parlé d'anneaux, au mur sud des cuisines.", true);
+            Show("cuisiniere");
         }
 
         static void Add(string id, string title, string detail, bool optional)
@@ -87,6 +90,8 @@ namespace Fief
             ChangedAt = Time.unscaledTime;
         }
 
+        public static bool IsDone(string id) { Quest q = Find(id); return q != null && q.done; }
+
         public static void SetDetail(string id, string detail) { Quest q = Find(id); if (q != null) q.detail = detail; }
 
         /// <summary>La quete principale en cours (la premiere montree et pas finie).</summary>
@@ -110,6 +115,8 @@ namespace Fief
     /// </summary>
     public static class NightUI
     {
+        /// <summary>(22/11) La luminosite (0 a 1), reglee dans le menu et la pause ; gardee d'une partie a l'autre.</summary>
+        public static float Brightness = 0.35f;
         public static bool MenuOpen;
         public static bool PauseOpen;
         public static bool BookOpen;
@@ -122,11 +129,12 @@ namespace Fief
         static Texture2D parchment;
         static GUIStyle title, body, small, item, label;
         static int pick;
-        static readonly string[] MenuItems = { "Entrer dans la nuit", "Commandes", "Quitter" };
-        static readonly string[] PauseItems = { "Reprendre", "Le carnet", "Commandes", "Quitter le jeu" };
+        static readonly string[] MenuItems = { "Entrer dans la nuit", "Luminosité", "Commandes", "Quitter" };
+        static readonly string[] PauseItems = { "Reprendre", "Le carnet", "Luminosité", "Commandes", "Quitter le jeu" };
 
         public static void Reset()
         {
+            Brightness = PlayerPrefs.GetFloat("fief.nuit.luminosite", 0.35f);
             MenuOpen = PauseOpen = BookOpen = HelpOpen = false;
             StartRequested = false;
             pick = 0;
@@ -175,6 +183,7 @@ namespace Fief
                     if (FiefInput.ArrowUpPressed || FiefInput.UpPressed) pick = (pick + MenuItems.Length - 1) % MenuItems.Length;
                     if (FiefInput.ArrowDownPressed || FiefInput.DownPressed) pick = (pick + 1) % MenuItems.Length;
                     if (FiefInput.ConfirmPressed || FiefInput.JumpPressed) return Choose(MenuItems[pick]);
+                    if (MenuItems[pick] == "Luminosité") Bright();
                 }
             }
             else if (PauseOpen)
@@ -186,6 +195,7 @@ namespace Fief
                     if (FiefInput.ArrowUpPressed || FiefInput.UpPressed) pick = (pick + PauseItems.Length - 1) % PauseItems.Length;
                     if (FiefInput.ArrowDownPressed || FiefInput.DownPressed) pick = (pick + 1) % PauseItems.Length;
                     if (FiefInput.ConfirmPressed || FiefInput.JumpPressed) return Choose(PauseItems[pick]);
+                    if (PauseItems[pick] == "Luminosité") Bright();
                 }
             }
             else if (BookOpen)
@@ -204,6 +214,17 @@ namespace Fief
             return false;
         }
 
+        /// <summary>Gauche / droite : moins ou plus de lumiere (un clic sur la ligne : un cran de plus, en boucle).</summary>
+        static void Bright()
+        {
+            float step = 0f;
+            if (FiefInput.LeftPressed) step = -0.1f;
+            if (FiefInput.RightPressed) step = 0.1f;
+            if (step == 0f) return;
+            Brightness = Mathf.Clamp01(Brightness + step);
+            PlayerPrefs.SetFloat("fief.nuit.luminosite", Brightness);
+        }
+
         static bool BookKey() { return FiefInput.Pressed(KeyCode.Tab) || FiefInput.Pressed(KeyCode.M) || FiefInput.Pressed(KeyCode.I); }
 
         static void Close() { PauseOpen = false; BookOpen = false; HelpOpen = false; Time.timeScale = 1f; }
@@ -215,6 +236,10 @@ namespace Fief
             {
                 case "Entrer dans la nuit": MenuOpen = false; StartRequested = true; return false;
                 case "Commandes": HelpOpen = true; return false;
+                case "Luminosité":
+                    Brightness = Brightness >= 0.95f ? 0f : Mathf.Clamp01(Brightness + 0.1f);
+                    PlayerPrefs.SetFloat("fief.nuit.luminosite", Brightness);
+                    return false;
                 case "Reprendre": Close(); return false;
                 case "Le carnet": PauseOpen = false; BookOpen = true; return false;
                 default: return true;      // quitter
@@ -345,7 +370,7 @@ namespace Fief
             NightFont.Label(new Rect(x, y, w * 0.45f, h * 0.025f), pulse > 0f ? "NOUVELLE QUÊTE" : "QUÊTE", head);
             if (q == null) { GUI.color = Color.white; return; }
             string name = q.title;
-            if (q.id == "survivants") name += "   " + Journal.Rescued + " / 3";
+
             GUIStyle t = new GUIStyle(body);
             t.alignment = TextAnchor.UpperLeft;
             t.fontSize = Mathf.RoundToInt(h * 0.031f);
@@ -368,7 +393,7 @@ namespace Fief
             side.normal.textColor = new Color(0.62f, 0.6f, 0.68f);
             foreach (Journal.Quest o in Journal.Quests)
             {
-                if (!o.optional || !o.shown || o.done || shown >= 2) continue;
+                if (!o.optional || !o.shown || o.done || shown >= 1) continue;
                 string n = "·  " + o.title + (o.id == "reliques" ? "  " + Mathf.Min(Journal.Relics, 3) + "/3" : "");
                 NightFont.Label(new Rect(x, yy, w * 0.45f, h * 0.026f), n, side);
                 yy += h * 0.026f;
@@ -473,7 +498,13 @@ namespace Fief
                 GUIStyle s = new GUIStyle(body);
                 bool on = i == pick;
                 s.normal.textColor = on ? new Color(1f, 0.82f, 0.45f) : new Color(0.7f, 0.65f, 0.56f);
-                NightFont.Label(r, on ? "—   " + items[i] + "   —" : items[i], s);
+                string word = items[i];
+                if (word == "Luminosité")
+                {
+                    int lit = Mathf.RoundToInt(Brightness * 10f);
+                    word = "Luminosité   ‹ " + new string('|', lit) + new string('.', 10 - lit) + " ›";
+                }
+                NightFont.Label(r, on ? "—   " + word + "   —" : word, s);
             }
             return false;
         }
@@ -557,15 +588,17 @@ namespace Fief
                 if (!q.shown) continue;
                 string name = (q.done ? "✓ " : q.optional ? "· " : "† ") + q.title;
                 if (q.id == "reliques") name += "  (" + Mathf.Min(Journal.Relics, 3) + "/3)";
-                if (q.id == "survivants") name += "  (" + Journal.Rescued + "/3)";
+
                 GUIStyle s = new GUIStyle(item);
                 s.normal.textColor = q.done ? new Color(0.35f, 0.3f, 0.25f, 0.7f) : q.optional ? new Color(0.25f, 0.22f, 0.4f) : new Color(0.3f, 0.12f, 0.06f);
                 GUI.Label(new Rect(x, y, ww, right.height * 0.045f), name, s);
                 y += right.height * 0.045f;
                 if (!q.done)
                 {
-                    GUI.Label(new Rect(x + ww * 0.05f, y, ww * 0.95f, right.height * 0.06f), q.detail, small);
-                    y += right.height * 0.06f;
+                    // (22/11) La hauteur du detail se calcule : avant, une deuxieme ligne etait coupee.
+                    float dh = small.CalcHeight(new GUIContent(q.detail), ww * 0.95f) + 2f;
+                    GUI.Label(new Rect(x + ww * 0.05f, y, ww * 0.95f, dh), q.detail, small);
+                    y += dh;
                 }
                 y += right.height * 0.01f;
             }
@@ -590,11 +623,13 @@ namespace Fief
 
         static void Item(ref float y, float x, float ww, float ph, string name, string what, char letter, Color ink, ref int n)
         {
-            float s = Mathf.Round(ph * 0.058f);
-            Initial(new Rect(x, y, s, s), letter, ink);
-            GUI.Label(new Rect(x + s * 1.25f, y, ww - s * 1.3f, s * 0.5f), name, item);
-            GUI.Label(new Rect(x + s * 1.25f, y + s * 0.48f, ww - s * 1.3f, s * 0.6f), what, small);
-            y += s * 1.2f;
+            // (22/11) Le nom et sa phrase ont chacun la hauteur de leur police (avant, le nom etait rogne par le haut).
+            float s = Mathf.Round(ph * 0.062f);
+            float nameH = item.CalcHeight(new GUIContent(name), ww) + 2f, whatH = small.CalcHeight(new GUIContent(what), ww - s * 1.3f) + 2f;
+            Initial(new Rect(x, y + 2f, s, s), letter, ink);
+            GUI.Label(new Rect(x + s * 1.25f, y, ww - s * 1.3f, nameH), name, item);
+            GUI.Label(new Rect(x + s * 1.25f, y + nameH - 4f, ww - s * 1.3f, whatH), what, small);
+            y += Mathf.Max(s, nameH + whatH - 4f) + 6f;
             n++;
         }
 

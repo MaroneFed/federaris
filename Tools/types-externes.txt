@@ -187,3 +187,7 @@ SkinnedMeshRenderer
 AudioImporter
 AudioImporterSampleSettings
 AudioClipLoadType
+WaitForSecondsRealtime
+WaitForEndOfFrame
+ScreenCapture
+IEnumerator

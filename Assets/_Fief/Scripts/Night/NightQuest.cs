@@ -36,6 +36,17 @@ namespace Fief
             public Vector3 lidPos;
             public Quaternion lidRot;
             public Light glint;
+            public string secret;          // (22/11) le passage qu'ouvre cette cachette (kind 3)
+        }
+
+        /// <summary>(22/11) Le passage secret que la derniere fouille a ouvert.</summary>
+        public static string LastSecret = "";
+
+        /// <summary>Une cachette qui ouvre un passage secret (un livre qui depasse, une bouteille vide).</summary>
+        public static void AddSecret(Transform body, string key, char room)
+        {
+            Add(body, 3, null, room);
+            if (spots.Count > 0) spots[spots.Count - 1].secret = key;
         }
 
         const float SearchTime = 1.5f;
@@ -78,7 +89,8 @@ namespace Fief
             Dictionary<char, Find> chest = new Dictionary<char, Find>
             {
                 { 'H', Find.Oil }, { 'D', Find.Candles }, { 'A', Find.HolyWater }, { 'S', Find.Candles }, { 'P', Find.Oil },
-                { 'B', Find.Oil }, { 'U', Find.Relic }, { 'W', Find.HolyWater }
+                { 'B', Find.Oil }, { 'U', Find.Relic }, { 'W', Find.HolyWater },
+                { 'Z', Find.Relic }, { 'X', Find.HolyWater }, { 'I', Find.Candles }
             };
             bool lantern = false, eternal = false, yard = false, grave = false, book = false;
             foreach (Spot s in spots)
@@ -126,7 +138,7 @@ namespace Fief
             Spot s = Nearest(p);
             if (s == null) return null;
             return s.kind == 0 ? "E (tenir)  —  ouvrir le coffre" : s.kind == 1 ? "E (tenir)  —  faire glisser la dalle"
-                : s.kind == 3 ? "E (tenir)  —  un livre dépasse du rayon" : "E (tenir)  —  un livre luit entre les autres";
+                : s.kind == 3 ? (s.secret == "IW" ? "E (tenir)  —  une bouteille ne bouge pas comme les autres" : "E (tenir)  —  un livre dépasse du rayon") : "E (tenir)  —  un livre luit entre les autres";
         }
 
         /// <summary>A chaque image. Renvoie true quand une fouille se termine (ce qu'on a trouve : found, ou : where).</summary>
@@ -186,6 +198,7 @@ namespace Fief
             current = null;
             found = near.find;
             where = near.body.position;
+            if (near.secret != null) LastSecret = near.secret;
             if (found == Find.Key) HasKey = true;
             try
             {
